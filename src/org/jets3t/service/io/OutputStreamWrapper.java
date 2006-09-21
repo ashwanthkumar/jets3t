@@ -16,10 +16,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License. 
  */
-package org.jets3t.service.multithread;
+package org.jets3t.service.io;
 
-import java.util.EventListener;
+import java.io.OutputStream;
 
-public interface CancelEventListener extends EventListener {
-	public abstract void cancelTask(Object eventSource);
+/**
+ * Interface used by output streams that wrap other output streams, so that the underlying output
+ * stream can be retrieved.
+ * 
+ * @author James Murty
+ */
+public interface OutputStreamWrapper {
+
+    /**
+     * @return
+     * the underlying input stream wrapped by a class. 
+     */
+    public OutputStream getWrappedOutputStream();
+    
 }
