@@ -256,7 +256,6 @@ public class PluginProxyUtil {
                 result = new ProxyHost(proxyIP, proxyPort);
             }
         } catch (Exception e) { 
-            e.printStackTrace();
             LOG.warn("Sun Plugin 1.4.X proxy detection class not found, " +
                      "will try failover detection, e:"+e);
         }        
