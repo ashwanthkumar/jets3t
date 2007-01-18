@@ -204,7 +204,7 @@ public class PluginProxyUtil {
             throw e;
         } catch (Exception e) {
             LOG.debug("Sun Plugin 1.3.X proxy detection class not " +
-                     "found, will try failover detection", e);
+                     "found, will try failover detection" /*, e*/);
         }        
         return result;
     }
@@ -262,7 +262,7 @@ public class PluginProxyUtil {
             throw e;
         } catch (Exception e) { 
             LOG.debug("Sun Plugin 1.4+ proxy detection class not found, " +
-                     "will try failover detection", e);
+                     "will try failover detection" /*, e*/);
         }        
         return result;
     }
