@@ -2013,7 +2013,9 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             if (userVanityHost != null) {
                 hostAndBucket = userVanityHost;
             } else {
-                hostAndBucket = S3Service.generateS3HostnameForBucket(userBucketName);
+                boolean disableDnsBuckets = false;
+                
+                hostAndBucket = S3Service.generateS3HostnameForBucket(userBucketName, disableDnsBuckets);
                 
                 if (!S3Service.isBucketNameValidDNSName(userBucketName)) {
                     // If bucket name isn't DNS compatible, we must include the bucket

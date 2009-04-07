@@ -251,7 +251,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                         }
                     } else {
                         // Parse XML error message.
-                        ErrorHandler handler = (new CloudFrontXmlResponsesSaxParser())
+                        ErrorHandler handler = (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
                             .parseErrorResponse(httpMethod.getResponseBodyAsStream());
                             
                         CloudFrontServiceException exception = new CloudFrontServiceException(
@@ -303,8 +303,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 HttpMethod httpMethod = new GetMethod(ENDPOINT + VERSION + "/distribution");            
                 performRestRequest(httpMethod, 200);
 
-                ListDistributionListHandler handler = (new CloudFrontXmlResponsesSaxParser())
-                    .parseDistributionListResponse(httpMethod.getResponseBodyAsStream());
+                ListDistributionListHandler handler = 
+                    (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
+                        .parseDistributionListResponse(httpMethod.getResponseBodyAsStream());
                 distributions.addAll(handler.getDistributions());
                 
                 incompleteListing = handler.isTruncated();
@@ -428,8 +429,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
 
             performRestRequest(httpMethod, 201);
 
-            DistributionHandler handler = (new CloudFrontXmlResponsesSaxParser())
-                .parseDistributionResponse(httpMethod.getResponseBodyAsStream());
+            DistributionHandler handler = 
+                (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
+                    .parseDistributionResponse(httpMethod.getResponseBodyAsStream());
             
             return handler.getDistribution();
         } catch (CloudFrontServiceException e) {
@@ -460,8 +462,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         try {
             performRestRequest(httpMethod, 200);
 
-            DistributionHandler handler = (new CloudFrontXmlResponsesSaxParser())
-                .parseDistributionResponse(httpMethod.getResponseBodyAsStream());
+            DistributionHandler handler = 
+                (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
+                    .parseDistributionResponse(httpMethod.getResponseBodyAsStream());
             
             return handler.getDistribution();
         } catch (CloudFrontServiceException e) {
@@ -494,8 +497,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         try {
             performRestRequest(httpMethod, 200);
 
-            DistributionConfigHandler handler = (new CloudFrontXmlResponsesSaxParser())
-                .parseDistributionConfigResponse(httpMethod.getResponseBodyAsStream());
+            DistributionConfigHandler handler = 
+                (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
+                    .parseDistributionConfigResponse(httpMethod.getResponseBodyAsStream());
             
             DistributionConfig config = handler.getDistributionConfig();
             config.setEtag(httpMethod.getResponseHeader("ETag").getValue());            
@@ -573,8 +577,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
 
             performRestRequest(httpMethod, 200);
 
-            DistributionConfigHandler handler = (new CloudFrontXmlResponsesSaxParser())
-                .parseDistributionConfigResponse(httpMethod.getResponseBodyAsStream());
+            DistributionConfigHandler handler = 
+                (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
+                    .parseDistributionConfigResponse(httpMethod.getResponseBodyAsStream());
 
             DistributionConfig config = handler.getDistributionConfig();
             config.setEtag(httpMethod.getResponseHeader("ETag").getValue());            

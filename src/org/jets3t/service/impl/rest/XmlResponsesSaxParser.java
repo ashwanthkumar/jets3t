@@ -91,14 +91,6 @@ public class XmlResponsesSaxParser {
     }
     
     /**
-     * Constructs the XML SAX parser.  
-     * @throws S3ServiceException
-     */
-    public XmlResponsesSaxParser() throws S3ServiceException {
-        this(Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME));
-    }    
-
-    /**
      * Parses an XML document from an input stream using a document handler.
      * @param handler
      *        the handler for the XML document

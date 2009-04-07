@@ -306,24 +306,11 @@ public abstract class S3Service implements Serializable {
      * as part of an S3 sub-domain. If not, the old-style bucket reference URLs must be 
      * used, in which case the bucket name must be the first component of the resource 
      * path.
-     * <p>
-     * If the JetS3tProperties property <code>s3service.disable-dns-buckets</code> is 
-     * set to true in the default configuration file, this method will always 
-     * return false.
      * 
      * @param bucketName
      * the name of the bucket to test for DNS compatibility.
-     * 
      */
-    public static boolean isBucketNameValidDNSName(String bucketName) 
-    {
-        boolean disableDnsBuckets = 
-            Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-                .getBoolProperty("s3service.disable-dns-buckets", false);
-        if (disableDnsBuckets) {
-            return false;
-        }               
-        
+    public static boolean isBucketNameValidDNSName(String bucketName) {
         if (bucketName == null || bucketName.length() > 63 || bucketName.length() < 3) {
             return false;
         }
@@ -353,8 +340,10 @@ public abstract class S3Service implements Serializable {
         return true;
     }
     
-    public static String generateS3HostnameForBucket(String bucketName) {
-        if (isBucketNameValidDNSName(bucketName)) {
+    public static String generateS3HostnameForBucket(String bucketName,
+        boolean isDnsBucketNamingDisabled) 
+    {
+        if (isBucketNameValidDNSName(bucketName) && !isDnsBucketNamingDisabled) {
             return bucketName + "." + Constants.S3_HOSTNAME;
         } else {
             return Constants.S3_HOSTNAME;
@@ -448,6 +437,10 @@ public abstract class S3Service implements Serializable {
      * @param isHttps
      * if true, the signed URL will use the HTTPS protocol. If false, the signed URL will
      * use the HTTP protocol.
+     * @param isDnsBucketNamingDisabled
+     * if true, the signed URL will not use the DNS-name format for buckets eg. 
+     * <tt>jets3t.s3.amazonaws.com</tt>. Unless you have a specific reason to disable 
+     * DNS bucket naming, leave this value false.
      * 
      * @return
      * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
@@ -456,11 +449,14 @@ public abstract class S3Service implements Serializable {
      */
     public static String createSignedUrl(String method, String bucketName, String objectKey, 
         String specialParamName, Map headersMap, AWSCredentials awsCredentials, 
-        long secondsSinceEpoch, boolean isVirtualHost, boolean isHttps) throws S3ServiceException
+        long secondsSinceEpoch, boolean isVirtualHost, boolean isHttps,
+        boolean isDnsBucketNamingDisabled) throws S3ServiceException
     {
         String uriPath = "";
         
-        String hostname = (isVirtualHost? bucketName : generateS3HostnameForBucket(bucketName));
+        String hostname = (isVirtualHost
+            ? bucketName 
+            : generateS3HostnameForBucket(bucketName, isDnsBucketNamingDisabled));
         
         if (headersMap == null) {
             headersMap = new HashMap();
@@ -534,9 +530,10 @@ public abstract class S3Service implements Serializable {
     
     /**
      * Generates a signed URL string that will grant access to an S3 resource (bucket or object)
-     * to whoever uses the URL up until the time specified. The URL will use the HTTP or
-     * HTTPS protocol depending on the value of the <code>s3service.https-only</code> property
-     * in the default jets3t.properties file.
+     * to whoever uses the URL up until the time specified. The URL will use the default
+     * JetS3t property settings in the <tt>jets3t.properties</tt> file to determine whether
+     * to generate HTTP or HTTPS links (<tt>s3service.https-only</tt>), and whether to disable 
+     * DNS bucket naming (<tt>s3service.disable-dns-buckets</tt>).  
      * 
      * @param method
      * the HTTP method to sign, such as GET or PUT (note that S3 does not support POST requests).
@@ -568,14 +565,18 @@ public abstract class S3Service implements Serializable {
      */
     public static String createSignedUrl(String method, String bucketName, String objectKey, 
         String specialParamName, Map headersMap, AWSCredentials awsCredentials, 
-        long secondsSinceEpoch, boolean isVirtualHost) 
-        throws S3ServiceException
+        long secondsSinceEpoch, boolean isVirtualHost) throws S3ServiceException
     {
-        boolean isHttps = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+        Jets3tProperties jets3tProperties = 
+            Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME); 
+        boolean isHttps = jets3tProperties 
             .getBoolProperty("s3service.https-only", true);
+        boolean disableDnsBuckets = jets3tProperties
+            .getBoolProperty("s3service.disable-dns-buckets", false);
 
         return createSignedUrl(method, bucketName, objectKey, specialParamName, 
-            headersMap, awsCredentials, secondsSinceEpoch, isVirtualHost, isHttps);
+            headersMap, awsCredentials, secondsSinceEpoch, isVirtualHost, isHttps,
+            disableDnsBuckets);
     }    
     
     /**
@@ -849,7 +850,7 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public static String createTorrentUrl(String bucketName, String objectKey) {
-        return "http://" + generateS3HostnameForBucket(bucketName) + "/" +
+        return "http://" + generateS3HostnameForBucket(bucketName, true) + "/" +
             (isBucketNameValidDNSName(bucketName) ? "" : bucketName + "/") + objectKey + "?torrent"; 
     }
 

@@ -28,7 +28,6 @@ import java.util.Random;
 import org.apache.commons.httpclient.methods.RequestEntity;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.io.InputStreamWrapper;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
@@ -78,7 +77,10 @@ public class RepeatableRequestEntity implements RequestEntity {
      * If the input stream provided, or any underlying wrapped input streams, supports the 
      * {@link InputStream#reset()} method then it will be capable of repeating data
      * transmission. If the input stream provided does not supports this method, it will
-     * automatically be wrapped in a {@link RepeatableInputStream}.
+     * automatically be wrapped in a {@link RepeatableInputStream} -- in this case, the data 
+     * read from the wrapped input stream will be buffered up to the limit set by the JetS3t 
+     * property <tt>s3service.stream-retry-buffer-size</tt> (default: 131072 bytes).
+     * 
      * <p>
      * This constructor also detects when an underlying {@link ProgressMonitoredInputStream} is
      * present, and will notify this monitor if a repeat occurs.
@@ -129,44 +131,16 @@ public class RepeatableRequestEntity implements RequestEntity {
         	if (log.isDebugEnabled()) {
         		log.debug("Wrapping non-repeatable input stream in a RepeatableInputStream");
         	}
-            this.is = new RepeatableInputStream(is);
+            int bufferSize = jets3tProperties.getIntProperty(
+                "s3service.stream-retry-buffer-size", 131072);
+            this.is = new RepeatableInputStream(is, bufferSize);
+            
             this.repeatableInputStream = this.is;
         }
 
         MAX_BYTES_PER_SECOND = 1024 * jets3tProperties.getLongProperty("httpclient.read-throttle", 0);
     }
     
-    /**
-     * Creates a repeatable request entity for the input stream provided.
-     * <p>
-     * If the input stream provided, or any underlying wrapped input streams, supports the 
-     * {@link InputStream#reset()} method then it will be capable of repeating data
-     * transmission. If the input stream provided does not supports this method, it will
-     * automatically be wrapped in a {@link RepeatableInputStream}.
-     * <p>
-     * This constructor also detects when an underlying {@link ProgressMonitoredInputStream} is
-     * present, and will notify this monitor if a repeat occurs.
-     * <p>
-     * If the JetS3t properties option <code>httpclient.read-throttle</code> is set to a 
-     * non-zero value, all simultaneous uploads performed by this class will be throttled
-     * to the specified speed. 
-     * 
-     * 
-     * @param is
-     * @param contentType
-     * @param contentLength
-     * @param enableLiveMD5Hashing
-     * if true, data that passes through the object will be hashed to an MD5 digest
-     * and this digest will be available from {@link #getMD5DigestOfData()}. If false,
-     * the digest will not be calculated.
-     */
-    public RepeatableRequestEntity(String name, InputStream is, String contentType, 
-        long contentLength, boolean enableLiveMD5Hashing) 
-    {
-        this(name, is, contentType, contentLength, 
-            Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME),
-            enableLiveMD5Hashing);
-    }
     
     public long getContentLength() {
       return contentLength;

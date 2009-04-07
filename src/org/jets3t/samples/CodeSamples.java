@@ -713,13 +713,15 @@ public class CodeSamples {
         long expirySecsAfterEpoch = System.currentTimeMillis() / 1000 + 300;
         boolean isVirtualHost = false;
         boolean isHttpsUrl = false;
+        boolean isDnsBucketNamingDisabled = false;
         
         String requesterPaysSignedGetUrl = 
             S3Service.createSignedUrl("GET", bucketName, "object-name", 
                 Constants.REQUESTER_PAYS_BUCKET_FLAG, // Include Requester Pays flag  
                 httpHeaders,
                 awsCredentials, expirySecsAfterEpoch, 
-                isVirtualHost, isHttpsUrl);
+                isVirtualHost, isHttpsUrl,
+                isDnsBucketNamingDisabled);
         
         /*
          * Accessing Amazon DevPay S3 accounts

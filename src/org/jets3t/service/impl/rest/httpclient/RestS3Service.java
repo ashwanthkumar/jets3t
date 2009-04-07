@@ -849,7 +849,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             throw new S3ServiceException("Cannot connect to S3 Service with a null path");
         }
 
-        String hostname = generateS3HostnameForBucket(bucketName);
+        boolean disableDnsBuckets = jets3tProperties
+            .getBoolProperty("s3service.disable-dns-buckets", false);
+        String hostname = generateS3HostnameForBucket(bucketName, disableDnsBuckets);
         
         // Allow for non-standard virtual directory paths on the server-side
         String virtualPath = this.jets3tProperties.getStringProperty(
@@ -1036,8 +1038,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                 contentType);
         }
 
-        S3Bucket[] buckets = (new XmlResponsesSaxParser()).parseListMyBucketsResponse(
-            new HttpMethodReleaseInputStream(httpMethod)).getBuckets();
+        S3Bucket[] buckets = (new XmlResponsesSaxParser(this.jets3tProperties))
+            .parseListMyBucketsResponse(
+                new HttpMethodReleaseInputStream(httpMethod)).getBuckets();
         return buckets;
     }
     
@@ -1056,8 +1059,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                 contentType);
         }
 
-        S3Owner owner = (new XmlResponsesSaxParser()).parseListMyBucketsResponse(
-            new HttpMethodReleaseInputStream(httpMethod)).getOwner();
+        S3Owner owner = (new XmlResponsesSaxParser(this.jets3tProperties))
+            .parseListMyBucketsResponse(
+                new HttpMethodReleaseInputStream(httpMethod)).getOwner();
         return owner;        
     }
 
@@ -1106,7 +1110,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             ListBucketHandler listBucketHandler = null;
             
             try {
-                listBucketHandler = (new XmlResponsesSaxParser())
+                listBucketHandler = (new XmlResponsesSaxParser(this.jets3tProperties))
                     .parseListBucketObjectsResponse(
                         new HttpMethodReleaseInputStream(httpMethod));
                 ioErrorRetryCount = 0;
@@ -1179,8 +1183,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         requestParameters.put("acl","");
 
         HttpMethodBase httpMethod = performRestGet(bucketName, objectKey, requestParameters, null);
-        return (new XmlResponsesSaxParser()).parseAccessControlListResponse(
-            new HttpMethodReleaseInputStream(httpMethod)).getAccessControlList();
+        return (new XmlResponsesSaxParser(this.jets3tProperties))
+            .parseAccessControlListResponse(
+                new HttpMethodReleaseInputStream(httpMethod)).getAccessControlList();
     }
     
     protected AccessControlList getBucketAclImpl(String bucketName) throws S3ServiceException {
@@ -1192,8 +1197,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         requestParameters.put("acl","");
 
         HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
-        return (new XmlResponsesSaxParser()).parseAccessControlListResponse(
-            new HttpMethodReleaseInputStream(httpMethod)).getAccessControlList();
+        return (new XmlResponsesSaxParser(this.jets3tProperties))
+            .parseAccessControlListResponse(
+                new HttpMethodReleaseInputStream(httpMethod)).getAccessControlList();
     }
 
     protected void putObjectAclImpl(String bucketName, String objectKey, AccessControlList acl) 
@@ -1478,7 +1484,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         HttpMethodAndByteCount methodAndByteCount = performRestPut(
             destinationBucketName, destinationObjectKey, metadata, null, null, false);
         
-        CopyObjectResultHandler handler = (new XmlResponsesSaxParser()).parseCopyObjectResponse(
+        CopyObjectResultHandler handler = (new XmlResponsesSaxParser(this.jets3tProperties))
+            .parseCopyObjectResponse(
                 new HttpMethodReleaseInputStream(methodAndByteCount.getHttpMethod()));
         
         // Release HTTP connection manually. This should already have been done by the
@@ -1618,8 +1625,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         requestParameters.put("location","");
     
         HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
-        return (new XmlResponsesSaxParser()).parseBucketLocationResponse(
-            new HttpMethodReleaseInputStream(httpMethod));        
+        return (new XmlResponsesSaxParser(this.jets3tProperties))
+            .parseBucketLocationResponse(
+                new HttpMethodReleaseInputStream(httpMethod));        
     }
 
     protected S3BucketLoggingStatus getBucketLoggingStatusImpl(String bucketName) 
@@ -1633,8 +1641,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         requestParameters.put("logging","");
 
         HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
-        return (new XmlResponsesSaxParser()).parseLoggingStatusResponse(
-            new HttpMethodReleaseInputStream(httpMethod)).getBucketLoggingStatus();        
+        return (new XmlResponsesSaxParser(this.jets3tProperties))
+            .parseLoggingStatusResponse(
+                new HttpMethodReleaseInputStream(httpMethod)).getBucketLoggingStatus();        
     }
 
     protected void setBucketLoggingStatusImpl(String bucketName, S3BucketLoggingStatus status) 
@@ -1672,8 +1681,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         requestParameters.put("requestPayment","");
 
         HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
-        return (new XmlResponsesSaxParser()).parseRequestPaymentConfigurationResponse(
-            new HttpMethodReleaseInputStream(httpMethod));        
+        return (new XmlResponsesSaxParser(this.jets3tProperties))
+            .parseRequestPaymentConfigurationResponse(
+                new HttpMethodReleaseInputStream(httpMethod));        
     }
 
     protected void setRequesterPaysBucketImpl(String bucketName, boolean requesterPays) throws S3ServiceException {
@@ -1888,8 +1898,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         requestParameters.put("acl","");
 
 	    performRequest(httpMethod, 200);
-        return (new XmlResponsesSaxParser()).parseAccessControlListResponse(
-            new HttpMethodReleaseInputStream(httpMethod)).getAccessControlList();
+        return (new XmlResponsesSaxParser(this.jets3tProperties))
+            .parseAccessControlListResponse(
+                new HttpMethodReleaseInputStream(httpMethod)).getAccessControlList();
 	}    
     
     /**
