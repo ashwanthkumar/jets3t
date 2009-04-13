@@ -19,6 +19,7 @@
 package org.jets3t.service.utils.gatekeeper;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -28,6 +29,7 @@ import java.util.StringTokenizer;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.jets3t.service.utils.ServiceUtils;
 
 /**
  * Represents a set of properties that will be sent to or received from a Gatekeeper service as
@@ -184,10 +186,14 @@ public class GatekeeperMessage {
 
     private void encodeProperty(Properties properties, String propertyName, Object value) {
         if (value != null) {
-            if (log.isDebugEnabled()) {
-                log.debug("Encoding property: " + propertyName + "=" + value);
+            if (value instanceof Date) {
+            	properties.put(propertyName, ServiceUtils.formatIso8601Date((Date)value));
+            } else {
+            	properties.put(propertyName, value.toString());
             }
-            properties.put(propertyName, value.toString());
+            if (log.isDebugEnabled()) {
+                log.debug("Encoded property: " + propertyName + "=" + properties.getProperty(propertyName));
+            }
         }        
     }
         

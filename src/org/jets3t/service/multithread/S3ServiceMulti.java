@@ -972,8 +972,10 @@ public class S3ServiceMulti implements Serializable {
         DownloadObjectRunnable[] runnables = new DownloadObjectRunnable[downloadPackages.length];
         final S3Object[] objects = new S3Object[downloadPackages.length];
         for (int i = 0; i < runnables.length; i++) {
-            if (downloadPackages[i].isSignedDownload()) {
-                // For signed URL downloads, we create a surrogate S3Object purely for monitoring purposes.
+            if (downloadPackages[i].getObject() == null) {
+                // For signed URL downloads without corresponding object information, we create 
+            	// a surrogate S3Object containing nothing but the object's key name. 
+            	// This will allow the download to work, but total download size will not be known.
                 try {
                     URL url = new URL(downloadPackages[i].getSignedUrl());            
                     objects[i] = ServiceUtils.buildObjectFromUrl(url.getHost(), url.getPath());

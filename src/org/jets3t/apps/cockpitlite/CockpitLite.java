@@ -159,7 +159,7 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
 public class CockpitLite extends JApplet implements S3ServiceEventListener, ActionListener, 
     ListSelectionListener, HyperlinkActivatedListener, CredentialsProvider {
     
-	private static final long serialVersionUID = -7364615840178780994L;
+	private static final long serialVersionUID = 1809061443801912000L;
 
 	private static final Log log = LogFactory.getLog(CockpitLite.class);
     
@@ -195,6 +195,8 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      * Stores the active ProgressPanel objects that track event progress.
      */
     private Map progressPanelMap = new HashMap();
+    
+    private Object lock = new Object();
     
     /**
      * Multi-threaded S3 service used by the application.
@@ -782,7 +784,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     }
     
     
-    protected synchronized void startProgressPanel(Object operationId, String statusMessage, 
+    protected void startProgressPanel(Object operationId, String statusMessage, 
         int maxCount, CancelEventTrigger cancelEventTrigger) 
     {
         // Create new progress panel.
@@ -804,7 +806,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
          });
     }
     
-    protected synchronized void updateProgressPanel(Object operationId, final String statusMessage, 
+    protected void updateProgressPanel(Object operationId, final String statusMessage, 
         final int currentCount) 
     {
         // Retrieve progress panel.
@@ -819,7 +821,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         }
     }
     
-    protected synchronized void stopProgressPanel(Object operationId) {
+    protected void stopProgressPanel(Object operationId) {
         // Retrieve progress panel.
         final ProgressPanel progressPanel = (ProgressPanel) progressPanelMap.get(operationId);
         
@@ -2172,7 +2174,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             // Store detail-complete objects in table.
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
-                    synchronized (s3ServiceMulti) {
+                    synchronized (lock) {
                         // Retain selected status of objects for downloads or properties
                         for (int i = 0; i < event.getCompletedObjects().length; i++) {
                             S3Object object = event.getCompletedObjects()[i];
@@ -2207,7 +2209,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             // Stop GetObjectHead progress display.
             stopProgressDialog();        
             
-            synchronized (s3ServiceMulti) {
+            synchronized (lock) {
                 if (isDownloadingObjects) {
                     compareRemoteAndLocalFiles(filesAlreadyInDownloadDirectoryMap, s3DownloadObjectsMap, false);
                     isDownloadingObjects = false;
