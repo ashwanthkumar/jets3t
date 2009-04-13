@@ -80,6 +80,9 @@
 	
 	<security-role>
 	  <role-name>gatekeeper</role-name>
+	</security-role>
+
+	<security-role>
 	  <role-name>gatekeeper-admin</role-name>
 	</security-role>
 	-->	
