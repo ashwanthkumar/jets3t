@@ -148,7 +148,11 @@ public class ProgressDialog extends JDialog implements ActionListener {
             cancelButton.setEnabled(false);
             
             if (cancelEventTrigger != null) {
-                cancelEventTrigger.cancelTask(this);
+                (new Thread(new Runnable() {
+                    public void run() {
+                        cancelEventTrigger.cancelTask(this);                    
+                    }
+                })).start();
             }
         }
     }
