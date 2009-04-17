@@ -1194,7 +1194,7 @@ public abstract class S3Service implements Serializable {
     }
 
     /**
-     * Lists the objects in a bucket matching a prefix.
+     * Lists the objects in a bucket matching a prefix and delimiter.
      * <p>
      * The objects returned by this method contain only minimal information
      * such as the object's size, ETag, and LastModified timestamp. To retrieve
@@ -1203,6 +1203,11 @@ public abstract class S3Service implements Serializable {
      * <p>
      * This method can be performed by anonymous services. Anonymous services 
      * can only list the objects in a publicly-readable bucket.
+     * <p>
+     * NOTE: If you supply a delimiter value that could cause CommonPrefixes 
+     * ("subdirectory paths") to be included in the results from S3, use the
+     * {@link #listObjectsChunked(String, String, String, long, String, boolean)}
+     * method instead of this one to obtain both object and CommonPrefix values.
      * 
      * @param bucket
      * the bucket whose contents will be listed. 
@@ -1210,7 +1215,8 @@ public abstract class S3Service implements Serializable {
      * @param prefix
      * only objects with a key that starts with this prefix will be listed
      * @param delimiter
-     * only list objects with key names up to this delimiter, may be null.
+     * only list objects with key names up to this delimiter, may be null. 
+     * See note above.
      * <b>Note</b>: If a non-null delimiter is specified, the prefix must include enough text to
      * reach the first occurrence of the delimiter in the bucket's keys, or no results will be returned.
      * @return
@@ -1362,8 +1368,10 @@ public abstract class S3Service implements Serializable {
     }
 
     /**
-     * Lists the objects in a bucket matching a prefix, chunking the results into batches of
-     * a given size. 
+     * Lists the objects in a bucket matching a prefix, while instructing S3 to 
+     * send response messages containing no more than a given number of object
+     * results. 
+     * 
      * <p>
      * The objects returned by this method contain only minimal information
      * such as the object's size, ETag, and LastModified timestamp. To retrieve
@@ -1372,14 +1380,25 @@ public abstract class S3Service implements Serializable {
      * <p>
      * This method can be performed by anonymous services. Anonymous services 
      * can list the contents of a publicly-readable bucket.
+     * <p>
+     * NOTE: If you supply a delimiter value that could cause CommonPrefixes 
+     * ("subdirectory paths") to be included in the results from S3, use the
+     * {@link #listObjectsChunked(String, String, String, long, String, boolean)}
+     * method instead of this one to obtain both object and CommonPrefix values.
      * 
      * @param bucket
      * the bucket whose contents will be listed. 
      * This must be a valid S3Bucket object that is non-null and contains a name.
      * @param prefix
      * only objects with a key that starts with this prefix will be listed
+     * @param delimiter
+     * only list objects with key names up to this delimiter, may be null. 
+     * See note above.
      * @param maxListingLength
-     * the maximum number of objects to include in each result chunk
+     * the maximum number of objects to include in each result message sent by
+     * S3. This value has <strong>no effect</strong> on the number of objects
+     * that will be returned by this method, because it will always return all 
+     * the objects in the bucket.
      * @return
      * the set of objects contained in a bucket whose keys start with the given prefix.
      * @throws S3ServiceException
@@ -1392,8 +1411,9 @@ public abstract class S3Service implements Serializable {
     }
 
     /**
-     * Lists the objects in a bucket matching a prefix, chunking the results into batches of
-     * a given size. 
+     * Lists the objects in a bucket matching a prefix, while instructing S3 to 
+     * send response messages containing no more than a given number of object
+     * results. 
      * <p>
      * The objects returned by this method contain only minimal information
      * such as the object's size, ETag, and LastModified timestamp. To retrieve
@@ -1402,13 +1422,24 @@ public abstract class S3Service implements Serializable {
      * <p>
      * This method can be performed by anonymous services. Anonymous services 
      * can list the contents of a publicly-readable bucket.
+     * <p>
+     * NOTE: If you supply a delimiter value that could cause CommonPrefixes 
+     * ("subdirectory paths") to be included in the results from S3, use the
+     * {@link #listObjectsChunked(String, String, String, long, String, boolean)}
+     * method instead of this one to obtain both object and CommonPrefix values.
      * 
      * @param bucketName
      * the name of the the bucket whose contents will be listed. 
      * @param prefix
      * only objects with a key that starts with this prefix will be listed
+     * @param delimiter
+     * only list objects with key names up to this delimiter, may be null. 
+     * See note above.
      * @param maxListingLength
-     * the maximum number of objects to include in each result chunk
+     * the maximum number of objects to include in each result message sent by
+     * S3. This value has <strong>no effect</strong> on the number of objects
+     * that will be returned by this method, because it will always return all 
+     * the objects in the bucket.
      * @return
      * the set of objects contained in a bucket whose keys start with the given prefix.
      * @throws S3ServiceException
