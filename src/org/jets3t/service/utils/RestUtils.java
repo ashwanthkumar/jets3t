@@ -285,11 +285,20 @@ public class RestUtils {
             getBoolProperty("httpclient.stale-checking-enabled", true));
 
         // Set the maximum connections per host for the HTTP connection manager,
-        // *and* also set the maximum number of total connections (new in 0.7.1)
-        connectionParams.setMaxConnectionsPerHost(HostConfiguration.ANY_HOST_CONFIGURATION,
-            jets3tProperties.getIntProperty("httpclient.max-connections", 4));
-        connectionParams.setMaxTotalConnections(
-            jets3tProperties.getIntProperty("httpclient.max-connections", 4));
+        // *and* also set the maximum number of total connections (new in 0.7.1).
+        // The max connections per host setting is made the same value as the max
+        // global connections if there is no per-host property.
+        int maxConnections = 
+        	jets3tProperties.getIntProperty("httpclient.max-connections", 4);
+        int maxConnectionsPerHost = 
+        	jets3tProperties.getIntProperty("httpclient.max-connections-per-host", 0);
+        if (maxConnectionsPerHost == 0) {
+        	maxConnectionsPerHost = maxConnections;
+        }
+        
+        connectionParams.setMaxConnectionsPerHost(
+    		HostConfiguration.ANY_HOST_CONFIGURATION, maxConnectionsPerHost);
+        connectionParams.setMaxTotalConnections(maxConnections);
                 
         // Connection properties to take advantage of S3 window scaling.
         if (jets3tProperties.containsKey("httpclient.socket-receive-buffer")) {

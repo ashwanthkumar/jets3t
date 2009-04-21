@@ -25,9 +25,9 @@ TOOLKIT
 
 - Fixed a configuration error that caused the REST implementation to be limited
   to 20 simultaneous connections, regardless of the "httpclient.max-connections" 
-  property setting. Now the HttpClient connection manager settings 
-  "max-per-host" and "max-total" are both set according to the JetS3t property
-  "httpclient.max-connections".
+  property setting. Now the JetS3t property "httpclient.max-connections" sets
+  the global connection limit, while the optional property 
+  "httpclient.max-connections-per-host" sets the per-host connection limit.
 
 KUDOS TO:
 
