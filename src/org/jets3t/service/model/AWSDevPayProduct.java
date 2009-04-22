@@ -85,7 +85,7 @@ public class AWSDevPayProduct implements Serializable, Comparable {
      * @return the Vector of <code>AWSDevPayProduct</code>s
      */
     public static Vector load() throws IOException {
-        InputStream pin = (new AWSDevPayProduct(null)).getClass().getResourceAsStream("/" + Constants.DEVPAY_PRODUCTS_PROPERTIES_FILENAME);
+        InputStream pin = AWSDevPayProduct.class.getResourceAsStream("/" + Constants.DEVPAY_PRODUCTS_PROPERTIES_FILENAME);
         Vector ret = new Vector();
         if (pin != null) {
             try {

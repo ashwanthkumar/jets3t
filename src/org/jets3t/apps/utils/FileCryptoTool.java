@@ -86,6 +86,8 @@ public class FileCryptoTool {
                     .getConstructor(new Class[] {}).newInstance(new Object[] {});                        
                 Security.addProvider(bouncyCastleProvider);
             }
+        } catch (RuntimeException e) {
+        	throw e;
         } catch (Exception e) {
             System.err.println("Unable to load security provider BouncyCastleProvider");            
         }
@@ -131,15 +133,22 @@ public class FileCryptoTool {
     }
     
     protected void transferFileData(File inputFile, File outputFile, Cipher cipher) throws IOException {
-        InputStream is = new CipherInputStream(new BufferedInputStream(new FileInputStream(inputFile)), cipher);
-        OutputStream os = new BufferedOutputStream(new FileOutputStream(outputFile));
-        byte[] buffer = new byte[16384];
-        int read = -1;
-        while ((read = is.read(buffer)) != -1) {
-            os.write(buffer, 0, read);
+        InputStream is = null;
+        OutputStream os = null;
+        try {
+	        os = new BufferedOutputStream(new FileOutputStream(outputFile));
+	        is = new CipherInputStream(new BufferedInputStream(new FileInputStream(inputFile)), cipher);
+	        byte[] buffer = new byte[16384];
+	        int read = -1;
+	        while ((read = is.read(buffer)) != -1) {
+	            os.write(buffer, 0, read);
+	        }
+        } finally {
+        	if (os != null)
+        		os.close();
+        	if (is != null)
+        		is.close();
         }
-        os.close();
-        is.close();        
     }
     
     protected void initGui(final JFrame frame) {
@@ -234,6 +243,8 @@ public class FileCryptoTool {
                                 + " to: \n'" + outputFile.getAbsolutePath() + "'");                            
                         }
                     }
+                } catch (RuntimeException e) {
+                	throw e;
                 } catch (Exception e) {
                     JOptionPane.showMessageDialog(frame, "ERROR: " + e.getMessage());                    
                 }

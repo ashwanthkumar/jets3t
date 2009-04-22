@@ -169,9 +169,14 @@ public class AWSCredentials implements Serializable {
         IllegalStateException, IllegalBlockSizeException, BadPaddingException,
         InvalidAlgorithmParameterException, IOException
     {
-        FileOutputStream fos = new FileOutputStream(file);
-        save(password, fos, algorithm);
-        fos.close();
+        FileOutputStream fos = null;
+        try {
+	        fos = new FileOutputStream(file);
+	        save(password, fos, algorithm);
+        } finally {
+        	if (fos != null)
+                fos.close();
+        }
     }
 
     /**

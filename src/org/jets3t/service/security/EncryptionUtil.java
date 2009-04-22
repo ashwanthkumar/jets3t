@@ -95,6 +95,8 @@ public class EncryptionUtil {
             if (log.isDebugEnabled()) {
             	log.debug("Loaded security provider BouncyCastleProvider");
             }
+        } catch (RuntimeException e) {
+        	throw e;
         } catch (Exception e) {
         	if (log.isDebugEnabled()) {
         		log.debug("Unable to load security provider BouncyCastleProvider");            
@@ -557,6 +559,8 @@ public class EncryptionUtil {
             EncryptionUtil encryptionUtil = 
                 new EncryptionUtil("Sample Key", cipher, EncryptionUtil.DEFAULT_VERSION);
             encryptionUtil.encrypt("Testing encryption...");
+        } catch (RuntimeException e) {
+        	throw e;
         } catch (Exception e) {
         	if (log.isDebugEnabled()) {
         		log.debug("Availability test failed for encryption cipher " + cipher);

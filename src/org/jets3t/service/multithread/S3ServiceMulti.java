@@ -979,6 +979,8 @@ public class S3ServiceMulti implements Serializable {
                 try {
                     URL url = new URL(downloadPackages[i].getSignedUrl());            
                     objects[i] = ServiceUtils.buildObjectFromUrl(url.getHost(), url.getPath());
+                } catch (RuntimeException e) {
+                	throw e;
                 } catch (Exception e) {
                     throw new S3ServiceException("Unable to determine S3 Object key name from signed URL: " + 
                         downloadPackages[i].getSignedUrl());

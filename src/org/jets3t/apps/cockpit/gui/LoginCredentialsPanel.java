@@ -194,7 +194,7 @@ public class LoginCredentialsPanel extends JPanel implements ItemListener {
      * the AWS Secret Key provided by the user.
      */
     public String getAWSUserToken() {
-        return new String(awsUserTokenTextField.getText().trim());
+        return awsUserTokenTextField.getText().trim();
     }
     
     /**

@@ -852,15 +852,20 @@ public class FileComparer {
                         && computedHashFile.canRead()
                         && computedHashFile.lastModified() > file.lastModified())
                     {
+                    	BufferedReader br = null;
                         try {
                             // A pre-computed MD5 hash file is available, try to read this hash value
-                            BufferedReader br = new BufferedReader(new FileReader(computedHashFile));
+                            br = new BufferedReader(new FileReader(computedHashFile));
                             computedHash = ServiceUtils.fromHex(br.readLine().split("\\s")[0]);
-                            br.close();
+                        } catch (RuntimeException e) {
+                        	throw e;
                         } catch (Exception e) {
                         	if (log.isWarnEnabled()) {
                         		log.warn("Unable to read hash from computed MD5 file", e);
                         	}
+                        } finally {
+                        	if (br != null)
+                        		br.close();
                         }
                     }
                     
@@ -884,14 +889,17 @@ public class FileComparer {
                         || computedHashFile.lastModified() < file.lastModified()))
                     {
                         // Create or update a pre-computed MD5 hash file.
+                    	FileWriter fw = null;
                         try {
-                            FileWriter fw = new FileWriter(computedHashFile);                            
+                            fw = new FileWriter(computedHashFile);                            
                             fw.write(ServiceUtils.toHex(computedHash));
-                            fw.close();
                         } catch (Exception e) {
                         	if (log.isWarnEnabled()) {
                         		log.warn("Unable to write computed MD5 hash to a file", e);
                         	}
+                        } finally {
+                        	if (fw != null)
+                                fw.close();
                         }
                     }
                     

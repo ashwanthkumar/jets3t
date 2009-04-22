@@ -113,9 +113,9 @@ public class AWSDevPayProductPanel extends JPanel {
      */
     public String getAWSProductToken() {
         if (awsProductTokenRadioButton.isSelected()) {
-            return new String(awsProductTokenTextField.getText().trim());
+            return awsProductTokenTextField.getText().trim();
         } else {
-            return new String(((AWSDevPayProduct) awsProductListComboBox.getSelectedItem()).getProductToken().trim());
+            return ((AWSDevPayProduct) awsProductListComboBox.getSelectedItem()).getProductToken().trim();
         }
     }
 }
