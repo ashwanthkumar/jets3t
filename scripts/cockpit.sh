@@ -65,13 +65,13 @@ CP=$CP:$JETS3T_HOME/libs/logging-log4j/log4j-1.2.15.jar
 CP=$CP:$JETS3T_HOME/libs/bouncycastle/bcprov-jdk14-138.jar
 CP=$CP:$JETS3T_HOME/libs/java-xmlbuilder/java-xmlbuilder-1.jar
 
-# Set application name for OS X (Darwin)
-OSX_APP_NAME=""
+# OutOfMemory errors? Increase the memory available by changing -Xmx256M
+MAXMEM=-Xmx256M
+
+# Run application with special arguments on OS X (Darwin) systems.
 if [ `uname -s` = "Darwin" ]
 then
-  OSX_APP_NAME=-Xdock:name="JetS3t Cockpit"
+  "$EXEC" $MAXMEM -classpath "$CP" -Xdock:name="JetS3t Cockpit" org.jets3t.apps.cockpit.Cockpit
+ else
+  "$EXEC" $MAXMEM -classpath "$CP" org.jets3t.apps.cockpit.Cockpit
 fi
-
-# OutOfMemory errors? Increase the memory available by changing -Xmx128M
-
-"$EXEC" -Xmx128M -classpath "$CP" "$OSX_APP_NAME" org.jets3t.apps.cockpit.Cockpit

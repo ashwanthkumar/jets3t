@@ -62,6 +62,6 @@ CP=$CP:$JETS3T_HOME/libs/commons-httpclient/commons-httpclient-3.1.jar
 CP=$CP:$JETS3T_HOME/libs/logging-log4j/log4j-1.2.15.jar
 CP=$CP:$JETS3T_HOME/libs/bouncycastle/bcprov-jdk14-138.jar
 
-# OutOfMemory errors? Increase the memory available by changing -Xmx128M
+# OutOfMemory errors? Increase the memory available by changing -Xmx256M
 
-"$EXEC" -Xmx128M -classpath "$CP" org.jets3t.apps.synchronize.Synchronize "$@"
+"$EXEC" -Xmx256M -classpath "$CP" org.jets3t.apps.synchronize.Synchronize "$@"
