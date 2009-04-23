@@ -203,7 +203,7 @@ public class CloudFrontXmlResponsesSaxParser {
         }
         
         public void endElement(String uri, String name, String qName) {
-            String elementText = this.textContent.toString();
+            String elementText = this.textContent.toString().trim();
             try {
                 Method method = currentHandler.getClass().getMethod("end" + name, new Class[] {String.class});
                 method.invoke(currentHandler, new Object[] {elementText});
@@ -458,6 +458,12 @@ public class CloudFrontXmlResponsesSaxParser {
         }
 
         public void endRequestId(String text) {
+            this.requestId = text;
+        }
+
+        // Handle annoying case where request id is in 
+        // the element "RequestID", not "RequestId"
+        public void endRequestID(String text) {
             this.requestId = text;
         }
     }
