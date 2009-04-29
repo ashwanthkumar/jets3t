@@ -109,7 +109,34 @@ public class S3Object extends BaseS3Object implements Cloneable {
         setDataInputFile(file);
         setMd5Hash(ServiceUtils.computeMD5Hash(new FileInputStream(file)));
     }
-    
+
+    /**
+     * Create an object representing a file. The object is initialised with the file's name
+     * as its key, the file's content as its data, a content type based on the file's extension
+     * (see {@link Mimetypes}), and a content length matching the file's size.
+     * The file's MD5 hash value is also calculated and provided to S3, so the service
+     * can verify that no data are corrupted in transit.
+     * <p>
+     * <b>NOTE:</b> The automatic calculation of a file's MD5 hash digest as performed by
+     * this constructor could take some time for large files, or for many small ones. 
+     * 
+     * @param file
+     * the file the object will represent. This file must exist and be readable.
+     * 
+     * @throws IOException when an i/o error occurred reading the file
+     * @throws NoSuchAlgorithmException when this JRE doesn't support the MD5 hash algorithm 
+     */
+    public S3Object(File file) throws NoSuchAlgorithmException, IOException {
+        this(file.getName());
+        setContentLength(file.length());
+        setContentType(Mimetypes.getInstance().getMimetype(file));
+        if (!file.exists()) {
+            throw new FileNotFoundException("Cannot read from file: " + file.getAbsolutePath());
+        }
+        setDataInputFile(file);
+        setMd5Hash(ServiceUtils.computeMD5Hash(new FileInputStream(file)));
+    }
+
     /**
      * Create an object representing text data. The object is initialized with the given
      * key, the given string as its data content (encoded as UTF-8), a content type of 
@@ -144,6 +171,37 @@ public class S3Object extends BaseS3Object implements Cloneable {
     }
 
     /**
+     * Create an object representing text data. The object is initialized with the given
+     * key, the given string as its data content (encoded as UTF-8), a content type of 
+     * <code>text/plain; charset=utf-8</code>, and a content length matching the 
+     * string's length.
+     * The given string's MD5 hash value is also calculated and provided to S3, so the service
+     * can verify that no data are corrupted in transit.
+     * <p>
+     * <b>NOTE:</b> The automatic calculation of the MD5 hash digest as performed by
+     * this constructor could take some time for large strings, or for many small ones. 
+     * 
+     * @param key
+     * the key name for the object.
+     * @param dataString
+     * the text data the object will contain. Text data will be encoded as UTF-8. 
+     * This string cannot be null.
+     * 
+     * @throws IOException 
+     * @throws NoSuchAlgorithmException when this JRE doesn't support the MD5 hash algorithm 
+     */
+    public S3Object(String key, String dataString) throws NoSuchAlgorithmException, IOException 
+    {
+        this(key);
+        ByteArrayInputStream bais = new ByteArrayInputStream(
+            dataString.getBytes(Constants.DEFAULT_ENCODING));
+        setDataInputStream(bais);
+        setContentLength(bais.available());
+        setContentType("text/plain; charset=utf-8");
+        setMd5Hash(ServiceUtils.computeMD5Hash(dataString.getBytes(Constants.DEFAULT_ENCODING)));        
+    }
+
+    /**
      * Create an object without any associated data, and no associated bucket.
      * 
      * @param key
@@ -166,6 +224,12 @@ public class S3Object extends BaseS3Object implements Cloneable {
             this.bucketName = bucket.getName();
         }
         this.key = key;
+    }
+    
+    /**
+     * Create an object without any associated information whatsoever.
+     */
+    public S3Object() {
     }
 	
     public String toString() {

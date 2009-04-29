@@ -168,7 +168,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         }
 
         try {
-            s3Service.putObject(bucket, new S3Object(null));
+            s3Service.putObject(bucket, new S3Object());
             fail("Cannot create an object without a valid object");
         } catch (S3ServiceException e) {
         }

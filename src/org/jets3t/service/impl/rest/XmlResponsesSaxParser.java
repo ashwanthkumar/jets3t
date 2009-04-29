@@ -377,7 +377,7 @@ public class XmlResponsesSaxParser {
 
         public void startElement(String uri, String name, String qName, Attributes attrs) {
             if (name.equals("Contents")) {
-                currentObject = new S3Object(null);
+                currentObject = new S3Object();
                 currentObject.setBucketName(bucketName);
             } else if (name.equals("Owner")) {
                 currentOwner = new S3Owner();

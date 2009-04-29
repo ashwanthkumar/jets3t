@@ -10,6 +10,8 @@ TOOLKIT
 
   * General
 
+- Added simplified constructors for S3Object, so the object's bucket need
+  not be specified in advance. This is most useful when uploading data.
 - Added support for JMX instrumentation of S3Service functions. To enable
   JMX set the system property "com.sun.management.jmxremote". Instrumentation
   for S3Bucket and S3Object MBeans is disabled by default, to enable this

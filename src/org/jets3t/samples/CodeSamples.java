@@ -136,12 +136,12 @@ public class CodeSamples {
         // Create an S3Object based on a string, with Content-Length set automatically and 
         // Content-Type set to "text/plain"  
         String stringData = "Hello World!";
-        S3Object stringObject = new S3Object(testBucket, "HelloWorld.txt", stringData);
+        S3Object stringObject = new S3Object("HelloWorld.txt", stringData);
         
         // Create an S3Object based on a file, with Content-Length set automatically and 
         // Content-Type set based on the file's extension (using the Mimetypes utility class)
         File fileData = new File("src/org/jets3t/samples/CodeSamples.java");
-        S3Object fileObject = new S3Object(testBucket, fileData);
+        S3Object fileObject = new S3Object(fileData);
 
         // If your data isn't a File or String you can use any input stream as a data source,
         // but you must manually set the Content-Length.        
@@ -176,7 +176,7 @@ public class CodeSamples {
         // do this for you automatically when you use the File- or String-based 
         // S3Object constructors:
         
-        S3Object objectWithHash = new S3Object(testBucket, "HelloWorld.txt", stringData);
+        S3Object objectWithHash = new S3Object("HelloWorld.txt", stringData);
         System.out.println("Hash value: " + objectWithHash.getMd5HashAsHex());
         
         // If you do not use these constructors, you should *always* set the
@@ -389,11 +389,11 @@ public class CodeSamples {
 
         // Create an array of data objects to upload.
         S3Object[] objects = new S3Object[5];
-        objects[0] = new S3Object(bucket, "object1.txt", "Hello from object 1");
-        objects[1] = new S3Object(bucket, "object2.txt", "Hello from object 2");
-        objects[2] = new S3Object(bucket, "object3.txt", "Hello from object 3");
-        objects[3] = new S3Object(bucket, "object4.txt", "Hello from object 4");
-        objects[4] = new S3Object(bucket, "object5.txt", "Hello from object 5");
+        objects[0] = new S3Object("object1.txt", "Hello from object 1");
+        objects[1] = new S3Object("object2.txt", "Hello from object 2");
+        objects[2] = new S3Object("object3.txt", "Hello from object 3");
+        objects[3] = new S3Object("object4.txt", "Hello from object 4");
+        objects[4] = new S3Object("object5.txt", "Hello from object 5");
 
         // Now we have some sample objects, we can upload them.
 
@@ -540,7 +540,7 @@ public class CodeSamples {
         
         // Create a public object in S3. Anyone can download this object. 
         S3Object publicObject = new S3Object(
-            publicBucket, "publicObject.txt", "This object is public");
+            "publicObject.txt", "This object is public");
         publicObject.setAcl(bucketAcl);
         s3Service.putObject(publicBucket, publicObject);        
         System.out.println("View public object contents here: http://s3.amazonaws.com/" 
@@ -574,7 +574,7 @@ public class CodeSamples {
         // Create a private object in S3.
         S3Bucket privateBucket = new S3Bucket(awsCredentials.getAccessKey() + ".privateBucket");
         S3Object privateObject = new S3Object(
-            privateBucket, "privateObject.txt", "This object is private");
+            "privateObject.txt", "This object is private");
         s3Service.createBucket(privateBucket);
         s3Service.putObject(privateBucket, privateObject);        
         
