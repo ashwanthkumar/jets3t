@@ -302,22 +302,23 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      * @param httpMethod
      *        the object containing a request target and all other information necessary to perform the 
      *        request
-     * @param expectedResponseCode
-     *        the HTTP response code that indicates a successful request. If the response code received
+     * @param expectedResponseCodes
+     *        the HTTP response code(s) that indicates a successful request. If the response code received
      *        does not match this value an error must have occurred, so an exception is thrown.
      * @throws S3ServiceException
      *        all exceptions are wrapped in an S3ServiceException. Depending on the kind of error that 
      *        occurred, this exception may contain additional error information available from an XML
      *        error response document.  
      */
-    protected void performRequest(HttpMethodBase httpMethod, int expectedResponseCode) 
+    protected void performRequest(HttpMethodBase httpMethod, int[] expectedResponseCodes) 
         throws S3ServiceException 
     {
         try {
             if (log.isDebugEnabled()) {
                 log.debug("Performing " + httpMethod.getName() 
                     + " request for '" + httpMethod.getURI().toString() 
-                    + "', expecting response code " + expectedResponseCode);
+                    + "', expecting response codes: " +
+                    "[" + ServiceUtils.join(expectedResponseCodes, ",") + "]");
             }
             
             // Variables to manage S3 Internal Server 500 or 503 Service Unavailable errors.
@@ -372,10 +373,17 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                 }
                         
                 // Check we received the expected result code.
-                if (responseCode != expectedResponseCode) {
+                boolean didReceiveExpectedResponseCode = false;
+                for (int i = 0; i < expectedResponseCodes.length && !didReceiveExpectedResponseCode; i++) {
+                	if (responseCode == expectedResponseCodes[i]) {
+                		didReceiveExpectedResponseCode = true;
+                	}
+                }
+                
+                if (!didReceiveExpectedResponseCode) {
                     if (log.isDebugEnabled()) {
                         log.debug("Response '" + httpMethod.getPath() + "' - Unexpected response code " 
-                            + responseCode + ", expected " + expectedResponseCode);
+                            + responseCode + ", expected [" + ServiceUtils.join(expectedResponseCodes, ",") + "]");
                     }
                                         
                     if (isXmlContentType(contentType)
@@ -707,7 +715,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         // Add all request headers.
         addRequestHeadersToConnection(httpMethod, requestHeaders);
         
-        performRequest(httpMethod, 200);
+        performRequest(httpMethod, new int[] {200});
         
         return httpMethod;
     }
@@ -741,7 +749,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             // Partial data responses have a status code of 206. 
             expectedStatusCode = 206;
         }
-        performRequest(httpMethod, expectedStatusCode);
+        performRequest(httpMethod, new int[] {expectedStatusCode});
         
         return httpMethod;
     }
@@ -789,7 +797,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             httpMethod.setRequestHeader("Content-Length", "0");
         }
         
-        performRequest(httpMethod, 200);
+        performRequest(httpMethod, new int[] {200});
         
         if (requestEntity != null) {
             // Respond with the actual guaranteed content length of the uploaded data.
@@ -818,7 +826,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
     protected HttpMethodBase performRestDelete(String bucketName, String objectKey) throws S3ServiceException {        
         HttpMethodBase httpMethod = setupConnection("DELETE", bucketName, objectKey, null);
 
-        performRequest(httpMethod, 204);
+        performRequest(httpMethod, new int[] {204, 200});
 
         // Release connection after DELETE (there's no response content)
         if (log.isDebugEnabled()) {
@@ -1760,7 +1768,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             putMethod.setRequestEntity(repeatableRequestEntity);
         }
 
-        performRequest(putMethod, 200);
+        performRequest(putMethod, new int[] {200});
 
         // Consume response data and release connection.
         putMethod.releaseConnection();
@@ -1832,7 +1840,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
     public void deleteObjectWithSignedUrl(String signedDeleteUrl) throws S3ServiceException {
         DeleteMethod deleteMethod = new DeleteMethod(signedDeleteUrl);
         
-        performRequest(deleteMethod, 204);
+        performRequest(deleteMethod, new int[] {204, 200});
 
         deleteMethod.releaseConnection();
     }
@@ -1897,7 +1905,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         HashMap requestParameters = new HashMap();
         requestParameters.put("acl","");
 
-	    performRequest(httpMethod, 200);
+	    performRequest(httpMethod, new int[] {200});
         return (new XmlResponsesSaxParser(this.jets3tProperties))
             .parseAccessControlListResponse(
                 new HttpMethodReleaseInputStream(httpMethod)).getAccessControlList();
@@ -1938,7 +1946,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             }
         }
         
-        performRequest(putMethod, 200);
+        performRequest(putMethod, new int[] {200});
 
         // Consume response data and release connection.
         putMethod.releaseConnection();
@@ -1954,7 +1962,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             httpMethod = new GetMethod(signedGetOrHeadUrl);
         }
         
-        performRequest(httpMethod, 200);
+        performRequest(httpMethod, new int[] {200});
 
         HashMap map = new HashMap();
         map.putAll(convertHeadersToMap(httpMethod.getResponseHeaders()));

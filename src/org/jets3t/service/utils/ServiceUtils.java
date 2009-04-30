@@ -63,6 +63,10 @@ public class ServiceUtils {
     protected static final SimpleDateFormat iso8601DateParser = new SimpleDateFormat(
         "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
+    // The Eucalyptus Walrus storage service returns short, non-UTC date time values.
+    protected static final SimpleDateFormat iso8601DateParser_Walrus = new SimpleDateFormat(
+    	"yyyy-MM-dd'T'HH:mm:ss");
+
     protected static final SimpleDateFormat rfc822DateParser = new SimpleDateFormat(
         "EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
 
@@ -72,9 +76,24 @@ public class ServiceUtils {
     }
 
     public static Date parseIso8601Date(String dateString) throws ParseException {
+    	ParseException exception = null;
         synchronized (iso8601DateParser) {
-            return iso8601DateParser.parse(dateString);
+        	try {
+        		return iso8601DateParser.parse(dateString);
+        	} catch (ParseException e) {
+        		exception = e;
+        	}
         }
+        // Work-around to parse datetime value returned by Walrus
+        synchronized (iso8601DateParser_Walrus) {
+        	try {
+        		return iso8601DateParser_Walrus.parse(dateString);
+        	} catch (ParseException e) {
+        		// Ignore work-around exceptions 
+        	}
+        }
+        // Throw original exception if the Walrus work-around doesn't save us.
+        throw exception;
     }
 
     public static String formatIso8601Date(Date date) {
@@ -298,17 +317,22 @@ public class ServiceUtils {
                 // Parse date strings into Date objects, if necessary.
                 if ("Date".equals(key) || "Last-Modified".equals(key)) {
                     if (!(value instanceof Date)) {
+                    	if (log.isDebugEnabled()) {
+                    		log.debug("Parsing date string '" + value
+                            + "' into Date object for key: " + key);
+                    	}
                         try {
-                        	if (log.isDebugEnabled()) {
-                        		log.debug("Parsing date string '" + value
-                                + "' into Date object for key: " + key);
-                        	}
                             value = ServiceUtils.parseRfc822Date(value.toString());
                         } catch (ParseException pe) {
                         	if (log.isWarnEnabled()) {
                         		log.warn("Date string is not RFC 822 compliant for metadata field " + key, pe);
                         	}
-                            continue;
+                            // Try ISO-8601 date format, just in case
+                        	try {
+                                value = ServiceUtils.parseIso8601Date(value.toString());
+                            } catch (ParseException pe2) {
+                            	// Ignore
+                            }
                         }
                     }
                 }
@@ -417,6 +441,27 @@ public class ServiceUtils {
         for (int i = 0; i < items.length; i++) {
             sb.append(items[i]);
             if (i < items.length - 1) {
+                sb.append(delimiter);
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Joins a list of <em>int</em>s into a delimiter-separated string.
+     * 
+     * @param ints
+     * the ints to include in a delimited string
+     * @param delimiter
+     * the delimiter character or string to insert between each item in the list
+     * @return
+     * a delimited string
+     */
+    public static String join(int[] ints, String delimiter) {
+        StringBuffer sb = new StringBuffer();        
+        for (int i = 0; i < ints.length; i++) {
+            sb.append(ints[i]);
+            if (i < ints.length - 1) {
                 sb.append(delimiter);
             }
         }

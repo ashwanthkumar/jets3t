@@ -427,7 +427,9 @@ public class XmlResponsesSaxParser {
                 try {
                     currentObject.setLastModifiedDate(ServiceUtils.parseIso8601Date(elementText));
                 } catch (ParseException e) {
-                    throw new RuntimeException("Unexpected date format in list bucket output", e);
+                    throw new RuntimeException(
+                		"Non-ISO8601 date for LastModified in bucket's object listing output: " 
+                		+ elementText, e);
                 }
             } else if (name.equals("ETag")) {
                 currentObject.setETag(elementText);
@@ -532,10 +534,13 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("Name")) {
                 currentBucket.setName(elementText);
             } else if (name.equals("CreationDate")) {
+            	elementText += ".000Z";
                 try {
                     currentBucket.setCreationDate(ServiceUtils.parseIso8601Date(elementText));
                 } catch (ParseException e) {
-                    throw new RuntimeException("Unexpected date format in list bucket output", e);
+                    throw new RuntimeException(
+                		"Non-ISO8601 date for CreationDate in list buckets output: " 
+                		+ elementText, e);
                 }
             }
             this.currText = new StringBuffer();
@@ -816,7 +821,9 @@ public class XmlResponsesSaxParser {
                 try {
                     lastModified = ServiceUtils.parseIso8601Date(elementText);
                 } catch (ParseException e) {
-                    throw new RuntimeException("Unexpected date format in copy object output", e);
+                    throw new RuntimeException(
+                		"Non-ISO8601 date for LastModified in copy object output: " 
+                		+ elementText, e);
                 }                
             } else if (name.equals("ETag")) {
                 etag = elementText;
