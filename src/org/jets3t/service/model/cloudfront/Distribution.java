@@ -21,9 +21,9 @@ package org.jets3t.service.model.cloudfront;
 import java.util.Arrays;
 import java.util.Date;
 
+import org.jets3t.service.CloudFrontService;
+
 public class Distribution {
-    private static final String DEFAULT_ORIGIN_SUFFIX = ".s3.amazonaws.com";
-    
     private String id = null;
     private String status = null;        
     private Date lastModifiedTime = null;
@@ -83,8 +83,8 @@ public class Distribution {
      * the origin bucket's name, without the suffix ".s3.amazonaws.com"
      */
     public String getOriginAsBucketName() {
-        if (origin.endsWith(DEFAULT_ORIGIN_SUFFIX)) {
-            return origin.substring(0, origin.length() - DEFAULT_ORIGIN_SUFFIX.length());
+        if (origin.endsWith(CloudFrontService.DEFAULT_BUCKET_SUFFIX)) {
+            return origin.substring(0, origin.length() - CloudFrontService.DEFAULT_BUCKET_SUFFIX.length());
         } else {
             return origin;
         }

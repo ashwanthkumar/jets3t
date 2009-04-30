@@ -42,6 +42,7 @@ import org.jets3t.service.impl.rest.httpclient.AWSRequestAuthorizer;
 import org.jets3t.service.impl.rest.httpclient.HttpClientAndConnectionManager;
 import org.jets3t.service.model.cloudfront.Distribution;
 import org.jets3t.service.model.cloudfront.DistributionConfig;
+import org.jets3t.service.model.cloudfront.LoggingStatus;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
@@ -63,9 +64,10 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     private static final Log log = LogFactory.getLog(CloudFrontService.class);
 
     public static final String ENDPOINT = "https://cloudfront.amazonaws.com/";
-    public static final String VERSION = "2008-06-30";
+    public static final String VERSION = "2009-04-02";
     public static final String XML_NAMESPACE = "http://cloudfront.amazonaws.com/doc/" + VERSION + "/";
-    
+    public static final String DEFAULT_BUCKET_SUFFIX = ".s3.amazonaws.com";
+
     private HttpClient httpClient = null;
     private CredentialsProvider credentialsProvider = null;
 
@@ -145,7 +147,13 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             String proxyPassword = this.jets3tProperties.getStringProperty("httpclient.proxy-password", null);
             String proxyDomain = this.jets3tProperties.getStringProperty("httpclient.proxy-domain", null);            
             RestUtils.initHttpProxy(this.httpClient, proxyHostAddress, proxyPort, proxyUser, proxyPassword, proxyDomain);
-        }                
+        }
+        
+        /* TODO: CloudFront service does not seem to support 100-continue protocol for 2009-04-02  
+         * DistributionConfig updates, causing unnecessary timeouts when updating these settings. 
+         * This will probably be fixed, remove the following line when full support returns.
+         */
+        this.httpClient.getParams().setBooleanParameter("http.protocol.expect-continue", false);
     }
     
     /**
@@ -285,22 +293,31 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     }
         
     /**
-     * List all your CloudFront distributions.
-     *  
+     * List all your CloudFront distributions, with a given maximum
+     * number of Distribution items in each "page" of results.
+     * 
+     * @param pagingSize
+     * the maximum number of distributions the CloudFront service will
+     * return in each response message. 
      * @return
      * a list of your distributions.
      * 
      * @throws CloudFrontServiceException
      */
-    public Distribution[] listDistributions() throws CloudFrontServiceException {
+    public Distribution[] listDistributions(int pagingSize) throws CloudFrontServiceException {
         if (log.isDebugEnabled()) {
             log.debug("Listing distributions for AWS user: " + getAWSCredentials().getAccessKey());
         }
         try {            
             List distributions = new ArrayList();
+            String nextMarker = null;
             boolean incompleteListing = true;
             do {
-                HttpMethod httpMethod = new GetMethod(ENDPOINT + VERSION + "/distribution");            
+            	String uri = ENDPOINT + VERSION + "/distribution?MaxItems=" + pagingSize;
+            	if (nextMarker != null) {
+            		uri += "&Marker=" + nextMarker;
+            	}
+                HttpMethod httpMethod = new GetMethod(uri);            
                 performRestRequest(httpMethod, 200);
 
                 ListDistributionListHandler handler = 
@@ -309,7 +326,13 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 distributions.addAll(handler.getDistributions());
                 
                 incompleteListing = handler.isTruncated();
-                // TODO: Under what circumstances are IsTruncated and Marker elements used?           
+                nextMarker = handler.getNextMarker();
+                
+                // Sanity check for valid pagination values.
+                if (incompleteListing && nextMarker == null) {
+                	throw new CloudFrontServiceException("Unable to retrieve paginated " 
+                			+ "DistributionList results without a valid NextMarker value.");
+                }
             } while (incompleteListing);
             
             return (Distribution[]) distributions.toArray(new Distribution[distributions.size()]);            
@@ -320,6 +343,18 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         }        
     }
     
+    /**
+     * List all your CloudFront distributions.
+     *  
+     * @return
+     * a list of your distributions.
+     * 
+     * @throws CloudFrontServiceException
+     */
+    public Distribution[] listDistributions() throws CloudFrontServiceException {
+    	return listDistributions(100);
+    }
+        
     /**
      * List the distributions for a given S3 bucket name, if any.
      * 
@@ -355,7 +390,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * available once created.
      * 
      * @param origin
-     * the Amazon S3 bucket to associate with the distribution.
+     * the Amazon S3 bucket to associate with the distribution, specified as a full
+     * S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket) 
      * 
      * @return
      * an object that describes the newly-created distribution, in particular the
@@ -365,14 +401,15 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      */
     public Distribution createDistribution(String origin) throws CloudFrontServiceException 
     {
-        return this.createDistribution(origin, null, null, null, true);
+        return this.createDistribution(origin, null, null, null, true, null);
     }
     
     /**
      * Create a CloudFront distribution for an S3 bucket.
      * 
      * @param origin
-     * the Amazon S3 bucket to associate with the distribution.
+     * the Amazon S3 bucket to associate with the distribution, specified as a full
+     * S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket) 
      * @param callerReference
      * A user-set unique reference value that ensures the request can't be replayed
      * (max UTF-8 encoding size 128 bytes). This parameter may be null, in which
@@ -385,6 +422,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * (max 128 characters). May be null. 
      * @param enabled
      * Should the distribution should be enabled and publicly accessible upon creation?
+     * @param loggingStatus
+     * Logging status settings (bucket, prefix) for the distribution. If this value
+     * is null, logging will be disabled for the distribution.
      * 
      * @return
      * an object that describes the newly-created distribution, in particular the
@@ -393,13 +433,15 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public Distribution createDistribution(String origin, String callerReference, 
-        String[] cnames, String comment, boolean enabled) throws CloudFrontServiceException 
+        String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus) 
+    	throws CloudFrontServiceException 
     {
         if (log.isDebugEnabled()) {
             log.debug("Creating distribution for origin: " + origin);
         }
         
         // Sanitize parameters.
+        origin = sanitizeS3BucketName(origin);
         if (callerReference == null) {
             callerReference = "" + System.currentTimeMillis();
         }
@@ -423,6 +465,12 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             builder
                 .e("Comment").t(comment).up()
                 .e("Enabled").t("" + enabled);
+            if (loggingStatus != null) {
+            	builder.e("Logging")
+            		.e("Bucket").t(loggingStatus.getBucket()).up()
+            		.e("Prefix").t(loggingStatus.getPrefix()).up()
+            	.up();
+            }
 
             httpMethod.setRequestEntity(
                 new StringRequestEntity(builder.asString(null), "text/xml", Constants.DEFAULT_ENCODING));
@@ -532,6 +580,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @param enabled
      * Should the distribution should be enabled and publicly accessible after the
      * configuration update?
+     * @param loggingStatus
+     * Logging status settings (bucket, prefix) for the distribution. If this value
+     * is null, logging will be disabled for the distribution.
      * 
      * @return
      * an object that describes the distribution's updated configuration, including its 
@@ -540,7 +591,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public DistributionConfig updateDistributionConfig(String id, String[] cnames, 
-        String comment, boolean enabled) throws CloudFrontServiceException 
+        String comment, boolean enabled, LoggingStatus loggingStatus) 
+    	throws CloudFrontServiceException 
     {
         if (log.isDebugEnabled()) {
             log.debug("Setting configuration of distribution with id: " + id);
@@ -570,6 +622,12 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             builder
                 .e("Comment").t(comment).up()
                 .e("Enabled").t("" + enabled);
+            if (loggingStatus != null) {
+            	builder.e("Logging")
+            		.e("Bucket").t(loggingStatus.getBucket()).up()
+            		.e("Prefix").t(loggingStatus.getPrefix()).up()
+            	.up();
+            }
             
             httpMethod.setRequestEntity(
                 new StringRequestEntity(builder.asString(null), "text/xml", Constants.DEFAULT_ENCODING));
@@ -589,6 +647,31 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         } catch (Exception e) {
             throw new CloudFrontServiceException(e);
         }                
+    }
+    
+    /**
+     * Convenience method to disable a distribution that you intend to delete. 
+     * This method merely calls the 
+     * {@link #updateDistributionConfig(String, String[], String, boolean, LoggingStatus)}
+     * method with default values for most of the distribution's configuration
+     * settings.
+     * <p>
+     * <strong>Warning</strong>: Do not use this method with distributions you 
+     * intend to keep, because it will reset most of the distribution's 
+     * configuration settings such as CNAMEs and logging status.
+     * 
+     * @param id
+     * the distribution's unique identifier.
+     * @param comment
+     * An optional comment to describe the distribution in your own terms 
+     * (max 128 characters). May be null, in which case the original comment is retained.
+     * 
+     * @throws CloudFrontServiceException
+     */
+    public void disableDistributionForDeletion(String id) 
+    	throws CloudFrontServiceException 
+	{
+    	updateDistributionConfig(id, new String[] {}, "Disabled prior to deletion", false, null);
     }
 
     /**
@@ -630,6 +713,29 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         } catch (Exception e) {
             throw new CloudFrontServiceException(e);
         }                
+    }
+    
+    /**
+     * Sanitizes a proposed bucket name to ensure it is fully-specified rather than
+     * merely the bucket's short name. A fully specified bucket name looks like
+     * "jets3t.s3.amazonaws.com".
+     * 
+     * @param proposedBucketName
+     * the proposed S3 bucket name that will be sanitized.
+     * 
+     * @return
+     * the bucket name with the {@link DEFAULT_BUCKET_SUFFIX} added, if necessary.
+     */
+    public static String sanitizeS3BucketName(String proposedBucketName) {
+        if (!proposedBucketName.endsWith(DEFAULT_BUCKET_SUFFIX)) {
+        	log.warn("Bucket names used within the CloudFront service should be specified as " +
+        			"full S3 subdomain paths like 'jets3t.s3.amazonaws.com'. Repairing " +
+        			"faulty bucket name value \"" + proposedBucketName + "\" by adding suffix " +
+        			"'" + DEFAULT_BUCKET_SUFFIX + "'.");
+        	return proposedBucketName + DEFAULT_BUCKET_SUFFIX;
+        } else {
+        	return proposedBucketName;
+        }
     }
     
 }

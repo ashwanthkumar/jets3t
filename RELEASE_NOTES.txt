@@ -5,6 +5,8 @@ Version 0.7.1
 COCKPIT
 - Fixed a menu display bug that caused the bucket and object action menus to 
   appear behind other GUI elements on some Windows systems.
+- The Logging Status settings of CloudFront distributions can now be managed
+  within the CloudFront Distributions dialog box (see the Tools menu).
 
 TOOLKIT
 
@@ -30,6 +32,11 @@ TOOLKIT
   property setting. Now the JetS3t property "httpclient.max-connections" sets
   the global connection limit, while the optional property 
   "httpclient.max-connections-per-host" sets the per-host connection limit.
+
+  * CloudFront Service Implementation
+  
+- Added support for the new Logging Status feature that allows log files for 
+  activity in your CloudFront distributions to be sent to an S3 bucket.
 
 KUDOS TO:
 

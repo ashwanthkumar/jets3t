@@ -24,6 +24,7 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -43,6 +44,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
@@ -57,6 +59,8 @@ import org.jets3t.service.S3Service;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.cloudfront.Distribution;
+import org.jets3t.service.model.cloudfront.DistributionConfig;
+import org.jets3t.service.model.cloudfront.LoggingStatus;
 
 /**
  * Dialog box for displaying and modifying CloudFront distributions.
@@ -66,9 +70,10 @@ import org.jets3t.service.model.cloudfront.Distribution;
  * modified by choosing/changing the target log bucket.
  * 
  * @author James Murty
- *
  */
-public class ManageDistributionsDialog extends JDialog implements ActionListener, ListSelectionListener {
+public class ManageDistributionsDialog extends JDialog 
+	implements ActionListener, ListSelectionListener, HyperlinkActivatedListener 
+{
     private static final long serialVersionUID = -6023438299751644436L;
 
     private CloudFrontService cloudFrontService = null;
@@ -81,6 +86,8 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
     private TableSorter distributionListTableModelSorter = null;
     private JComboBox bucketComboBox = null;
     private JCheckBox enabledCheckbox = null;
+    private JComboBox loggingBucketComboBox = null;
+    private JTextField loggingPrefixTextField = null;
     private JTable cnamesTable = null;
     private CNAMETableModel cnamesTableModel = null;
     private JButton addCname = null;
@@ -112,6 +119,21 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
         bucketComboBox = new JComboBox(bucketNames);
         JLabel enabledLabel = new JLabel("Enabled:");
         enabledCheckbox = new JCheckBox();
+
+        JLabel loggingBucketLabel = new JLabel("Logging bucket:");
+        loggingBucketComboBox = new JComboBox(bucketNames);
+        loggingBucketComboBox.insertItemAt("-- Logging Disabled --", 0);
+        loggingBucketComboBox.setSelectedIndex(0);
+        loggingBucketComboBox.addActionListener(new ActionListener() {
+        	public void actionPerformed(ActionEvent e) {
+        		loggingPrefixTextField.setEnabled(
+    				loggingBucketComboBox.getSelectedIndex() > 0);
+        	}
+        });
+        JLabel loggingPrefixLabel = new JLabel("Logging prefix:");
+        loggingPrefixTextField = new JTextField();
+        loggingPrefixTextField.setEnabled(false);
+        
         cnamesTableModel = new CNAMETableModel();
         TableSorter cnamesTableModelSorter = new TableSorter(cnamesTableModel);
         cnamesTable = new JTable(cnamesTableModelSorter);
@@ -195,6 +217,16 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
             1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
         detailPanel.add(enabledCheckbox, new GridBagConstraints(1, row++, 
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+
+        detailPanel.add(loggingBucketLabel, new GridBagConstraints(0, row, 
+            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+        detailPanel.add(loggingBucketComboBox, new GridBagConstraints(1, row++, 
+            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        detailPanel.add(loggingPrefixLabel, new GridBagConstraints(0, row, 
+            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+        detailPanel.add(loggingPrefixTextField, new GridBagConstraints(1, row++, 
+            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+
         detailPanel.add(new JScrollPane(cnamesTable), new GridBagConstraints(0, row++, 
             2, 1, 1, 2, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(3, 5, 0, 5), 0, 0));
         detailPanel.add(cnameAddRemoveButtonsPanel, new GridBagConstraints(0, row++, 
@@ -297,6 +329,10 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
                 
                 bucketComboBox.setEnabled(true);
                 enabledCheckbox.setSelected(false);
+                
+                loggingBucketComboBox.setSelectedIndex(0);
+                loggingPrefixTextField.setText("");
+                
                 cnamesTableModel.removeAll();
                 commentTextArea.setText("");
                 
@@ -304,9 +340,29 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
                 actionButton.setActionCommand("NewDistribution");
                 actionButton.setEnabled(true);
             } else {
+            	// Retrieve distribution's configuration to access current logging status settings.
+                DistributionConfig distributionConfig = null;
+                try {
+                	distributionConfig = cloudFrontService.getDistributionConfig(distribution.getId());
+                } catch (CloudFrontServiceException ex) {
+                	String message = "Unable to retrieve configuration information " 
+                		+ "for distribution: " + distribution.getId();
+                    ErrorDialog.showDialog(ownerFrame, this, message, ex);
+                }
+            	
                 bucketComboBox.setSelectedItem(distribution.getOriginAsBucketName());
                 bucketComboBox.setEnabled(false);
                 enabledCheckbox.setSelected(distribution.isEnabled());
+                
+                if (distributionConfig != null && distributionConfig.getLoggingStatus() != null) {
+                    loggingBucketComboBox.setSelectedItem(
+                		distributionConfig.getLoggingStatus().getShortBucketName());
+                    loggingPrefixTextField.setText(
+                		distributionConfig.getLoggingStatus().getPrefix());                	
+                } else {
+                    loggingBucketComboBox.setSelectedIndex(0);
+                    loggingPrefixTextField.setText("");                	
+                }
                 
                 cnamesTableModel.removeAll();
                 String[] cnames = distribution.getCNAMEs();
@@ -403,8 +459,18 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
                      });
 
                     try {
+                    	LoggingStatus loggingStatus = null;
+                    	if (loggingBucketComboBox.getSelectedIndex() > 0) {
+                    		String loggingBucket = (String) loggingBucketComboBox.getSelectedItem()
+                    			+ CloudFrontService.DEFAULT_BUCKET_SUFFIX;                    		
+                    		loggingStatus = new LoggingStatus(
+                    				loggingBucket,
+                    				loggingPrefixTextField.getText());
+                    	}
+                    	
                         cloudFrontService.createDistribution(origin, null, 
-                            cnamesTableModel.getCnames(), commentTextArea.getText(), enabledCheckbox.isSelected());
+                            cnamesTableModel.getCnames(), commentTextArea.getText(), 
+                            enabledCheckbox.isSelected(), loggingStatus);
                         refreshDistributions();
                     } catch (Exception e) {
                         SwingUtilities.invokeLater(new Runnable() {
@@ -444,8 +510,18 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
                      });
 
                     try {
+                    	LoggingStatus loggingStatus = null;
+                    	if (loggingBucketComboBox.getSelectedIndex() > 0) {
+                    		String loggingBucket = (String) loggingBucketComboBox.getSelectedItem()
+                				+ CloudFrontService.DEFAULT_BUCKET_SUFFIX;                    		
+                    		loggingStatus = new LoggingStatus(
+                    				loggingBucket,
+                    				loggingPrefixTextField.getText());
+                    	}
+                    	
                         cloudFrontService.updateDistributionConfig(distribution.getId(),
-                            cnamesTableModel.getCnames(), commentTextArea.getText(), enabledCheckbox.isSelected());
+                            cnamesTableModel.getCnames(), commentTextArea.getText(), 
+                            enabledCheckbox.isSelected(), loggingStatus);
                         refreshDistributions();
                     } catch (Exception e) {
                         SwingUtilities.invokeLater(new Runnable() {
@@ -602,7 +678,9 @@ public class ManageDistributionsDialog extends JDialog implements ActionListener
         }        
     }
     
-    
+	public void followHyperlink(URL url, String target) {            			
+	}
+
     /**
      * TODO: Remove once testing is complete.
      * 

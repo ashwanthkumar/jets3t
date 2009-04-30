@@ -28,15 +28,18 @@ public class DistributionConfig {
     private String comment = null;
     private boolean enabled = false;       
     private String etag = null;
+    private LoggingStatus loggingStatus = null;
     
     public DistributionConfig(String origin, String callerReference, 
-        String[] cnames, String comment, boolean enabled) 
+        String[] cnames, String comment, boolean enabled,
+        LoggingStatus loggingStatus) 
     {
         this.origin = origin;
         this.callerReference = callerReference;
         this.cnames = cnames;
         this.comment = comment;        
         this.enabled = enabled;
+        this.loggingStatus = loggingStatus;
     }
     
     public String getOrigin() {
@@ -62,16 +65,29 @@ public class DistributionConfig {
     public String getEtag() {
         return etag;
     }
-
+    
     public void setEtag(String etag) {
         this.etag = etag;
     }
+
+    public LoggingStatus getLoggingStatus() {
+    	return loggingStatus;
+    }
     
+    public boolean isLoggingEnabled() {
+        return this.loggingStatus != null;
+    }    
+
     public String toString() {
         return "CloudFrontDistributionConfig: origin=" + origin +
             ", callerReference=" + callerReference + ", comment=" + comment +
             ", enabled=" + enabled +
             (etag != null ? ", etag=" + etag : "") +
+            ", LoggingStatus: " + 
+            (!isLoggingEnabled() 
+        		? 	"null"
+            	: 	"bucket=" + loggingStatus.getBucket() +
+            		", prefix=" + loggingStatus.getPrefix()) +
             ", CNAMEs=" + Arrays.asList(cnames);
     }
 

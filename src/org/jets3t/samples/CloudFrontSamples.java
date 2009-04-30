@@ -21,6 +21,7 @@ package org.jets3t.samples;
 import org.jets3t.service.CloudFrontService;
 import org.jets3t.service.model.cloudfront.Distribution;
 import org.jets3t.service.model.cloudfront.DistributionConfig;
+import org.jets3t.service.model.cloudfront.LoggingStatus;
 
 /**
  * Sample code for performing CloudFront service operations.
@@ -52,7 +53,8 @@ public class CloudFrontSamples {
             "" + System.currentTimeMillis(), // Caller reference - a unique string value
             new String[] {"test1.jamesmurty.com"}, // CNAME aliases for distribution
             "Testing", // Comment
-            true  // Enabled?
+            true,  // Distribution is enabled?
+            null  // Logging status of distribution (null means disabled)
             );
         System.out.println("New Distribution: " + newDistribution);
         
@@ -67,23 +69,27 @@ public class CloudFrontSamples {
         DistributionConfig distributionConfig = cloudFrontService.getDistributionConfig(testDistributionId);
         System.out.println("Distribution Config: " + distributionConfig);
 
-        // Update a distribution's configuration, in this case to add an extra CNAME alias.
+        // Update a distribution's configuration to add an extra CNAME alias and enable logging.
         DistributionConfig updatedDistributionConfig = cloudFrontService.updateDistributionConfig(
             testDistributionId, 
             new String[] {"test1.jamesmurty.com", "test2.jamesmurty.com"}, // CNAME aliases for distribution
             "Another comment for testing", // Comment 
-            true // Enabled?
+            true, // Distribution enabled?
+            new LoggingStatus("log-bucket.s3.amazonaws.com", "log-prefix/")  // Distribution logging
             );
         System.out.println("Updated Distribution Config: " + updatedDistributionConfig);
 
         // Disable a distribution, e.g. so that it may be deleted. This operation may take some time to complete...
         DistributionConfig disabledDistributionConfig = cloudFrontService.updateDistributionConfig(
-            testDistributionId, new String[] {}, "Deleting distribution", false);
+            testDistributionId, new String[] {}, "Deleting distribution", false, null);
         System.out.println("Disabled Distribution Config: " + disabledDistributionConfig);
 
         // Check whether a distribution is deployed
         Distribution distribution = cloudFrontService.getDistributionInfo(testDistributionId);
         System.out.println("Distribution is deployed? " + distribution.isDeployed());
+        
+        // Convenience method to disable a distribution prior to deletion
+        cloudFrontService.disableDistributionForDeletion(testDistributionId);
 
         // Delete a distribution (the distribution must be disabled and deployed first)
         cloudFrontService.deleteDistribution(testDistributionId);

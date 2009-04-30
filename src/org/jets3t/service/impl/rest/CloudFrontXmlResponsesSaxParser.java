@@ -36,6 +36,7 @@ import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.model.cloudfront.Distribution;
 import org.jets3t.service.model.cloudfront.DistributionConfig;
+import org.jets3t.service.model.cloudfront.LoggingStatus;
 import org.jets3t.service.utils.ServiceUtils;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
@@ -274,6 +275,7 @@ public class CloudFrontXmlResponsesSaxParser {
         private List cnamesList = new ArrayList();
         private String comment = null;
         private boolean enabled = false;
+        private LoggingStatus loggingStatus = null;
         
         public DistributionConfig getDistributionConfig() {
             return distributionConfig;
@@ -298,12 +300,24 @@ public class CloudFrontXmlResponsesSaxParser {
         public void endEnabled(String text) {
             this.enabled = "true".equalsIgnoreCase(text);
         }
+        
+        public void startLogging() {
+        	this.loggingStatus = new LoggingStatus();
+        }
+        
+        public void endBucket(String text) {
+        	this.loggingStatus.setBucket(text);
+        }
+
+        public void endPrefix(String text) {
+        	this.loggingStatus.setPrefix(text);
+        }
 
         public void endDistributionConfig(String text) {
             this.distributionConfig = new DistributionConfig(
                 origin, callerReference, 
                 (String[]) cnamesList.toArray(new String[cnamesList.size()]), 
-                comment, enabled);
+                comment, enabled, loggingStatus);
             returnControlToParentHandler();
         }
     }
@@ -369,6 +383,7 @@ public class CloudFrontXmlResponsesSaxParser {
         private List distributions = new ArrayList();
         private List cnamesList = new ArrayList();
         private String marker = null;
+        private String nextMarker = null;
         private int maxItems = 100;
         private boolean isTruncated = false;
         
@@ -382,6 +397,10 @@ public class CloudFrontXmlResponsesSaxParser {
 
         public String getMarker() {
             return marker;
+        }
+
+        public String getNextMarker() {
+            return nextMarker;
         }
 
         public int getMaxItems() {
@@ -405,6 +424,10 @@ public class CloudFrontXmlResponsesSaxParser {
             this.marker = text;
         }
         
+        public void endNextMarker(String text) {
+            this.nextMarker = text;
+        }
+
         public void endMaxItems(String text) {
             this.maxItems = Integer.parseInt(text);
         }
