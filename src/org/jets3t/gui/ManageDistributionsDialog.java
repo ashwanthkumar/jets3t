@@ -51,6 +51,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumnModel;
 
 import org.jets3t.samples.SamplesUtils;
 import org.jets3t.service.CloudFrontService;
@@ -248,11 +249,15 @@ public class ManageDistributionsDialog extends JDialog
                 
         // Size dialog
         this.pack();
-        this.setSize(600, 550);        
-        distributionListTable.getColumnModel().getColumn(0).setPreferredWidth(this.getWidth() / 10);
-        distributionListTable.getColumnModel().getColumn(1).setPreferredWidth(this.getWidth() * 4 / 10);
-        distributionListTable.getColumnModel().getColumn(2).setPreferredWidth(this.getWidth() * 4 / 10);
-        distributionListTable.getColumnModel().getColumn(3).setPreferredWidth(this.getWidth() / 10);
+        this.setSize(690, 550);        
+        
+        // Micro-managed column widths, because Java table columns are stupid... yuk.
+        TableColumnModel columnModel = distributionListTable.getColumnModel();
+        columnModel.getColumn(0).setPreferredWidth(40);  // Status
+        columnModel.getColumn(1).setPreferredWidth(50);  // Enabled? 
+        columnModel.getColumn(2).setPreferredWidth(170); // Bucket
+        columnModel.getColumn(3).setPreferredWidth(210); // Domain name
+        columnModel.getColumn(4).setPreferredWidth(220); // Last Modified
         this.setLocationRelativeTo(ownerFrame);
 
         refreshDistributions();
@@ -576,8 +581,8 @@ public class ManageDistributionsDialog extends JDialog
         private Icon deployedIcon = null;
         
         public DistributionListTableModel() {
-            super(new String[] {"Status", "Bucket", "Domain Name", "Enabled"}, 0);
-            this.addRow(new String[] {null, "New Distribution", null, null});
+            super(new String[] {"Status", "Enabled", "Bucket", "Domain Name", "Last Modified"}, 0);
+            this.addRow(new Object[] {null, null, "Add New Distribution", null, null});
             
             JLabel dummyLabel = new JLabel();
             if (guiUtils.applyIcon(dummyLabel, "/images/nuvola/16x16/actions/noatunloopsong.png"))
@@ -607,8 +612,9 @@ public class ManageDistributionsDialog extends JDialog
             distributionList.add(distribution);
             this.insertRow(distributionList.size() - 1, new Object[] {
                 (distribution.isDeployed() ? deployedIcon : inProgressIcon),
+                Boolean.valueOf(distribution.isEnabled()),
                 distribution.getOriginAsBucketName(), distribution.getDomainName(), 
-                Boolean.valueOf(distribution.isEnabled())
+        		distribution.getLastModifiedTime()
             });
         }
         
@@ -635,13 +641,13 @@ public class ManageDistributionsDialog extends JDialog
         }
                 
         public boolean isCellEditable(int row, int column) {
-            return (column == 2 && row < distributionList.size());
+            return (column == 3 && row < distributionList.size());
         }
         
         public Class getColumnClass(int columnIndex) {
             switch (columnIndex) {
             case 0: return Icon.class;
-            case 3: return Boolean.class;
+            case 1: return Boolean.class;
             default:return String.class; 
             }
         }        
