@@ -204,6 +204,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     // Service main menu items
     private JMenuItem loginMenuItem = null;
     private JMenuItem logoutMenuItem = null;    
+    private JMenu loginSwitchMenu = null;    
     
     // Bucket main menu items
     private JPopupMenu bucketActionMenu = null;
@@ -273,6 +274,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private SkinsFactory skinsFactory = null;
     
     private S3Bucket currentSelectedBucket = null;
+    
+    private HashMap loginAwsCredentialsMap = new HashMap();
     
     /**
      * Constructor to run this application as an Applet.
@@ -375,7 +378,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                loginEvent();
+                loginEvent(null);
             }
         });
     }    
@@ -554,6 +557,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         logoutMenuItem.addActionListener(this);
         guiUtils.applyIcon(logoutMenuItem, "/images/nuvola/16x16/actions/connect_no.png");
         serviceMenu.add(logoutMenuItem);
+                
+        loginSwitchMenu = new JMenu("Switch login");
+        loginSwitchMenu.addActionListener(this);
+        serviceMenu.add(new JSeparator());
+        guiUtils.applyIcon(loginSwitchMenu, "/images/nuvola/16x16/actions/connect_established.png");
+        serviceMenu.add(loginSwitchMenu);
+        loginSwitchMenu.setEnabled(false);
 
         if (isStandAloneApplication) {
             serviceMenu.add(new JSeparator());
@@ -565,7 +575,6 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             serviceMenu.add(quitMenuItem);
         }
 
-        loginMenuItem.setEnabled(true);
         logoutMenuItem.setEnabled(false);
 
         // Bucket action menu.
@@ -951,9 +960,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     public void actionPerformed(ActionEvent event) {
         // Service Menu Events            
         if ("LoginEvent".equals(event.getActionCommand())) {
-            loginEvent();
+            loginEvent(null);
         } else if ("LogoutEvent".equals(event.getActionCommand())) {
             logoutEvent();
+        } else if (event.getActionCommand() != null && event.getActionCommand().startsWith("LoginSwitch")) {
+            String loginName = event.getActionCommand().substring("LoginSwitch:".length());
+            AWSCredentials awsCredentials = (AWSCredentials) loginAwsCredentialsMap.get(loginName);
+            loginEvent(awsCredentials);
         } else if ("QuitEvent".equals(event.getActionCommand())) {
             System.exit(0);
         } 
@@ -1106,17 +1119,19 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * 
      * This method should always be run within the event dispatcher thread.
      */
-    private void loginEvent() {
+    private void loginEvent(AWSCredentials awsCredentials) {
         try {
-            StartupDialog startupDialog = new StartupDialog(ownerFrame, cockpitProperties, this);
-            startupDialog.setVisible(true);            
-            AWSCredentials awsCredentials = startupDialog.getAWSCredentials();
-            startupDialog.dispose();
-            
-            if (awsCredentials == null) {
-                log.debug("Log in cancelled by user");
-                return;
-            }
+        	if (awsCredentials == null) {
+	            StartupDialog startupDialog = new StartupDialog(ownerFrame, cockpitProperties, this);
+	            startupDialog.setVisible(true);            
+	            awsCredentials = startupDialog.getAWSCredentials();
+	            startupDialog.dispose();
+
+	            if (awsCredentials == null) {
+	                log.debug("Log in cancelled by user");
+	                return;
+	            }
+        	}            
 
             s3ServiceMulti = new S3ServiceMulti(
                 new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION, this), this);
@@ -1126,12 +1141,23 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
             objectsSummaryLabel.setText(" ");
             
-            loginMenuItem.setEnabled(false);
             logoutMenuItem.setEnabled(true);
             
             refreshBucketMenuItem.setEnabled(true);
             createBucketMenuItem.setEnabled(true);
-            bucketLoggingMenuItem.setEnabled(true);            
+            bucketLoggingMenuItem.setEnabled(true);    
+                        
+            String loginName = (awsCredentials.getFriendlyName() != null
+        		? awsCredentials.getFriendlyName()
+				: awsCredentials.getAccessKey());
+            if (!loginAwsCredentialsMap.containsKey(loginName)) {
+	            loginAwsCredentialsMap.put(loginName, awsCredentials);
+	            JMenuItem menuItem = new JMenuItem(loginName);
+	            menuItem.setActionCommand("LoginSwitch:" + loginName);
+	            menuItem.addActionListener(this);
+	            loginSwitchMenu.add(menuItem);
+	            loginSwitchMenu.setEnabled(true);
+            }
         } catch (Exception e) {
             String message = "Unable to log in to S3";
             log.error(message, e);
@@ -1150,6 +1176,23 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private void logoutEvent() {
         log.debug("Logging out");
         try {
+        	AWSCredentials awsCredentials = s3ServiceMulti.getAWSCredentials();
+            String loginName = (awsCredentials.getFriendlyName() != null
+        		? awsCredentials.getFriendlyName()
+				: awsCredentials.getAccessKey());
+            if (loginAwsCredentialsMap.containsKey(loginName)) {
+            	Component[] components = loginSwitchMenu.getMenuComponents();
+            	for (int i = 0; i < components.length; i++) {
+            		JMenuItem menuItem = (JMenuItem)components[i];
+            		if (loginName.equals(menuItem.getText())) {
+            			loginSwitchMenu.remove(components[i]);
+            			break;
+            		}
+            	}
+        		loginAwsCredentialsMap.remove(loginName);            	
+                loginSwitchMenu.setEnabled(loginAwsCredentialsMap.size() > 0);
+            }        	
+        	
             // Revert to anonymous service.
             s3ServiceMulti = new S3ServiceMulti(
                 new RestS3Service(null, APPLICATION_DESCRIPTION, this), this);
@@ -1162,7 +1205,6 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             objectsSummaryLabel.setText(" ");
 
             ownerFrame.setTitle(APPLICATION_TITLE);
-            loginMenuItem.setEnabled(true);
             logoutMenuItem.setEnabled(false);
             
             refreshBucketMenuItem.setEnabled(false);
@@ -1390,7 +1432,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                             log.error(message, e);
                             ErrorDialog.showDialog(ownerFrame, null, message, e);
                             
-                            loginEvent();
+                            loginEvent(null);
                         }
                     });
                 } finally {

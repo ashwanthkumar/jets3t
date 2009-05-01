@@ -7,6 +7,8 @@ COCKPIT
   appear behind other GUI elements on some Windows systems.
 - The Logging Status settings of CloudFront distributions can now be managed
   within the CloudFront Distributions dialog box (see the Tools menu).
+- New "Switch login" Service menu item allows uses with multiple S3 accounts
+  to quickly switch between them, once the initial log in has been performed.
 
 TOOLKIT
 
