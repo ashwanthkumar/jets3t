@@ -37,6 +37,7 @@ import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.HttpMethodRetryHandler;
+import org.apache.commons.httpclient.HttpVersion;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
 import org.apache.commons.httpclient.NTCredentials;
 import org.apache.commons.httpclient.ProxyHost;
@@ -318,11 +319,15 @@ public class RestUtils {
         // Set user agent string.
         HttpClientParams clientParams = new HttpClientParams();
         String userAgent = jets3tProperties.getStringProperty("httpclient.useragent", null);
+        if (userAgent == null) {
+            userAgent = ServiceUtils.getUserAgentDescription(userAgentDescription);
+        }        
         if (log.isDebugEnabled()) {
             log.debug("Setting user agent string: " + userAgent);
         }
         clientParams.setParameter(HttpMethodParams.USER_AGENT, userAgent);
 
+        clientParams.setParameter("http.protocol.version", HttpVersion.HTTP_1_1);
         clientParams.setBooleanParameter("http.protocol.expect-continue", true);
 
         // Replace default error retry handler.

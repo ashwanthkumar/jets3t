@@ -324,14 +324,14 @@ public class ServiceUtils {
                         try {
                             value = ServiceUtils.parseRfc822Date(value.toString());
                         } catch (ParseException pe) {
-                        	if (log.isWarnEnabled()) {
-                        		log.warn("Date string is not RFC 822 compliant for metadata field " + key, pe);
-                        	}
                             // Try ISO-8601 date format, just in case
                         	try {
                                 value = ServiceUtils.parseIso8601Date(value.toString());
                             } catch (ParseException pe2) {
-                            	// Ignore
+                            	// Log original exception if the work-around fails.
+                            	if (log.isWarnEnabled()) {
+                            		log.warn("Date string is not RFC 822 compliant for metadata field " + key, pe);
+                            	}
                             }
                         }
                     }
