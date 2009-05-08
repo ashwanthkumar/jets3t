@@ -68,14 +68,12 @@ public class RepeatableFileInputStream extends InputStream implements InputStrea
             this.fis.close();
             this.fis = new FileInputStream(file);
 
-            long totalSkipped = 0;
             long skipped = 0;
-            while ((skipped = this.fis.skip(markPoint)) >= 0) {
-            	totalSkipped += skipped;
-            }
-            if (totalSkipped != markPoint) {
-            	throw new IOException("Failed to skip ahead " + markPoint + " bytes repeatable stream's underlying file: " + file);
-            }
+			long toSkip = markPoint;
+            while (toSkip > 0) {
+				skipped = this.fis.skip(toSkip);
+				toSkip -= skipped;
+			}       
             
             if (log.isDebugEnabled()) {
             	log.debug("Reset to mark point " + markPoint + " after returning " + bytesReadPastMarkPoint + " bytes");
