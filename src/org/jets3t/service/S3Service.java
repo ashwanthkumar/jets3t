@@ -72,9 +72,9 @@ public abstract class S3Service implements Serializable {
     private static final Log log = LogFactory.getLog(S3Service.class);
     
     /**
-     * The JetS3t suite version number implemented by this service: 0.7.0 
+     * The JetS3t suite version number implemented by this service: 0.7.1
      */
-    public static final String VERSION_NO__JETS3T_TOOLKIT = "0.7.0";
+    public static final String VERSION_NO__JETS3T_TOOLKIT = "0.7.1";
     
     public static final int BUCKET_STATUS__MY_BUCKET = 0;
     public static final int BUCKET_STATUS__DOES_NOT_EXIST = 1;
@@ -113,7 +113,7 @@ public abstract class S3Service implements Serializable {
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.7.0</code> or <code>My App Name/1.0</code>
+     * version number, for example: <code>Cockpit/0.7.1</code> or <code>My App Name/1.0</code>
      * @param jets3tProperties
      * JetS3t properties that will be applied within this service.
      * @throws S3ServiceException
@@ -162,7 +162,7 @@ public abstract class S3Service implements Serializable {
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.7.0</code> or <code>My App Name/1.0</code>
+     * version number, for example: <code>Cockpit/0.7.1</code> or <code>My App Name/1.0</code>
      * @throws S3ServiceException
      */
     protected S3Service(AWSCredentials awsCredentials, String invokingApplicationDescription)
