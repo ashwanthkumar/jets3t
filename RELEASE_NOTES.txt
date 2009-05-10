@@ -14,13 +14,13 @@ TOOLKIT
 
   * General
 
-- Added simplified constructors for S3Object, so the object's bucket need
-  not be specified in advance. This is most useful when uploading data.
 - Added support for JMX instrumentation of S3Service functions. To enable
   JMX set the system property "com.sun.management.jmxremote". Instrumentation
   for S3Bucket and S3Object MBeans is disabled by default, to enable this
   reporting set the following system properties to "true": 
   "jets3t.bucket.mx", "jets3t.object.mx"
+- Added simplified constructors for S3Object, so the object's bucket need
+  not be specified in advance. This is most useful when uploading data.
 - Added method getAccountOwner() to S3Service which allows you to look up the
   ID and display name of an S3 account's owner, even if the account contains
   no buckets.
@@ -47,6 +47,9 @@ S3Service#getAccountOwner feature.
 
 Doug MacEachern of Hyperic.com for contributing the bulk of a JMX instrumentation
 implementation.
+
+peter_griess, askwar and leebutts (java.net users) for identifying bugs and
+providing patches or solutions.
 
 
 -------------
