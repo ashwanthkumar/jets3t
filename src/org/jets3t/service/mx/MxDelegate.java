@@ -50,6 +50,8 @@ public class MxDelegate implements MxInterface {
             log.error(
                 "JMX instrumentation package 'contribs.mx' could not be found, "
                 + " instrumentation will not available", e);
+        } catch (RuntimeException e) {
+        	throw e;
         } catch (Exception e) {
             log.error(
                 "JMX instrumentation implementation in package 'contribs.mx' "

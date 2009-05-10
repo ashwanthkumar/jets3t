@@ -338,6 +338,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             return (Distribution[]) distributions.toArray(new Distribution[distributions.size()]);            
         } catch (CloudFrontServiceException e) {
             throw e;
+        } catch (RuntimeException e) {
+        	throw e;
         } catch (Exception e) {
             throw new CloudFrontServiceException(e);
         }        
@@ -484,6 +486,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             return handler.getDistribution();
         } catch (CloudFrontServiceException e) {
             throw e;
+        } catch (RuntimeException e) {
+        	throw e;
         } catch (Exception e) {
             throw new CloudFrontServiceException(e);
         }                
@@ -517,6 +521,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             return handler.getDistribution();
         } catch (CloudFrontServiceException e) {
             throw e;
+        } catch (RuntimeException e) {
+        	throw e;
         } catch (Exception e) {
             throw new CloudFrontServiceException(e);
         }                        
@@ -554,6 +560,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             return config; 
         } catch (CloudFrontServiceException e) {
             throw e;
+        } catch (RuntimeException e) {
+        	throw e;
         } catch (Exception e) {
             throw new CloudFrontServiceException(e);
         }                        
@@ -644,6 +652,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             return config; 
         } catch (CloudFrontServiceException e) {
             throw e;
+        } catch (RuntimeException e) {
+        	throw e;
         } catch (Exception e) {
             throw new CloudFrontServiceException(e);
         }                
@@ -662,9 +672,6 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * 
      * @param id
      * the distribution's unique identifier.
-     * @param comment
-     * An optional comment to describe the distribution in your own terms 
-     * (max 128 characters). May be null, in which case the original comment is retained.
      * 
      * @throws CloudFrontServiceException
      */
@@ -710,6 +717,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             performRestRequest(httpMethod, 204);
         } catch (CloudFrontServiceException e) {
             throw e;
+        } catch (RuntimeException e) {
+        	throw e;
         } catch (Exception e) {
             throw new CloudFrontServiceException(e);
         }                
@@ -724,7 +733,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * the proposed S3 bucket name that will be sanitized.
      * 
      * @return
-     * the bucket name with the {@link DEFAULT_BUCKET_SUFFIX} added, if necessary.
+     * the bucket name with the {@link #DEFAULT_BUCKET_SUFFIX} added, if necessary.
      */
     public static String sanitizeS3BucketName(String proposedBucketName) {
         if (!proposedBucketName.endsWith(DEFAULT_BUCKET_SUFFIX)) {
