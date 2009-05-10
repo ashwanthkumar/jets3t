@@ -1147,7 +1147,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             createBucketMenuItem.setEnabled(true);
             bucketLoggingMenuItem.setEnabled(true);    
                         
-            String loginName = (awsCredentials.getFriendlyName() != null
+            String loginName = (awsCredentials.hasFriendlyName()
         		? awsCredentials.getFriendlyName()
 				: awsCredentials.getAccessKey());
             if (!loginAwsCredentialsMap.containsKey(loginName)) {
@@ -1177,7 +1177,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         log.debug("Logging out");
         try {
         	AWSCredentials awsCredentials = s3ServiceMulti.getAWSCredentials();
-            String loginName = (awsCredentials.getFriendlyName() != null
+            String loginName = (awsCredentials.hasFriendlyName()
         		? awsCredentials.getFriendlyName()
 				: awsCredentials.getAccessKey());
             if (loginAwsCredentialsMap.containsKey(loginName)) {

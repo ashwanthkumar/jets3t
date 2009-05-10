@@ -98,7 +98,7 @@ public class LoginCredentialsPanel extends JPanel implements ItemListener {
         JHtmlLabel descriptionLabel = new JHtmlLabel(descriptionText, hyperlinkListener);
         descriptionLabel.setHorizontalAlignment(JLabel.CENTER);        
         JHtmlLabel friendlyNameLabel = new JHtmlLabel(friendlyNameLabelText, hyperlinkListener);
-        friendlyNameTextField = new JTextField("My Credentials");
+        friendlyNameTextField = new JTextField();
         friendlyNameTextField.setToolTipText(friendlyNameTooltipText);
         JHtmlLabel awsAccessKeyLabel = new JHtmlLabel(awsAccessKeyLabelText, hyperlinkListener);
         awsAccessKeyTextField = new JTextField();
@@ -119,10 +119,12 @@ public class LoginCredentialsPanel extends JPanel implements ItemListener {
         add(descriptionLabel, new GridBagConstraints(0, row++,
             1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
         if (askForFriendlyName) {
+        	friendlyNameTextField.setText("My Credentials");
+        	
             add(friendlyNameLabel, new GridBagConstraints(0, row++,
                 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
             add(friendlyNameTextField, new GridBagConstraints(0, row++,
-                1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+                1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));            
         }        
         add(awsAccessKeyLabel, new GridBagConstraints(0, row++,
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));

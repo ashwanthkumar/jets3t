@@ -119,6 +119,15 @@ public class AWSCredentials implements Serializable {
     public String getFriendlyName() {
         return friendlyName;
     }
+    
+    /**
+     * @return
+     * true if there is a non-null and non-empty friendly name associated 
+     * with this account.
+     */
+    public boolean hasFriendlyName() {
+    	return (friendlyName != null && friendlyName.trim().length() > 0);
+    }
 
     /**
      * @return
