@@ -638,16 +638,16 @@ public class S3Object extends BaseS3Object implements Cloneable {
     
     /**
      * Add metadata information to the object. If date metadata items (as recognized by name)
-     * are added and the value is not a date, the value is parsed as an ISO 8601 string.
+     * are added and the value is not a date, the value is parsed as an RFC 822 string.
      * @param name
      * @param value
      */
     public void addMetadata(String name, Object value) {
     	try {
 	    	if (METADATA_HEADER_LAST_MODIFIED_DATE.equals(name) && !(value instanceof Date)) {
-	    		value = ServiceUtils.parseIso8601Date(value.toString());
+	    		value = ServiceUtils.parseRfc822Date(value.toString());
 	    	} else if (METADATA_HEADER_DATE.equals(name) && !(value instanceof Date)) {
-	    		value = ServiceUtils.parseIso8601Date(value.toString());
+	    		value = ServiceUtils.parseRfc822Date(value.toString());
 	    	} 
     	} catch (ParseException e) {
     		if (log.isErrorEnabled()) {
