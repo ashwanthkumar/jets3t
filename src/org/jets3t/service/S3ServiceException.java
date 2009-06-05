@@ -72,7 +72,16 @@ public class S3ServiceException extends Exception {
 	}
 	
 	public String toString() {
-		return super.toString() + (xmlMessage != null? " XML Error Message: " + xmlMessage: "");
+		String myString = super.toString() 
+			+ " ResponseCode: " + responseCode 
+			+ ", ResponseStatus: " + responseStatus; 
+		if (isParsedFromXmlMessage()) {
+			myString += ", XML Error Message: " + xmlMessage;
+		} else {			 
+			myString += ", RequestId: " + s3ErrorRequestId 
+				+ ", HostId: " + s3ErrorHostId; 			
+		}
+		return myString;
 	}
     
     private String findXmlElementText(String xmlMessage, String elementName) {
@@ -134,6 +143,10 @@ public class S3ServiceException extends Exception {
     public String getXmlMessage() {
         return xmlMessage;
     }
+    
+    public boolean isParsedFromXmlMessage() {
+    	return (xmlMessage != null);
+    }
 
     public int getResponseCode() {
         return responseCode;
@@ -149,6 +162,21 @@ public class S3ServiceException extends Exception {
 
     public void setResponseStatus(String responseStatus) {
         this.responseStatus = responseStatus;
+    }
+    
+    /**
+     * Allow the S3 Request and Host Id fields to be populated in situations where
+     * this information is not available from an XML response error document.
+     * If there is no XML error response document, the RequestId and HostId will
+     * generally be available as the HTTP response headers
+     * <code>x-amz-request-id</code> and <code>x-amz-id-2</code> respectively.
+     *  
+     * @param errorRequestId
+     * @param errorHostId
+     */
+    public void setS3RequestAndHostIds(String errorRequestId, String errorHostId) {
+    	this.s3ErrorRequestId = errorRequestId;
+    	this.s3ErrorHostId = errorHostId;
     }
     
 }

@@ -508,14 +508,30 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                 log.debug("Releasing HttpClient connection after error: " + t.getMessage());
             }
             httpMethod.releaseConnection();
-
+                        
+            S3ServiceException s3ServiceException = null;
             if (t instanceof S3ServiceException) {
-                throw (S3ServiceException) t;                
+            	s3ServiceException = (S3ServiceException) t;                
             } else {
                 MxDelegate.getInstance().registerS3ServiceExceptionEvent();
-                throw new S3ServiceException("S3 " + httpMethod.getName() 
+            	s3ServiceException = new S3ServiceException("S3 " + httpMethod.getName() 
                     + " connection failed for '" + httpMethod.getPath() + "'", t);                
-            }            
+            }
+            
+            // Add S3 request and host IDs from HTTP headers to exception, if they are available 
+            // and have not already been populated by parsing an XML error response.
+            if (!s3ServiceException.isParsedFromXmlMessage()
+        		&& httpMethod.getResponseHeader("x-amz-request-id") != null
+        		&& httpMethod.getResponseHeader("x-amz-id-2") != null) 
+            {
+	            s3ServiceException.setS3RequestAndHostIds(            
+            		httpMethod.getResponseHeader("x-amz-request-id").getValue(),
+            		httpMethod.getResponseHeader("x-amz-id-2").getValue());
+            }
+            s3ServiceException.setResponseCode(httpMethod.getStatusCode());
+            s3ServiceException.setResponseStatus(httpMethod.getStatusText());
+            		
+            throw s3ServiceException;
         } 
     }
     
