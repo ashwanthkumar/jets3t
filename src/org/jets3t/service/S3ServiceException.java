@@ -43,7 +43,11 @@ public class S3ServiceException extends Exception {
     
     private int responseCode = -1;
     private String responseStatus = null;
-
+    private String responseDate = null;
+    private String requestVerb = null;
+    private String requestPath = null;
+    private String requestHost = null;
+    
     /**
      * Constructor that includes the XML error document returned by S3.      
      * @param message
@@ -73,8 +77,12 @@ public class S3ServiceException extends Exception {
 	
 	public String toString() {
 		String myString = super.toString() 
-			+ " ResponseCode: " + responseCode 
-			+ ", ResponseStatus: " + responseStatus; 
+			+ " " + requestVerb
+			+ " '" + requestPath + "'"
+			+ (requestHost != null ? " on Host '" + requestHost + "'" : "")
+			+ (responseDate != null ? " @ '" + responseDate + "'" : "")
+			+ " -- ResponseCode: " + responseCode 
+			+ ", ResponseStatus: " + responseStatus;		
 		if (isParsedFromXmlMessage()) {
 			myString += ", XML Error Message: " + xmlMessage;
 		} else {			 
@@ -163,8 +171,41 @@ public class S3ServiceException extends Exception {
     public void setResponseStatus(String responseStatus) {
         this.responseStatus = responseStatus;
     }
+
     
-    /**
+    public String getResponseDate() {
+		return responseDate;
+	}
+
+	public void setResponseDate(String responseDate) {
+		this.responseDate = responseDate;
+	}
+
+	public String getRequestVerb() {
+		return requestVerb;
+	}
+
+	public void setRequestVerb(String requestVerb) {
+		this.requestVerb = requestVerb;
+	}
+
+	public String getRequestPath() {
+		return requestPath;
+	}
+
+	public void setRequestPath(String requestPath) {
+		this.requestPath = requestPath;
+	}
+
+	public String getRequestHost() {
+		return requestHost;
+	}
+
+	public void setRequestHost(String requestHost) {
+		this.requestHost = requestHost;
+	}
+	
+	/**
      * Allow the S3 Request and Host Id fields to be populated in situations where
      * this information is not available from an XML response error document.
      * If there is no XML error response document, the RequestId and HostId will

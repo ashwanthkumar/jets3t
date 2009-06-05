@@ -351,7 +351,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                     wasRecentlyRedirected = true;
                     
                     if (redirectCount > 5) {
-                        throw new S3ServiceException("Encountered too many 307 Redirects, aborting request.");
+                        throw new S3ServiceException("Exceeded 307 redirect limit (5).");
                     } 
                 } else if (responseCode == 500 || responseCode == 503) {
                     // Retry on S3 Internal Server 500 or 503 Service Unavailable errors.
@@ -381,9 +381,17 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                 }
                 
                 if (!didReceiveExpectedResponseCode) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Response '" + httpMethod.getPath() + "' - Unexpected response code " 
-                            + responseCode + ", expected [" + ServiceUtils.join(expectedResponseCodes, ",") + "]");
+                    if (log.isWarnEnabled()) {
+                    	String requestDescription = 
+                    		httpMethod.getName()
+                			+ " '" + httpMethod.getPath() + "'"
+                			+ " -- ResponseCode: " + httpMethod.getStatusCode()
+                			+ ", ResponseStatus: " + httpMethod.getStatusText()
+                    		+ ", Request Headers: [" + ServiceUtils.join(httpMethod.getRequestHeaders(), ", ") + "]"                	
+                    		+ ", Response Headers: [" + ServiceUtils.join(httpMethod.getResponseHeaders(), ", ") + "]";
+                    	requestDescription = requestDescription.replaceAll("[\\n\\r\\f]", "");  // Remove any newlines.
+
+                    	log.warn("Error Response: " + requestDescription);
                     }
                                         
                     if (isXmlContentType(contentType)
@@ -414,25 +422,22 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                         
                         // Throw exception containing the XML message document.
                         S3ServiceException exception = 
-                            new S3ServiceException("S3 " + httpMethod.getName() 
-                                + " failed for '" + httpMethod.getPath() + "'", sb.toString());
+                            new S3ServiceException("S3 Error Message.", sb.toString());
                         
                         if ("RequestTimeout".equals(exception.getS3ErrorCode())) {
                             int retryMaxCount = jets3tProperties.getIntProperty("httpclient.retry-max", 5);                            
                             
                             if (requestTimeoutErrorCount < retryMaxCount) {
                                 requestTimeoutErrorCount++;
-                                if (log.isDebugEnabled()) {
-                                    log.debug("Response '" + httpMethod.getPath() 
-                                        + "' - Retrying connection that failed with RequestTimeout error"
+                                if (log.isWarnEnabled()) {
+                                    log.warn("Retrying connection that failed with RequestTimeout error"
                                         + ", attempt number " + requestTimeoutErrorCount + " of " 
                                         + retryMaxCount);
                                 }
                                 completedWithoutRecoverableError = false;
                             } else {
-                                if (log.isWarnEnabled()) {
-                                    log.warn("Response '" + httpMethod.getPath() 
-                                        + "' - Exceeded maximum number of retries for RequestTimeout errors: "
+                                if (log.isErrorEnabled()) {
+                                    log.error("Exceeded maximum number of retries for RequestTimeout errors: "
                                         + retryMaxCount);
                                 }
                                 throw exception;
@@ -474,14 +479,10 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                             // Throw exception containing the HTTP error fields.
                         	HttpException httpException = new HttpException(
                         			httpMethod.getStatusCode(), httpMethod.getStatusText());
-                            S3ServiceException exception = new S3ServiceException("S3 " + httpMethod.getName() 
-                                + " request failed for '" + httpMethod.getPath() + "' - " 
-                                + "ResponseCode=" + httpMethod.getStatusCode()
-                                + ", ResponseMessage=" + httpMethod.getStatusText()
-                                + (responseText != null ? "\n" + responseText : ""),
-                                httpException);
-                            exception.setResponseCode(httpMethod.getStatusCode());
-                            exception.setResponseStatus(httpMethod.getStatusText());
+                            S3ServiceException exception = 
+                            	new S3ServiceException("Request Error" 
+                        			+ (responseText != null ? " [" + responseText + "]." : "."),
+                            		httpException);
                             throw exception;
                         }
                     }
@@ -514,8 +515,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             	s3ServiceException = (S3ServiceException) t;                
             } else {
                 MxDelegate.getInstance().registerS3ServiceExceptionEvent();
-            	s3ServiceException = new S3ServiceException("S3 " + httpMethod.getName() 
-                    + " connection failed for '" + httpMethod.getPath() + "'", t);                
+            	s3ServiceException = new S3ServiceException("Request Error.", t);                
             }
             
             // Add S3 request and host IDs from HTTP headers to exception, if they are available 
@@ -528,8 +528,22 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             		httpMethod.getResponseHeader("x-amz-request-id").getValue(),
             		httpMethod.getResponseHeader("x-amz-id-2").getValue());
             }
+            s3ServiceException.setRequestVerb(httpMethod.getName());
+            s3ServiceException.setRequestPath(httpMethod.getPath());
             s3ServiceException.setResponseCode(httpMethod.getStatusCode());
             s3ServiceException.setResponseStatus(httpMethod.getStatusText());
+            if (httpMethod.getRequestHeader("Host") != null) {
+            	s3ServiceException.setRequestHost(
+        			httpMethod.getRequestHeader("Host").getValue());
+            }
+            if (httpMethod.getResponseHeader("Date") != null) {
+            	s3ServiceException.setResponseDate(
+        			httpMethod.getResponseHeader("Date").getValue());
+            }
+            
+            if (log.isErrorEnabled()) {
+                log.error("Request Failed.", s3ServiceException);
+            }            
             		
             throw s3ServiceException;
         } 
