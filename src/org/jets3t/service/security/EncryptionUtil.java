@@ -143,7 +143,7 @@ public class EncryptionUtil {
 
     /**
      * Constructs class configured with the provided password, and set up to use the default encryption
-     * algorith PBEWithMD5AndDES.
+     * algorithm PBEWithMD5AndDES.
      * 
      * @param encryptionKey
      *        the password to use for encryption/decryption.
