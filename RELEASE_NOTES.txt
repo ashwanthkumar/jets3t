@@ -1,4 +1,21 @@
 -------------
+Version 0.7.2
+-------------
+
+TOOLKIT
+
+  * General
+
+- JetS3t's JMX instrumentation delegate is now re-initialized each time a 
+  new S3Service is created, allowing users to enable/disable JMX logging 
+  by adjusting System properties after a JVM has started. Note that it is 
+  still not possible to enable/disable Bucket- or Object-specific event 
+  logging after the JVM has started.
+- JMX logging for JetS3t can be enabled on Java 1.6 systems by including
+  the "jets3t.mx" system property, since the "com.sun.management.jmxremote"
+  property is no longer required to turn on JMX support in the JVM.
+
+-------------
 Version 0.7.1
 -------------
 

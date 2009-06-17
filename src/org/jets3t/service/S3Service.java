@@ -149,6 +149,9 @@ public abstract class S3Service implements Serializable {
             Constants.S3_HOSTNAME = customS3Hostname;
         }
         
+        // (Re)initialize the JetS3t JMX delegate, in case system properties have changed.
+        MxDelegate.getInstance().init();  
+
         MxDelegate.getInstance().registerS3ServiceMBean();
         MxDelegate.getInstance().registerS3ServiceExceptionMBean();
     }

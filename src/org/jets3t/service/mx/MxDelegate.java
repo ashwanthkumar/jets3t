@@ -38,14 +38,42 @@ public class MxDelegate implements MxInterface {
         return instance;
     }
 
-    protected MxDelegate() {     
-        if (System.getProperty("com.sun.management.jmxremote") == null) {
+    protected MxDelegate() {
+    }
+    
+    /**
+     * Initialize, or reinitialize, the JMX instrumentation support in JetS3t. This method 
+     * <strong>must</strong> be invoked at least once within a JVM for the JMX instrumentation 
+     * to work. When JetS3t's instrumentation is enabled Service and Exception events are always
+     * logged, whereas Bucket and Object event logging must be specifically enabled. 
+     * <p>
+     * This method checks the given properties for the following System properties:
+     * <table>
+     * <tr><th>Property</th><th>Effect</th></tr>
+     * <tr><td><tt>com.sun.management.jmxremote</tt></td>
+     *     <td>If present, enable JMX instrumentation for JetS3t for Java 1.5. On Java 1.5 this 
+     *     System setting is required to enable JMX in general, and if it is present then
+     *     we automatically enable instrumentation for JetS3t as well.</td></tr>
+     * <tr><td><tt>jets3t.mx</tt></td>
+     *     <td>If present, enable JMX instrumentation for JetS3t for Java 1.6+. Because Java 
+     *     1.6+ no longer requires the "com.sun.management.jmxremote" System setting for JMX to 
+     *     be enabled in general, this property can be used as a substitute that allows 
+     *     users to decide whether JetS3t's JMX instrumentation should be turned on or off.
+     *     </td></tr>
+     * </table>
+     */
+    public void init() {
+        if (System.getProperty("com.sun.management.jmxremote") == null
+			&& System.getProperty("jets3t.mx") == null) 
+        {
+        	this.handler = null;
             return;
         }
+        
         try {
             // Load the contribs.mx.MxImpl implementation class, if available.
             Class impl = Class.forName("contribs.mx.MxImpl");
-            handler = (MxInterface) impl.newInstance();
+            this.handler = (MxInterface) impl.newInstance();
         } catch (ClassNotFoundException e) {
             log.error(
                 "JMX instrumentation package 'contribs.mx' could not be found, "
@@ -58,7 +86,15 @@ public class MxDelegate implements MxInterface {
                 + " could not be loaded", e);                
         }            
     }
-            
+    
+    /**
+     * @return
+     * true if the JetS3t's JMX delegate has been initialized and activated.
+     */
+    public boolean isJmxDelegationActive() {
+    	return this.handler != null;
+    }
+    
     public void registerS3ServiceMBean() {
         if (handler != null) {
             handler.registerS3ServiceMBean();
