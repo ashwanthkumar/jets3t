@@ -15,6 +15,14 @@ TOOLKIT
   the "jets3t.mx" system property, since the "com.sun.management.jmxremote"
   property is no longer required to turn on JMX support in the JVM.
 
+  * REST Implementation
+
+- Added sanity-checking of HTTP header values as obtained from an S3Object's
+  metadata map. Non-ASCII header names and header duplicates caused by
+  capitalization mismatches now fail early with descriptive S3ServiceException
+  errors.
+
+
 -------------
 Version 0.7.1
 -------------

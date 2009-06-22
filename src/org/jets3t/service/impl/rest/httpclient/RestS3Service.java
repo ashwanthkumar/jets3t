@@ -701,12 +701,22 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
     }  
         
     /**
-     * Adds all appropriate metadata to the given HTTP method.
+     * Adds all valid metadata name and value pairs as HTTP headers to the given HTTP method.
+     * Null metadata names are ignored, as are metadata values that are not of type string.
+     * <p>
+     * The metadata values are verified to ensure that keys contain only ASCII characters,
+     * and that items are not accidentally duplicated due to use of different capitalization. 
+     * If either of these verification tests fails, an {@link S3ServiceException} is thrown. 
      * 
      * @param httpMethod
      * @param metadata
+     * @throws S3ServiceException
      */
-    private void addMetadataToHeaders(HttpMethodBase httpMethod, Map metadata) {
+    protected void addMetadataToHeaders(HttpMethodBase httpMethod, Map metadata) 
+    		throws S3ServiceException
+	{
+    	HashMap headersAlreadySeenMap = new HashMap(metadata.size());  
+    	
         Iterator metaDataIter = metadata.entrySet().iterator();
         while (metaDataIter.hasNext()) {
             Map.Entry entry = (Map.Entry) metaDataIter.next();
@@ -718,7 +728,40 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                 continue;
             }
             
+            // Ensure user-supplied metadata values are compatible with the REST interface.
+        	// Key must be ASCII text, non-ASCII characters are not allowed in HTTP header names.
+            boolean validAscii = false;
+            UnsupportedEncodingException encodingException = null;
+        	try {
+        		byte[] asciiBytes = key.getBytes("ASCII");
+        		byte[] utf8Bytes = key.getBytes("UTF-8");
+        		validAscii = Arrays.equals(asciiBytes, utf8Bytes);
+        	} catch (UnsupportedEncodingException e) {
+        		// Shouldn't ever happen
+        		encodingException = e;
+        	} 
+        	if (!validAscii) {
+        		String message =
+    				"User metadata name is incompatible with the S3 REST interface, " +
+    				"only ASCII characters are allowed in HTTP headers: " + key;
+        		if (encodingException == null) {
+        			throw new S3ServiceException(message); 
+        		} else {        			
+        			throw new S3ServiceException(message, encodingException); 
+        		}
+        	}
+            
+            // Ensure each AMZ header is uniquely identified according to the lowercase name.
+        	String duplicateValue = (String) headersAlreadySeenMap.get(key.toLowerCase());
+            if (duplicateValue != null && !duplicateValue.equals(value)) {
+        		throw new S3ServiceException(
+    				"HTTP header name occurs multiple times in request with different values, " +
+    				"probably due to mismatched capitalization when setting metadata names. " +
+    				"Duplicate metadata name: '" + key + "', All metadata: " + metadata);            	
+            } 
+            
             httpMethod.setRequestHeader(key, (String) value);
+            headersAlreadySeenMap.put(key.toLowerCase(), value);
         }
     }
     
@@ -2033,7 +2076,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      * 
      * @author James Murty
      */
-    private class HttpMethodAndByteCount {
+    public class HttpMethodAndByteCount {
         private HttpMethodBase httpMethod = null;
         private long byteCount = 0;
         
