@@ -76,18 +76,24 @@ public class S3ServiceException extends Exception {
 	}
 	
 	public String toString() {
-		String myString = super.toString() 
-			+ " " + requestVerb
-			+ " '" + requestPath + "'"
-			+ (requestHost != null ? " on Host '" + requestHost + "'" : "")
-			+ (responseDate != null ? " @ '" + responseDate + "'" : "")
-			+ " -- ResponseCode: " + responseCode 
-			+ ", ResponseStatus: " + responseStatus;		
-		if (isParsedFromXmlMessage()) {
-			myString += ", XML Error Message: " + xmlMessage;
-		} else {			 
-			myString += ", RequestId: " + s3ErrorRequestId 
-				+ ", HostId: " + s3ErrorHostId; 			
+		String myString = super.toString();
+		
+		// Add request-specific information, if it's available.
+		if (responseCode != -1 || requestVerb != null) {
+			myString +=
+				" " + requestVerb
+				+ " '" + requestPath + "'"
+				+ (requestHost != null ? " on Host '" + requestHost + "'" : "")
+				+ (responseDate != null ? " @ '" + responseDate + "'" : "")
+				+ " -- ResponseCode: " + responseCode 
+				+ ", ResponseStatus: " + responseStatus;
+
+			if (isParsedFromXmlMessage()) {
+				myString += ", XML Error Message: " + xmlMessage;
+			} else {			 
+				myString += ", RequestId: " + s3ErrorRequestId 
+					+ ", HostId: " + s3ErrorHostId; 			
+			}
 		}
 		return myString;
 	}
