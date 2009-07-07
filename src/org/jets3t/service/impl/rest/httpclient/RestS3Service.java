@@ -22,7 +22,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -766,6 +765,31 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
     }
     
     /**
+     * Compares the expected and actual ETag value for an uploaded object, and throws an 
+     * S3ServiceException if these values do not match.
+     * 
+     * @param expectedETag
+     * @param uploadedObject
+     * @throws S3ServiceException
+     */
+    protected void verifyExpectedAndActualETagValues(String expectedETag, S3Object uploadedObject) 
+		throws S3ServiceException 
+	{
+        // Compare our locally-calculated hash with the ETag returned by S3.
+        if (!expectedETag.equals(uploadedObject.getETag())) {
+            throw new S3ServiceException("Mismatch between MD5 hash of uploaded data ("
+                + expectedETag + ") and ETag returned by S3 (" 
+                + uploadedObject.getETag() + ") for object key: "
+                + uploadedObject.getKey());
+        } else {
+            if (log.isDebugEnabled()) {
+                log.debug("Object upload was automatically verified, the calculated MD5 hash "+ 
+                    "value matched the ETag returned by S3: " + uploadedObject.getKey());
+            }
+        }    	
+    }
+    
+    /**
      * Performs an HTTP HEAD request using the {@link #performRequest} method.
      *  
      * @param bucketName
@@ -1407,24 +1431,11 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         // Note that we can only confirm the data if we used a RepeatableRequestEntity to
         // upload it, if the user did not provide a content length with the original
         // object we are SOL.
-        if (isLiveMD5HashingRequired) {
-            if (requestEntity instanceof RepeatableRequestEntity) {
-                // Obtain locally-calculated MD5 hash from request entity.
-                String hexMD5OfUploadedData = ServiceUtils.toHex(
-                    ((RepeatableRequestEntity)requestEntity).getMD5DigestOfData());
-                
-                // Compare our locally-calculated hash with the ETag returned by S3.
-                if (!object.getETag().equals(hexMD5OfUploadedData)) {
-                    throw new S3ServiceException("Mismatch between MD5 hash of uploaded data ("
-                        + hexMD5OfUploadedData + ") and ETag returned by S3 (" + object.getETag() + ") for: "
-                        + object.getKey());
-                } else {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Object upload was automatically verified, the calculated MD5 hash "+ 
-                            "value matched the ETag returned by S3: " + object.getKey());
-                    }
-                }
-            }            
+        if (isLiveMD5HashingRequired && requestEntity instanceof RepeatableRequestEntity) {
+            // Obtain locally-calculated MD5 hash from request entity.
+            String hexMD5OfUploadedData = ServiceUtils.toHex(
+                ((RepeatableRequestEntity)requestEntity).getMD5DigestOfData());
+            verifyExpectedAndActualETagValues(hexMD5OfUploadedData, object);
         }        
 
         return object;
@@ -1845,57 +1856,42 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
 
         // Consume response data and release connection.
         putMethod.releaseConnection();
-        
-        // Confirm that the data was not corrupted in transit by checking S3's calculated 
-        // hash value with the locally computed value. This is only necessary if the user
-        // did not provide a Content-MD5 header with the original object.
-        // Note that we can only confirm the data if we used a RepeatableRequestEntity to
-        // upload it, if the user did not provide a content length with the original
-        // object we are SOL.
-        if (repeatableRequestEntity != null && isLiveMD5HashingRequired) {
-            // Obtain locally-calculated MD5 hash from request entity.
-            String hexMD5OfUploadedData = ServiceUtils.toHex(
-                ((RepeatableRequestEntity)repeatableRequestEntity).getMD5DigestOfData());
-            
-            // Compare our locally-calculated hash with the ETag returned by S3.
-            if (!object.getETag().equals(hexMD5OfUploadedData)) {
-                throw new S3ServiceException("Mismatch between MD5 hash of uploaded data ("
-                    + hexMD5OfUploadedData + ") and ETag returned by S3 (" + object.getETag() + ") for: "
-                    + object.getKey());
-            } else {
-                if (log.isDebugEnabled()) {
-                    log.debug("Object upload was automatically verified, the calculated MD5 hash "+ 
-                        "value matched the ETag returned by S3: " + object.getKey());
-                }
+        try {
+            object.closeDataInputStream();
+        } catch (IOException e) {
+            if (log.isWarnEnabled()) {
+                log.warn("Unable to close data input stream for object '" + object.getKey() + "'", e);
             }
-        }                
-
+        }
+                
         try {
             S3Object uploadedObject = ServiceUtils.buildObjectFromUrl(putMethod.getURI().getHost(), putMethod.getPath());
-            object.setBucketName(uploadedObject.getBucketName());
-            object.setKey(uploadedObject.getKey());
-            try {
-				object.setLastModifiedDate(ServiceUtils.parseRfc822Date(
-					putMethod.getResponseHeader("Date").getValue()));
-			} catch (ParseException e1) {
-                if (log.isWarnEnabled()) {         
-                    log.warn("Unable to interpret date of object PUT in S3", e1);
-                }
-			}
-                       
-            try {
-                object.closeDataInputStream();
-            } catch (IOException e) {
-                if (log.isWarnEnabled()) {
-                    log.warn("Unable to close data input stream for object '" + object.getKey() + "'", e);
-                }
-            }
+            uploadedObject.setBucketName(uploadedObject.getBucketName());
+            
+            // Add all metadata returned by S3 to uploaded object.
+            HashMap map = new HashMap();
+            map.putAll(convertHeadersToMap(putMethod.getResponseHeaders()));
+            uploadedObject.replaceAllMetadata(ServiceUtils.cleanRestMetadataMap(map));
+                                   
+            // Confirm that the data was not corrupted in transit by checking S3's calculated 
+            // hash value with the locally computed value. This is only necessary if the user
+            // did not provide a Content-MD5 header with the original object.
+            // Note that we can only confirm the data if we used a RepeatableRequestEntity to
+            // upload it, if the user did not provide a content length with the original
+            // object we are SOL.
+            if (repeatableRequestEntity != null && isLiveMD5HashingRequired) {
+                // Obtain locally-calculated MD5 hash from request entity.
+                String hexMD5OfUploadedData = ServiceUtils.toHex(
+                    ((RepeatableRequestEntity)repeatableRequestEntity).getMD5DigestOfData());
+                verifyExpectedAndActualETagValues(hexMD5OfUploadedData, uploadedObject);
+            }                            
+            
+            return uploadedObject;
         } catch (URIException e) {
             throw new S3ServiceException("Unable to lookup URI for object created with signed PUT", e); 
         } catch (UnsupportedEncodingException e) {
             throw new S3ServiceException("Unable to determine name of object created with signed PUT", e); 
         }        
-        return object;
     }
 
     /**

@@ -247,30 +247,29 @@ public abstract class BaseS3ServiceTest extends TestCase {
         // data input stream)
         dataObject = s3Service.getObjectDetails(bucket, object.getKey());
         assertEquals("Unexpected default content type", "text/plain", dataObject.getContentType());
-        assertEquals("Unexpected size for object", objectData.length(), dataObject.getContentLength());
         assertEquals("Mismatching hash", dataMd5HashAsHex, dataObject.getETag());
         assertEquals("Missing creator metadata", "S3ServiceTest", dataObject.getMetadata(
             "creator"));
         assertEquals("Missing purpose metadata", "For testing purposes", 
             dataObject.getMetadata("purpose"));
-        assertNull("Expected data input stream to be unavailable", dataObject.getDataInputStream());
+        assertNull("Expected data input stream to be unavailable", dataObject.getDataInputStream());        
+        // Object's content length is only available from REST detail requests, not SOAP ones.
+        // assertEquals("Unexpected size for object", objectData.length(), dataObject.getContentLength());
 
         // Test object GET constraints.
         Calendar objectCreationTimeCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"), Locale.US);
         objectCreationTimeCal.setTime(dataObject.getLastModifiedDate());
         
-        objectCreationTimeCal.add(Calendar.SECOND, 1);
-        Calendar afterObjectCreation = (Calendar) objectCreationTimeCal.clone();
-        objectCreationTimeCal.add(Calendar.DAY_OF_YEAR, -1);
         Calendar yesterday = (Calendar) objectCreationTimeCal.clone();
-        objectCreationTimeCal.add(Calendar.DAY_OF_YEAR, +2);
+        yesterday.add(Calendar.DAY_OF_YEAR, -1);
         Calendar tomorrow = (Calendar) objectCreationTimeCal.clone();
+        tomorrow.add(Calendar.DAY_OF_YEAR, +2);
 
         // Precondition: Modified since yesterday
         s3Service.getObjectDetails(bucket, object.getKey(), yesterday, null, null, null);
         // Precondition: Mot modified since after creation date.
         try {
-            s3Service.getObjectDetails(bucket, object.getKey(), afterObjectCreation, null, null, null);
+            s3Service.getObjectDetails(bucket, object.getKey(), objectCreationTimeCal, null, null, null);
             fail("Cannot have been modified since object was created");
         } catch (S3ServiceException e) { }
         // Precondition: Not modified since yesterday
@@ -616,9 +615,20 @@ public abstract class BaseS3ServiceTest extends TestCase {
         String originalName = object.getKey();
         object.setKey("Testing URL Signing 2");
         object.setDataInputStream(new ByteArrayInputStream(dataString.getBytes()));
-        S3Object renamedObject = restS3Service.putObjectWithSignedUrl(signedPutUrl, object);
+        object = restS3Service.putObjectWithSignedUrl(signedPutUrl, object);
         assertEquals("Ensure returned object key is renamed based on signed PUT URL", 
-            originalName, renamedObject.getKey());
+            originalName, object.getKey());
+        
+        // Test last-resort MD5 sanity-check for uploaded object when ETag is missing.
+        S3Object objectWithoutETag = new S3Object("Object Without ETag");
+        objectWithoutETag.setContentType("text/html");        
+        String objectWithoutETagSignedPutURL = S3Service.createSignedPutUrl(
+    		bucket.getName(), objectWithoutETag.getKey(), objectWithoutETag.getMetadataMap(), 
+    		awsCredentials, expiryDate, false);        
+        objectWithoutETag.setDataInputStream(new ByteArrayInputStream(dataString.getBytes()));
+        objectWithoutETag.setContentLength(dataString.getBytes().length);
+        restS3Service.putObjectWithSignedUrl(objectWithoutETagSignedPutURL, objectWithoutETag);
+        s3Service.deleteObject(bucket, objectWithoutETag.getKey());
 
         // Ensure we can't get the object with a normal URL.
         String s3Url = "https://s3.amazonaws.com";

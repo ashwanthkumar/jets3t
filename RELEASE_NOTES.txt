@@ -21,7 +21,9 @@ TOOLKIT
   metadata map. Non-ASCII header names and header duplicates caused by
   capitalization mismatches now fail early with descriptive S3ServiceException
   errors.
-
+- Fixed bug in signed-url based uploading that caused automatic ETag 
+  verification to fail with a NullPointerException if an ETag value wasn't set
+  prior to upload.
 
 -------------
 Version 0.7.1
