@@ -535,7 +535,7 @@ public class SoapS3Service extends S3Service {
     protected S3Bucket createBucketImpl(String bucketName, String location, 
         AccessControlList acl) throws S3ServiceException 
     {
-        if (!S3Bucket.LOCATION_US.equals(location)) {
+        if (location != null && !"US".equalsIgnoreCase(location)) {
             throw new S3ServiceException("The SOAP API interface for S3 does " +
                 "not allow you to create buckets located anywhere other than " +
                 "the US");
