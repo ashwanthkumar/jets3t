@@ -13,16 +13,9 @@ rem Check the JETS3T_HOME directory
 
 if not "%JETS3T_HOME%" == "" goto gotJetS3tHome
 
-rem Try to find the home directory, assuming we are in the home directory.
-set MY_JETS3T_HOME=%cd%
-if exist "%MY_JETS3T_HOME%\bin\cockpit.bat" goto foundJetS3tHome
-
-rem Try to find the home directory, assuming we are in the bin directory.
-set CURRENT_DIR=%cd%
-cd ..
-set MY_JETS3T_HOME=%cd%
-cd %CURRENT_DIR%
-if exist "%MY_JETS3T_HOME%\bin\cockpit.bat" goto foundJetS3tHome
+rem Find the home directory, assuming this script is %JETS3T_HOME%\bin
+set MY_JETS3T_HOME=%~dp0\..
+if exist "%MY_JETS3T_HOME%\bin\%~nx0" goto foundJetS3tHome
 
 echo Please set the environment variable JETS3T_HOME
 goto END

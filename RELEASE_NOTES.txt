@@ -14,6 +14,8 @@ TOOLKIT
 - JMX logging for JetS3t can be enabled on Java 1.6 systems by including
   the "jets3t.mx" system property, since the "com.sun.management.jmxremote"
   property is no longer required to turn on JMX support in the JVM.
+- Improved the Windows batch scripts to correctly detect the JETS3T_HOME
+  location regardless of the current directory when the JetS3t script is run. 
 
   * REST Implementation
 
@@ -24,6 +26,12 @@ TOOLKIT
 - Fixed bug in signed-url based uploading that caused automatic ETag 
   verification to fail with a NullPointerException if an ETag value wasn't set
   prior to upload.
+
+KUDOS TO:
+
+Christian Mallwitz for the pointer to the %~dp0 script variable that greatly
+improves the Windows batch scripts. 
+
 
 -------------
 Version 0.7.1

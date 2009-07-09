@@ -13,16 +13,9 @@ rem Check the JETS3T_HOME directory
 
 if not "%JETS3T_HOME%" == "" goto gotJetS3tHome
 
-rem Try to find the home directory, assuming we are in the home directory.
-set MY_JETS3T_HOME=%cd%
-if exist "%MY_JETS3T_HOME%\bin\cockpit.bat" goto foundJetS3tHome
-
-rem Try to find the home directory, assuming we are in the bin directory.
-set CURRENT_DIR=%cd%
-cd ..
-set MY_JETS3T_HOME=%cd%
-cd %CURRENT_DIR%
-if exist "%MY_JETS3T_HOME%\bin\cockpit.bat" goto foundJetS3tHome
+rem Find the home directory, assuming this script is %JETS3T_HOME%\bin
+set MY_JETS3T_HOME=%~dp0\..
+if exist "%MY_JETS3T_HOME%\bin\%~nx0" goto foundJetS3tHome
 
 echo Please set the environment variable JETS3T_HOME
 goto END
@@ -57,9 +50,9 @@ REM Include resources directory in classpath
 set CP=%CP%;%MY_JETS3T_HOME%/resources                    
 
 REM Include libraries in classpath
-set CP=%CP%;%MY_JETS3T_HOME%/jars/jets3t-{jets3t-version}.jar
-set CP=%CP%;%MY_JETS3T_HOME%/jars/jets3t-gui-{jets3t-version}.jar
-set CP=%CP%;%MY_JETS3T_HOME%/jars/cockpit-{jets3t-version}.jar
+set CP=%CP%;%MY_JETS3T_HOME%/jars/jets3t-0.7.2.jar
+set CP=%CP%;%MY_JETS3T_HOME%/jars/jets3t-gui-0.7.2.jar
+set CP=%CP%;%MY_JETS3T_HOME%/jars/cockpit-0.7.2.jar
 set CP=%CP%;%MY_JETS3T_HOME%/libs/commons-logging/commons-logging-1.1.1.jar
 set CP=%CP%;%MY_JETS3T_HOME%/libs/commons-codec/commons-codec-1.3.jar
 set CP=%CP%;%MY_JETS3T_HOME%/libs/commons-httpclient/commons-httpclient-3.1.jar
