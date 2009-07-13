@@ -284,7 +284,8 @@ public class ServiceUtils {
                     }
                 } else if ("ETag".equalsIgnoreCase(keyStr)
                     || "Date".equalsIgnoreCase(keyStr)
-                    || "Last-Modified".equalsIgnoreCase(keyStr))
+                    || "Last-Modified".equalsIgnoreCase(keyStr)
+                    || "Content-Range".equalsIgnoreCase(keyStr))
                 {
                     key = keyStr;
                     if (log.isDebugEnabled()) {
