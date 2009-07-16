@@ -595,14 +595,6 @@ public class XmlResponsesSaxParser {
                 accessControlList = new AccessControlList();
                 accessControlList.setOwner(owner);
                 insideACL = true;
-            } else if (name.equals("Grantee")) {
-                if ("AmazonCustomerByEmail".equals(attrs.getValue("xsi:type"))) {
-                    currentGrantee = new EmailAddressGrantee();
-                } else if ("CanonicalUser".equals(attrs.getValue("xsi:type"))) {
-                    currentGrantee = new CanonicalGrantee();
-                } else if ("Group".equals(attrs.getValue("xsi:type"))) {
-                    currentGrantee = new GroupGrantee();
-                }
             }
         }
 
@@ -616,10 +608,13 @@ public class XmlResponsesSaxParser {
             }
             // ACL details.
             else if (name.equals("ID")) {
+                currentGrantee = new CanonicalGrantee();
                 currentGrantee.setIdentifier(elementText);
             } else if (name.equals("EmailAddress")) {
+                currentGrantee = new EmailAddressGrantee();
                 currentGrantee.setIdentifier(elementText);
             } else if (name.equals("URI")) {
+                currentGrantee = new GroupGrantee();
                 currentGrantee.setIdentifier(elementText);
             } else if (name.equals("DisplayName")) {
                 ((CanonicalGrantee) currentGrantee).setDisplayName(elementText);
