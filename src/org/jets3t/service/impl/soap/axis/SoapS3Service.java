@@ -235,30 +235,35 @@ public class SoapS3Service extends S3Service {
         Grant[] grants = policy.getAccessControlList();
         for (int i = 0; i < grants.length; i++) {
             Grant grant = (Grant) grants[i];
-            org.jets3t.service.acl.Permission permission =
-                org.jets3t.service.acl.Permission.parsePermission(grant.getPermission().toString());            
-            
-            Grantee grantee = grant.getGrantee();
-            if (grantee instanceof Group) {
-                GroupGrantee jets3tGrantee = new GroupGrantee();
-                jets3tGrantee.setIdentifier(((Group)grantee).getURI());                
-                acl.grantPermission(jets3tGrantee, permission);                
-            } else if (grantee instanceof CanonicalUser) {
-                CanonicalUser canonicalUser = (CanonicalUser) grantee;
-                CanonicalGrantee jets3tGrantee = new CanonicalGrantee();
-                jets3tGrantee.setIdentifier(canonicalUser.getID());
-                jets3tGrantee.setDisplayName(canonicalUser.getDisplayName());
-                acl.grantPermission(jets3tGrantee, permission);                
-            } else if (grantee instanceof AmazonCustomerByEmail) {
-                AmazonCustomerByEmail customerByEmail = (AmazonCustomerByEmail) grantee;
-                EmailAddressGrantee jets3tGrantee = new EmailAddressGrantee();
-                jets3tGrantee.setIdentifier(customerByEmail.getEmailAddress());
-                acl.grantPermission(jets3tGrantee, permission);                
-            } else {
-                throw new S3ServiceException("Unrecognised grantee type: " + grantee.getClass());
-            }
+            GrantAndPermission jets3tGrantAndPermission = convertGrant(grant);
+            acl.grantPermission(jets3tGrantAndPermission.getGrantee(), 
+        		jets3tGrantAndPermission.getPermission());                
         }
         return acl;
+    }
+    
+    private GrantAndPermission convertGrant(Grant grant) throws S3ServiceException {
+        org.jets3t.service.acl.Permission permission =
+            org.jets3t.service.acl.Permission.parsePermission(grant.getPermission().toString());
+        org.jets3t.service.acl.GranteeInterface jets3tGrantee = null;
+        
+        Grantee grantee = grant.getGrantee();
+        if (grantee instanceof Group) {
+            jets3tGrantee = new GroupGrantee();
+            jets3tGrantee.setIdentifier(((Group)grantee).getURI());                
+        } else if (grantee instanceof CanonicalUser) {
+            CanonicalUser canonicalUser = (CanonicalUser) grantee;
+            jets3tGrantee = new CanonicalGrantee();
+            jets3tGrantee.setIdentifier(canonicalUser.getID());
+            ((CanonicalGrantee)jets3tGrantee).setDisplayName(canonicalUser.getDisplayName());
+        } else if (grantee instanceof AmazonCustomerByEmail) {
+            AmazonCustomerByEmail customerByEmail = (AmazonCustomerByEmail) grantee;
+            jets3tGrantee = new EmailAddressGrantee();
+            jets3tGrantee.setIdentifier(customerByEmail.getEmailAddress());
+        } else {
+            throw new S3ServiceException("Unrecognised grantee type: " + grantee.getClass());
+        }
+        return new GrantAndPermission(jets3tGrantee, permission);
     }
     
     /**
@@ -282,34 +287,41 @@ public class SoapS3Service extends S3Service {
         int index = 0;
         while (grantIter.hasNext()) {
             GrantAndPermission jets3tGaP = (GrantAndPermission) grantIter.next();
-            GranteeInterface jets3tGrantee = jets3tGaP.getGrantee();
-            Grant grant = new Grant();
-            
-            if (jets3tGrantee instanceof GroupGrantee) {
-                GroupGrantee groupGrantee = (GroupGrantee) jets3tGrantee;
-                Group group = new Group();
-                group.setURI(groupGrantee.getIdentifier());
-                grant.setGrantee(group);
-            } else if (jets3tGrantee instanceof CanonicalGrantee) {
-                CanonicalGrantee canonicalGrantee = (CanonicalGrantee) jets3tGrantee;
-                CanonicalUser canonicalUser = new CanonicalUser();
-                canonicalUser.setID(canonicalGrantee.getIdentifier());
-                canonicalUser.setDisplayName(canonicalGrantee.getDisplayName());
-                grant.setGrantee(canonicalUser);
-            } else if (jets3tGrantee instanceof EmailAddressGrantee) {
-                EmailAddressGrantee emailGrantee = (EmailAddressGrantee) jets3tGrantee;
-                AmazonCustomerByEmail customerByEmail = new AmazonCustomerByEmail();
-                customerByEmail.setEmailAddress(emailGrantee.getIdentifier());
-                grant.setGrantee(customerByEmail);
-            } else {
-                throw new S3ServiceException("Unrecognised jets3t grantee type: " 
-                    + jets3tGrantee.getClass());
-            }
-            Permission permission = Permission.fromString(jets3tGaP.getPermission().toString());
-            grant.setPermission(permission);
+            Grant grant = convertGrantAndPermissionToGrant(jets3tGaP);
             grants[index++] = grant;
         }
         return grants;
+    }
+    
+    private Grant convertGrantAndPermissionToGrant(GrantAndPermission jets3tGaP) 
+    		throws S3ServiceException
+	{
+        GranteeInterface jets3tGrantee = jets3tGaP.getGrantee();
+        Grant grant = new Grant();
+        
+        if (jets3tGrantee instanceof GroupGrantee) {
+            GroupGrantee groupGrantee = (GroupGrantee) jets3tGrantee;
+            Group group = new Group();
+            group.setURI(groupGrantee.getIdentifier());
+            grant.setGrantee(group);
+        } else if (jets3tGrantee instanceof CanonicalGrantee) {
+            CanonicalGrantee canonicalGrantee = (CanonicalGrantee) jets3tGrantee;
+            CanonicalUser canonicalUser = new CanonicalUser();
+            canonicalUser.setID(canonicalGrantee.getIdentifier());
+            canonicalUser.setDisplayName(canonicalGrantee.getDisplayName());
+            grant.setGrantee(canonicalUser);
+        } else if (jets3tGrantee instanceof EmailAddressGrantee) {
+            EmailAddressGrantee emailGrantee = (EmailAddressGrantee) jets3tGrantee;
+            AmazonCustomerByEmail customerByEmail = new AmazonCustomerByEmail();
+            customerByEmail.setEmailAddress(emailGrantee.getIdentifier());
+            grant.setGrantee(customerByEmail);
+        } else {
+            throw new S3ServiceException("Unrecognised jets3t grantee type: " 
+                + jets3tGrantee.getClass());
+        }
+        Permission permission = Permission.fromString(jets3tGaP.getPermission().toString());
+        grant.setPermission(permission);
+        return grant;
     }
 
     /**
@@ -937,11 +949,21 @@ public class SoapS3Service extends S3Service {
             BucketLoggingStatus loggingStatus = s3SoapBinding.getBucketLoggingStatus(                
                 bucketName, getAWSAccessKey(), timestamp, signature, null);            
             LoggingSettings loggingSettings = loggingStatus.getLoggingEnabled();
+            S3BucketLoggingStatus s3BucketLoggingStatus = null;
             if (loggingSettings != null) {
-                return new S3BucketLoggingStatus(loggingSettings.getTargetBucket(), loggingSettings.getTargetPrefix());                
+            	s3BucketLoggingStatus = new S3BucketLoggingStatus(
+        			loggingSettings.getTargetBucket(), loggingSettings.getTargetPrefix());                
+                Grant[] grants = loggingSettings.getTargetGrants(); 
+                if (grants != null) {
+                	for (int i = 0; i < grants.length; i++) {
+    	            	Grant grant = grants[i];
+    	        		s3BucketLoggingStatus.addTargetGrant(convertGrant(grant));
+                	}
+                }            
             } else {
-                return new S3BucketLoggingStatus();
+            	s3BucketLoggingStatus = new S3BucketLoggingStatus();
             }
+            return s3BucketLoggingStatus;
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
@@ -949,7 +971,8 @@ public class SoapS3Service extends S3Service {
         }        
     }
 
-    protected void setBucketLoggingStatusImpl(String bucketName, S3BucketLoggingStatus status) throws S3ServiceException {
+    protected void setBucketLoggingStatusImpl(String bucketName, S3BucketLoggingStatus status) 
+    		throws S3ServiceException {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
@@ -960,8 +983,16 @@ public class SoapS3Service extends S3Service {
             if (status.isLoggingEnabled()) {
                 loggingSettings = new LoggingSettings(
                     status.getTargetBucketName(), status.getLogfilePrefix(), new Grant[] {});                
+                if (status.getTargetGrants() != null) {
+                	ArrayList grantsList = new ArrayList();
+                	for (int i = 0; i < status.getTargetGrants().length; i++) {
+                		GrantAndPermission grantAndPermission = status.getTargetGrants()[i];
+                		grantsList.add(convertGrantAndPermissionToGrant(grantAndPermission));
+                	}
+                	loggingSettings.setTargetGrants(
+            			(Grant[]) grantsList.toArray(new Grant[grantsList.size()]));
+                }
             }
-            
             s3SoapBinding.setBucketLoggingStatus(
                 bucketName, getAWSAccessKey(), timestamp, signature, null, 
                 new BucketLoggingStatus(loggingSettings)); 

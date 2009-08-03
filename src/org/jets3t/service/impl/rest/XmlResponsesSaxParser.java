@@ -37,6 +37,7 @@ import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.CanonicalGrantee;
 import org.jets3t.service.acl.EmailAddressGrantee;
+import org.jets3t.service.acl.GrantAndPermission;
 import org.jets3t.service.acl.GranteeInterface;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
@@ -647,6 +648,8 @@ public class XmlResponsesSaxParser {
         private String targetBucket = null;
         private String targetPrefix = null;
         private StringBuffer currText = null;
+        private GranteeInterface currentGrantee = null;
+        private Permission currentPermission = null;
 
         public BucketLoggingStatusHandler() {
             super();
@@ -670,7 +673,7 @@ public class XmlResponsesSaxParser {
         public void startElement(String uri, String name, String qName, Attributes attrs) {
             if (name.equals("BucketLoggingStatus")) {
                 bucketLoggingStatus = new S3BucketLoggingStatus();
-            } 
+            }
         }
 
         public void endElement(String uri, String name, String qName) {
@@ -683,6 +686,25 @@ public class XmlResponsesSaxParser {
                 bucketLoggingStatus.setTargetBucketName(targetBucket);
                 bucketLoggingStatus.setLogfilePrefix(targetPrefix);
             } 
+            // Handle TargetGrants ACLs
+            else if (name.equals("ID")) {
+                currentGrantee = new CanonicalGrantee();
+                currentGrantee.setIdentifier(elementText);
+            } else if (name.equals("EmailAddress")) {
+                currentGrantee = new EmailAddressGrantee();
+                currentGrantee.setIdentifier(elementText);
+            } else if (name.equals("URI")) {
+                currentGrantee = new GroupGrantee();
+                currentGrantee.setIdentifier(elementText);
+            } else if (name.equals("DisplayName")) {
+                ((CanonicalGrantee) currentGrantee).setDisplayName(elementText);
+            } else if (name.equals("Permission")) {
+                currentPermission = Permission.parsePermission(elementText);
+            } else if (name.equals("Grant")) {
+            	GrantAndPermission grantAndPermission = new GrantAndPermission(
+        			currentGrantee, currentPermission);
+            	bucketLoggingStatus.addTargetGrant(grantAndPermission);
+            }            
             this.currText = new StringBuffer();
         }
 

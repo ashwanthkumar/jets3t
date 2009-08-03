@@ -41,6 +41,7 @@ import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
+import org.jets3t.service.acl.GrantAndPermission;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
@@ -551,7 +552,23 @@ public abstract class BaseS3ServiceTest extends TestCase {
             loggingStatus.isLoggingEnabled());
         assertEquals("Target bucket", bucketName, loggingStatus.getTargetBucketName());
         assertEquals("Log file prefix", "access-log-", loggingStatus.getLogfilePrefix());
-        
+
+        // Add TargetGrants ACLs for log files
+        newLoggingStatus.addTargetGrant(new GrantAndPermission(
+    		GroupGrantee.ALL_USERS, Permission.PERMISSION_READ));
+        newLoggingStatus.addTargetGrant(new GrantAndPermission(
+    		GroupGrantee.AUTHENTICATED_USERS, Permission.PERMISSION_READ_ACP));
+        s3Service.setBucketLoggingStatus(bucket.getName(), newLoggingStatus, false);
+        // Retrieve and verify TargetGrants
+        loggingStatus = s3Service.getBucketLoggingStatus(bucket.getName());        
+        assertEquals(2, loggingStatus.getTargetGrants().length);
+        GrantAndPermission gap = loggingStatus.getTargetGrants()[0]; 
+        assertEquals(gap.getGrantee().getIdentifier(), GroupGrantee.ALL_USERS.getIdentifier());
+        assertEquals(gap.getPermission(), Permission.PERMISSION_READ);
+        gap = loggingStatus.getTargetGrants()[1]; 
+        assertEquals(gap.getGrantee().getIdentifier(), GroupGrantee.AUTHENTICATED_USERS.getIdentifier());
+        assertEquals(gap.getPermission(), Permission.PERMISSION_READ_ACP);
+
         // Disable logging
         newLoggingStatus = new S3BucketLoggingStatus();
         s3Service.setBucketLoggingStatus(bucket.getName(), newLoggingStatus, true);

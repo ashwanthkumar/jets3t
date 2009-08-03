@@ -18,7 +18,13 @@
  */
 package org.jets3t.service.model;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+
 import org.jets3t.service.Constants;
+import org.jets3t.service.acl.GrantAndPermission;
 
 /**
  * Represents Bucket Logging Status settings used to control bucket-based Server Access Logging in S3.
@@ -40,6 +46,7 @@ import org.jets3t.service.Constants;
 public class S3BucketLoggingStatus {
     private String targetBucketName = null;
     private String logfilePrefix = null;
+    private List targetGrantsList = new ArrayList();
 
     public S3BucketLoggingStatus() {        
     }
@@ -70,12 +77,27 @@ public class S3BucketLoggingStatus {
         this.targetBucketName = targetBucketName;
     }
     
+    public GrantAndPermission[] getTargetGrants() {
+    	return (GrantAndPermission[]) targetGrantsList.toArray(
+			new GrantAndPermission[targetGrantsList.size()]);
+    }
+    
+    public void setTargetGrants(GrantAndPermission[] targetGrants) {
+    	targetGrantsList.clear();
+    	targetGrantsList.addAll(Arrays.asList(targetGrants));
+    }
+    
+    public void addTargetGrant(GrantAndPermission targetGrant) {
+    	targetGrantsList.add(targetGrant);
+    }
+    
     public String toString() {
         String result = "LoggingStatus enabled=" + isLoggingEnabled();
         if (isLoggingEnabled()) {
             result += ", targetBucketName=" + getTargetBucketName()
                 + ", logfilePrefix=" + getLogfilePrefix();
         }            
+		result += ", targetGrants=[" + targetGrantsList + "]"; 
         return result;
     }
     
@@ -87,14 +109,33 @@ public class S3BucketLoggingStatus {
     public String toXml() {
         StringBuffer sb = new StringBuffer();        
         sb.append(
-            "<BucketLoggingStatus xmlns=\"" + Constants.XML_NAMESPACE + "\">" +
-            (!isLoggingEnabled()? "" : 
-                "<LoggingEnabled>" +
-                    "<TargetBucket>" + getTargetBucketName() + "</TargetBucket>" +
-                    "<TargetPrefix>" + getLogfilePrefix() + "</TargetPrefix>" +
-                "</LoggingEnabled>"
-            ) +
-          "</BucketLoggingStatus>");
+            "<BucketLoggingStatus xmlns=\"" + Constants.XML_NAMESPACE + "\">");
+            if (isLoggingEnabled()) {
+            	sb.append(
+    			"<LoggingEnabled>" +
+        			"<TargetBucket>" + getTargetBucketName() + "</TargetBucket>" +
+        			"<TargetPrefix>" + getLogfilePrefix() + "</TargetPrefix>");
+                if (targetGrantsList.size() > 0) {
+                	Iterator targetGrantsIter = targetGrantsList.iterator();
+                	sb.append(
+        			"<TargetGrants>");
+                	while (targetGrantsIter.hasNext()) {
+                		GrantAndPermission gap = (GrantAndPermission) targetGrantsIter.next();
+                		sb.append(
+        				"<Grant>" + 
+        				gap.getGrantee().toXml() + 
+        				"<Permission>" + gap.getPermission() + "</Permission>" +
+        				"</Grant>"
+                		);
+                	}
+                	sb.append(
+        			"</TargetGrants>");
+                }            	
+            	sb.append(
+    			"</LoggingEnabled>");
+            }
+            sb.append(
+    		"</BucketLoggingStatus>");
         return sb.toString();
     }
         
