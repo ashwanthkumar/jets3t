@@ -213,18 +213,45 @@ public class FileComparer {
     }
     
     /**
-     * Determines whether a file should be ignored, based on whether it matches a regular expression
-     * Pattern in the provided ignore list.
-     * 
+     * Determines whether a file should be ignored when building a file map. A file may be ignored
+     * in two situations: 1) if it matches a regular expression pattern in the given list of 
+     * ignore patterns, or 2) if it is a symlink/alias and the JetS3tProperties setting
+     * "filecomparer.skip-symlinks" is true.
+     *   
      * @param ignorePatternList
      * a list of Pattern objects representing the file names to ignore.
      * @param file
-     * a file that will either be ignored or not, depending on whether it matches an ignore Pattern.
+     * a file that will either be ignored or not, depending on whether it matches an ignore Pattern
+     * or is a symlink/alias.
      * 
      * @return
      * true if the file should be ignored, false otherwise.
      */
     protected boolean isIgnored(List ignorePatternList, File file) {
+        if (jets3tProperties.getBoolProperty("filecomparer.skip-symlinks", false)) {
+    		/* 
+    		 * Check whether this file is actually a symlink/alias, and skip it if so.
+    		 * Since Java IO libraries do not provide an official way to determine whether
+    		 * a file is a symlink, we rely on a property of symlinks where the absolute
+    		 * path to the symlink differs from the canonical path. This is hacky, but
+    		 * mostly seems to work...
+    		 */
+    		try {
+				if (!file.getAbsolutePath().equals(file.getCanonicalPath())) {
+	            	if (log.isDebugEnabled()) {
+	            		log.debug("Ignoring symlink " 
+            				+ (file.isDirectory() ? "directory" : "file") + ": " + file.getName());                
+	            	}
+					// Skip symlink.
+					return true;
+				}
+			} catch (IOException e) {
+				log.warn("Unable to determine whether " 
+					+ (file.isDirectory() ? "directory" : "file")
+					+ " '" + file.getAbsolutePath() + "' is a symlink", e);
+			}
+    	}
+    	    	
         Iterator patternIter = ignorePatternList.iterator();
         while (patternIter.hasNext()) {
             Pattern pattern = (Pattern) patternIter.next();
@@ -265,9 +292,11 @@ public class FileComparer {
         HashMap fileMap = new HashMap();
         List ignorePatternList = null;
         List ignorePatternListForCurrentDir = null;
-        
+                
         for (int i = 0; i < files.length; i++) {
-            if (files[i].getParentFile() == null) {
+        	File file = files[i];
+        	
+            if (file.getParentFile() == null) {
                 // For direct references to a file or dir, look for a .jets3t-ignore file
                 // in the current directory - only do this once for the current dir.
                 if (ignorePatternListForCurrentDir == null) {
@@ -275,18 +304,18 @@ public class FileComparer {
                 }
                 ignorePatternList = ignorePatternListForCurrentDir;
             } else {
-                ignorePatternList = buildIgnoreRegexpList(files[i].getParentFile(), null);
+                ignorePatternList = buildIgnoreRegexpList(file.getParentFile(), null);
             }
             
-            if (!isIgnored(ignorePatternList, files[i])) {
-                if (!files[i].exists()) {
+            if (!isIgnored(ignorePatternList, file)) {
+                if (!file.exists()) {
                     continue;
                 }
-                if (!files[i].isDirectory() || includeDirectories) {
-                    fileMap.put(files[i].getName(), files[i]);
+                if (!file.isDirectory() || includeDirectories) {
+                    fileMap.put(file.getName(), file);
                 }
-                if (files[i].isDirectory()) {
-                    buildFileMapImpl(files[i], files[i].getName() + Constants.FILE_PATH_DELIM, 
+                if (file.isDirectory()) {
+                    buildFileMapImpl(file, file.getName() + Constants.FILE_PATH_DELIM, 
                         fileMap, includeDirectories, ignorePatternList);
                 }
             }
