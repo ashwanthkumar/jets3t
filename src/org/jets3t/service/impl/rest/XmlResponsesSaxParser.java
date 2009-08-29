@@ -305,7 +305,6 @@ public class XmlResponsesSaxParser {
 
         public ListBucketHandler() {
             super();
-            this.currText = new StringBuffer();
         }
 
         /**
@@ -386,6 +385,7 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("CommonPrefixes")) {
                 insideCommonPrefixes = true;
             }
+            this.currText = new StringBuffer();
         }
 
         public void endElement(String uri, String name, String qName) {
@@ -458,8 +458,6 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("CommonPrefixes")) {
                 insideCommonPrefixes = false;
             }
-
-            this.currText = new StringBuffer();
         }
 
         public void characters(char ch[], int start, int length) {
@@ -484,7 +482,6 @@ public class XmlResponsesSaxParser {
         public ListAllMyBucketsHandler() {
             super();
             buckets = new ArrayList();
-            this.currText = new StringBuffer();
         }
 
         /**
@@ -515,6 +512,7 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("Owner")) {
                 bucketsOwner = new S3Owner();
             }
+            this.currText = new StringBuffer();
         }
 
         public void endElement(String uri, String name, String qName) {
@@ -544,7 +542,6 @@ public class XmlResponsesSaxParser {
                 		+ elementText, e);
                 }
             }
-            this.currText = new StringBuffer();
         }
 
         public void characters(char ch[], int start, int length) {
@@ -572,7 +569,6 @@ public class XmlResponsesSaxParser {
 
         public AccessControlListHandler() {
             super();
-            this.currText = new StringBuffer();
         }
 
         /**
@@ -597,6 +593,7 @@ public class XmlResponsesSaxParser {
                 accessControlList.setOwner(owner);
                 insideACL = true;
             }
+            this.currText = new StringBuffer();
         }
 
         public void endElement(String uri, String name, String qName) {
@@ -626,7 +623,6 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("AccessControlList")) {
                 insideACL = false;
             }
-            this.currText = new StringBuffer();
         }
 
         public void characters(char ch[], int start, int length) {
@@ -653,7 +649,6 @@ public class XmlResponsesSaxParser {
 
         public BucketLoggingStatusHandler() {
             super();
-            this.currText = new StringBuffer();
         }
 
         /**
@@ -674,6 +669,7 @@ public class XmlResponsesSaxParser {
             if (name.equals("BucketLoggingStatus")) {
                 bucketLoggingStatus = new S3BucketLoggingStatus();
             }
+            this.currText = new StringBuffer();
         }
 
         public void endElement(String uri, String name, String qName) {
@@ -705,7 +701,6 @@ public class XmlResponsesSaxParser {
         			currentGrantee, currentPermission);
             	bucketLoggingStatus.addTargetGrant(grantAndPermission);
             }            
-            this.currText = new StringBuffer();
         }
 
         public void characters(char ch[], int start, int length) {
@@ -728,7 +723,6 @@ public class XmlResponsesSaxParser {
 
         public BucketLocationHandler() {
             super();
-            this.currText = new StringBuffer();
         }
 
         /**
@@ -748,6 +742,7 @@ public class XmlResponsesSaxParser {
         public void startElement(String uri, String name, String qName, Attributes attrs) {
             if (name.equals("CreateBucketConfiguration")) {
             } 
+            this.currText = new StringBuffer();
         }
 
         public void endElement(String uri, String name, String qName) {
@@ -759,7 +754,6 @@ public class XmlResponsesSaxParser {
                     location = elementText;
                 }
             } 
-            this.currText = new StringBuffer();
         }
 
         public void characters(char ch[], int start, int length) {
@@ -785,7 +779,6 @@ public class XmlResponsesSaxParser {
 
         public CopyObjectResultHandler() {
             super();
-            this.currText = new StringBuffer();
         }
 
         public Date getLastModified() {
@@ -829,6 +822,7 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("Error")) {
                 receivedErrorResponse = true;
             }
+            this.currText = new StringBuffer();
         }
 
         public void endElement(String uri, String name, String qName) {
@@ -853,8 +847,6 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("HostId")) {
                 errorHostId = elementText;
             }
-            
-            this.currText = new StringBuffer();
         }
 
         public void characters(char ch[], int start, int length) {
@@ -877,7 +869,6 @@ public class XmlResponsesSaxParser {
 
         public RequestPaymentConfigurationHandler() {
             super();
-            this.currText = new StringBuffer();
         }
 
         /**
@@ -898,6 +889,7 @@ public class XmlResponsesSaxParser {
         public void startElement(String uri, String name, String qName, Attributes attrs) {
             if (name.equals("RequestPaymentConfiguration")) {
             } 
+            this.currText = new StringBuffer();
         }
 
         public void endElement(String uri, String name, String qName) {
@@ -905,7 +897,6 @@ public class XmlResponsesSaxParser {
             if (name.equals("Payer")) {
                 payer = elementText;
             } 
-            this.currText = new StringBuffer();
         }
 
         public void characters(char ch[], int start, int length) {
