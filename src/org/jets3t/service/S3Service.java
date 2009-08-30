@@ -1044,7 +1044,82 @@ public abstract class S3Service implements Serializable {
         String[] inputFields, String textInput, boolean isSecureHttp) 
         throws S3ServiceException, UnsupportedEncodingException 
     {
-        List myInputFields = new ArrayList();
+    	return buildPostForm(bucketName, key, awsCredentials, expiration, 
+    			conditions, inputFields, textInput, isSecureHttp,
+    			false, "Upload to Amazon S3");
+    }
+    
+	/**
+	 * Generates an HTML POST form that can be used to upload files or data to
+	 * S3 from a standard web browser.
+	 * <p>
+	 * Depending on the parameter values provided, this method will generate an
+	 * authenticated or unauthenticated form. If the form is unauthenticated, it
+	 * will not include a policy document and will therefore not have an 
+	 * expiry date or any usage conditions. Unauthenticated forms may only be
+	 * used to upload data to a publicly writable bucket.
+	 * <p>
+	 * If both the expiration and conditions parameters are non-null, the form
+	 * will include a policy document and will be authenticated. In this case, 
+	 * you must provide your AWS credentials to sign the authenticated form.
+	 *  
+	 * @param bucketName
+	 * the name of the target bucket to which the data will be uploaded. 
+	 * @param key
+	 * the key name for the object that will store the data. The key name can
+	 * include the special variable <tt>${filename}</tt> which expands to the
+	 * name of the file the user uploaded in the form.
+	 * @param awsCredentials
+	 * your AWS credentials. Credentials are only required if the form includes
+	 * policy document conditions, otherwise this can be null.
+	 * @param expiration
+	 * the expiration date beyond which the form will cease to work. If this
+	 * parameter is null, the generated form will not include a policy document
+	 * and will not have an expiry date.
+	 * @param conditions
+	 * the policy conditions applied to the form, specified as policy document
+	 * condition statements. These statements can be generated with the 
+	 * convenience method {@link #generatePostPolicyCondition(String, String, String)}
+	 * and its siblings. If this parameter is null, the generated form will not 
+	 * include a policy document and will not apply any usage conditions.
+	 * @param inputFields
+	 * optional input field strings that will be added to the form. Each string
+	 * must be a valid HTML form input field definition, such as
+	 * <tt>&lt;input type="hidden" name="acl" value="public-read"></tt> 
+	 * @param textInput
+	 * an optional input field definition that is used instead of the default
+	 * file input field <tt>&lt;input name=\"file\" type=\"file\"></tt>. If this
+	 * parameter is null, the default file input field will be used to allow 
+	 * file uploads. If this parameter is non-null, the provided string must
+	 * define an input field named "file" that allows the user to provide input, 
+	 * such as <tt>&lt;textarea name="file" cols="60" rows="3">&lt;/textarea></tt>
+	 * @param isSecureHttp
+	 * if this parameter is true the form will upload data to S3 using HTTPS, 
+	 * otherwise it will use HTTP.
+	 * @param usePathStyleUrl
+	 * if true the deprecated path style URL will be used to specify the bucket 
+	 * name, for example: http://s3.amazon.com/BUCKET_NAME. If false, the
+	 * recommended sub-domain style will be used, for example:  
+	 * http://BUCKET_NAME.s3.amazon.com/. 
+	 * The path style can be useful for accessing US-based buckets with SSL, 
+	 * however non-US buckets are inaccessible with this style URL.
+	 * @param submitButtonName
+	 * the name to display on the form's submit button.
+	 * 
+	 * @return
+	 * A form document that can be included in a UTF-8 encoded HTML web page
+	 * to allow uploads to S3 via a web browser.
+	 * 
+	 * @throws S3ServiceException
+	 * @throws UnsupportedEncodingException
+	 */
+	public static String buildPostForm(String bucketName, String key, 
+	    AWSCredentials awsCredentials, Date expiration, String[] conditions, 
+	    String[] inputFields, String textInput, boolean isSecureHttp,
+	    boolean usePathStyleUrl, String submitButtonName) 
+	    throws S3ServiceException, UnsupportedEncodingException 
+	{        
+		List myInputFields = new ArrayList();
         
         // Form is only authenticated if a policy is specified.
         if (expiration != null || conditions != null) {
@@ -1086,10 +1161,18 @@ public abstract class S3Service implements Serializable {
             myInputFields.add("<input name=\"file\" type=\"file\">");            
         }
 
-        // Construct a sub-domain URL to refer to the target bucket. The
+        // Construct a URL to refer to the target bucket using either the
+        // deprecated path style, or the recommended sub-domain style. The
         // HTTPS protocol will be used if the secure HTTP option is enabled.
-        String url = "http" + (isSecureHttp? "s" : "") + 
-            "://" + bucketName + ".s3.amazonaws.com/";
+        String url = null;
+        if (usePathStyleUrl) {
+	        url = "http" + (isSecureHttp? "s" : "") + 
+            	"://s3.amazonaws.com/" +  bucketName;        	
+        } else {
+        	// Sub-domain URL style
+	        url = "http" + (isSecureHttp? "s" : "") + 
+	            "://" + bucketName + ".s3.amazonaws.com/";
+        }
 
         // Construct the entire form.
         String form = 
@@ -1098,7 +1181,7 @@ public abstract class S3Service implements Serializable {
             "<input type=\"hidden\" name=\"key\" value=\"" + key + "\">\n" +
             ServiceUtils.join(myInputFields, "\n") +
             "\n<br>\n" +
-            "<input type=\"submit\" value=\"Upload to Amazon S3\">\n" +
+            "<input type=\"submit\" value=\"" + submitButtonName + "\">\n" +
           "</form>";
         
         if (log.isDebugEnabled()) {
