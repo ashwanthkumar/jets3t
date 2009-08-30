@@ -93,10 +93,11 @@ public class S3ServiceException extends Exception {
 		}
 		if (isParsedFromXmlMessage()) {
 			myString += ", XML Error Message: " + xmlMessage;
-		} 
-		if (s3ErrorRequestId != null) {			 
-			myString += ", RequestId: " + s3ErrorRequestId 
-				+ ", HostId: " + s3ErrorHostId; 			
+		}  else {
+			if (s3ErrorRequestId != null) {			 
+				myString += ", RequestId: " + s3ErrorRequestId 
+					+ ", HostId: " + s3ErrorHostId; 			
+			}
 		}
 		return myString;
 	}
