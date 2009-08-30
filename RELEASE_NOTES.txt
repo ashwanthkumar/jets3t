@@ -34,14 +34,19 @@ TOOLKIT
 - Fixed bug in signed-url based uploading that caused automatic ETag 
   verification to fail with a NullPointerException if an ETag value wasn't set
   prior to upload.
+- Fixed NullPointerException in error reporting when REST service is run 
+  without a network available.
 
 KUDOS TO:
 
-Christian Mallwitz for the pointer to the %~dp0 script variable that greatly
+Christian Mallwitz for informing us of the %~dp0 script variable that greatly
 improves the Windows batch scripts. 
 
-Jawahar Lal Nayak for a patch that contributed to the new TargetGrants support
-for logged S3 buckets.
+Jawahar Lal Nayak for:
+- a patch that contributed to the new TargetGrants support for logged 
+  S3 buckets.
+- bug report about the NPE error condition when the REST implementation is
+  run on a machine without a network connection available.
 
 -------------
 Version 0.7.1

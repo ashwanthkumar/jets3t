@@ -529,8 +529,12 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             }
             s3ServiceException.setRequestVerb(httpMethod.getName());
             s3ServiceException.setRequestPath(httpMethod.getPath());
-            s3ServiceException.setResponseCode(httpMethod.getStatusCode());
-            s3ServiceException.setResponseStatus(httpMethod.getStatusText());
+            try {            
+            	s3ServiceException.setResponseCode(httpMethod.getStatusCode());
+                s3ServiceException.setResponseStatus(httpMethod.getStatusText());
+            } catch (NullPointerException e) {
+            	// If no network connection is available, status info is not available 
+            }
             if (httpMethod.getRequestHeader("Host") != null) {
             	s3ServiceException.setRequestHost(
         			httpMethod.getRequestHeader("Host").getValue());
