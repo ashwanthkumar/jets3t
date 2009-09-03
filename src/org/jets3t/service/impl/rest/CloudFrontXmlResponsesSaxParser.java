@@ -270,10 +270,10 @@ public class CloudFrontXmlResponsesSaxParser {
     public class DistributionConfigHandler extends SimpleHandler {
         private DistributionConfig distributionConfig = null;
         
-        private String origin = null;
-        private String callerReference = null;        
+        private String origin = "";
+        private String callerReference = "";        
         private List cnamesList = new ArrayList();
-        private String comment = null;
+        private String comment = "";
         private boolean enabled = false;
         private LoggingStatus loggingStatus = null;
         
