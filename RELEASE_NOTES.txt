@@ -36,6 +36,10 @@ TOOLKIT
   prior to upload.
 - Fixed NullPointerException in error reporting when REST service is run 
   without a network available.
+- Added property setting "httpclient.connection-manager-timeout" which allows
+  users to specify a timeout when an S3 operation is waiting for a connection
+  to become available in the HttpClient connection pool. The default setting
+  of 0 means wait indefinitely.
 
 KUDOS TO:
 
@@ -47,6 +51,8 @@ Jawahar Lal Nayak for:
   S3 buckets.
 - bug report about the NPE error condition when the REST implementation is
   run on a machine without a network connection available.
+
+bschmaus for a patch to configure the REST connection pool timeout.
 
 -------------
 Version 0.7.1
