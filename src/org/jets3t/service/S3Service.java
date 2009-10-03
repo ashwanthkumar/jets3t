@@ -853,7 +853,7 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public static String createTorrentUrl(String bucketName, String objectKey) {
-        return "http://" + generateS3HostnameForBucket(bucketName, true) + "/" +
+        return "http://" + generateS3HostnameForBucket(bucketName, false) + "/" +
             (isBucketNameValidDNSName(bucketName) ? "" : bucketName + "/") + objectKey + "?torrent"; 
     }
 
