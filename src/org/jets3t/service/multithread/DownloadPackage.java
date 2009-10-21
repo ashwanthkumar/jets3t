@@ -30,7 +30,7 @@ import org.jets3t.service.security.EncryptionUtil;
 
 /**
  * A simple container object to associate one of an {@link S3Object} or a signed URL string
- * with an output file, to which the S3 object's data will be written. 
+ * with an output file or output stream to which the S3 object's data will be written. 
  * <p>
  * This class is used by 
  * {@link S3ServiceMulti#downloadObjects(org.jets3t.service.model.S3Bucket, DownloadPackage[])}
@@ -45,6 +45,7 @@ public class DownloadPackage {
     private String signedUrl = null;
     
     private File outputFile = null;
+    private OutputStream outputStream = null;
     private boolean isUnzipping = false;
     private EncryptionUtil encryptionUtil = null;
     
@@ -72,6 +73,28 @@ public class DownloadPackage {
         this.encryptionUtil = encryptionUtil;
     }
 
+    public DownloadPackage(S3Object object, OutputStream outputStream) {
+        this(object, outputStream, false, null);
+    }
+    
+    public DownloadPackage(S3Object object, OutputStream outputStream, boolean isUnzipping, 
+        EncryptionUtil encryptionUtil) 
+    {
+        this.object = object;        
+        this.outputStream = outputStream;
+        this.isUnzipping = isUnzipping;
+        this.encryptionUtil = encryptionUtil;
+    }
+    
+    public DownloadPackage(String signedUrl, OutputStream outputStream, boolean isUnzipping, 
+        EncryptionUtil encryptionUtil) 
+    {
+        this.signedUrl = signedUrl;        
+        this.outputStream = outputStream;
+        this.isUnzipping = isUnzipping;
+        this.encryptionUtil = encryptionUtil;
+    }
+
     public S3Object getObject() {
         return object;
     }
@@ -80,6 +103,10 @@ public class DownloadPackage {
         this.object = object;
     }
     
+    /**
+     * @return the target output file for data, or null if this package 
+     * has an output stream as its target.
+     */
     public File getDataFile() {
         return outputFile;
     }
@@ -100,28 +127,43 @@ public class DownloadPackage {
         return appendToFile;
     }
     
+    /**
+     * Data will be appended to the target file instead of overwriting it.
+     * This option is relevant only for packages with a target file, not
+     * those with a target output stream.
+     * 
+     * @param appendToFile
+     */
     public void setAppendToFile(boolean appendToFile) {
         this.appendToFile = appendToFile;
     }
     
     /**
-     * Creates an output stream to receive the object's data. The output stream is based on a 
-     * FileOutputStream, but will also be wrapped in a GZipInflatingOutputStream if
+     * Creates an output stream to receive the object's data. The output stream is either  
+     * the output stream provided to this package in its constructor, or an 
+     * automatically-created FileOutputStream if a File object was provided as the target
+     * output object. The output stream will also be wrapped in a GZipInflatingOutputStream if
      * isUnzipping is true and/or a decrypting output stream if this package has an associated
      * non-null EncryptionUtil.
      * 
      * @return
-     * an output stream that writes data to the output file managed by this class. 
+     * an output stream that writes data to the output target managed by this class. 
      * 
      * @throws Exception
      */
     public OutputStream getOutputStream() throws Exception {
-        // Create parent directories for file, if necessary.
-        if (outputFile.getParentFile() != null) {
-            outputFile.getParentFile().mkdirs();
-        }                                    
-        
-        OutputStream outputStream = new FileOutputStream(outputFile, appendToFile);
+    	OutputStream outputStream = null;    	
+    	if (outputFile != null) {
+	        // Create parent directories for file, if necessary.
+	        if (outputFile.getParentFile() != null) {
+	            outputFile.getParentFile().mkdirs();
+	        }                                    
+	        
+	        outputStream = new FileOutputStream(outputFile, appendToFile);
+    	} else {
+    		outputStream = this.outputStream;
+    	}
+    	
         if (isUnzipping) {
             log.debug("Inflating gzipped data for object: " + object.getKey());                    
             outputStream = new GZipInflatingOutputStream(outputStream);            
