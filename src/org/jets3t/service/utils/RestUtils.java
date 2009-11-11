@@ -522,5 +522,14 @@ public class RestUtils {
 
         return timeOffset;
     }
+    
+    public static Map convertHeadersToMap(Header[] headers) {
+        Map s3Headers = new HashMap();
+        for (int i = 0; i < headers.length; i++) {
+            Header header = headers[i];
+            s3Headers.put(header.getName(), header.getValue());
+        }
+        return s3Headers;
+    }
         
 }

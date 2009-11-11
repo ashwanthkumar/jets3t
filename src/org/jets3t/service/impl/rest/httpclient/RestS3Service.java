@@ -423,6 +423,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                         S3ServiceException exception = 
                             new S3ServiceException("S3 Error Message.", sb.toString());
                         
+                        exception.setResponseHeaders(RestUtils.convertHeadersToMap(
+                        		httpMethod.getResponseHeaders()));
+                                                
                         if ("RequestTimeout".equals(exception.getS3ErrorCode())) {
                             int retryMaxCount = jets3tProperties.getIntProperty("httpclient.retry-max", 5);                            
                             
@@ -482,6 +485,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                             	new S3ServiceException("Request Error" 
                         			+ (responseText != null ? " [" + responseText + "]." : "."),
                             		httpException);
+                            exception.setResponseHeaders(RestUtils.convertHeadersToMap(
+                            		httpMethod.getResponseHeaders()));
                             throw exception;
                         }
                     }

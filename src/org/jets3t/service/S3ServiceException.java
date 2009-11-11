@@ -18,6 +18,7 @@
  */
 package org.jets3t.service;
 
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -41,6 +42,9 @@ public class S3ServiceException extends Exception {
     private String s3ErrorRequestId = null;
     private String s3ErrorHostId = null;
     
+    // Map<String, String> - name => value pairs of response headers.
+    private Map s3Headers = null;
+
     private int responseCode = -1;
     private String responseStatus = null;
     private String responseDate = null;
@@ -228,6 +232,14 @@ public class S3ServiceException extends Exception {
     public void setS3RequestAndHostIds(String errorRequestId, String errorHostId) {
     	this.s3ErrorRequestId = errorRequestId;
     	this.s3ErrorHostId = errorHostId;
+    }
+
+    public Map getResponseHeaders() {
+        return s3Headers;
+    }
+    
+    public void setResponseHeaders(Map s3Headers) {
+    	this.s3Headers = s3Headers;
     }
     
 }
