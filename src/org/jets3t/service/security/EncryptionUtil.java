@@ -18,17 +18,25 @@
  */
 package org.jets3t.service.security;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
+import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.Provider;
+import java.security.SecureRandom;
 import java.security.Security;
+import java.security.Signature;
+import java.security.SignatureException;
+import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -49,6 +57,7 @@ import javax.crypto.spec.PBEParameterSpec;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
+import org.jets3t.service.utils.ServiceUtils;
 
 /**
  * Utility class to handle encryption and decryption in the JetS3t suite.
@@ -600,6 +609,60 @@ public class EncryptionUtil {
         return Security.getProviders();
     }
 
+    /**
+     * Generate an RSA SHA1 signature of the given data using the given private
+     * key DER certificate.
+     * 
+     * Based on example code from:
+     * http://www.java2s.com/Tutorial/Java/0490__Security/RSASignatureGeneration.htm
+     * http://forums.sun.com/thread.jspa?threadID=5175986
+     * 
+     * @throws NoSuchAlgorithmException 
+     * @throws InvalidKeyException 
+     * @throws SignatureException 
+     * @throws InvalidKeySpecException 
+     * @throws NoSuchProviderException 
+     */
+    public static byte[] signWithRsaSha1(byte[] derPrivateKeyBytes, byte[] dataToSign) 
+    	throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, 
+    	InvalidKeySpecException, NoSuchProviderException 
+	{
+    	// Build an RSA private key from private key data 
+        PKCS8EncodedKeySpec privSpec = new PKCS8EncodedKeySpec(derPrivateKeyBytes);
+    	KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        RSAPrivateKey privateKey = (RSAPrivateKey) keyFactory.generatePrivate(privSpec);
+
+        // Sign data
+        Signature signature = Signature.getInstance("SHA1withRSA", "BC");
+        signature.initSign(privateKey, new SecureRandom());
+        signature.update(dataToSign);
+
+        byte[] signatureBytes = signature.sign();
+        return signatureBytes;
+    }
+    
+    /**
+     * Convert a PEM encoded RSA certificate file into a DER format byte array. 
+     * 
+     * @param is
+     * Input stream for PEM encoded RSA certificate data.
+     * 
+     * @return
+     * The RSA certificate data in DER format.
+     * 
+     * @throws IOException
+     */
+    public static byte[] convertRsaPemToDer(InputStream is) throws IOException {
+    	String pemData = ServiceUtils.readInputStreamToString(is, "UTF-8");
+    	// Strip PEM header and footer
+    	int headerEndOffset = pemData.indexOf('\n');
+    	int footerStartOffset = pemData.indexOf("-----END");
+    	String strippedPemData = pemData.substring(headerEndOffset + 1, footerStartOffset - 1);
+    	
+    	// Decode Base64 PEM data to DER bytes
+    	byte[] derBytes = ServiceUtils.fromBase64(strippedPemData);
+    	return derBytes;
+    }
 
     public static void main(String[] args) throws Exception {        
         Provider[] providers = EncryptionUtil.listAvailableProviders();

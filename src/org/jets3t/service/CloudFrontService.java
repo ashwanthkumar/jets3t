@@ -18,6 +18,7 @@
  */
 package org.jets3t.service;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -38,12 +39,18 @@ import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.Distribution
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.DistributionHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.ErrorHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.ListDistributionListHandler;
+import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccessIdentityConfigHandler;
+import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccessIdentityHandler;
+import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccessIdentityListHandler;
 import org.jets3t.service.impl.rest.httpclient.AWSRequestAuthorizer;
 import org.jets3t.service.impl.rest.httpclient.HttpClientAndConnectionManager;
 import org.jets3t.service.model.cloudfront.Distribution;
 import org.jets3t.service.model.cloudfront.DistributionConfig;
 import org.jets3t.service.model.cloudfront.LoggingStatus;
+import org.jets3t.service.model.cloudfront.OriginAccessIdentity;
+import org.jets3t.service.model.cloudfront.OriginAccessIdentityConfig;
 import org.jets3t.service.security.AWSCredentials;
+import org.jets3t.service.security.EncryptionUtil;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 
@@ -64,9 +71,11 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     private static final Log log = LogFactory.getLog(CloudFrontService.class);
 
     public static final String ENDPOINT = "https://cloudfront.amazonaws.com/";
-    public static final String VERSION = "2009-04-02";
+    public static final String VERSION = "2009-09-09";
     public static final String XML_NAMESPACE = "http://cloudfront.amazonaws.com/doc/" + VERSION + "/";
     public static final String DEFAULT_BUCKET_SUFFIX = ".s3.amazonaws.com";
+    public static final String ORIGIN_ACCESS_IDENTITY_URI_PATH = "/origin-access-identity/cloudfront";
+    public static final String ORIGIN_ACCESS_IDENTITY_PREFIX = "origin-access-identity/cloudfront/";
 
     private HttpClient httpClient = null;
     private CredentialsProvider credentialsProvider = null;
@@ -386,28 +395,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         return (Distribution[]) bucketDistributions.toArray(
             new Distribution[bucketDistributions.size()]);
     }
-    
+        
     /**
-     * Create a CloudFront distribution for an S3 bucket that will be publicly
-     * available once created.
-     * 
-     * @param origin
-     * the Amazon S3 bucket to associate with the distribution, specified as a full
-     * S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket) 
-     * 
-     * @return
-     * an object that describes the newly-created distribution, in particular the
-     * distribution's identifier and domain name values. 
-     * 
-     * @throws CloudFrontServiceException
-     */
-    public Distribution createDistribution(String origin) throws CloudFrontServiceException 
-    {
-        return this.createDistribution(origin, null, null, null, true, null);
-    }
-    
-    /**
-     * Create a CloudFront distribution for an S3 bucket.
+     * Create a public or private CloudFront distribution for an S3 bucket.
      * 
      * @param origin
      * the Amazon S3 bucket to associate with the distribution, specified as a full
@@ -427,6 +417,22 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @param loggingStatus
      * Logging status settings (bucket, prefix) for the distribution. If this value
      * is null, logging will be disabled for the distribution.
+     * @param originAccessIdentityId
+     * Identifier of the origin access identity that can authorize access to
+     * S3 objects via a private distribution. If provided the distribution will be
+     * private, if null the distribution will be be public.
+     * @param trustedSignerSelf
+     * If true the owner of the distribution (you) will be be allowed to generate
+     * signed URLs for a private distribution. Note: If either trustedSignerSelf or 
+     * trustedSignerAwsAccountNumbers parameters are provided the private distribution 
+     * will require signed URLs to access content.
+     * @param trustedSignerAwsAccountNumbers
+     * Account Number identifiers for AWS account holders other than the 
+     * distribution's owner who will be allowed to generate signed URLs for a private
+     * distribution. If null or empty, no additional AWS account holders may generate
+     * signed URLs. Note: If either trustedSignerSelf or 
+     * trustedSignerAwsAccountNumbers parameters are provided the private distribution 
+     * will require signed URLs to access content.
      * 
      * @return
      * an object that describes the newly-created distribution, in particular the
@@ -435,8 +441,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public Distribution createDistribution(String origin, String callerReference, 
-        String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus) 
-    	throws CloudFrontServiceException 
+        String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus,
+        String originAccessIdentityId, boolean trustedSignerSelf, 
+        String[] trustedSignerAwsAccountNumbers) throws CloudFrontServiceException 
     {
         if (log.isDebugEnabled()) {
             log.debug("Creating distribution for origin: " + origin);
@@ -467,6 +474,29 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             builder
                 .e("Comment").t(comment).up()
                 .e("Enabled").t("" + enabled);
+            if (originAccessIdentityId != null) {
+            	builder.e("OriginAccessIdentity")
+            		.t(ORIGIN_ACCESS_IDENTITY_PREFIX + originAccessIdentityId)
+        		.up();
+            }
+            if (trustedSignerSelf 
+        		|| (trustedSignerAwsAccountNumbers != null 
+    				&& trustedSignerAwsAccountNumbers.length > 0))
+            {
+            	XMLBuilder trustedSigners = builder.e("TrustedSigners");
+            	if (trustedSignerSelf) {
+            		trustedSigners.e("Self");
+            	}
+            	for (int i = 0; 
+            		trustedSignerAwsAccountNumbers != null 
+            			&& i < trustedSignerAwsAccountNumbers.length;
+            		i++)
+            	{
+            		trustedSigners.e("AWSAccountNumber")
+            			.t(trustedSignerAwsAccountNumbers[i]);
+            	}
+            	builder.up();
+            }
             if (loggingStatus != null) {
             	builder.e("Logging")
             		.e("Bucket").t(loggingStatus.getBucket()).up()
@@ -493,6 +523,82 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         }                
     }
     
+    /**
+     * Create a minimally-configured CloudFront distribution for an S3 bucket that will 
+     * be publicly available once created.
+     * 
+     * @param origin
+     * the Amazon S3 bucket to associate with the distribution, specified as a full
+     * S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket) 
+     * 
+     * @return
+     * an object that describes the newly-created distribution, in particular the
+     * distribution's identifier and domain name values. 
+     * 
+     * @throws CloudFrontServiceException
+     */
+    public Distribution createDistribution(String origin) throws CloudFrontServiceException 
+    {
+        return this.createDistribution(origin, null, null, null, true, null);
+    }
+
+    /**
+     * Create a public CloudFront distribution for an S3 bucket.
+     * 
+     * @param origin
+     * the Amazon S3 bucket to associate with the distribution, specified as a full
+     * S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket) 
+     * @param callerReference
+     * A user-set unique reference value that ensures the request can't be replayed
+     * (max UTF-8 encoding size 128 bytes). This parameter may be null, in which
+     * case your computer's local epoch time in milliseconds will be used.
+     * @param cnames
+     * A list of up to 10 CNAME aliases to associate with the distribution. This 
+     * parameter may be a null or empty array.
+     * @param comment
+     * An optional comment to describe the distribution in your own terms 
+     * (max 128 characters). May be null. 
+     * @param enabled
+     * Should the distribution should be enabled and publicly accessible upon creation?
+     * @param loggingStatus
+     * Logging status settings (bucket, prefix) for the distribution. If this value
+     * is null, logging will be disabled for the distribution.
+     * 
+     * @return
+     * an object that describes the newly-created distribution, in particular the
+     * distribution's identifier and domain name values. 
+     * 
+     * @throws CloudFrontServiceException
+     */    public Distribution createDistribution(String origin, String callerReference, 
+        String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus) 
+    	throws CloudFrontServiceException 
+    {
+    	return createDistribution(origin, callerReference, cnames, comment, enabled, 
+    			loggingStatus, null, false, null);
+    }
+
+     /**
+      * Create a public or private CloudFront distribution for an S3 bucket based
+      * on a pre-configured {@link DistributionConfig}.
+      * 
+      * @param config
+      * Configuration settings to apply to the distribution.
+      * 
+      * @return
+      * an object that describes the newly-created distribution, in particular the
+      * distribution's identifier and domain name values. 
+      * 
+      * @throws CloudFrontServiceException
+      */
+    public Distribution createDistribution(DistributionConfig config) 
+    	throws CloudFrontServiceException 
+    {
+    	return createDistribution(config.getOrigin(), config.getCallerReference(),
+			config.getCNAMEs(), config.getComment(), config.isEnabled(),
+			config.getLoggingStatus(), config.getOrigin(), 
+			config.isTrustedSignerSelf(), config.getTrustedSignerAwsAccountNumbers());
+    }
+
     /**
      * Lookup information for a distribution.
      * 
@@ -568,9 +674,10 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     }
 
     /**
-     * Update the configuration of an existing distribution to change its CNAME aliases, 
-     * comment or enabled status. The new configuration settings <strong>replace</strong>
-     * the existing configuration, and may take some time to be fully applied. 
+     * Update the configuration of an existing distribution to change its properties
+     * or public/private status. The new configuration properties provided 
+     * <strong>replace</strong> any existing configuration, and may take some time 
+     * to be fully applied. 
      * <p>
      * This method performs all the steps necessary to update the configuration. It
      * first performs lookup on the distribution  using 
@@ -591,6 +698,22 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @param loggingStatus
      * Logging status settings (bucket, prefix) for the distribution. If this value
      * is null, logging will be disabled for the distribution.
+     * @param originAccessIdentityId
+     * Identifier of the origin access identity that can authorize access to
+     * S3 objects via a private distribution. If provided the distribution will be
+     * private, if null the distribution will be be public.
+     * @param trustedSignerSelf
+     * If true the owner of the distribution (you) will be be allowed to generate
+     * signed URLs for a private distribution. Note: If either trustedSignerSelf or 
+     * trustedSignerAwsAccountNumbers parameters are provided the private distribution 
+     * will require signed URLs to access content.
+     * @param trustedSignerAwsAccountNumbers
+     * Account Number identifiers for AWS account holders other than the 
+     * distribution's owner who will be allowed to generate signed URLs for a private
+     * distribution. If null or empty, no additional AWS account holders may generate
+     * signed URLs. Note: If either trustedSignerSelf or 
+     * trustedSignerAwsAccountNumbers parameters are provided the private distribution 
+     * will require signed URLs to access content.
      * 
      * @return
      * an object that describes the distribution's updated configuration, including its 
@@ -599,11 +722,13 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public DistributionConfig updateDistributionConfig(String id, String[] cnames, 
-        String comment, boolean enabled, LoggingStatus loggingStatus) 
+        String comment, boolean enabled, LoggingStatus loggingStatus, 
+        String originAccessIdentityId, boolean trustedSignerSelf, 
+        String[] trustedSignerAwsAccountNumbers) 
     	throws CloudFrontServiceException 
     {
         if (log.isDebugEnabled()) {
-            log.debug("Setting configuration of distribution with id: " + id);
+            log.debug("Updating configuration of distribution with id: " + id);
         }
 
         // Retrieve the old configuration.
@@ -630,6 +755,29 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             builder
                 .e("Comment").t(comment).up()
                 .e("Enabled").t("" + enabled);
+            if (originAccessIdentityId != null) {
+            	builder.e("OriginAccessIdentity")
+            		.t(ORIGIN_ACCESS_IDENTITY_PREFIX + originAccessIdentityId)
+        		.up();
+            }
+            if (trustedSignerSelf 
+        		|| (trustedSignerAwsAccountNumbers != null 
+    				&& trustedSignerAwsAccountNumbers.length > 0))
+            {
+            	XMLBuilder trustedSigners = builder.e("TrustedSigners");
+            	if (trustedSignerSelf) {
+            		trustedSigners.e("Self");
+            	}
+            	for (int i = 0; 
+            		trustedSignerAwsAccountNumbers != null 
+            			&& i < trustedSignerAwsAccountNumbers.length;
+            		i++)
+            	{
+            		trustedSigners.e("AWSAccountNumber")
+            			.t(trustedSignerAwsAccountNumbers[i]);
+            	}
+            	builder.up();
+            }
             if (loggingStatus != null) {
             	builder.e("Logging")
             		.e("Bucket").t(loggingStatus.getBucket()).up()
@@ -660,13 +808,82 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     }
     
     /**
+     * Update the configuration of an existing distribution to change its properties.
+     * If the original distribution is private this method will make it public instead.
+     * The new configuration properties provided <strong>replace</strong> any existing 
+     * configuration, and may take some time to be fully applied. 
+     * <p>
+     * This method performs all the steps necessary to update the configuration. It
+     * first performs lookup on the distribution  using 
+     * {@link #getDistributionConfig(String)} to find its origin and caller reference
+     * values, then uses this information to apply your configuration changes.
+     *  
+     * @param id
+     * the distribution's unique identifier.
+     * @param cnames
+     * A list of up to 10 CNAME aliases to associate with the distribution. This 
+     * parameter may be null, in which case the original CNAME aliases are retained.
+     * @param comment
+     * An optional comment to describe the distribution in your own terms 
+     * (max 128 characters). May be null, in which case the original comment is retained.
+     * @param enabled
+     * Should the distribution should be enabled and publicly accessible after the
+     * configuration update?
+     * @param loggingStatus
+     * Logging status settings (bucket, prefix) for the distribution. If this value
+     * is null, logging will be disabled for the distribution.
+     * 
+     * @return
+     * an object that describes the distribution's updated configuration, including its 
+     * origin bucket and CNAME aliases.
+     *  
+     * @throws CloudFrontServiceException
+     */    public DistributionConfig updateDistributionConfig(String id, String[] cnames, 
+        String comment, boolean enabled, LoggingStatus loggingStatus) 
+    	throws CloudFrontServiceException 
+    {
+    	return updateDistributionConfig(id, cnames, comment, enabled, loggingStatus,
+			null, false, null);
+    }
+
+     /**
+      * Update the configuration of an existing distribution to change its properties
+      * or public/private status. The new configuration properties provided 
+      * <strong>replace</strong> any existing configuration, and may take some time 
+      * to be fully applied. 
+      * <p>
+      * This method performs all the steps necessary to update the configuration. It
+      * first performs lookup on the distribution  using 
+      * {@link #getDistributionConfig(String)} to find its origin and caller reference
+      * values, then uses this information to apply your configuration changes.
+      *  
+      * @param id
+      * the distribution's unique identifier.
+      * @param config
+      * Configuration properties to apply to the distribution.
+      * 
+      * @return
+      * an object that describes the distribution's updated configuration, including its 
+      * origin bucket and CNAME aliases.
+      *  
+      * @throws CloudFrontServiceException
+      */
+    public DistributionConfig updateDistributionConfig(String id, 
+		DistributionConfig config) throws CloudFrontServiceException 
+    {
+    	return updateDistributionConfig(id, config.getCNAMEs(), config.getComment(),
+			config.isEnabled(), config.getLoggingStatus(), config.getOriginAccessIdentity(),
+			config.isTrustedSignerSelf(), config.getTrustedSignerAwsAccountNumbers());
+    }
+
+    /**
      * Convenience method to disable a distribution that you intend to delete. 
      * This method merely calls the 
      * {@link #updateDistributionConfig(String, String[], String, boolean, LoggingStatus)}
      * method with default values for most of the distribution's configuration
      * settings.
      * <p>
-     * <strong>Warning</strong>: Do not use this method with distributions you 
+     * <strong>Warning</strong>: Do not use this method on distributions you 
      * intend to keep, because it will reset most of the distribution's 
      * configuration settings such as CNAMEs and logging status.
      * 
@@ -725,6 +942,259 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     }
     
     /**
+     * Create a new Origin Access Identity
+     * 
+     * @param callerReference
+     * A user-set unique reference value that ensures the request can't be replayed
+     * (max UTF-8 encoding size 128 bytes). This parameter may be null, in which
+     * case your computer's local epoch time in milliseconds will be used.
+     * @param comment
+     * An optional comment to describe the identity (max 128 characters). May be null.
+     * 
+     * @return
+     * The origin access identity's properties.
+     * 
+     * @throws CloudFrontServiceException
+     */
+    public OriginAccessIdentity createOriginAccessIdentity(
+    		String callerReference, String comment) 
+    		throws CloudFrontServiceException
+    {
+        if (log.isDebugEnabled()) {
+            log.debug("Creating origin access identity");
+        }
+
+        PostMethod httpMethod = new PostMethod(ENDPOINT + VERSION + 
+        		ORIGIN_ACCESS_IDENTITY_URI_PATH);
+
+        if (callerReference == null) {
+            callerReference = "" + System.currentTimeMillis();
+        }
+
+        try {
+            XMLBuilder builder = XMLBuilder.create(
+        		"CloudFrontOriginAccessIdentityConfig")
+                .a("xmlns", XML_NAMESPACE)
+                .e("CallerReference").t(callerReference).up()
+                .e("Comment").t(comment);
+
+            httpMethod.setRequestEntity(new StringRequestEntity(
+            		builder.asString(null), "text/xml", Constants.DEFAULT_ENCODING));
+
+            performRestRequest(httpMethod, 201);
+
+            OriginAccessIdentityHandler handler = 
+                (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
+                    .parseOriginAccessIdentity(httpMethod.getResponseBodyAsStream());
+            
+            return handler.getOriginAccessIdentity();
+        } catch (CloudFrontServiceException e) {
+            throw e;
+        } catch (RuntimeException e) {
+        	throw e;
+        } catch (Exception e) {
+            throw new CloudFrontServiceException(e);
+        }          
+    }
+
+    /**
+     * List the Origin Access Identities in a CloudFront account.
+     * 
+     * @return
+     * List of {@link OriginAccessIdentity} objects describing the identities.
+     * 
+     * @throws CloudFrontServiceException
+     */
+    public List getOriginAccessIdentityList() throws CloudFrontServiceException {
+        if (log.isDebugEnabled()) {
+            log.debug("Getting list of origin access identities");
+        }        
+        GetMethod httpMethod = new GetMethod(ENDPOINT + VERSION + ORIGIN_ACCESS_IDENTITY_URI_PATH);
+        
+        try {
+            performRestRequest(httpMethod, 200);
+
+            OriginAccessIdentityListHandler handler = 
+                (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
+                    .parseOriginAccessIdentityListResponse(httpMethod.getResponseBodyAsStream());
+            return handler.getOriginAccessIdentityList(); 
+        } catch (CloudFrontServiceException e) {
+            throw e;
+        } catch (RuntimeException e) {
+        	throw e;
+        } catch (Exception e) {
+            throw new CloudFrontServiceException(e);
+        }                        
+    }
+    
+    /**
+     * Obtain the complete properties of an Origin Access Identity.
+     * 
+     * @param id
+     * The identifier of the Origin Access Identity. 
+     * 
+     * @return
+     * The origin access identity's properties.
+     * 
+     * @throws CloudFrontServiceException
+     */
+    public OriginAccessIdentity getOriginAccessIdentity(String id) 
+    		throws CloudFrontServiceException 
+	{
+        if (log.isDebugEnabled()) {
+            log.debug("Getting information for origin access identity with id: " + id);
+        }        
+        GetMethod httpMethod = new GetMethod(ENDPOINT + VERSION + 
+        		ORIGIN_ACCESS_IDENTITY_URI_PATH + "/" + id);
+        
+        try {
+            performRestRequest(httpMethod, 200);
+
+            OriginAccessIdentityHandler handler = 
+                (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
+                    .parseOriginAccessIdentity(httpMethod.getResponseBodyAsStream());
+            return handler.getOriginAccessIdentity();
+        } catch (CloudFrontServiceException e) {
+            throw e;
+        } catch (RuntimeException e) {
+        	throw e;
+        } catch (Exception e) {
+            throw new CloudFrontServiceException(e);
+        }                        
+    }
+
+    /**
+     * Obtain the configuration properties of an Origin Access Identity.
+     * 
+     * @param id
+     * The identifier of the Origin Access Identity. 
+     * 
+     * @return
+     * The origin access identity's configuration properties.
+     * 
+     * @throws CloudFrontServiceException
+     */
+    public OriginAccessIdentityConfig getOriginAccessIdentityConfig(String id) 
+		throws CloudFrontServiceException 
+	{
+		if (log.isDebugEnabled()) {
+		    log.debug("Getting config for origin access identity with id: " + id);
+		}        
+		GetMethod httpMethod = new GetMethod(ENDPOINT + VERSION + 
+				ORIGIN_ACCESS_IDENTITY_URI_PATH + "/" + id + "/config");
+		
+		try {
+		    performRestRequest(httpMethod, 200);
+		
+		    OriginAccessIdentityConfigHandler handler = 
+		        (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
+		            .parseOriginAccessIdentityConfig(httpMethod.getResponseBodyAsStream());
+		    
+		    OriginAccessIdentityConfig config = handler.getOriginAccessIdentityConfig();
+		    config.setEtag(httpMethod.getResponseHeader("ETag").getValue());            
+			return config;		
+		} catch (CloudFrontServiceException e) {
+		    throw e;
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+		    throw new CloudFrontServiceException(e);
+		}                        
+	}
+
+    /**
+     * Update the properties of an Origin Access Identity.
+     * 
+     * @param id
+     * The identifier of the Origin Access Identity.
+     * @param comment
+     * A new comment to apply to the identity.
+     * 
+     * @return
+     * The origin access identity's configuration properties.
+     * 
+     * @throws CloudFrontServiceException
+     */
+    public OriginAccessIdentityConfig updateOriginAccessIdentityConfig(
+    		String id, String comment) throws CloudFrontServiceException 
+    {
+        if (log.isDebugEnabled()) {
+            log.debug("Updating configuration of origin access identity with id: " + id);
+        }
+
+        // Retrieve the old configuration.
+        OriginAccessIdentityConfig oldConfig = getOriginAccessIdentityConfig(id);
+        
+        // Sanitize parameters.
+        if (comment == null) {
+            comment = oldConfig.getComment();
+        }        
+        
+        PutMethod httpMethod = new PutMethod(ENDPOINT + VERSION + 
+        		ORIGIN_ACCESS_IDENTITY_URI_PATH + "/" + id + "/config");
+                
+        try {
+            XMLBuilder builder = XMLBuilder.create(
+        		"CloudFrontOriginAccessIdentityConfig")
+                .a("xmlns", XML_NAMESPACE)
+                .e("CallerReference").t(oldConfig.getCallerReference()).up()
+                .e("Comment").t(comment);
+            
+            httpMethod.setRequestEntity(new StringRequestEntity(
+        		builder.asString(null), "text/xml", Constants.DEFAULT_ENCODING));
+            httpMethod.setRequestHeader("If-Match", oldConfig.getEtag());
+
+            performRestRequest(httpMethod, 200);
+
+            OriginAccessIdentityConfigHandler handler = 
+                (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
+                    .parseOriginAccessIdentityConfig(httpMethod.getResponseBodyAsStream());
+
+            OriginAccessIdentityConfig config = handler.getOriginAccessIdentityConfig();
+            config.setEtag(httpMethod.getResponseHeader("ETag").getValue());            
+            return config; 
+        } catch (CloudFrontServiceException e) {
+            throw e;
+        } catch (RuntimeException e) {
+        	throw e;
+        } catch (Exception e) {
+            throw new CloudFrontServiceException(e);
+        }                
+    }
+
+    /**
+     * Delete an Origin Access Identity.
+     * 
+     * @param id
+     * The identifier of the Origin Access Identity.
+     * 
+     * @throws CloudFrontServiceException
+     */
+    public void deleteOriginAccessIdentity(String id) throws CloudFrontServiceException 
+    {
+        if (log.isDebugEnabled()) {
+            log.debug("Deleting origin access identity with id: " + id);
+        }
+        
+        // Get the identity's current config.
+        OriginAccessIdentityConfig currentConfig = getOriginAccessIdentityConfig(id);
+
+        DeleteMethod httpMethod = new DeleteMethod(ENDPOINT + VERSION + 
+        		ORIGIN_ACCESS_IDENTITY_URI_PATH + "/" + id);
+                
+        try {
+            httpMethod.setRequestHeader("If-Match", currentConfig.getEtag());
+            performRestRequest(httpMethod, 204);
+        } catch (CloudFrontServiceException e) {
+            throw e;
+        } catch (RuntimeException e) {
+        	throw e;
+        } catch (Exception e) {
+            throw new CloudFrontServiceException(e);
+        }                
+    }
+
+    /**
      * Sanitizes a proposed bucket name to ensure it is fully-specified rather than
      * merely the bucket's short name. A fully specified bucket name looks like
      * "jets3t.s3.amazonaws.com".
@@ -747,4 +1217,212 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         }
     }
     
+    /**
+     * Convert the given string to be safe for use in signed URLs for a private distribution.
+     * @param str
+     * @return
+     * @throws UnsupportedEncodingException
+     */
+    protected static String makeStringUrlSafe(String str) throws UnsupportedEncodingException {
+    	return ServiceUtils.toBase64(str.getBytes("UTF-8"))
+    		.replace('+', '-')
+    		.replace('=', '_')
+    		.replace('/', '~');
+    }
+
+    /**
+     * Convert the given data to be safe for use in signed URLs for a private distribution.
+     * @param str
+     * @return
+     * @throws UnsupportedEncodingException
+     */
+    protected static String makeBytesUrlSafe(byte[] bytes) throws UnsupportedEncodingException {
+    	return ServiceUtils.toBase64(bytes)
+    		.replace('+', '-')
+    		.replace('=', '_')
+    		.replace('/', '~');
+    }
+    
+    /**
+     * Generate a policy document that describes custom access permissions to apply 
+     * via a private distribution's signed URL.
+     * 
+     * @param resourcePath
+     * An optional resource path that restricts which distribution and S3 objects will be
+     * accessible in a signed URL. The '*' and '?' characters can be used as a wildcards 
+     * to allow multi-character or single-character matches respectively:
+     * <ul>
+     * <li><tt>*</tt> : All distributions/objects will be accessible</li>
+     * <li><tt>a1b2c3d4e5f6g7.cloudfront.net/*</tt> : All objects within the distribution
+     *     a1b2c3d4e5f6g7 will be accessible</li>
+     * <li><tt>a1b2c3d4e5f6g7.cloudfront.net/path/to/object.txt</tt> : Only the S3 object
+     *     named <tt>path/to/object.txt</tt> in the distribution a1b2c3d4e5f6g7 will be
+     *     accessible.</li>
+     * </ul>
+     * If this parameter is null the policy will permit access to all distributions and S3 
+     * objects associated with the certificate keypair used to generate the signed URL.
+     * @param epochDateLessThan
+     * The time and date when the signed URL will expire. REQUIRED. 
+     * @param limitToIpAddressCIDR
+     * An optional range of client IP addresses that will be allowed to access the distribution,
+     * specified as a CIDR range. If null, the CIDR will be <tt>0.0.0.0/0</tt> and any 
+     * client will be permitted. 
+     * @param epochDateGreaterThan
+     * An optional time and date when the signed URL will become active. If null, the signed
+     * URL will be active as soon as it is created. 
+     * 
+     * @return
+     * A policy document describing the access permission to apply when generating a signed URL.
+     * 
+     * @throws CloudFrontServiceException
+     */
+    public static String buildPolicyForSignedUrl( 
+		String resourcePath, Date epochDateLessThan, 
+		String limitToIpAddressCIDR, Date epochDateGreaterThan)
+    	throws CloudFrontServiceException 
+    {
+    	if (epochDateLessThan == null) {
+    		throw new CloudFrontServiceException(
+				"epochDateLessThan must be provided to sign CloudFront URLs");
+    	}
+    	if (resourcePath == null) {
+    		resourcePath = "*";
+    	}
+    	try {
+	    	String resource = "http://" + resourcePath;
+	    	String ipAddress = (limitToIpAddressCIDR == null
+				? "0.0.0.0/0"
+				: limitToIpAddressCIDR);
+	    	String policy = 
+	    		"{\n" +
+	    		"   \"Statement\": [{\n" + 
+	    		"      \"Resource\":\"" + resource + "\",\n" +
+    			"      \"Condition\":{\n" +
+				"         \"DateLessThan\":{\"AWS:EpochTime\":" 
+    						+ epochDateLessThan.getTime() / 1000 + "}" +				
+    					(ipAddress == null ? "" : ",\n" +
+				"         \"IpAddress\":{\"AWS:SourceIp\":\"" + ipAddress + "\"}") +
+	    				(epochDateGreaterThan == null ? "" : ",\n" + 
+				"         \"DateGreaterThan\":{\"AWS:EpochTime\":" 
+    						+ epochDateGreaterThan.getTime() / 1000 + "}") +
+				"\n      }\n" +
+				"   }]\n" + 
+				"}";   
+	    	return policy;
+        } catch (RuntimeException e) {
+        	throw e;
+        } catch (Exception e) {
+            throw new CloudFrontServiceException(e);
+        }                
+    }
+    
+    /**
+     * Generate a signed URL that allows access to distribution and S3 objects by
+     * applying access restrictions specified in a custom policy document.
+     * 
+     * @param domainName
+     * The distribution's domain name, e.g. 
+     * <tt>a1b2c3d4e5f6g7.cloudfront.net/path/to/object.txt</tt>
+     * @param s3ObjectKey
+     * Key name of the S3 object that will be made accessible through the signed URL.
+     * @param keyPairId
+     * Identifier of a public/private certificate keypair already configured in your 
+     * Amazon Web Services account.
+     * @param derPrivateKey
+     * The RSA private key data that corresponding to the certificate keypair identified by
+     * keyPairId, in DER format. To convert a standard PEM private key file into this format
+     * use the utility method {@link EncryptionUtil#convertRsaPemToDer(java.io.InputStream)}
+     * @param policy
+     * A policy document that describes the access permissions that will be applied by the 
+     * signed URL. To generate a simple canned policy that permits access to a single 
+     * distribution and S3 object use {@link #buildCannedPolicyForSignedUrl(String, Date)}.
+     * To generate a custom policy use {@link #buildPolicyForSignedUrl(String, Date, String, Date)} 
+     * 
+     * @return
+     * A signed URL that will permit access to distribution and S3 objects as specified
+     * in the policy document.
+     * 
+     * @throws CloudFrontServiceException
+     */
+    public static String signUrl(String domainName, String s3ObjectKey,
+		String keyPairId, byte[] derPrivateKey, String policy) 
+    	throws CloudFrontServiceException 
+    {
+    	try {
+			String url = "http://" + domainName + "/" + s3ObjectKey;
+	    	byte[] signatureBytes = EncryptionUtil.signWithRsaSha1(derPrivateKey, 
+    			policy.getBytes("UTF-8")); 
+
+	    	String urlSafePolicy = makeStringUrlSafe(policy);
+	    	String urlSafeSignature = makeBytesUrlSafe(signatureBytes);
+	    	
+	    	String signedUrl = url 
+	    		+ (url.indexOf('?') >= 0 ? "&" : "?")
+	    		+ "Policy=" + urlSafePolicy 
+	    		+ "&Signature=" + urlSafeSignature 
+	    		+ "&Key-Pair-Id=" + keyPairId;
+	    	return signedUrl;
+        } catch (RuntimeException e) {
+        	throw e;
+        } catch (Exception e) {
+            throw new CloudFrontServiceException(e);
+        }                
+    }
+
+    /**
+     * Generate a signed URL that allows access to a specific distribution and 
+     * S3 object by applying a access restrictions from a "canned" (simplified)
+     * policy document.
+     * 
+     * @param domainName
+     * The distribution's domain name, e.g. 
+     * <tt>a1b2c3d4e5f6g7.cloudfront.net/path/to/object.txt</tt>
+     * @param s3ObjectKey
+     * Key name of the S3 object that will be made accessible through the signed URL.
+     * @param keyPairId
+     * Identifier of a public/private certificate keypair already configured in your 
+     * Amazon Web Services account.
+     * @param derPrivateKey
+     * The RSA private key data that corresponding to the certificate keypair identified by
+     * keyPairId, in DER format. To convert a standard PEM private key file into this format
+     * use the utility method {@link EncryptionUtil#convertRsaPemToDer(java.io.InputStream)}
+     * @param epochDateLessThan
+     * The time and date when the signed URL will expire. REQUIRED. 
+     * 
+     * @return
+     * A signed URL that will permit access to a specific distribution and S3 object.
+     * 
+     * @throws CloudFrontServiceException
+     */
+    public static String signUrlCanned(String domainName, String s3ObjectKey,
+    		String keyPairId, byte[] derPrivateKey, Date epochDateLessThan) 
+        	throws CloudFrontServiceException 
+    {
+    	try {
+			String url = "http://" + domainName + "/" + s3ObjectKey;
+			String resourcePath = url;
+				
+        	String cannedPolicy =
+        		"{\"Statement\":[{\"Resource\":\"" + resourcePath 
+    			+ "\",\"Condition\":{\"DateLessThan\":{\"AWS:EpochTime\":"
+    			+ epochDateLessThan.getTime() / 1000 + "}}}]}";
+        	
+	    	byte[] signatureBytes = EncryptionUtil.signWithRsaSha1(derPrivateKey, 
+    			cannedPolicy.getBytes("UTF-8")); 
+
+	    	String urlSafeSignature = makeBytesUrlSafe(signatureBytes);
+	    	
+	    	String signedUrl = url
+	    		+ (url.indexOf('?') >= 0 ? "&" : "?")
+	    		+ "Expires=" + epochDateLessThan.getTime() / 1000
+	    		+ "&Signature=" + urlSafeSignature 
+	    		+ "&Key-Pair-Id=" + keyPairId;
+	    	return signedUrl;
+        } catch (RuntimeException e) {
+        	throw e;
+        } catch (Exception e) {
+            throw new CloudFrontServiceException(e);
+        }                
+    }
+
 }

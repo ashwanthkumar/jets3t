@@ -26,7 +26,9 @@ import java.lang.reflect.Method;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,9 +36,11 @@ import org.jets3t.service.CloudFrontServiceException;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.model.cloudfront.OriginAccessIdentity;
 import org.jets3t.service.model.cloudfront.Distribution;
 import org.jets3t.service.model.cloudfront.DistributionConfig;
 import org.jets3t.service.model.cloudfront.LoggingStatus;
+import org.jets3t.service.model.cloudfront.OriginAccessIdentityConfig;
 import org.jets3t.service.utils.ServiceUtils;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
@@ -149,6 +153,31 @@ public class CloudFrontXmlResponsesSaxParser {
         return handler;
     }
 
+    public OriginAccessIdentityHandler parseOriginAccessIdentity(
+		InputStream inputStream) throws CloudFrontServiceException
+	{
+    	OriginAccessIdentityHandler handler = new OriginAccessIdentityHandler();
+	    parseXmlInputStream(handler, inputStream);
+	    return handler;
+	}
+    
+    public OriginAccessIdentityConfigHandler parseOriginAccessIdentityConfig(
+		InputStream inputStream) throws CloudFrontServiceException
+	{
+    	OriginAccessIdentityConfigHandler handler = new OriginAccessIdentityConfigHandler();
+	    parseXmlInputStream(handler, inputStream);
+	    return handler;
+	}
+
+    public OriginAccessIdentityListHandler parseOriginAccessIdentityListResponse(
+		InputStream inputStream) throws CloudFrontServiceException
+	{
+    	OriginAccessIdentityListHandler handler = new OriginAccessIdentityListHandler();
+	    parseXmlInputStream(handler, inputStream);
+	    return handler;
+	}
+    
+
     public ErrorHandler parseErrorResponse(InputStream inputStream)
         throws CloudFrontServiceException
     {
@@ -230,6 +259,10 @@ public class CloudFrontXmlResponsesSaxParser {
         private String status = null;        
         private Date lastModifiedTime = null;
         private String domainName = null;
+        private Map activeTrustedSigners = new HashMap();
+                
+        private boolean inSignerElement;
+        private String lastSignerIdentifier = null;
         
         public Distribution getDistribution() {
             return distribution;
@@ -251,6 +284,40 @@ public class CloudFrontXmlResponsesSaxParser {
             this.domainName = text;
         }
         
+        // Handle ActiveTrustedSigner elements //
+        public void startSigner() {
+        	inSignerElement = true;
+        }
+
+        public void endSigner(String text) {
+        	inSignerElement = false;   
+        	lastSignerIdentifier = null;
+        }
+        
+        public void endSelf(String text) {
+        	if (inSignerElement) {
+        		lastSignerIdentifier = "Self";
+        	}
+        }
+
+        public void endAwsAccountNumber(String text) {
+        	if (inSignerElement) {
+        		lastSignerIdentifier = text;
+        	}
+        }
+
+        public void endKeyPairId(String text) {
+        	if (inSignerElement) {
+        		List keypairIdList = (List) activeTrustedSigners.get(lastSignerIdentifier);
+        		if (keypairIdList == null) {
+        			keypairIdList = new ArrayList();
+            		activeTrustedSigners.put(lastSignerIdentifier, keypairIdList);        			
+        		}
+        		keypairIdList.add(text);
+        	}
+        }
+        // End handle ActiveTrustedSigner elements //
+
         public void startDistributionConfig() {
             transferControlToHandler(new DistributionConfigHandler());
         }
@@ -259,7 +326,7 @@ public class CloudFrontXmlResponsesSaxParser {
             DistributionConfig config = 
                 ((DistributionConfigHandler) childHandler).getDistributionConfig();
             this.distribution = new Distribution(id, status, 
-                lastModifiedTime, domainName, config);
+                lastModifiedTime, domainName, activeTrustedSigners, config);
         }
 
         public void endDistribution(String text) {
@@ -276,6 +343,9 @@ public class CloudFrontXmlResponsesSaxParser {
         private String comment = "";
         private boolean enabled = false;
         private LoggingStatus loggingStatus = null;
+        private String originAccessIdentity = null;
+        private boolean trustedSignerSelf = false;
+        private List trustedSignerAwsAccountNumberList = new ArrayList();
         
         public DistributionConfig getDistributionConfig() {
             return distributionConfig;
@@ -312,12 +382,26 @@ public class CloudFrontXmlResponsesSaxParser {
         public void endPrefix(String text) {
         	this.loggingStatus.setPrefix(text);
         }
+        
+        public void endOriginAccessIdentity(String text) {
+        	this.originAccessIdentity = text;
+        }
+        
+        public void endSelf(String text) {
+        	this.trustedSignerSelf = true;
+        }
+        
+        public void endAWSAccountNumber(String text) {
+        	this.trustedSignerAwsAccountNumberList.add(text);
+        }
 
         public void endDistributionConfig(String text) {
             this.distributionConfig = new DistributionConfig(
                 origin, callerReference, 
                 (String[]) cnamesList.toArray(new String[cnamesList.size()]), 
-                comment, enabled, loggingStatus);
+                comment, enabled, loggingStatus, originAccessIdentity, trustedSignerSelf,
+                (String[]) trustedSignerAwsAccountNumberList.toArray(
+            		new String[trustedSignerAwsAccountNumberList.size()]));
             returnControlToParentHandler();
         }
     }
@@ -436,7 +520,127 @@ public class CloudFrontXmlResponsesSaxParser {
             this.isTruncated = "true".equalsIgnoreCase(text);
         }
     }
+    
+    public class OriginAccessIdentityHandler extends SimpleHandler {
+        private String id = null;
+        private String s3CanonicalUserId = null;
+        private String comment = null;
+        private OriginAccessIdentity originAccessIdentity = null;
+        private OriginAccessIdentityConfig originAccessIdentityConfig = null;
+    	
+    	public OriginAccessIdentity getOriginAccessIdentity() {
+			return this.originAccessIdentity;
+		}
 
+		public void endId(String text) {
+    		this.id = text;
+    	}
+    	
+    	public void endS3CanonicalUserId(String text) {
+    		this.s3CanonicalUserId = text;
+    	}
+    	
+    	public void endComment(String text) {
+    		this.comment = text;
+    	}
+
+    	public void startCloudFrontOriginAccessIdentityConfig() {
+            transferControlToHandler(new OriginAccessIdentityConfigHandler());
+    	}
+
+        public void controlReturned(SimpleHandler childHandler) {
+        	this.originAccessIdentityConfig = 
+                ((OriginAccessIdentityConfigHandler) childHandler).getOriginAccessIdentityConfig();
+        }
+
+        public void endCloudFrontOriginAccessIdentity(String text) {
+        	this.originAccessIdentity = new OriginAccessIdentity(
+    			this.id, this.s3CanonicalUserId, this.originAccessIdentityConfig);
+        }
+
+        public void endCloudFrontOriginAccessIdentitySummary(String text) {
+        	this.originAccessIdentity = new OriginAccessIdentity(
+        			this.id, this.s3CanonicalUserId, this.comment);
+            returnControlToParentHandler();
+        }
+    }
+
+    public class OriginAccessIdentityConfigHandler extends SimpleHandler {
+        private String callerReference = null;
+        private String comment = null;
+    	private OriginAccessIdentityConfig config = null;
+    	
+    	public OriginAccessIdentityConfig getOriginAccessIdentityConfig() {
+			return this.config;
+		}
+
+        public void endCallerReference(String text) {
+            this.callerReference = text;
+        }
+
+        public void endComment(String text) {
+            this.comment = text;
+        }
+        
+        public void endCloudFrontOriginAccessIdentityConfig(String text) {
+        	this.config = new OriginAccessIdentityConfig(this.callerReference, this.comment);
+            returnControlToParentHandler();
+        }
+    }
+    
+    public class OriginAccessIdentityListHandler extends SimpleHandler {
+        private List originAccessIdentityList = new ArrayList();
+        private String marker = null;
+        private String nextMarker = null;
+        private int maxItems = 100;
+        private boolean isTruncated = false;
+        
+        public List getOriginAccessIdentityList() {
+            return this.originAccessIdentityList;
+        }
+        
+        public boolean isTruncated() {
+            return isTruncated;
+        }
+
+        public String getMarker() {
+            return marker;
+        }
+
+        public String getNextMarker() {
+            return nextMarker;
+        }
+
+        public int getMaxItems() {
+            return maxItems;
+        }
+
+        public void startCloudFrontOriginAccessIdentitySummary() {
+            transferControlToHandler(new OriginAccessIdentityHandler());
+        }
+        
+        public void controlReturned(SimpleHandler childHandler) {
+        	originAccessIdentityList.add(
+                ((OriginAccessIdentityHandler) childHandler).getOriginAccessIdentity());
+        }
+        
+        public void endMarker(String text) {
+            this.marker = text;
+        }
+        
+        public void endNextMarker(String text) {
+            this.nextMarker = text;
+        }
+
+        public void endMaxItems(String text) {
+            this.maxItems = Integer.parseInt(text);
+        }
+
+        public void endIsTruncated(String text) {
+            this.isTruncated = "true".equalsIgnoreCase(text);
+        }
+    }
+    
     public class ErrorHandler extends SimpleHandler {
         private String type = null;
         private String code = null;

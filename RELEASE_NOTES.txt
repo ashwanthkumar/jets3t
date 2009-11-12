@@ -6,6 +6,7 @@ TOOLKIT
 
   * General
 
+- Added support for private CloudFront distributions (see below)
 - Added support for the property "filecomparer.skip-symlinks" which causes
   symlink/alias files to be ignored by JetS3t applications when deciding
   which files to send to S3. Although "soft" links can be detected and 
@@ -24,6 +25,14 @@ TOOLKIT
   property is no longer required to turn on JMX support in the JVM.
 - Improved the Windows batch scripts to correctly detect the JETS3T_HOME
   location regardless of the current directory when the JetS3t script is run.
+
+  * CloudFront Service Implementation
+
+- Added support for creating and updating private distributions.
+- Added support for creating and managing Origin Access Identifiers as
+  required for private distributions.
+- Added support for generating canned and custom-policy signed URLs for 
+  private distributions that require request signing.
 
   * REST Implementation
 
@@ -52,7 +61,9 @@ Jawahar Lal Nayak for:
 - bug report about the NPE error condition when the REST implementation is
   run on a machine without a network connection available.
 
-bschmaus for a patch to configure the REST connection pool timeout.
+Benjamin Schmaus for patches to configure the REST connection pool timeout, 
+and to make HTTP response headers available for failed REST connections via 
+S3ServiceExceptions.
 
 -------------
 Version 0.7.1

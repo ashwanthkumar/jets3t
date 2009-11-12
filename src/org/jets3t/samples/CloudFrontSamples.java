@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  * 
- * Copyright 2008 James Murty
+ * Copyright 2008-2009 James Murty
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,19 @@
  */
 package org.jets3t.samples;
 
+import java.io.FileInputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+
 import org.jets3t.service.CloudFrontService;
+import org.jets3t.service.model.cloudfront.OriginAccessIdentity;
 import org.jets3t.service.model.cloudfront.Distribution;
 import org.jets3t.service.model.cloudfront.DistributionConfig;
 import org.jets3t.service.model.cloudfront.LoggingStatus;
+import org.jets3t.service.model.cloudfront.OriginAccessIdentityConfig;
+import org.jets3t.service.security.EncryptionUtil;
+import org.jets3t.service.utils.ServiceUtils;
 
 /**
  * Sample code for performing CloudFront service operations.
@@ -33,12 +42,6 @@ public class CloudFrontSamples {
         CloudFrontService cloudFrontService = new CloudFrontService(
             SamplesUtils.loadAWSCredentials());
         
-        // List your distributions
-        Distribution[] distributions = cloudFrontService.listDistributions();
-        for (int i = 0; i < distributions.length; i++) {
-            System.out.println("Distribution " + (i + 1) + ": " + distributions[i]);
-        }
-        
         /*
         // List the distributions applied to a given S3 bucket
         Distribution[] bucketDistributions = cloudFrontService.listDistributions("jets3t");
@@ -46,7 +49,7 @@ public class CloudFrontSamples {
             System.out.println("Bucket distribution " + (i + 1) + ": " + bucketDistributions[i]);
         }
         
-        // Create a new distribution 
+        // Create a new public distribution 
         String originBucket = "jets3t.s3.amazonaws.com";
         Distribution newDistribution = cloudFrontService.createDistribution(
             originBucket, 
@@ -93,8 +96,129 @@ public class CloudFrontSamples {
 
         // Delete a distribution (the distribution must be disabled and deployed first)
         cloudFrontService.deleteDistribution(testDistributionId);
-        */
         
+        // -----------------------------------------------------------
+        // CloudFront Private Distributions - Origin Access Identities
+        // -----------------------------------------------------------
+
+  	    // Create a new origin access identity
+	    OriginAccessIdentity originAccessIdentity = 
+	  	    cloudFrontService.createOriginAccessIdentity(null, "Testing");
+	    System.out.println(originAccessIdentity.toString());
+
+        // List your origin access identities
+        List originAccessIdentityList = cloudFrontService.getOriginAccessIdentityList();
+        System.out.println(originAccessIdentityList);
+      
+      	// Obtain an origin access identity ID for future use
+        OriginAccessIdentity identity = (OriginAccessIdentity) originAccessIdentityList.get(1);
+        String originAccessIdentityId = identity.getId(); 
+        System.out.println("originAccessIdentityId: " + originAccessIdentityId);
+        
+        // Lookup information about a specific origin access identity
+        OriginAccessIdentity originAccessIdentity =
+      	    cloudFrontService.getOriginAccessIdentity(originAccessIdentityId);
+        System.out.println(originAccessIdentity);
+
+        // Lookup config details for an origin access identity
+        OriginAccessIdentityConfig originAccessIdentityConfig =
+      	    cloudFrontService.getOriginAccessIdentityConfig(originAccessIdentityId);
+        System.out.println(originAccessIdentityConfig);
+
+        // Update configuration for an origin access identity
+        OriginAccessIdentityConfig updatedConfig = 
+      	    cloudFrontService.updateOriginAccessIdentityConfig(
+  			    originAccessIdentityId, "New Comment");
+        System.out.println(updatedConfig);
+      
+        // Delete an origin access identity
+        cloudFrontService.deleteOriginAccessIdentity(originAccessIdentityId);
+
+        // --------------------------------------------------------
+        // CloudFront Private Distributions - Private Distributions
+        // --------------------------------------------------------
+
+        // Create a new private distribution for which signed URLs are *not* required
+        String originBucket = "jets3t.s3.amazonaws.com";
+        Distribution newDistribution = cloudFrontService.createDistribution(
+            originBucket, 
+            "" + System.currentTimeMillis(), // Caller reference - a unique string value
+            new String[] {}, // CNAME aliases for distribution
+            "New private distribution -- URL signing not required", // Comment
+            true,  // Distribution is enabled?
+            null,  // Logging status of distribution (null means disabled)
+            originAccessIdentityId, // Origin Access Identity to make distribution private
+            false, // URLs self-signing disabled
+            null   // No other AWS users can sign URLs
+        );
+        System.out.println("New Private Distribution: " + newDistribution);
+
+        // Update an existing distribution to make it private and require URL signing
+        DistributionConfig updatedDistributionConfig = cloudFrontService.updateDistributionConfig(
+            testDistributionId, 
+            new String[] {}, // CNAME aliases for distribution
+            "Now a private distribution -- URL Signing required", // Comment 
+            true, // Distribution enabled?
+            null,  // No distribution logging
+            originAccessIdentityId, // Origin Access Identity ID
+            true, // URLs can be self-signed
+            null  // No other AWS users can sign URLs
+            );
+        System.out.println("Made distribution private: " + updatedDistributionConfig);
+
+
+        // List active trusted signers for a private distribution
+	    Distribution distribution = cloudFrontService.getDistributionInfo(testDistributionId);	      
+	    System.out.println("Active trusted signers: " + distribution.getActiveTrustedSigners());
+	    
+	    // Obtain one of your own (Self) keypair ids that can sign URLs for the distribution
+	    List selfKeypairIds = (List) distribution.getActiveTrustedSigners().get("Self");
+	    String keyPairId = selfKeypairIds.get(0);
+	    System.out.println("Keypair ID: " + keyPairId); 
+
+        // -------------------------------------------------------------------------
+        // CloudFront Private Distributions - Signed URLs for a private distribution
+        // -------------------------------------------------------------------------
+
+        String distributionDomain = "a1b2c3d4e5f6g7.cloudfront.net";
+        String privateKeyFilePath = "/path/to/rsa-private-key.pem";
+        String s3ObjectKey = "s3/object/key.txt";
+        String policyResourcePath = distributionDomain + "/" + s3ObjectKey;
+
+        // Convert an RSA PEM private key file to DER bytes
+		byte[] derPrivateKey = EncryptionUtil.convertRsaPemToDer(
+			new FileInputStream(privateKeyFilePath));
+		
+		
+        // Generate a "canned" signed URL to allow access to a specific distribution and object
+		String signedUrlCanned = CloudFrontService.signUrlCanned(
+	  		distributionDomain, // Domain name
+	  		s3ObjectKey, // S3 object key
+	  		keyPairId,     // Certificate identifier, an active trusted signer for the distribution
+	  		derPrivateKey, // DER Private key data
+	  		ServiceUtils.parseIso8601Date("2009-11-14T22:20:00.000Z") // DateLessThan
+			);
+		System.out.println(signedUrlCanned);
+
+
+		// Build a policy document to define custom restrictions for a signed URL
+		String policy = CloudFrontService.buildPolicyForSignedUrl(
+			policyResourcePath, // Resource path (optional, may include '*' and '?' wildcards)
+	  		ServiceUtils.parseIso8601Date("2009-11-14T22:20:00.000Z"), // DateLessThan
+	  		"0.0.0.0/0", // CIDR IP address restriction (optional, 0.0.0.0/0 means everyone)
+	  		ServiceUtils.parseIso8601Date("2009-10-16T06:31:56.000Z")  // DateGreaterThan (optional)
+			);
+
+        // Generate a signed URL using a custom policy document
+		String signedUrl = CloudFrontService.signUrl(
+	  		distributionDomain, // Domain name
+	  		s3ObjectKey, // S3 object key
+	  		keyPairId,     // Certificate identifier, an active trusted signer for the distribution
+	  		derPrivateKey, // DER Private key data
+	  		policy // Access control policy
+			);
+		System.out.println(signedUrl);
+		*/
     }
     
 }

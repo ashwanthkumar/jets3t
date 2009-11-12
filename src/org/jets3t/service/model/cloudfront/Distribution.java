@@ -20,6 +20,8 @@ package org.jets3t.service.model.cloudfront;
 
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.jets3t.service.CloudFrontService;
 
@@ -28,6 +30,7 @@ public class Distribution {
     private String status = null;        
     private Date lastModifiedTime = null;
     private String domainName = null;
+    private Map activeTrustedSigners = new HashMap();
     private String origin = null;
     private String cnames[] = new String[0];
     private String comment = null;
@@ -49,12 +52,13 @@ public class Distribution {
     }
     
     public Distribution(String id, String status, Date lastModifiedDate,
-        String domainName, DistributionConfig config) 
+        String domainName, Map activeTrustedSigners, DistributionConfig config) 
     {
         this.id = id;
         this.status = status;
         this.lastModifiedTime = lastModifiedDate;
         this.domainName = domainName;
+        this.activeTrustedSigners = activeTrustedSigners;
         this.config = config;
     }
 
@@ -65,15 +69,23 @@ public class Distribution {
     public String getComment() {
         return comment;
     }
+
     public String getDomainName() {
         return domainName;
     }
+    
+    public Map getActiveTrustedSigners() {
+    	return activeTrustedSigners;
+    }
+    
     public String getId() {
         return id;
     }
+
     public Date getLastModifiedTime() {
         return lastModifiedTime;
     }
+
     public String getOrigin() {
         return origin;
     }
@@ -115,7 +127,9 @@ public class Distribution {
     
     public String toString() {
         return "CloudFrontDistribution: id=" + id + ", status=" + status + 
-            ", domainName=" + domainName + ", lastModifiedTime=" + lastModifiedTime +
+            ", domainName=" + domainName
+            + ", activeTrustedSigners=" + activeTrustedSigners
+            + ", lastModifiedTime=" + lastModifiedTime +
             (isSummary()
                 ? ", origin=" + origin + ", comment=" + comment
                     + ", enabled=" + enabled + ", CNAMEs=" + Arrays.asList(cnames)                    

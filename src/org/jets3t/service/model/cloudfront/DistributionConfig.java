@@ -22,17 +22,25 @@ import java.util.Arrays;
 
 
 public class DistributionConfig {
+	public static final String ORIGIN_ACCESS_IDENTITY_PREFIX = 
+		"origin-access-identity/cloudfront/";
+	
     private String origin = null;
     private String callerReference = null;
     private String[] cnames = new String[0];
     private String comment = null;
-    private boolean enabled = false;       
+    private boolean enabled = false;
     private String etag = null;
     private LoggingStatus loggingStatus = null;
+    // Private distribution settings
+    private String originAccessIdentity = null;
+    private boolean trustedSignerSelf = false;
+    private String[] trustedSignerAwsAccountNumbers = new String[0];
     
     public DistributionConfig(String origin, String callerReference, 
         String[] cnames, String comment, boolean enabled,
-        LoggingStatus loggingStatus) 
+        LoggingStatus loggingStatus, String originAccessIdentity,
+        boolean trustedSignerSelf, String[] trustedSignerAwsAccountNumbers) 
     {
         this.origin = origin;
         this.callerReference = callerReference;
@@ -40,6 +48,23 @@ public class DistributionConfig {
         this.comment = comment;        
         this.enabled = enabled;
         this.loggingStatus = loggingStatus;
+        // Ensure origin access identity has required prefix
+        if (originAccessIdentity != null 
+    		&& !originAccessIdentity.startsWith(ORIGIN_ACCESS_IDENTITY_PREFIX))
+        {
+        	originAccessIdentity = ORIGIN_ACCESS_IDENTITY_PREFIX + originAccessIdentity;
+        }
+        this.originAccessIdentity = originAccessIdentity;
+        this.trustedSignerSelf = trustedSignerSelf;
+        this.trustedSignerAwsAccountNumbers = trustedSignerAwsAccountNumbers;
+    }
+
+    public DistributionConfig(String origin, String callerReference, 
+            String[] cnames, String comment, boolean enabled,
+            LoggingStatus loggingStatus) 
+    {
+    	this(origin, callerReference, cnames, comment, enabled, 
+    			loggingStatus, null, false, null);
     }
     
     public String getOrigin() {
@@ -78,10 +103,45 @@ public class DistributionConfig {
         return this.loggingStatus != null;
     }    
 
+    public String getOriginAccessIdentity() {
+    	return this.originAccessIdentity;
+    }
+    
+    public boolean isPrivate() {
+        return this.originAccessIdentity != null;
+    }    
+
+    public String[] getTrustedSignerAwsAccountNumbers() {
+        return this.trustedSignerAwsAccountNumbers;
+    }
+    
+    public boolean isTrustedSignerSelf() {
+        return this.trustedSignerSelf;
+    }
+
+    public boolean hasTrustedSignerAwsAccountNumbers() {
+        return getTrustedSignerAwsAccountNumbers() != null
+			&& getTrustedSignerAwsAccountNumbers().length > 0;
+    }
+
+    public boolean isUrlSigningRequired() {
+    	return isTrustedSignerSelf() || hasTrustedSignerAwsAccountNumbers(); 
+    }
+    
     public String toString() {
-        return "CloudFrontDistributionConfig: origin=" + origin +
+        return "DistributionConfig: origin=" + origin +
             ", callerReference=" + callerReference + ", comment=" + comment +
             ", enabled=" + enabled +
+            (isPrivate() 
+        		? ", Private:originAccessIdentity=" + originAccessIdentity
+				: ", Public") +
+            (isUrlSigningRequired() 
+            		? ", TrustedSigners:self=" + isTrustedSignerSelf()
+        				+ (hasTrustedSignerAwsAccountNumbers() 
+    						? ":awsAccountNumbers=" 
+								+ Arrays.asList(getTrustedSignerAwsAccountNumbers()) 
+							: "")
+    				: "") +
             (etag != null ? ", etag=" + etag : "") +
             ", LoggingStatus: " + 
             (!isLoggingEnabled() 

@@ -226,7 +226,27 @@ public class ServiceUtils {
         }
         return new String(baos.toByteArray(), encoding);
     }    
-    
+
+    /**
+     * Reads binary data from an input stream and returns it as a byte array.
+     * 
+     * @param is
+     * input stream from which data is read.
+     * 
+     * @return
+     * byte array containing data read from the input stream.
+     * 
+     * @throws IOException
+     */
+    public static byte[] readInputStreamToBytes(InputStream is) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        int b = -1;        
+        while ((b = is.read()) != -1) {
+            baos.write(b);
+        }
+        return baos.toByteArray();
+    }
+
     /**
      * Counts the total number of bytes in a set of S3Objects by summing the
      * content length of each. 
