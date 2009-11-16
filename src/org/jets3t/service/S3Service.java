@@ -323,9 +323,10 @@ public abstract class S3Service implements Serializable {
             return false;
         }
 
-        // Cannot be an IP address (must contain at least one lower-case letter)
-        if (!Pattern.matches(".*[a-z].*", bucketName)) {
-            return false;
+        // Cannot be an IP address, i.e. must not contain four '.'-delimited
+        // sections with 1 to 3 digits each.
+        if (Pattern.matches("([0-9]{1,3}\\.){3}[0-9]{1,3}", bucketName)) {
+        	return false;
         }
         
         // Components of name between '.' characters cannot start or end with '-', 
