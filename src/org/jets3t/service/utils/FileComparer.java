@@ -819,6 +819,25 @@ public class FileComparer {
         Set alreadySynchronisedKeys = new HashSet();
         Set onlyOnClientKeys = new HashSet();
 
+        // Read property settings for file comparison.
+        boolean useMd5Files = jets3tProperties
+        	.getBoolProperty("filecomparer.use-md5-files", false);
+	    boolean generateMd5Files = jets3tProperties
+	        .getBoolProperty("filecomparer.generate-md5-files", false);
+	    boolean assumeLocalLatestInMismatch = jets3tProperties
+	    	.getBoolProperty("filecomparer.assume-local-latest-in-mismatch", false);	    
+	    String md5FilesRootDirectoryPath = jets3tProperties
+	    	.getStringProperty("filecomparer.md5-files-root-dir", null);
+	    File md5FilesRootDirectory = null;
+	    if (md5FilesRootDirectoryPath != null) {
+	    	md5FilesRootDirectory = new File(md5FilesRootDirectoryPath);
+	    	if (!md5FilesRootDirectory.isDirectory()) {
+	    		throw new FileNotFoundException(
+    				"filecomparer.md5-files-root-dir path is not a directory: "
+    				+ md5FilesRootDirectoryPath);
+	    	}
+	    }
+
         // Check files on server against local client files.
         Iterator s3ObjectsMapIter = s3ObjectsMap.entrySet().iterator();
         while (s3ObjectsMapIter.hasNext()) {
@@ -867,16 +886,12 @@ public class FileComparer {
                     alreadySynchronisedKeys.add(keyPath);
                 } else {
                     // Compare file hashes.
-                    boolean useMd5Files = jets3tProperties
-                        .getBoolProperty("filecomparer.use-md5-files", false);
-
-                    boolean generateMd5Files = jets3tProperties
-                        .getBoolProperty("filecomparer.generate-md5-files", false);                                        
-                    
                     byte[] computedHash = null;
                     
                     // Check whether a pre-computed MD5 hash file is available
-                    File computedHashFile = new File(file.getPath() + ".md5");
+                    File computedHashFile = (md5FilesRootDirectory != null
+                		? new File(md5FilesRootDirectory, keyPath + ".md5")
+                    	: new File(file.getPath() + ".md5"));
                     if (useMd5Files
                         && computedHashFile.canRead()
                         && computedHashFile.lastModified() > file.lastModified())
@@ -917,6 +932,12 @@ public class FileComparer {
                         (!computedHashFile.exists() 
                         || computedHashFile.lastModified() < file.lastModified()))
                     {
+                    	// Create parent directory for new hash file if necessary
+                    	File parentDir = computedHashFile.getParentFile();
+                    	if (parentDir != null && !parentDir.exists()) {
+                    		parentDir.mkdirs();
+                    	}
+                    	
                         // Create or update a pre-computed MD5 hash file.
                     	FileWriter fw = null;
                         try {
@@ -964,7 +985,7 @@ public class FileComparer {
                         
                         if (metadataLocalFileDate == null) {
                             // This is risky as local file times and S3 times don't match!
-                        	if (log.isWarnEnabled()) {
+                        	if (!assumeLocalLatestInMismatch && log.isWarnEnabled()) {
                         		log.warn("Using S3 last modified date as file date. This is not reliable " 
                                 + "as the time according to S3 can differ from your local system time. "
                                 + "Please use the metadata item " 
@@ -983,9 +1004,7 @@ public class FileComparer {
                             // Local file date and S3 object date values match exactly, yet the 
                             // local file has a different hash. This shouldn't ever happen, but
                             // sometimes does with Excel files.
-                            if (jets3tProperties.getBoolProperty(
-                                    "filecomparer.assume-local-latest-in-mismatch", false))
-                            {
+                            if (assumeLocalLatestInMismatch) {
                             	if (log.isWarnEnabled()) {
                             		log.warn("Backed-up S3Object " + s3Object.getKey()
                                     + " and local file " + file.getName()

@@ -7,6 +7,9 @@ TOOLKIT
   * General
 
 - Added support for private CloudFront distributions (see below)
+- Added a new property "filecomparer.md5-files-root-dir" which allows MD5 
+  files generated for file comparison purposes to be stored in a custom 
+  path, instead of within the same directory structure as data files.
 - Added support for the property "filecomparer.skip-symlinks" which causes
   symlink/alias files to be ignored by JetS3t applications when deciding
   which files to send to S3. Although "soft" links can be detected and 
