@@ -33,8 +33,10 @@ public class S3Bucket extends BaseS3Object {
     public static final String METADATA_HEADER_CREATION_DATE = "Date";
 	public static final String METADATA_HEADER_OWNER = "Owner";
     
-    public static final String LOCATION_EUROPE = "EU";
     public static final String LOCATION_US = null;
+    public static final String LOCATION_US_EAST = null;
+    public static final String LOCATION_US_WEST = "us-west-1";
+    public static final String LOCATION_EUROPE = "EU";
 	
 	private String name = null;
 	private AccessControlList acl = null;
