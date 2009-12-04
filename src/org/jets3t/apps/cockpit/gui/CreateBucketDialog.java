@@ -46,6 +46,7 @@ import org.jets3t.gui.JHtmlLabel;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
+import org.jets3t.service.model.S3Bucket;
 
 /**
  * Dialog box to prompt for the name and location of an S3 bucket. This dialog 
@@ -61,7 +62,8 @@ import org.jets3t.service.S3Service;
 public class CreateBucketDialog extends JDialog implements ActionListener {
     private static final long serialVersionUID = -8085778146542157010L;
 
-    private static Map locationValueMap = new HashMap(); 
+    private static String[] locationNames = new String[] {};
+    private static Map locationValueMap = new HashMap();
     
     private boolean okClicked = false;
     
@@ -75,8 +77,13 @@ public class CreateBucketDialog extends JDialog implements ActionListener {
 
     
     static {
-        locationValueMap.put("United States", null);
-        locationValueMap.put("Europe", "EU");
+        locationValueMap.put("United States East", S3Bucket.LOCATION_US);
+        locationValueMap.put("United States West", S3Bucket.LOCATION_US_WEST);
+        locationValueMap.put("Europe", S3Bucket.LOCATION_EUROPE);
+        
+        locationNames = new String[] {
+    		"United States East", "United States West", "Europe"
+		};
     }
     
     public CreateBucketDialog(String suggestedBucketName, Frame ownerFrame, 
@@ -103,10 +110,7 @@ public class CreateBucketDialog extends JDialog implements ActionListener {
         bucketLocationLabel.setHorizontalAlignment(JLabel.CENTER);        
         bucketNameIsValidDNSResultLabel = new JLabel("No");
         
-        bucketLocationComboBox = new JComboBox(new String[] {
-            "United States",
-            "Europe"
-        });
+        bucketLocationComboBox = new JComboBox(locationNames);
         bucketLocationComboBox.addActionListener(new ActionListener() {
            public void actionPerformed(ActionEvent e) {
                okButton.setEnabled(
