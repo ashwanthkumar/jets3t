@@ -82,7 +82,7 @@ public class CreateBucketDialog extends JDialog implements ActionListener {
         locationValueMap.put("Europe", S3Bucket.LOCATION_EUROPE);
         
         locationNames = new String[] {
-    		"United States East", "United States West", "Europe"
+    		"US East (N. Virginia)", "US West (N. California)", "EU West (Ireland)"
 		};
     }
     
