@@ -69,7 +69,9 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author Nikolas Coukouma
  */
 public abstract class S3Service implements Serializable {
-    private static final Log log = LogFactory.getLog(S3Service.class);
+	private static final long serialVersionUID = -6791155699534955067L;
+
+	private static final Log log = LogFactory.getLog(S3Service.class);
     
     /**
      * The JetS3t suite version number implemented by this service: 0.7.1
@@ -1332,7 +1334,8 @@ public abstract class S3Service implements Serializable {
      * the name of the bucket to create.
      * @param location
      * the location of the S3 data centre in which the bucket will be created. Valid values
-     * are {@link S3Bucket#LOCATION_EUROPE} or {@link S3Bucket#LOCATION_US}.
+     * include {@link S3Bucket#LOCATION_EUROPE}, {@link S3Bucket#LOCATION_US_EAST}, 
+     * {@link S3Bucket#LOCATION_US_WEST}.
      * @return
      * the created bucket object. <b>Note:</b> the object returned has minimal information about
      * the bucket that was created, including only the bucket's name.
@@ -1672,8 +1675,42 @@ public abstract class S3Service implements Serializable {
     }
     
     /**
-     * Returns a bucket in your S3 account, and creates the bucket if it does 
-     * not yet exist. 
+     * Returns a bucket in your S3 account, and creates the bucket in the given S3 location
+     * if it does not yet exist.
+     * <p>
+     * Note: This method will not change the location of an existing bucket if you specify
+     * a different location from a bucket's current location. To move a bucket between
+     * locations you must first delete it in the original location, then re-create it
+     * in the new location. 
+     *  
+     * @param bucketName
+     * the name of the bucket to retrieve or create.
+     * @param location
+     * the location of the S3 data centre in which the bucket will be created. Valid values
+     * include {@link S3Bucket#LOCATION_EUROPE}, {@link S3Bucket#LOCATION_US_EAST}, 
+     * {@link S3Bucket#LOCATION_US_WEST}.
+     * @return
+     * the bucket in your account.
+     * 
+     * @throws S3ServiceException
+     */
+    public S3Bucket getOrCreateBucket(String bucketName, String location) 
+    	throws S3ServiceException 
+	{
+        assertAuthenticatedConnection("Get or Create Bucket with location");
+        
+        S3Bucket bucket = getBucket(bucketName);
+        if (bucket == null) {
+            // Bucket does not exist in this user's account, create it.
+            bucket = createBucket(new S3Bucket(bucketName, location));
+        }
+        return bucket;
+    }
+
+    /**
+     * Returns a bucket in your S3 account, and creates the bucket in the default
+     * location specified by the property "s3service.default-bucket-location" if 
+     * it does not yet exist. 
      *  
      * @param bucketName
      * the name of the bucket to retrieve or create.
@@ -1683,14 +1720,9 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public S3Bucket getOrCreateBucket(String bucketName) throws S3ServiceException {
-        assertAuthenticatedConnection("Get or Create Bucket");
-        
-        S3Bucket bucket = getBucket(bucketName);
-        if (bucket == null) {
-            // Bucket does not exist in this user's account, create it.
-            bucket = createBucket(new S3Bucket(bucketName));
-        }
-        return bucket;
+        String defaultBucketLocation = jets3tProperties.getStringProperty(
+                "s3service.default-bucket-location", S3Bucket.LOCATION_US);
+        return getOrCreateBucket(bucketName, defaultBucketLocation);
     }
 
     /**
