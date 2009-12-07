@@ -172,6 +172,10 @@ public class SoapS3Service extends S3Service {
         this(awsCredentials, null);
     }
 
+    protected void shutdownImpl() throws S3ServiceException {
+    	locator = null;
+    }
+
     private AmazonS3SoapBindingStub getSoapBinding() throws S3ServiceException {
         try {
             return (AmazonS3SoapBindingStub) locator.getAmazonS3();

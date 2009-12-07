@@ -79,6 +79,8 @@ public class S3ServiceMulti implements Serializable {
     private static final Log log = LogFactory.getLog(S3ServiceMulti.class);
     
     private S3Service s3Service = null;
+    private final boolean[] isShutdown = new boolean[] { false };
+
     private ArrayList serviceEventListeners = new ArrayList();
     private final long sleepTime;
     
@@ -140,7 +142,27 @@ public class S3ServiceMulti implements Serializable {
                     + " simultaneous admin threads (s3service.admin-max-thread-count) - please adjust JetS3t settings");
             }
         }
-    }    
+    }
+    
+    /**
+     * Make a best-possible effort to shutdown and clean up any resources used by this
+     * service such as HTTP connections, connection pools, threads etc. After calling
+     * this method the service instance will no longer be usable -- a new instance must
+     * be created to do more work.
+     */
+    public void shutdown() throws S3ServiceException {
+    	this.isShutdown[0] = true;
+    	this.getS3Service().shutdown();
+    }
+    
+    /**
+     * @return true if the {@link #shutdown()} method has been used to shut down and
+     * clean up this service. If this function returns true this service instance
+     * can no longer be used to do work.
+     */
+    public boolean isShutdown() {
+    	return this.isShutdown[0];
+    }
 
     /**
      * @return
@@ -1612,23 +1634,14 @@ public class S3ServiceMulti implements Serializable {
      * or force a thread to be interrupted (via {@link #forceInterrupt}. 
      */
     private abstract class AbstractRunnable implements Runnable {
-        private boolean forceInterrupt = false;
 
         public abstract Object getResult();
         
         public abstract void forceInterruptCalled();
         
         protected void forceInterrupt() {
-            this.forceInterrupt = true;
             forceInterruptCalled();
         }
-        
-        protected boolean notInterrupted() throws InterruptedException {
-            if (forceInterrupt || Thread.interrupted()) {
-                throw new InterruptedException("Interrupted by JAMES");
-            }
-            return true;
-        }        
     }
     
     /**
@@ -2425,6 +2438,11 @@ public class S3ServiceMulti implements Serializable {
                 // still active (ie hasn't finished its work)
                 while (!interrupted[0] && getPendingThreadCount() > 0) {
                     try {
+                        // Shut down threads if this service has been shutdown.
+                        if (isShutdown[0]) {
+                        	throw new InterruptedException("S3ServiceMulti#shutdown method invoked");
+                        }
+
                         Thread.sleep(100);
     
                         if (interrupted[0]) {

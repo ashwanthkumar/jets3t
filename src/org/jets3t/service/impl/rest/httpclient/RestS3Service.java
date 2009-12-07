@@ -36,6 +36,8 @@ import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpConnectionManager;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.HttpMethodBase;
+import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
+import org.apache.commons.httpclient.SimpleHttpConnectionManager;
 import org.apache.commons.httpclient.URI;
 import org.apache.commons.httpclient.URIException;
 import org.apache.commons.httpclient.auth.CredentialsProvider;
@@ -198,6 +200,22 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             RestUtils.initHttpProxy(httpClient, proxyHostAddress, proxyPort, proxyUser, proxyPassword, proxyDomain);
         }        
     }    
+
+    /**
+     * Shut down all connections managed by the underlying HttpConnectionManager.
+     */
+    protected void shutdownImpl() throws S3ServiceException {
+    	HttpConnectionManager manager = this.getHttpConnectionManager();
+    	if (manager instanceof SimpleHttpConnectionManager) {
+    		((SimpleHttpConnectionManager) manager).shutdown();
+    	} else if (manager instanceof MultiThreadedHttpConnectionManager) {
+    		((MultiThreadedHttpConnectionManager) manager).shutdown();    		
+    	} else {
+    		manager.closeIdleConnections(0);
+    		// Not much else we can do hear, since the HttpConnectionManager  
+    		// interface doesn't have a #shutdown method.
+    	}
+    }
     
     /**
      * Initialise HttpClient and HttpConnectionManager objects with the configuration settings

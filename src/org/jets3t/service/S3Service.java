@@ -95,6 +95,8 @@ public abstract class S3Service implements Serializable {
     private boolean isHttpsOnly = true;
     private int internalErrorRetryMax = 5;
     
+    private boolean isShutdown = false;
+    
     /**
      * The approximate difference in the current time between your computer and
      * Amazon's S3 server, measured in milliseconds.
@@ -187,6 +189,28 @@ public abstract class S3Service implements Serializable {
      */
     protected S3Service(AWSCredentials awsCredentials) throws S3ServiceException {
         this(awsCredentials, null);
+    }
+    
+    /**
+     * Make a best-possible effort to shutdown and clean up any resources used by this
+     * service such as HTTP connections, connection pools, threads etc, although there is
+     * no guarantee that all such resources will indeed be fully cleaned up. 
+     * 
+     * After calling this method the service instance will no longer be usable -- a new 
+     * instance must be created to do more work.
+     */
+    public void shutdown() throws S3ServiceException {
+    	this.isShutdown = true;
+    	this.shutdownImpl();
+    }
+    
+    /**
+     * @return true if the {@link #shutdown()} method has been used to shut down and
+     * clean up this service. If this function returns true this service instance
+     * can no longer be used to do work.
+     */
+    public boolean isShutdown() {
+    	return this.isShutdown;
     }
     
     /**
@@ -2788,5 +2812,7 @@ public abstract class S3Service implements Serializable {
         throws S3ServiceException;
 
     protected abstract AccessControlList getBucketAclImpl(String bucketName) throws S3ServiceException;
+        
+    protected abstract void shutdownImpl() throws S3ServiceException;
     
 }
