@@ -77,12 +77,12 @@ public class CreateBucketDialog extends JDialog implements ActionListener {
 
     
     static {
-        locationValueMap.put("United States East", S3Bucket.LOCATION_US);
+        locationValueMap.put("United States Standard", S3Bucket.LOCATION_US);
         locationValueMap.put("United States West", S3Bucket.LOCATION_US_WEST);
         locationValueMap.put("Europe", S3Bucket.LOCATION_EUROPE);
         
         locationNames = new String[] {
-    		"US East (N. Virginia)", "US West (N. California)", "EU West (Ireland)"
+    		"US Standard", "US West (N. California)", "EU West (Ireland)"
 		};
     }
     
@@ -129,7 +129,7 @@ public class CreateBucketDialog extends JDialog implements ActionListener {
         } else {
             bucketNameIsValidDNSExplanationLabel = new JHtmlLabel(
                 "<html><font size=\"-2\">If your bucket name is DNS-compatible, you can choose a storage location<br>" +
-                "other than the U.S. and may potentially use the bucket as a virtual host.</font></html>", hyperlinkListener);
+                "other than US Standard and may potentially use the bucket as a virtual host.</font></html>", hyperlinkListener);
             bucketLocationComboBox.setEnabled(true);
         }        
         bucketNameIsValidDNSExplanationLabel.setHorizontalAlignment(JLabel.CENTER);        
@@ -203,7 +203,7 @@ public class CreateBucketDialog extends JDialog implements ActionListener {
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
         panel.add(bucketLocationComboBox, new GridBagConstraints(1, row, 
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-        panel.add(new JHtmlLabel("<html><font size=\"-2\">Choosing a location other than the US may incur additional S3 usage fees.</font></html>", hyperlinkListener), 
+        panel.add(new JHtmlLabel("<html><font size=\"-2\">Choosing a location other than US Standard may incur additional S3 usage fees.</font></html>", hyperlinkListener), 
             new GridBagConstraints(0, ++row, 2, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));        
         panel.add(buttonsPanel, new GridBagConstraints(0, ++row, 
             2, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));            
