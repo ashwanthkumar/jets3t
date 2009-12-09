@@ -127,40 +127,41 @@ public class S3ServiceException extends Exception {
     }
 	
     /**
-     * @return The Error Code returned by S3, if this exception was created with the 
-     * XML Message constructor.
+     * @return The service-specific Error Code returned by S3, if an S3 response is available.
+     * For example "AccessDenied", "InternalError" 
+     * Null otherwise.
      */
 	public String getS3ErrorCode() {
         return this.s3ErrorCode;
 	}
     
     /**
-     * @return The Error Message returned by S3, if this exception was created with the 
-     * XML Message constructor.
+     * @return The service-specific Error Message returned by S3, if an S3 response is available.
+     * For example: "Access Denied", "We encountered an internal error. Please try again." 
      */
     public String getS3ErrorMessage() {
         return this.s3ErrorMessage;
     }
 
     /**
-     * @return The Error Host ID returned by S3, if this exception was created with the 
-     * XML Message constructor.
+     * @return The Error Host ID returned by S3, if an S3 response is available. 
+     * Null otherwise.
      */
     public String getS3ErrorHostId() {
         return s3ErrorHostId;
     }
 
     /**
-     * @return The Error Request ID returned by S3, if this exception was created with the 
-     * XML Message constructor.
+     * @return The Error Request ID returned by S3, if an S3 response is available. 
+     * Null otherwise.
      */
     public String getS3ErrorRequestId() {
         return s3ErrorRequestId;
     }
         
     /**
-     * @return The XML Error message returned by S3, if this exception was created with the 
-     * XML Message constructor. Null if no XML message is available.
+     * @return The XML Error message returned by S3, if an S3 response is available. 
+     * Null otherwise.
      */
     public String getXmlMessage() {
         return xmlMessage;
@@ -170,6 +171,10 @@ public class S3ServiceException extends Exception {
     	return (xmlMessage != null);
     }
 
+    /**
+     * @return The HTTP Response Code returned by S3, if an HTTP response is available.
+     * For example: 401, 404, 500 
+     */
     public int getResponseCode() {
         return responseCode;
     }
@@ -178,6 +183,10 @@ public class S3ServiceException extends Exception {
         this.responseCode = responseCode;
     }
 
+    /**
+     * @return The HTTP Status message returned by S3, if an HTTP response is available.
+     * For example: "Forbidden", "Not Found", "Internal Server Error"
+     */
     public String getResponseStatus() {
         return responseStatus;
     }
@@ -195,6 +204,10 @@ public class S3ServiceException extends Exception {
 		this.responseDate = responseDate;
 	}
 
+    /**
+     * @return The HTTP Verb used in the request, if available.
+     * For example: "GET", "PUT", "DELETE"
+     */
 	public String getRequestVerb() {
 		return requestVerb;
 	}
