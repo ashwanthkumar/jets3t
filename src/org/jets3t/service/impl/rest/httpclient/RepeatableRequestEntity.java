@@ -118,6 +118,8 @@ public class RepeatableRequestEntity implements RequestEntity {
             }
             if (inputStream.markSupported()) {
             	repeatableInputStream = inputStream;
+            	// Mark the start of this input stream so we can reset it if necessary.
+            	repeatableInputStream.mark(Integer.MAX_VALUE);
             }
             
             if (inputStream instanceof InputStreamWrapper) {
