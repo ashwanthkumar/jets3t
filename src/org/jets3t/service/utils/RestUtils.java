@@ -349,6 +349,14 @@ public class RestUtils {
                     }
                     return false;
                 }
+                
+                // Experimental *hack* to force HttpMethods that have failed with an IOException
+                // to use HTTP 1.0 for future connections. We expect this will cause the connection
+                // manager to assign a newly created connection to this method, thereby avoiding 
+                // re-use of an existing connection which is more likely to fail again.
+                // TODO: Ideally we would obtain and tear down the underlying connection directly. 
+                httpMethod.getParams().setVersion(HttpVersion.HTTP_1_0);
+                
                 if (log.isDebugEnabled()) {
                     log.debug("Retrying " + httpMethod.getName() + " request with path '" 
                         + httpMethod.getPath() + "' - attempt " + executionCount 
