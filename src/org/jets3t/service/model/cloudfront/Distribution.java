@@ -125,9 +125,17 @@ public class Distribution {
         return config;
     }
     
+    public boolean isStreamingDistribution() {
+    	return (this instanceof StreamingDistribution);
+    }
+    
     public String toString() {
-        return "CloudFrontDistribution: id=" + id + ", status=" + status + 
-            ", domainName=" + domainName
+        return
+        	(isStreamingDistribution() 
+        		? "CloudFrontStreamingDistribution" 
+				: "CloudFrontDistribution")
+			+ ": id=" + id + ", status=" + status 
+            + ", domainName=" + domainName
             + ", activeTrustedSigners=" + activeTrustedSigners
             + ", lastModifiedTime=" + lastModifiedTime +
             (isSummary()

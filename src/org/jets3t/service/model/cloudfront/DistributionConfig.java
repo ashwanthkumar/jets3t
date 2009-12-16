@@ -128,10 +128,18 @@ public class DistributionConfig {
     	return isTrustedSignerSelf() || hasTrustedSignerAwsAccountNumbers(); 
     }
     
+    public boolean isStreamingDistributionConfig() {
+    	return (this instanceof StreamingDistributionConfig);
+    }
+    
     public String toString() {
-        return "DistributionConfig: origin=" + origin +
-            ", callerReference=" + callerReference + ", comment=" + comment +
-            ", enabled=" + enabled +
+        return
+        	(isStreamingDistributionConfig() 
+	        	? "StreamingDistributionConfig"
+				: "DistributionConfig")
+        	+ ": origin=" + origin
+            + ", callerReference=" + callerReference + ", comment=" + comment
+            + ", enabled=" + enabled +
             (isPrivate() 
         		? ", Private:originAccessIdentity=" + originAccessIdentity
 				: ", Public") +
@@ -143,10 +151,9 @@ public class DistributionConfig {
 							: "")
     				: "") +
             (etag != null ? ", etag=" + etag : "") +
-            ", LoggingStatus: " + 
             (!isLoggingEnabled() 
-        		? 	"null"
-            	: 	"bucket=" + loggingStatus.getBucket() +
+        		? 	""
+            	: 	", LoggingStatus: bucket=" + loggingStatus.getBucket() +
             		", prefix=" + loggingStatus.getPrefix()) +
             ", CNAMEs=" + Arrays.asList(cnames);
     }

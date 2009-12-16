@@ -29,6 +29,8 @@ import org.jets3t.service.model.cloudfront.Distribution;
 import org.jets3t.service.model.cloudfront.DistributionConfig;
 import org.jets3t.service.model.cloudfront.LoggingStatus;
 import org.jets3t.service.model.cloudfront.OriginAccessIdentityConfig;
+import org.jets3t.service.model.cloudfront.StreamingDistribution;
+import org.jets3t.service.model.cloudfront.StreamingDistributionConfig;
 import org.jets3t.service.security.EncryptionUtil;
 import org.jets3t.service.utils.ServiceUtils;
 
@@ -82,7 +84,8 @@ public class CloudFrontSamples {
             );
         System.out.println("Updated Distribution Config: " + updatedDistributionConfig);
 
-        // Disable a distribution, e.g. so that it may be deleted. This operation may take some time to complete...
+        // Disable a distribution, e.g. so that it may be deleted. 
+        // The CloudFront service may take some time to disable and deploy the distribution.
         DistributionConfig disabledDistributionConfig = cloudFrontService.updateDistributionConfig(
             testDistributionId, new String[] {}, "Deleting distribution", false, null);
         System.out.println("Disabled Distribution Config: " + disabledDistributionConfig);
@@ -218,7 +221,78 @@ public class CloudFrontSamples {
 	  		policy // Access control policy
 			);
 		System.out.println(signedUrl);
-		*/
+
+		
+        // ------------------------------------------------------------
+        // CloudFront Streaming Distributions
+        //
+        // The methods for interacting with streaming distributions are
+        // very similar to those for standard distributions
+        // ------------------------------------------------------------
+
+        // List the streaming distributions applied to a given S3 bucket
+        StreamingDistribution[] streamingDistributions = 
+        	cloudFrontService.listStreamingDistributions("jets3t-streaming");
+        for (int i = 0; i < streamingDistributions.length; i++) {
+            System.out.println("Streaming distribution " + (i + 1) + ": " + streamingDistributions[i]);
+        }
+
+        // Create a new streaming distribution 
+        String streamingBucket = "jets3t-streaming.s3.amazonaws.com";
+        StreamingDistribution newStreamingDistribution = cloudFrontService.createStreamingDistribution(
+    		  streamingBucket, 
+            "" + System.currentTimeMillis(), // Caller reference - a unique string value
+            null, // CNAME aliases for distribution
+            "Test streaming distribution", // Comment
+            true  // Distribution is enabled?
+            );
+        System.out.println("New Streaming Distribution: " + newStreamingDistribution);
+
+        // The ID of the streaming distribution we will use for testing
+        String testStreamingDistributionId = newStreamingDistribution.getId();
+        
+        // List information about a streaming distribution
+        StreamingDistribution streamingDistribution = 
+        	cloudFrontService.getStreamingDistributionInfo(testStreamingDistributionId);
+        System.out.println("Streaming Distribution: " + streamingDistribution);
+
+        // List configuration information about a streaming distribution
+        StreamingDistributionConfig streamingDistributionConfig = 
+        	cloudFrontService.getStreamingDistributionConfig(testStreamingDistributionId);
+        System.out.println("Streaming Distribution Config: " + streamingDistributionConfig);
+
+        // Update a streaming distribution's configuration to add an extra CNAME alias
+        StreamingDistributionConfig updatedStreamingDistributionConfig = 
+        	cloudFrontService.updateStreamingDistributionConfig(
+        		testStreamingDistributionId, 
+        		new String[] {"cname.jets3t-streaming.com"}, // CNAME aliases for distribution
+	            "Updated this streaming distribution", // Comment 
+	            true // Distribution enabled?
+	            );
+        System.out.println("Updated Streaming Distribution Config: " 
+    		+ updatedStreamingDistributionConfig);
+
+        // Disable a streaming distribution, e.g. so that it may be deleted. 
+		  // The CloudFront service may take some time to disable and deploy the distribution.
+        StreamingDistributionConfig disabledStreamingDistributionConfig = 
+        	cloudFrontService.updateStreamingDistributionConfig(
+    			testStreamingDistributionId, new String[] {}, "Deleting distribution", false);
+        System.out.println("Disabled Streaming Distribution Config: " 
+    		+ disabledStreamingDistributionConfig);
+
+        // Check whether a streaming distribution is deployed
+        StreamingDistribution streamingDistributionCheck = 
+        	cloudFrontService.getStreamingDistributionInfo(testStreamingDistributionId);
+        System.out.println("Streaming Distribution is deployed? " 
+    		+ streamingDistributionCheck.isDeployed());
+        
+        // Convenience method to disable a streaming distribution prior to deletion
+        cloudFrontService.disableStreamingDistributionForDeletion(testStreamingDistributionId);
+        
+        // Delete a streaming distribution (the distribution must be disabled and deployed first)
+        cloudFrontService.deleteStreamingDistribution(testStreamingDistributionId);
+        */
+
     }
     
 }

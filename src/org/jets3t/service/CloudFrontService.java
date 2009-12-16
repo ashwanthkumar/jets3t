@@ -23,6 +23,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import javax.xml.parsers.FactoryConfigurationError;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
+
 import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethod;
@@ -49,6 +53,8 @@ import org.jets3t.service.model.cloudfront.DistributionConfig;
 import org.jets3t.service.model.cloudfront.LoggingStatus;
 import org.jets3t.service.model.cloudfront.OriginAccessIdentity;
 import org.jets3t.service.model.cloudfront.OriginAccessIdentityConfig;
+import org.jets3t.service.model.cloudfront.StreamingDistribution;
+import org.jets3t.service.model.cloudfront.StreamingDistributionConfig;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.EncryptionUtil;
 import org.jets3t.service.utils.RestUtils;
@@ -71,7 +77,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     private static final Log log = LogFactory.getLog(CloudFrontService.class);
 
     public static final String ENDPOINT = "https://cloudfront.amazonaws.com/";
-    public static final String VERSION = "2009-09-09";
+    public static final String VERSION = "2009-12-01";
     public static final String XML_NAMESPACE = "http://cloudfront.amazonaws.com/doc/" + VERSION + "/";
     public static final String DEFAULT_BUCKET_SUFFIX = ".s3.amazonaws.com";
     public static final String ORIGIN_ACCESS_IDENTITY_URI_PATH = "/origin-access-identity/cloudfront";
@@ -301,28 +307,22 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         }
     }
         
-    /**
-     * List all your CloudFront distributions, with a given maximum
-     * number of Distribution items in each "page" of results.
-     * 
-     * @param pagingSize
-     * the maximum number of distributions the CloudFront service will
-     * return in each response message. 
-     * @return
-     * a list of your distributions.
-     * 
-     * @throws CloudFrontServiceException
-     */
-    public Distribution[] listDistributions(int pagingSize) throws CloudFrontServiceException {
+    protected List listDistributionsImpl(boolean isStreaming, int pagingSize) 
+    	throws CloudFrontServiceException 
+	{
         if (log.isDebugEnabled()) {
-            log.debug("Listing distributions for AWS user: " + getAWSCredentials().getAccessKey());
+            log.debug("Listing " 
+        		+ (isStreaming ? "streaming" : "")
+        		+ " distributions for AWS user: " + getAWSCredentials().getAccessKey());
         }
         try {            
             List distributions = new ArrayList();
             String nextMarker = null;
             boolean incompleteListing = true;
             do {
-            	String uri = ENDPOINT + VERSION + "/distribution?MaxItems=" + pagingSize;
+            	String uri = ENDPOINT + VERSION 
+            		+ (isStreaming ? "/streaming-distribution" : "/distribution") 
+    				+ "?MaxItems=" + pagingSize;
             	if (nextMarker != null) {
             		uri += "&Marker=" + nextMarker;
             	}
@@ -344,7 +344,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 }
             } while (incompleteListing);
             
-            return (Distribution[]) distributions.toArray(new Distribution[distributions.size()]);            
+            return distributions;            
         } catch (CloudFrontServiceException e) {
             throw e;
         } catch (RuntimeException e) {
@@ -354,6 +354,31 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         }        
     }
     
+    /**
+     * List all your CloudFront distributions, with a given maximum
+     * number of Distribution items in each "page" of results.
+     * 
+     * @param pagingSize
+     * the maximum number of distributions the CloudFront service will
+     * return in each response message. 
+     * @return
+     * a list of your distributions.
+     * 
+     * @throws CloudFrontServiceException
+     */
+    public Distribution[] listDistributions(int pagingSize) throws CloudFrontServiceException {
+    	List distributions = listDistributionsImpl(false, pagingSize);
+        return (Distribution[]) distributions.toArray(new Distribution[distributions.size()]);
+    }
+
+    public StreamingDistribution[] listStreamingDistributions(int pagingSize) 
+    	throws CloudFrontServiceException 
+	{
+    	List distributions = listDistributionsImpl(true, pagingSize);
+        return (StreamingDistribution[]) distributions.toArray(
+    		new StreamingDistribution[distributions.size()]);       
+    }
+
     /**
      * List all your CloudFront distributions.
      *  
@@ -365,7 +390,34 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     public Distribution[] listDistributions() throws CloudFrontServiceException {
     	return listDistributions(100);
     }
-        
+
+    public StreamingDistribution[] listStreamingDistributions() throws CloudFrontServiceException {
+    	return listStreamingDistributions(100);
+    }
+
+    public List listDistributionsByBucketName(boolean isStreaming, String bucketName) 
+    	throws CloudFrontServiceException 
+	{
+        if (log.isDebugEnabled()) {
+            log.debug("Listing " 
+        		+ (isStreaming ? "streaming" : "")
+            	+ " distributions for the S3 bucket '" + bucketName 
+                + "' for AWS user: " + getAWSCredentials().getAccessKey());
+        }
+        ArrayList bucketDistributions = new ArrayList();
+        Distribution[] allDistributions =
+        	(isStreaming ? listStreamingDistributions() : listDistributions());
+        for (int i = 0; i < allDistributions.length; i++) {
+            String distributionOrigin = allDistributions[i].getOrigin(); 
+            if (distributionOrigin.equals(bucketName) 
+                || bucketName.equals(ServiceUtils.findBucketNameInHostname(distributionOrigin))) 
+            {
+                bucketDistributions.add(allDistributions[i]);
+            }
+        }
+        return bucketDistributions;
+    }
+
     /**
      * List the distributions for a given S3 bucket name, if any.
      * 
@@ -378,22 +430,135 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public Distribution[] listDistributions(String bucketName) throws CloudFrontServiceException {
-        if (log.isDebugEnabled()) {
-            log.debug("Listing distributions for the S3 bucket '" + bucketName 
-                + "' for AWS user: " + getAWSCredentials().getAccessKey());
-        }
-        ArrayList bucketDistributions = new ArrayList();
-        Distribution[] allDistributions = listDistributions();
-        for (int i = 0; i < allDistributions.length; i++) {
-            String distributionOrigin = allDistributions[i].getOrigin(); 
-            if (distributionOrigin.equals(bucketName) 
-                || bucketName.equals(ServiceUtils.findBucketNameInHostname(distributionOrigin))) 
-            {
-                bucketDistributions.add(allDistributions[i]);
-            }
-        }
+    	List bucketDistributions = listDistributionsByBucketName(false, bucketName);
         return (Distribution[]) bucketDistributions.toArray(
             new Distribution[bucketDistributions.size()]);
+    }
+
+    public StreamingDistribution[] listStreamingDistributions(String bucketName) 
+    	throws CloudFrontServiceException 
+	{
+    	List streamingDistributions = listDistributionsByBucketName(true, bucketName);
+        return (StreamingDistribution[]) streamingDistributions.toArray(
+            new StreamingDistribution[streamingDistributions.size()]);
+    }
+
+    /**
+     * Generate a DistributionConfig or StreamingDistributionConfig XML document.
+     * 
+     * @param isStreamingDistribution
+     * @param origin
+     * @param callerReference
+     * @param cnames
+     * @param comment
+     * @param enabled
+     * @param loggingStatus
+     * @param originAccessIdentityId
+     * @param trustedSignerSelf
+     * @param trustedSignerAwsAccountNumbers
+     * @return
+     * @throws TransformerException
+     * @throws ParserConfigurationException
+     * @throws FactoryConfigurationError
+     */    
+    protected String buildDistributionConfigXmlDocument(boolean isStreamingDistribution,
+		String origin, String callerReference, String[] cnames, String comment, boolean enabled, 
+		LoggingStatus loggingStatus, String originAccessIdentityId, boolean trustedSignerSelf, 
+        String[] trustedSignerAwsAccountNumbers) 
+		throws TransformerException, ParserConfigurationException, FactoryConfigurationError 
+	{
+        XMLBuilder builder = XMLBuilder.create(
+    		isStreamingDistribution ? "StreamingDistributionConfig" : "DistributionConfig")
+	        .a("xmlns", XML_NAMESPACE)
+	        .e("Origin").t(origin).up()
+	        .e("CallerReference").t(callerReference).up();
+	    for (int i = 0; i < cnames.length; i++) {
+	        builder.e("CNAME").t(cnames[i]).up();
+	    }
+	    builder
+	        .e("Comment").t(comment).up()
+	        .e("Enabled").t("" + enabled);
+	    if (originAccessIdentityId != null) {
+	    	builder.e("OriginAccessIdentity")
+	    		.t(ORIGIN_ACCESS_IDENTITY_PREFIX + originAccessIdentityId)
+			.up();
+	    }
+	    if (trustedSignerSelf 
+			|| (trustedSignerAwsAccountNumbers != null 
+				&& trustedSignerAwsAccountNumbers.length > 0))
+	    {
+	    	XMLBuilder trustedSigners = builder.e("TrustedSigners");
+	    	if (trustedSignerSelf) {
+	    		trustedSigners.e("Self");
+	    	}
+	    	for (int i = 0; 
+	    		trustedSignerAwsAccountNumbers != null 
+	    			&& i < trustedSignerAwsAccountNumbers.length;
+	    		i++)
+	    	{
+	    		trustedSigners.e("AWSAccountNumber")
+	    			.t(trustedSignerAwsAccountNumbers[i]);
+	    	}
+	    	builder.up();
+	    }
+	    if (loggingStatus != null) {
+	    	builder.e("Logging")
+	    		.e("Bucket").t(loggingStatus.getBucket()).up()
+	    		.e("Prefix").t(loggingStatus.getPrefix()).up()
+	    	.up();
+	    }
+	    return builder.asString(null);
+    }
+    
+    protected Distribution createDistributionImpl(
+		boolean isStreaming, String origin, String callerReference, 
+        String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus,
+        String originAccessIdentityId, boolean trustedSignerSelf, 
+        String[] trustedSignerAwsAccountNumbers) throws CloudFrontServiceException 
+    {
+        if (log.isDebugEnabled()) {
+            log.debug("Creating " 
+        		+ (isStreaming ? "streaming" : "")
+            	+ " distribution for origin: " + origin);
+        }
+        
+        // Sanitize parameters.
+        origin = sanitizeS3BucketName(origin);
+        if (callerReference == null) {
+            callerReference = "" + System.currentTimeMillis();
+        }
+        if (cnames == null) {
+            cnames = new String[] {};
+        }
+        if (comment == null) {
+            comment = "";
+        }
+        
+        PostMethod httpMethod = new PostMethod(ENDPOINT + VERSION 
+    		+ (isStreaming ? "/streaming-distribution" : "/distribution"));
+                
+        try {
+        	String distributionConfigXml = buildDistributionConfigXmlDocument(isStreaming,
+    			origin, callerReference, cnames, comment, enabled, loggingStatus, 
+    			originAccessIdentityId, trustedSignerSelf, trustedSignerAwsAccountNumbers);
+
+            httpMethod.setRequestEntity(
+                new StringRequestEntity(distributionConfigXml, "text/xml", Constants.DEFAULT_ENCODING));
+
+            performRestRequest(httpMethod, 201);
+
+            DistributionHandler handler = 
+                (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
+                    .parseDistributionResponse(httpMethod.getResponseBodyAsStream());
+            
+            return handler.getDistribution();
+        } catch (CloudFrontServiceException e) {
+            throw e;
+        } catch (RuntimeException e) {
+        	throw e;
+        } catch (Exception e) {
+            throw new CloudFrontServiceException(e);
+        }                
     }
         
     /**
@@ -445,82 +610,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         String originAccessIdentityId, boolean trustedSignerSelf, 
         String[] trustedSignerAwsAccountNumbers) throws CloudFrontServiceException 
     {
-        if (log.isDebugEnabled()) {
-            log.debug("Creating distribution for origin: " + origin);
-        }
-        
-        // Sanitize parameters.
-        origin = sanitizeS3BucketName(origin);
-        if (callerReference == null) {
-            callerReference = "" + System.currentTimeMillis();
-        }
-        if (cnames == null) {
-            cnames = new String[] {};
-        }
-        if (comment == null) {
-            comment = "";
-        }
-        
-        PostMethod httpMethod = new PostMethod(ENDPOINT + VERSION + "/distribution");
-                
-        try {
-            XMLBuilder builder = XMLBuilder.create("DistributionConfig")
-                .a("xmlns", XML_NAMESPACE)
-                .e("Origin").t(origin).up()
-                .e("CallerReference").t(callerReference).up();
-            for (int i = 0; i < cnames.length; i++) {
-                builder.e("CNAME").t(cnames[i]).up();
-            }
-            builder
-                .e("Comment").t(comment).up()
-                .e("Enabled").t("" + enabled);
-            if (originAccessIdentityId != null) {
-            	builder.e("OriginAccessIdentity")
-            		.t(ORIGIN_ACCESS_IDENTITY_PREFIX + originAccessIdentityId)
-        		.up();
-            }
-            if (trustedSignerSelf 
-        		|| (trustedSignerAwsAccountNumbers != null 
-    				&& trustedSignerAwsAccountNumbers.length > 0))
-            {
-            	XMLBuilder trustedSigners = builder.e("TrustedSigners");
-            	if (trustedSignerSelf) {
-            		trustedSigners.e("Self");
-            	}
-            	for (int i = 0; 
-            		trustedSignerAwsAccountNumbers != null 
-            			&& i < trustedSignerAwsAccountNumbers.length;
-            		i++)
-            	{
-            		trustedSigners.e("AWSAccountNumber")
-            			.t(trustedSignerAwsAccountNumbers[i]);
-            	}
-            	builder.up();
-            }
-            if (loggingStatus != null) {
-            	builder.e("Logging")
-            		.e("Bucket").t(loggingStatus.getBucket()).up()
-            		.e("Prefix").t(loggingStatus.getPrefix()).up()
-            	.up();
-            }
-
-            httpMethod.setRequestEntity(
-                new StringRequestEntity(builder.asString(null), "text/xml", Constants.DEFAULT_ENCODING));
-
-            performRestRequest(httpMethod, 201);
-
-            DistributionHandler handler = 
-                (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
-                    .parseDistributionResponse(httpMethod.getResponseBodyAsStream());
-            
-            return handler.getDistribution();
-        } catch (CloudFrontServiceException e) {
-            throw e;
-        } catch (RuntimeException e) {
-        	throw e;
-        } catch (Exception e) {
-            throw new CloudFrontServiceException(e);
-        }                
+    	return createDistributionImpl(false, origin, callerReference, cnames, comment, 
+			enabled, loggingStatus, originAccessIdentityId, trustedSignerSelf, 
+			trustedSignerAwsAccountNumbers);        
     }
     
     /**
@@ -599,23 +691,24 @@ public class CloudFrontService implements AWSRequestAuthorizer {
 			config.isTrustedSignerSelf(), config.getTrustedSignerAwsAccountNumbers());
     }
 
-    /**
-     * Lookup information for a distribution.
-     * 
-     * @param id
-     * the distribution's unique identifier.
-     * 
-     * @return
-     * an object that describes the distribution, including its identifier and domain 
-     * name values as well as its configuration details. 
-     * 
-     * @throws CloudFrontServiceException
-     */
-    public Distribution getDistributionInfo(String id) throws CloudFrontServiceException {
+    public StreamingDistribution createStreamingDistribution(String origin, String callerReference, 
+            String[] cnames, String comment, boolean enabled) throws CloudFrontServiceException 
+    {
+    	return (StreamingDistribution) createDistributionImpl(true, origin, callerReference, 
+			cnames, comment, enabled, null, null, false, null);       
+    }
+
+    protected Distribution getDistributionInfoImpl(boolean isStreaming, String id) 
+    	throws CloudFrontServiceException 
+	{
         if (log.isDebugEnabled()) {
-            log.debug("Getting information for distribution with id: " + id);
+            log.debug("Getting information for "
+        		+ (isStreaming ? "streaming" : "")
+        		+ " distribution with id: " + id);
         }        
-        GetMethod httpMethod = new GetMethod(ENDPOINT + VERSION + "/distribution/" + id);
+        GetMethod httpMethod = new GetMethod(ENDPOINT + VERSION 
+    		+ (isStreaming ? "/streaming-distribution/" : "/distribution/") 
+    		+ id);
         
         try {
             performRestRequest(httpMethod, 200);
@@ -633,26 +726,40 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             throw new CloudFrontServiceException(e);
         }                        
     }
-    
+
     /**
-     * Lookup configuration information for a distribution. The configuration information
-     * is a subset of the information available from the {@link #getDistributionInfo(String)}
-     * method.
+     * Lookup information for a distribution.
      * 
      * @param id
      * the distribution's unique identifier.
      * 
      * @return
-     * an object that describes the distribution's configuration, including its origin bucket
-     * and CNAME aliases. 
+     * an object that describes the distribution, including its identifier and domain 
+     * name values as well as its configuration details. 
      * 
      * @throws CloudFrontServiceException
      */
-    public DistributionConfig getDistributionConfig(String id) throws CloudFrontServiceException {
+    public Distribution getDistributionInfo(String id) throws CloudFrontServiceException {
+    	return getDistributionInfoImpl(false, id);                   
+    }
+    
+    public StreamingDistribution getStreamingDistributionInfo(String id) 
+    	throws CloudFrontServiceException 
+	{
+    	return (StreamingDistribution) getDistributionInfoImpl(true, id);
+    }
+
+    protected DistributionConfig getDistributionConfigImpl(boolean isStreaming, String id) 
+    	throws CloudFrontServiceException 
+	{
         if (log.isDebugEnabled()) {
-            log.debug("Getting configuration for distribution with id: " + id);
+            log.debug("Getting configuration for " 
+        		+ (isStreaming ? "streaming" : "") 
+        		+ " distribution with id: " + id);
         }        
-        GetMethod httpMethod = new GetMethod(ENDPOINT + VERSION + "/distribution/" + id + "/config");
+        GetMethod httpMethod = new GetMethod(ENDPOINT + VERSION 
+    		+ (isStreaming ? "/streaming-distribution/" : "/distribution/") 
+    		+ id + "/config");
         
         try {
             performRestRequest(httpMethod, 200);
@@ -673,6 +780,89 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         }                        
     }
 
+    /**
+     * Lookup configuration information for a distribution. The configuration information
+     * is a subset of the information available from the {@link #getDistributionInfo(String)}
+     * method.
+     * 
+     * @param id
+     * the distribution's unique identifier.
+     * 
+     * @return
+     * an object that describes the distribution's configuration, including its origin bucket
+     * and CNAME aliases. 
+     * 
+     * @throws CloudFrontServiceException
+     */
+    public DistributionConfig getDistributionConfig(String id) 
+    	throws CloudFrontServiceException 
+	{
+    	return getDistributionConfigImpl(false, id);
+    }
+
+    public StreamingDistributionConfig getStreamingDistributionConfig(String id) 
+    	throws CloudFrontServiceException 
+	{
+    	return (StreamingDistributionConfig) getDistributionConfigImpl(true, id);
+    }
+    
+    protected DistributionConfig updateDistributionConfigImpl(
+		boolean isStreaming, String id, String[] cnames, 
+        String comment, boolean enabled, LoggingStatus loggingStatus, 
+        String originAccessIdentityId, boolean trustedSignerSelf, 
+        String[] trustedSignerAwsAccountNumbers) 
+    	throws CloudFrontServiceException 
+    {
+        if (log.isDebugEnabled()) {
+            log.debug("Updating configuration of " 
+        		+ (isStreaming ? "streaming" : "")
+        		+ "distribution with id: " + id);
+        }
+
+        // Retrieve the old configuration.
+        DistributionConfig oldConfig =
+        	(isStreaming ? getStreamingDistributionConfig(id) : getDistributionConfig(id));
+        
+        // Sanitize parameters.
+        if (cnames == null) {
+            cnames = oldConfig.getCNAMEs();
+        }
+        if (comment == null) {
+            comment = oldConfig.getComment();
+        }        
+        
+        PutMethod httpMethod = new PutMethod(ENDPOINT + VERSION 
+    		+ (isStreaming ? "/streaming-distribution/" : "/distribution/") 
+    		+ id + "/config");
+                
+        try {
+        	String distributionConfigXml = buildDistributionConfigXmlDocument(isStreaming,
+        			oldConfig.getOrigin(), oldConfig.getCallerReference(), cnames, comment, enabled, 
+        			loggingStatus, originAccessIdentityId, trustedSignerSelf, 
+        			trustedSignerAwsAccountNumbers);
+            
+            httpMethod.setRequestEntity(
+                new StringRequestEntity(distributionConfigXml, "text/xml", Constants.DEFAULT_ENCODING));
+            httpMethod.setRequestHeader("If-Match", oldConfig.getEtag());
+
+            performRestRequest(httpMethod, 200);
+
+            DistributionConfigHandler handler = 
+                (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
+                    .parseDistributionConfigResponse(httpMethod.getResponseBodyAsStream());
+
+            DistributionConfig config = handler.getDistributionConfig();
+            config.setEtag(httpMethod.getResponseHeader("ETag").getValue());            
+            return config; 
+        } catch (CloudFrontServiceException e) {
+            throw e;
+        } catch (RuntimeException e) {
+        	throw e;
+        } catch (Exception e) {
+            throw new CloudFrontServiceException(e);
+        }                
+    }
+    
     /**
      * Update the configuration of an existing distribution to change its properties
      * or public/private status. The new configuration properties provided 
@@ -727,86 +917,18 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         String[] trustedSignerAwsAccountNumbers) 
     	throws CloudFrontServiceException 
     {
-        if (log.isDebugEnabled()) {
-            log.debug("Updating configuration of distribution with id: " + id);
-        }
-
-        // Retrieve the old configuration.
-        DistributionConfig oldConfig = getDistributionConfig(id);
-        
-        // Sanitize parameters.
-        if (cnames == null) {
-            cnames = oldConfig.getCNAMEs();
-        }
-        if (comment == null) {
-            comment = oldConfig.getComment();
-        }        
-        
-        PutMethod httpMethod = new PutMethod(ENDPOINT + VERSION + "/distribution/" + id + "/config");
-                
-        try {
-            XMLBuilder builder = XMLBuilder.create("DistributionConfig")
-                .a("xmlns", XML_NAMESPACE)
-                .e("Origin").t(oldConfig.getOrigin()).up()
-                .e("CallerReference").t(oldConfig.getCallerReference()).up();
-            for (int i = 0; i < cnames.length; i++) {
-                builder.e("CNAME").t(cnames[i]).up();
-            }
-            builder
-                .e("Comment").t(comment).up()
-                .e("Enabled").t("" + enabled);
-            if (originAccessIdentityId != null) {
-            	builder.e("OriginAccessIdentity")
-            		.t(ORIGIN_ACCESS_IDENTITY_PREFIX + originAccessIdentityId)
-        		.up();
-            }
-            if (trustedSignerSelf 
-        		|| (trustedSignerAwsAccountNumbers != null 
-    				&& trustedSignerAwsAccountNumbers.length > 0))
-            {
-            	XMLBuilder trustedSigners = builder.e("TrustedSigners");
-            	if (trustedSignerSelf) {
-            		trustedSigners.e("Self");
-            	}
-            	for (int i = 0; 
-            		trustedSignerAwsAccountNumbers != null 
-            			&& i < trustedSignerAwsAccountNumbers.length;
-            		i++)
-            	{
-            		trustedSigners.e("AWSAccountNumber")
-            			.t(trustedSignerAwsAccountNumbers[i]);
-            	}
-            	builder.up();
-            }
-            if (loggingStatus != null) {
-            	builder.e("Logging")
-            		.e("Bucket").t(loggingStatus.getBucket()).up()
-            		.e("Prefix").t(loggingStatus.getPrefix()).up()
-            	.up();
-            }
-            
-            httpMethod.setRequestEntity(
-                new StringRequestEntity(builder.asString(null), "text/xml", Constants.DEFAULT_ENCODING));
-            httpMethod.setRequestHeader("If-Match", oldConfig.getEtag());
-
-            performRestRequest(httpMethod, 200);
-
-            DistributionConfigHandler handler = 
-                (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
-                    .parseDistributionConfigResponse(httpMethod.getResponseBodyAsStream());
-
-            DistributionConfig config = handler.getDistributionConfig();
-            config.setEtag(httpMethod.getResponseHeader("ETag").getValue());            
-            return config; 
-        } catch (CloudFrontServiceException e) {
-            throw e;
-        } catch (RuntimeException e) {
-        	throw e;
-        } catch (Exception e) {
-            throw new CloudFrontServiceException(e);
-        }                
+    	return updateDistributionConfigImpl(false, id, cnames, comment, enabled, loggingStatus, 
+			originAccessIdentityId, trustedSignerSelf, trustedSignerAwsAccountNumbers);               
     }
-    
+
+    public StreamingDistributionConfig updateStreamingDistributionConfig(
+		String id, String[] cnames, String comment, boolean enabled) 
+    	throws CloudFrontServiceException 
+    {
+    	return (StreamingDistributionConfig) updateDistributionConfigImpl(
+			true, id, cnames, comment, enabled, null, null, false, null);               
+    }
+
     /**
      * Update the configuration of an existing distribution to change its properties.
      * If the original distribution is private this method will make it public instead.
@@ -898,6 +1020,41 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     	updateDistributionConfig(id, new String[] {}, "Disabled prior to deletion", false, null);
     }
 
+    public void disableStreamingDistributionForDeletion(String id) 
+		throws CloudFrontServiceException 
+	{
+		updateStreamingDistributionConfig(id, new String[] {}, "Disabled prior to deletion", false);
+	}
+
+    protected void deleteDistributionImpl(boolean isStreaming, String id) 
+    	throws CloudFrontServiceException 
+    {
+        if (log.isDebugEnabled()) {
+            log.debug("Deleting " 
+        		+ (isStreaming ? "streaming" : "")
+        		+ "distribution with id: " + id);
+        }
+        
+        // Get the distribution's current config.
+        DistributionConfig currentConfig = 
+        	(isStreaming ? getStreamingDistributionConfig(id) : getDistributionConfig(id));
+
+        DeleteMethod httpMethod = new DeleteMethod(ENDPOINT + VERSION 
+    		+ (isStreaming ? "/streaming-distribution/" : "/distribution/") 
+    		+ id);
+                
+        try {
+            httpMethod.setRequestHeader("If-Match", currentConfig.getEtag());
+            performRestRequest(httpMethod, 204);
+        } catch (CloudFrontServiceException e) {
+            throw e;
+        } catch (RuntimeException e) {
+        	throw e;
+        } catch (Exception e) {
+            throw new CloudFrontServiceException(e);
+        }                
+    }
+    
     /**
      * Delete a disabled distribution. You can only delete a distribution that is 
      * already disabled, if you delete an enabled distribution this operation will 
@@ -918,29 +1075,14 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * 
      * @throws CloudFrontServiceException
      */
-    public void deleteDistribution(String id) throws CloudFrontServiceException 
-    {
-        if (log.isDebugEnabled()) {
-            log.debug("Deleting distribution with id: " + id);
-        }
-        
-        // Get the distribution's current config.
-        DistributionConfig currentConfig = getDistributionConfig(id);
-
-        DeleteMethod httpMethod = new DeleteMethod(ENDPOINT + VERSION + "/distribution/" + id);
-                
-        try {
-            httpMethod.setRequestHeader("If-Match", currentConfig.getEtag());
-            performRestRequest(httpMethod, 204);
-        } catch (CloudFrontServiceException e) {
-            throw e;
-        } catch (RuntimeException e) {
-        	throw e;
-        } catch (Exception e) {
-            throw new CloudFrontServiceException(e);
-        }                
+    public void deleteDistribution(String id) throws CloudFrontServiceException {
+    	deleteDistributionImpl(false, id);                
     }
-    
+
+    public void deleteStreamingDistribution(String id) throws CloudFrontServiceException {
+    	deleteDistributionImpl(true, id);                
+    }
+
     /**
      * Create a new Origin Access Identity
      * 

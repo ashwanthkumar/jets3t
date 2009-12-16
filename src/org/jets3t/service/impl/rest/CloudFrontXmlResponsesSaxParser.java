@@ -36,11 +36,13 @@ import org.jets3t.service.CloudFrontServiceException;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ServiceException;
-import org.jets3t.service.model.cloudfront.OriginAccessIdentity;
 import org.jets3t.service.model.cloudfront.Distribution;
 import org.jets3t.service.model.cloudfront.DistributionConfig;
 import org.jets3t.service.model.cloudfront.LoggingStatus;
+import org.jets3t.service.model.cloudfront.OriginAccessIdentity;
 import org.jets3t.service.model.cloudfront.OriginAccessIdentityConfig;
+import org.jets3t.service.model.cloudfront.StreamingDistribution;
+import org.jets3t.service.model.cloudfront.StreamingDistributionConfig;
 import org.jets3t.service.utils.ServiceUtils;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
@@ -322,14 +324,29 @@ public class CloudFrontXmlResponsesSaxParser {
             transferControlToHandler(new DistributionConfigHandler());
         }
         
+        public void startStreamingDistributionConfig() {
+            transferControlToHandler(new DistributionConfigHandler());
+        }
+
         public void controlReturned(SimpleHandler childHandler) {
             DistributionConfig config = 
                 ((DistributionConfigHandler) childHandler).getDistributionConfig();
-            this.distribution = new Distribution(id, status, 
-                lastModifiedTime, domainName, activeTrustedSigners, config);
+            if (config instanceof StreamingDistributionConfig) {
+                this.distribution = new StreamingDistribution(id, status, 
+                    lastModifiedTime, domainName, config);            	
+            } else {
+                this.distribution = new Distribution(id, status, 
+                    lastModifiedTime, domainName, activeTrustedSigners, config);
+            }
         }
 
+        // End of a normal Distribution
         public void endDistribution(String text) {
+            returnControlToParentHandler();
+        }
+
+        // End of a StreamingDistribution
+        public void endStreamingDistribution(String text) {
             returnControlToParentHandler();
         }
     }
@@ -404,6 +421,13 @@ public class CloudFrontXmlResponsesSaxParser {
             		new String[trustedSignerAwsAccountNumberList.size()]));
             returnControlToParentHandler();
         }
+
+        public void endStreamingDistributionConfig(String text) {
+            this.distributionConfig = new StreamingDistributionConfig(
+                origin, callerReference, 
+                (String[]) cnamesList.toArray(new String[cnamesList.size()]), comment, enabled);
+            returnControlToParentHandler();
+        }
     }
 
     public class DistributionSummaryHandler extends SimpleHandler {
@@ -461,6 +485,14 @@ public class CloudFrontXmlResponsesSaxParser {
                 comment, enabled);
             returnControlToParentHandler();
         }
+
+        public void endStreamingDistributionSummary(String text) {
+            this.distribution = new StreamingDistribution(id, status, 
+                lastModifiedTime, domainName, origin, 
+                (String[]) cnamesList.toArray(new String[cnamesList.size()]),
+                comment, enabled);
+            returnControlToParentHandler();
+        }
     }
     
     public class ListDistributionListHandler extends SimpleHandler {
@@ -495,6 +527,10 @@ public class CloudFrontXmlResponsesSaxParser {
             transferControlToHandler(new DistributionSummaryHandler());
         }
         
+        public void startStreamingDistributionSummary() {
+            transferControlToHandler(new DistributionSummaryHandler());
+        }
+
         public void controlReturned(SimpleHandler childHandler) {
             distributions.add(
                 ((DistributionSummaryHandler) childHandler).getDistribution());
