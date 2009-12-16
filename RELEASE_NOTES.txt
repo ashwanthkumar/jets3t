@@ -29,13 +29,14 @@ TOOLKIT
 - Improved the Windows batch scripts to correctly detect the JETS3T_HOME
   location regardless of the current directory when the JetS3t script is run.
 
-  * CloudFront Service Implementation
+  * CloudFront Service
 
-- Added support for creating and updating private distributions.
-- Added support for creating and managing Origin Access Identifiers as
-  required for private distributions.
-- Added support for generating canned and custom-policy signed URLs for 
-  private distributions that require request signing.
+- API support for creating and managing private distributions:
+  - create and manage Origin Access Identifiers as required for private 
+    distributions.
+  - generate canned and custom-policy signed URLs for private distributions
+    protected with mandatory request signing.
+- API support for creating and managing Streaming Distributions.
 
   * REST Implementation
 
