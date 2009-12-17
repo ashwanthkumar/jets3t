@@ -855,14 +855,13 @@ public class FileComparer {
             {
                 boolean ignorePanicDirPlaceholders = 
                     jets3tProperties.getBoolProperty(
-                        "filecomparer.ignore-panic-dir-placeholders", false);
+                        "filecomparer.ignore-panic-dir-placeholders", true);
                 
                 if (ignorePanicDirPlaceholders) {                                
                 	if (log.isDebugEnabled()) {
                 		log.debug("Ignoring object that looks like a directory " +
                         "placeholder created by Panic's Transmit application: " + keyPath);
                 	}
-                    alreadySynchronisedKeys.add(keyPath);                
                     continue;
                 } else {
                 	if (log.isWarnEnabled()) {
@@ -871,6 +870,34 @@ public class FileComparer {
                         "If this object was indeed created by Transmit, it will not " +
                         "be handled properly unless the JetS3t property " +
                         "\"filecomparer.ignore-panic-dir-placeholders\" is set to " +
+                        "true. " + s3Object);                    
+                	}
+                }
+            }
+            
+            // Another special-case check, this time for directory placeholder objects
+            // created by the S3 Organizer Firefox extension.
+            if (keyPath.endsWith("_$folder$")
+                && s3Object.getContentLength() == 0
+                && "binary/octet-stream".equals(s3Object.getContentType()))
+            {
+                boolean ignoreS3FoxDirPlaceholders = 
+                    jets3tProperties.getBoolProperty(
+                        "filecomparer.ignore-s3organizer-dir-placeholders", true);
+                
+                if (ignoreS3FoxDirPlaceholders) {                                
+                	if (log.isDebugEnabled()) {
+                		log.debug("Ignoring object that looks like a directory " +
+                        "placeholder created by the S3 Organizer Firefox add-on: " + keyPath);
+                	}
+                    continue;
+                } else {
+                	if (log.isWarnEnabled()) {
+                		log.warn("Identified an object that looks like a directory " +
+                        "placeholder created by the S3 Organizer Firefox add-on. " +
+                        "If this object was indeed created by S3 Organizer, it will not " +
+                        "be handled properly unless the JetS3t property " +
+                        "\"filecomparer.ignore-s3organizer-dir-placeholders\" is set to " +
                         "true. " + s3Object);                    
                 	}
                 }
