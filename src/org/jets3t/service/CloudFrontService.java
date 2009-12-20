@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  * 
- * Copyright 2008 James Murty
+ * Copyright 2008 - 2009 James Murty
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -205,6 +205,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     }
 
     /**
+     * Sign the given HTTP method object using the AWS credentials provided
+     * by {@link #getAWSCredentials()}.
+     *   
      * @param httpMethod
      * the request object
      * @throws Exception
@@ -306,7 +309,15 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             throw new CloudFrontServiceException("CloudFront Request failed", t);
         }
     }
-        
+       
+    /**
+     * List streaming or non-streaming Distributions in a CloudFront account.
+     * @param isStreaming
+     * @param pagingSize
+     * @return
+     * A list of {@link Distribution}s.
+     * @throws CloudFrontServiceException
+     */
     protected List listDistributionsImpl(boolean isStreaming, int pagingSize) 
     	throws CloudFrontServiceException 
 	{
@@ -355,7 +366,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     }
     
     /**
-     * List all your CloudFront distributions, with a given maximum
+     * List all your standard CloudFront distributions, with a given maximum
      * number of Distribution items in each "page" of results.
      * 
      * @param pagingSize
@@ -371,6 +382,18 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         return (Distribution[]) distributions.toArray(new Distribution[distributions.size()]);
     }
 
+    /**
+     * List all your streaming CloudFront distributions, with a given maximum
+     * number of Distribution items in each "page" of results.
+     * 
+     * @param pagingSize
+     * the maximum number of distributions the CloudFront service will
+     * return in each response message. 
+     * @return
+     * a list of your distributions.
+     * 
+     * @throws CloudFrontServiceException
+     */
     public StreamingDistribution[] listStreamingDistributions(int pagingSize) 
     	throws CloudFrontServiceException 
 	{
@@ -380,7 +403,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     }
 
     /**
-     * List all your CloudFront distributions.
+     * List all your standard CloudFront distributions.
      *  
      * @return
      * a list of your distributions.
@@ -391,10 +414,29 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     	return listDistributions(100);
     }
 
+    /**
+     * List all your standard CloudFront distributions.
+     *  
+     * @return
+     * a list of your streaming distributions.
+     * 
+     * @throws CloudFrontServiceException
+     */
     public StreamingDistribution[] listStreamingDistributions() throws CloudFrontServiceException {
     	return listStreamingDistributions(100);
     }
 
+    /**
+     * List streaming or non-stream distributions whose origin is the given S3 bucket name.
+     * 
+     * @param bucketName
+     * the name of the S3 bucket whose distributions will be returned.
+     * @return
+     * a list of distributions applied to the given S3 bucket, or an empty list
+     * if there are no such distributions.
+     * 
+     * @throws CloudFrontServiceException
+     */
     public List listDistributionsByBucketName(boolean isStreaming, String bucketName) 
     	throws CloudFrontServiceException 
 	{
@@ -419,7 +461,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     }
 
     /**
-     * List the distributions for a given S3 bucket name, if any.
+     * List the distributions whose origin is the given S3 bucket name.
      * 
      * @param bucketName
      * the name of the S3 bucket whose distributions will be returned.
@@ -435,6 +477,17 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             new Distribution[bucketDistributions.size()]);
     }
 
+    /**
+     * List the streaming distributions whose origin is the given S3 bucket name.
+     * 
+     * @param bucketName
+     * the name of the S3 bucket whose distributions will be returned.
+     * @return
+     * a list of distributions applied to the given S3 bucket, or an empty list
+     * if there are no such distributions.
+     * 
+     * @throws CloudFrontServiceException
+     */
     public StreamingDistribution[] listStreamingDistributions(String bucketName) 
     	throws CloudFrontServiceException 
 	{
@@ -457,6 +510,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @param trustedSignerSelf
      * @param trustedSignerAwsAccountNumbers
      * @return
+     * XML document representing a Distribution Configuration
      * @throws TransformerException
      * @throws ParserConfigurationException
      * @throws FactoryConfigurationError
@@ -510,6 +564,22 @@ public class CloudFrontService implements AWSRequestAuthorizer {
 	    return builder.asString(null);
     }
     
+    /**
+     * Create a streaming or non-streaming distribution.
+     * @param isStreaming
+     * @param origin
+     * @param callerReference
+     * @param cnames
+     * @param comment
+     * @param enabled
+     * @param loggingStatus
+     * @param originAccessIdentityId
+     * @param trustedSignerSelf
+     * @param trustedSignerAwsAccountNumbers
+     * @return
+     * Information about the newly-created distribution.
+     * @throws CloudFrontServiceException
+     */
     protected Distribution createDistributionImpl(
 		boolean isStreaming, String origin, String callerReference, 
         String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus,
@@ -661,7 +731,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * distribution's identifier and domain name values. 
      * 
      * @throws CloudFrontServiceException
-     */    public Distribution createDistribution(String origin, String callerReference, 
+     */    
+    public Distribution createDistribution(String origin, String callerReference, 
         String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus) 
     	throws CloudFrontServiceException 
     {
@@ -691,6 +762,31 @@ public class CloudFrontService implements AWSRequestAuthorizer {
 			config.isTrustedSignerSelf(), config.getTrustedSignerAwsAccountNumbers());
     }
 
+    /**
+     * Create a streaming CloudFront distribution for an S3 bucket.
+     * 
+     * @param origin
+     * the Amazon S3 bucket to associate with the distribution, specified as a full
+     * S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket) 
+     * @param callerReference
+     * A user-set unique reference value that ensures the request can't be replayed
+     * (max UTF-8 encoding size 128 bytes). This parameter may be null, in which
+     * case your computer's local epoch time in milliseconds will be used.
+     * @param cnames
+     * A list of up to 10 CNAME aliases to associate with the distribution. This 
+     * parameter may be a null or empty array.
+     * @param comment
+     * An optional comment to describe the distribution in your own terms 
+     * (max 128 characters). May be null. 
+     * @param enabled
+     * Should the distribution should be enabled and publicly accessible upon creation?
+     * 
+     * @return
+     * an object that describes the newly-created distribution, in particular the
+     * distribution's identifier and domain name values. 
+     * 
+     * @throws CloudFrontServiceException
+     */    
     public StreamingDistribution createStreamingDistribution(String origin, String callerReference, 
             String[] cnames, String comment, boolean enabled) throws CloudFrontServiceException 
     {
@@ -698,6 +794,13 @@ public class CloudFrontService implements AWSRequestAuthorizer {
 			cnames, comment, enabled, null, null, false, null);       
     }
 
+    /**
+     * @param isStreaming
+     * @param id
+     * @return
+     * Information about a streaming or non-streaming distribution.
+     * @throws CloudFrontServiceException
+     */
     protected Distribution getDistributionInfoImpl(boolean isStreaming, String id) 
     	throws CloudFrontServiceException 
 	{
@@ -728,7 +831,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     }
 
     /**
-     * Lookup information for a distribution.
+     * Lookup information for a standard distribution.
      * 
      * @param id
      * the distribution's unique identifier.
@@ -743,12 +846,31 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     	return getDistributionInfoImpl(false, id);                   
     }
     
+    /**
+     * Lookup information for a streaming distribution.
+     * 
+     * @param id
+     * the distribution's unique identifier.
+     * 
+     * @return
+     * an object that describes the distribution, including its identifier and domain 
+     * name values as well as its configuration details. 
+     * 
+     * @throws CloudFrontServiceException
+     */
     public StreamingDistribution getStreamingDistributionInfo(String id) 
     	throws CloudFrontServiceException 
 	{
     	return (StreamingDistribution) getDistributionInfoImpl(true, id);
     }
 
+    /**
+     * @param isStreaming
+     * @param id
+     * @return
+     * Information about a streaming or non-streaming distribution configuration.
+     * @throws CloudFrontServiceException
+     */
     protected DistributionConfig getDistributionConfigImpl(boolean isStreaming, String id) 
     	throws CloudFrontServiceException 
 	{
@@ -781,9 +903,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     }
 
     /**
-     * Lookup configuration information for a distribution. The configuration information
-     * is a subset of the information available from the {@link #getDistributionInfo(String)}
-     * method.
+     * Lookup configuration information for a standard distribution. The configuration 
+     * information is a subset of the information available from the 
+     * {@link #getDistributionInfo(String)} method.
      * 
      * @param id
      * the distribution's unique identifier.
@@ -800,12 +922,41 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     	return getDistributionConfigImpl(false, id);
     }
 
+    /**
+     * Lookup configuration information for a streaming distribution. The configuration 
+     * information is a subset of the information available from the 
+     * {@link #getDistributionInfo(String)} method.
+     * 
+     * @param id
+     * the distribution's unique identifier.
+     * 
+     * @return
+     * an object that describes the distribution's configuration, including its origin bucket
+     * and CNAME aliases. 
+     * 
+     * @throws CloudFrontServiceException
+     */
     public StreamingDistributionConfig getStreamingDistributionConfig(String id) 
     	throws CloudFrontServiceException 
 	{
     	return (StreamingDistributionConfig) getDistributionConfigImpl(true, id);
     }
-    
+   
+    /**
+     * Update a streaming or non-streaming distribution. 
+     * @param isStreaming
+     * @param id
+     * @param cnames
+     * @param comment
+     * @param enabled
+     * @param loggingStatus
+     * @param originAccessIdentityId
+     * @param trustedSignerSelf
+     * @param trustedSignerAwsAccountNumbers
+     * @return
+     * Information about the updated distribution configuration.
+     * @throws CloudFrontServiceException
+     */
     protected DistributionConfig updateDistributionConfigImpl(
 		boolean isStreaming, String id, String[] cnames, 
         String comment, boolean enabled, LoggingStatus loggingStatus, 
@@ -921,6 +1072,34 @@ public class CloudFrontService implements AWSRequestAuthorizer {
 			originAccessIdentityId, trustedSignerSelf, trustedSignerAwsAccountNumbers);               
     }
 
+    /**
+     * Update the configuration of an existing streaming distribution to change its 
+     * properties. The new configuration properties provided <strong>replace</strong> 
+     * any existing configuration, and may take some time to be fully applied. 
+     * <p>
+     * This method performs all the steps necessary to update the configuration. It
+     * first performs lookup on the distribution  using 
+     * {@link #getDistributionConfig(String)} to find its origin and caller reference
+     * values, then uses this information to apply your configuration changes.
+     *  
+     * @param id
+     * the distribution's unique identifier.
+     * @param cnames
+     * A list of up to 10 CNAME aliases to associate with the distribution. This 
+     * parameter may be null, in which case the original CNAME aliases are retained.
+     * @param comment
+     * An optional comment to describe the distribution in your own terms 
+     * (max 128 characters). May be null, in which case the original comment is retained.
+     * @param enabled
+     * Should the distribution should be enabled and publicly accessible after the
+     * configuration update?
+     * 
+     * @return
+     * an object that describes the distribution's updated configuration, including its 
+     * origin bucket and CNAME aliases.
+     *  
+     * @throws CloudFrontServiceException
+     */
     public StreamingDistributionConfig updateStreamingDistributionConfig(
 		String id, String[] cnames, String comment, boolean enabled) 
     	throws CloudFrontServiceException 
@@ -1020,12 +1199,34 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     	updateDistributionConfig(id, new String[] {}, "Disabled prior to deletion", false, null);
     }
 
+    /**
+     * Convenience method to disable a streaming distribution that you intend to delete. 
+     * This method merely calls the 
+     * {@link #updateStreamingDistributionConfig(String, String[], String, boolean)}
+     * method with default values for most of the distribution's configuration
+     * settings.
+     * <p>
+     * <strong>Warning</strong>: Do not use this method on distributions you 
+     * intend to keep, because it will reset most of the distribution's 
+     * configuration settings such as CNAMEs and logging status.
+     * 
+     * @param id
+     * the distribution's unique identifier.
+     * 
+     * @throws CloudFrontServiceException
+     */
     public void disableStreamingDistributionForDeletion(String id) 
 		throws CloudFrontServiceException 
 	{
 		updateStreamingDistributionConfig(id, new String[] {}, "Disabled prior to deletion", false);
 	}
 
+    /**
+     * Delete a streaming or non-streaming distribution.
+     * @param isStreaming
+     * @param id
+     * @throws CloudFrontServiceException
+     */
     protected void deleteDistributionImpl(boolean isStreaming, String id) 
     	throws CloudFrontServiceException 
     {
@@ -1079,6 +1280,26 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     	deleteDistributionImpl(false, id);                
     }
 
+    /**
+     * Delete a disabled streaming distribution. You can only delete a distribution 
+     * that is already disabled, if you delete an enabled distribution this operation 
+     * will fail with a <tt>DistributionNotDisabled</tt> error.
+     * <p>
+     * This method performs many of the steps necessary to delete a disabled
+     * distribution. It first performs lookup on the distribution using 
+     * {@link #getDistributionConfig(String)} to find its ETag value, then uses 
+     * this information to delete the distribution.
+     * <p>
+     * Because it can take a long time (minutes) to disable a distribution, this
+     * task is not performed automatically by this method. In your own code, you
+     * need to verify that a distribution is disabled with a status of 
+     * <tt>Deployed</tt> before you invoke this method.
+     * 
+     * @param id
+     * the distribution's unique identifier.
+     * 
+     * @throws CloudFrontServiceException
+     */
     public void deleteStreamingDistribution(String id) throws CloudFrontServiceException {
     	deleteDistributionImpl(true, id);                
     }
@@ -1363,6 +1584,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * Convert the given string to be safe for use in signed URLs for a private distribution.
      * @param str
      * @return
+     * a URL-safe Base64 encoded version of the data.
      * @throws UnsupportedEncodingException
      */
     protected static String makeStringUrlSafe(String str) throws UnsupportedEncodingException {
@@ -1373,9 +1595,11 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     }
 
     /**
-     * Convert the given data to be safe for use in signed URLs for a private distribution.
-     * @param str
+     * Convert the given data to be safe for use in signed URLs for a private distribution by
+     * using specialized Base64 encoding.
+     * @param bytes
      * @return
+     * a URL-safe Base64 encoded version of the data.
      * @throws UnsupportedEncodingException
      */
     protected static String makeBytesUrlSafe(byte[] bytes) throws UnsupportedEncodingException {
@@ -1476,9 +1700,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * use the utility method {@link EncryptionUtil#convertRsaPemToDer(java.io.InputStream)}
      * @param policy
      * A policy document that describes the access permissions that will be applied by the 
-     * signed URL. To generate a simple canned policy that permits access to a single 
-     * distribution and S3 object use {@link #buildCannedPolicyForSignedUrl(String, Date)}.
-     * To generate a custom policy use {@link #buildPolicyForSignedUrl(String, Date, String, Date)} 
+     * signed URL. To generate a custom policy use 
+     * {@link #buildPolicyForSignedUrl(String, Date, String, Date)}. 
      * 
      * @return
      * A signed URL that will permit access to distribution and S3 objects as specified
