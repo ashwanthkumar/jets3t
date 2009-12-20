@@ -123,11 +123,11 @@ public class S3ServiceMulti implements Serializable {
         // of connections is at least equal to the largest of the maximum thread counts, and warn
         // the use of potential problems.
         int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 4);        
+            .getIntProperty("s3service.admin-max-thread-count", 20);        
         int maxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.max-thread-count", 4);
+            .getIntProperty("s3service.max-thread-count", 10);
         int maxConnectionCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("httpclient.max-connections", 4);
+            .getIntProperty("httpclient.max-connections", 20);
         if (maxConnectionCount < maxThreadCount) {
             if (log.isWarnEnabled()) {
                 log.warn("Insufficient connections available (httpclient.max-connections="
@@ -294,7 +294,7 @@ public class S3ServiceMulti implements Serializable {
         final boolean[] success = new boolean[] {true};
                 
         int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 4);
+            .getIntProperty("s3service.admin-max-thread-count", 20);
         
         // Start all queries in the background.
         ListObjectsRunnable[] runnables = new ListObjectsRunnable[prefixes.length];
@@ -363,7 +363,7 @@ public class S3ServiceMulti implements Serializable {
         }
                 
         int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 4);
+            .getIntProperty("s3service.admin-max-thread-count", 20);
         
         boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
             .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
@@ -447,7 +447,7 @@ public class S3ServiceMulti implements Serializable {
         }        
         
         int maxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 4);
+            .getIntProperty("s3service.admin-max-thread-count", 20);
         
         boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
             .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
@@ -518,7 +518,7 @@ public class S3ServiceMulti implements Serializable {
         }        
         
         int maxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.max-thread-count", 4);
+            .getIntProperty("s3service.max-thread-count", 10);
         
         boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
             .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
@@ -586,7 +586,7 @@ public class S3ServiceMulti implements Serializable {
         }
         
         int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 4);
+            .getIntProperty("s3service.admin-max-thread-count", 20);
         
         boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
             .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
@@ -674,7 +674,7 @@ public class S3ServiceMulti implements Serializable {
         }
         
         int maxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.max-thread-count", 4);
+            .getIntProperty("s3service.max-thread-count", 10);
         
         boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
             .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
@@ -770,7 +770,7 @@ public class S3ServiceMulti implements Serializable {
         }
 
         int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 4);
+            .getIntProperty("s3service.admin-max-thread-count", 20);
         
         boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
             .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
@@ -846,7 +846,7 @@ public class S3ServiceMulti implements Serializable {
         }
         
         int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 4);
+            .getIntProperty("s3service.admin-max-thread-count", 20);
         
         boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
             .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
@@ -914,7 +914,7 @@ public class S3ServiceMulti implements Serializable {
         }
         
         int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 4);
+            .getIntProperty("s3service.admin-max-thread-count", 20);
         
         boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
             .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
@@ -1026,7 +1026,7 @@ public class S3ServiceMulti implements Serializable {
         }
 
         int maxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.max-thread-count", 4);
+            .getIntProperty("s3service.max-thread-count", 10);
         
         boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
             .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
@@ -1150,7 +1150,7 @@ public class S3ServiceMulti implements Serializable {
         }
         
         int maxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.max-thread-count", 4);
+            .getIntProperty("s3service.max-thread-count", 10);
 
         boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
             .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
@@ -1241,7 +1241,7 @@ public class S3ServiceMulti implements Serializable {
         }
         
         int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 4);
+            .getIntProperty("s3service.admin-max-thread-count", 20);
         
         boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
             .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
@@ -1323,7 +1323,7 @@ public class S3ServiceMulti implements Serializable {
         }
         
         int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 4);
+            .getIntProperty("s3service.admin-max-thread-count", 20);
         
         boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
             .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
@@ -1405,7 +1405,7 @@ public class S3ServiceMulti implements Serializable {
         }
         
         int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 4);
+            .getIntProperty("s3service.admin-max-thread-count", 20);
         
         boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
             .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
@@ -1493,7 +1493,7 @@ public class S3ServiceMulti implements Serializable {
         }        
         
         int maxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.max-thread-count", 4);
+            .getIntProperty("s3service.max-thread-count", 10);
         
         boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
             .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
@@ -1577,7 +1577,7 @@ public class S3ServiceMulti implements Serializable {
         }
         
         int maxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.max-thread-count", 4);
+            .getIntProperty("s3service.max-thread-count", 10);
 
         boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
             .getBoolProperty("s3service.ignore-exceptions-in-multi", false);

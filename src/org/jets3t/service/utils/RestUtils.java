@@ -290,7 +290,7 @@ public class RestUtils {
         // The max connections per host setting is made the same value as the max
         // global connections if there is no per-host property.
         int maxConnections = 
-        	jets3tProperties.getIntProperty("httpclient.max-connections", 4);
+        	jets3tProperties.getIntProperty("httpclient.max-connections", 20);
         int maxConnectionsPerHost = 
         	jets3tProperties.getIntProperty("httpclient.max-connections-per-host", 0);
         if (maxConnectionsPerHost == 0) {
