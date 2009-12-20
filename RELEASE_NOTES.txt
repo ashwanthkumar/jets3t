@@ -63,6 +63,15 @@ TOOLKIT
   to become available in the HttpClient connection pool. The default setting
   of 0 means wait indefinitely.
 
+SYNCHRONIZE
+
+- Synchronize can be told to continue even if local files or folders included
+  in the UPLOAD command are missing or unreadable, by setting the
+  "upload.ignoreMissingPaths" property to true. Normally Synchronize would
+  consider this an error and halt. WARNING: This property could be dangerous
+  if used unwisely because it could cause legitimate objects in S3 to be
+  deleted due to problems on the local file system. Beware!
+
 KUDOS TO:
 
 Christian Mallwitz for informing us of the %~dp0 script variable that greatly

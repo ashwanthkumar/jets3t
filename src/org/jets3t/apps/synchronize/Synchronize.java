@@ -1133,7 +1133,14 @@ public class Synchronize {
         Jets3tProperties myProperties = 
             Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME);        
         String propertiesFileName = "synchronize.properties";
-        boolean synchronizePropertiesLoaded = false;
+
+        // Read the Synchronize properties file from the classpath
+        Jets3tProperties synchronizeProperties = 
+            Jets3tProperties.getInstance(propertiesFileName);
+        if (synchronizeProperties.isLoaded()) {
+            myProperties.loadAndReplaceProperties(synchronizeProperties, 
+                propertiesFileName + " in classpath");                
+        }
 
         // Required arguments
         String actionCommand = null;
@@ -1188,7 +1195,7 @@ public class Synchronize {
                     isBatchMode = true; 
                 } else if (arg.equalsIgnoreCase("--properties")) {
                     if (i + 1 < args.length) {
-                        // Read the Synchronize properties file from the specified file            
+                        // Read custom Synchronize properties file from the specified file            
                         i++;
                         propertiesFileName = args[i];
                         File propertiesFile = new File(propertiesFileName);
@@ -1198,7 +1205,6 @@ public class Synchronize {
                         }
                         myProperties.loadAndReplaceProperties(
                             new FileInputStream(propertiesFileName), propertiesFile.getName());
-                        synchronizePropertiesLoaded = true;
                     } else {
                         System.err.println("ERROR: --properties option must be followed by a file path");
                         printHelpAndExit(false);                        
@@ -1301,9 +1307,9 @@ public class Synchronize {
                                 System.err.println("WARN: Ignoring missing upload path: " + file);
                                 continue;
                             } else {
-                                System.err.println("ERROR: Cannot read upload file/directory: " 
-                                    + file
-                                    + "\n       To ignore missing paths set the property upload.ignoreMissingPaths");
+                                System.err.println(
+                            		"ERROR: Cannot read upload file/directory: " + file + "\n" +
+                                    "       To ignore missing paths set the property upload.ignoreMissingPaths");
                                 printHelpAndExit(false);                            
                             }
                         }
@@ -1314,7 +1320,9 @@ public class Synchronize {
             }
         }
         
-        if (fileList.size() < 1) {
+        if (fileList.size() < 1
+        	&& !myProperties.getBoolProperty("upload.ignoreMissingPaths", false)) 
+        {
             // Missing one or more required parameters.
             System.err.println("ERROR: Missing required file path(s)");
             printHelpAndExit(false);
@@ -1337,17 +1345,7 @@ public class Synchronize {
             System.err.println("ERROR: The --skipmetadata option cannot be used with the --gzip or --crypto options");
             printHelpAndExit(false);                        
         }
-        
-        if (!synchronizePropertiesLoaded) {        
-            // Read the Synchronize properties file from the classpath
-            Jets3tProperties synchronizeProperties = 
-                Jets3tProperties.getInstance(propertiesFileName);
-            if (synchronizeProperties.isLoaded()) {
-                myProperties.loadAndReplaceProperties(synchronizeProperties, 
-                    propertiesFileName + " in classpath");                
-            }
-        }
-                
+                        
         // Ensure the Synchronize properties file contains everything we need, and prompt
         // for any required information that is missing.
         if (!myProperties.containsKey("accesskey") 
