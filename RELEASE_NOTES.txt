@@ -65,6 +65,12 @@ TOOLKIT
 
 SYNCHRONIZE
 
+- You can now set custom metadata information when uploading objects to S3
+  using Synchronize property names prefixed with "upload.metadata.", for
+  example:
+  upload.metadata.Cache-Control=max-age=300
+  upload.metadata.Expires=Thu, 01 Dec 1994 16:00:00 GMT
+  upload.metadata.my-metadata-item=This is the value for my metadata item 
 - Synchronize can be told to continue even if local files or folders included
   in the UPLOAD command are missing or unreadable, by setting the
   "upload.ignoreMissingPaths" property to true. Normally Synchronize would
@@ -86,6 +92,9 @@ Jawahar Lal Nayak for:
 Benjamin Schmaus for patches to configure the REST connection pool timeout, 
 and to make HTTP response headers available for failed REST connections via 
 S3ServiceExceptions.
+
+Justin C for a patch that inspired Synchonize's ability to upload files with 
+custom metadata using "upload.metadata." properties.
 
 -------------
 Version 0.7.1

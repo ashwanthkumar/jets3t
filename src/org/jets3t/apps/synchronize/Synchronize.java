@@ -25,10 +25,12 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
@@ -94,6 +96,7 @@ public class Synchronize {
     private final TimeFormatter timeFormatter = new TimeFormatter();
     private FileComparer fileComparer = null;
     private int maxTemporaryStringLength = 0;
+    private Map customMetadata = new HashMap();
     
     // Hacky variables to track progress of batched uploads for transformed files. 
     private long partialUploadObjectsTotal = -1;
@@ -159,6 +162,22 @@ public class Synchronize {
         this.reportLevel = reportLevel;
         this.properties = properties;
         this.fileComparer = FileComparer.getInstance(properties);
+        
+        // Find any custom metadata items specified in property files
+        Iterator myPropertiesIter = 
+        	this.properties.getProperties().entrySet().iterator();
+        while (myPropertiesIter.hasNext()) {
+        	Entry entry = (Entry) myPropertiesIter.next();
+        	String keyName = entry.getKey().toString().toLowerCase();        	
+        	if (entry.getKey() != null 
+    			&& keyName.startsWith("upload.metadata."))
+        	{
+        		String metadataName = entry.getKey().toString()
+        			.substring("upload.metadata.".length());
+        		String metadataValue = entry.getValue().toString();
+        		this.customMetadata.put(metadataName, metadataValue);
+        	}
+        }        
     }
     
 
@@ -201,6 +220,9 @@ public class Synchronize {
             } else {
                 throw new Exception("Invalid value for ACL string: " + aclString);
             }
+            
+            // Apply custom metadata items to upload object.
+            newObject.addAllMetadata(customMetadata);
             
             return newObject;
         }
