@@ -8,10 +8,12 @@ TOOLKIT
 
 - Added support for private and streaming CloudFront distributions (see 
   the "CloudFront Service" section below)
-- Improved default performance settings with the assumption that everyone's
-  Internet connections have become faster over the last three years. The 
-  default property settings for maximum simultaneous threads and 
-  connections are increased to 10 and 20 respectively. 
+- Changed default thread and connection count settings to improve 
+  reliability when tranferring many large files and performance when 
+  performing object administration tasks. Default property settings for 
+  maximum simultaneous admin threads and HTTP connections are increased 
+  from 10 to 20, while the default number of non-admin threads is reduced 
+  from 4 to 2. 
 - Improved compatibility with other S3 tools by setting the following
   properties to true by default: 
   "filecomparer.ignore-panic-dir-placeholders"
