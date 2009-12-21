@@ -444,6 +444,11 @@
 			todir="${dir.website}/api">
 			<fileset dir="${dir.apidocs}" includes="**/*.htm*"/>
 		</copy>	
+
+        <!-- Copy packaged archive to java.net website directory -->
+        <copy           
+            todir="${dir.java-net.website}/releases"
+        	file="${dir.dist}/jets3t-${version}.zip" />
 	</target>
 
 	<target name="clean">
