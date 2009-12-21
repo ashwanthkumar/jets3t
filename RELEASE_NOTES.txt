@@ -7,7 +7,7 @@ TOOLKIT
   * General
 
 - Added support for private and streaming CloudFront distributions (see 
-  below)
+  the "CloudFront Service" section below)
 - Improved default performance settings with the assumption that everyone's
   Internet connections have become faster over the last three years. The 
   default property settings for maximum simultaneous threads and 
@@ -16,6 +16,10 @@ TOOLKIT
   properties to true by default: 
   "filecomparer.ignore-panic-dir-placeholders"
   "filecomparer.ignore-s3organizer-dir-placeholders"
+- Added new property "filecomparer.ignore-s3organizer-dir-placeholders"
+  which allows JetS3t to ignore directory place-holder objects created
+  by the S3 Organizer Firefox extension when uploading or downloading
+  files.
 - Added a new property "filecomparer.md5-files-root-dir" which allows MD5 
   files generated for file comparison purposes to be stored in a custom 
   path, instead of within the same directory structure as data files.
@@ -23,10 +27,6 @@ TOOLKIT
   symlink/alias files to be ignored by JetS3t applications when deciding
   which files to send to S3. Although "soft" links can be detected and 
   ignored, hard links cannot be detected and will be treated as ordinary 
-  files.
-- Added new property "filecomparer.ignore-s3organizer-dir-placeholders"
-  which allows JetS3t to ignore directory place-holder objects created
-  by the S3 Organizer Firefox extension when uploading or downloading
   files.
 - Added support for the TargetGrants setting of logged S3 buckets. This
   allows you to set default ACL access permissions for S3 bucket logs

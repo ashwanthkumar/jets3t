@@ -104,34 +104,34 @@ public class CloudFrontSamples {
         // CloudFront Private Distributions - Origin Access Identities
         // -----------------------------------------------------------
 
-  	    // Create a new origin access identity
-	    OriginAccessIdentity originAccessIdentity = 
-	  	    cloudFrontService.createOriginAccessIdentity(null, "Testing");
-	    System.out.println(originAccessIdentity.toString());
+        // Create a new origin access identity
+        OriginAccessIdentity originAccessIdentity = 
+            cloudFrontService.createOriginAccessIdentity(null, "Testing");
+        System.out.println(originAccessIdentity.toString());
 
         // List your origin access identities
         List originAccessIdentityList = cloudFrontService.getOriginAccessIdentityList();
         System.out.println(originAccessIdentityList);
       
-      	// Obtain an origin access identity ID for future use
+        // Obtain an origin access identity ID for future use
         OriginAccessIdentity identity = (OriginAccessIdentity) originAccessIdentityList.get(1);
         String originAccessIdentityId = identity.getId(); 
         System.out.println("originAccessIdentityId: " + originAccessIdentityId);
         
         // Lookup information about a specific origin access identity
         OriginAccessIdentity originAccessIdentity =
-      	    cloudFrontService.getOriginAccessIdentity(originAccessIdentityId);
+            cloudFrontService.getOriginAccessIdentity(originAccessIdentityId);
         System.out.println(originAccessIdentity);
 
         // Lookup config details for an origin access identity
         OriginAccessIdentityConfig originAccessIdentityConfig =
-      	    cloudFrontService.getOriginAccessIdentityConfig(originAccessIdentityId);
+            cloudFrontService.getOriginAccessIdentityConfig(originAccessIdentityId);
         System.out.println(originAccessIdentityConfig);
 
         // Update configuration for an origin access identity
         OriginAccessIdentityConfig updatedConfig = 
-      	    cloudFrontService.updateOriginAccessIdentityConfig(
-  			    originAccessIdentityId, "New Comment");
+            cloudFrontService.updateOriginAccessIdentityConfig(
+                originAccessIdentityId, "New Comment");
         System.out.println(updatedConfig);
       
         // Delete an origin access identity
@@ -171,13 +171,13 @@ public class CloudFrontSamples {
 
 
         // List active trusted signers for a private distribution
-	    Distribution distribution = cloudFrontService.getDistributionInfo(testDistributionId);	      
-	    System.out.println("Active trusted signers: " + distribution.getActiveTrustedSigners());
-	    
-	    // Obtain one of your own (Self) keypair ids that can sign URLs for the distribution
-	    List selfKeypairIds = (List) distribution.getActiveTrustedSigners().get("Self");
-	    String keyPairId = selfKeypairIds.get(0);
-	    System.out.println("Keypair ID: " + keyPairId); 
+        Distribution distribution = cloudFrontService.getDistributionInfo(testDistributionId);      
+        System.out.println("Active trusted signers: " + distribution.getActiveTrustedSigners());
+        
+        // Obtain one of your own (Self) keypair ids that can sign URLs for the distribution
+        List selfKeypairIds = (List) distribution.getActiveTrustedSigners().get("Self");
+        String keyPairId = selfKeypairIds.get(0);
+        System.out.println("Keypair ID: " + keyPairId); 
 
         // -------------------------------------------------------------------------
         // CloudFront Private Distributions - Signed URLs for a private distribution
@@ -189,40 +189,40 @@ public class CloudFrontSamples {
         String policyResourcePath = distributionDomain + "/" + s3ObjectKey;
 
         // Convert an RSA PEM private key file to DER bytes
-		byte[] derPrivateKey = EncryptionUtil.convertRsaPemToDer(
-			new FileInputStream(privateKeyFilePath));
-		
-		
+        byte[] derPrivateKey = EncryptionUtil.convertRsaPemToDer(
+            new FileInputStream(privateKeyFilePath));
+        
+        
         // Generate a "canned" signed URL to allow access to a specific distribution and object
-		String signedUrlCanned = CloudFrontService.signUrlCanned(
-	  		distributionDomain, // Domain name
-	  		s3ObjectKey, // S3 object key
-	  		keyPairId,     // Certificate identifier, an active trusted signer for the distribution
-	  		derPrivateKey, // DER Private key data
-	  		ServiceUtils.parseIso8601Date("2009-11-14T22:20:00.000Z") // DateLessThan
-			);
-		System.out.println(signedUrlCanned);
+        String signedUrlCanned = CloudFrontService.signUrlCanned(
+            distributionDomain, // Domain name
+            s3ObjectKey, // S3 object key
+            keyPairId,     // Certificate identifier, an active trusted signer for the distribution
+            derPrivateKey, // DER Private key data
+            ServiceUtils.parseIso8601Date("2009-11-14T22:20:00.000Z") // DateLessThan
+            );
+        System.out.println(signedUrlCanned);
 
 
-		// Build a policy document to define custom restrictions for a signed URL
-		String policy = CloudFrontService.buildPolicyForSignedUrl(
-			policyResourcePath, // Resource path (optional, may include '*' and '?' wildcards)
-	  		ServiceUtils.parseIso8601Date("2009-11-14T22:20:00.000Z"), // DateLessThan
-	  		"0.0.0.0/0", // CIDR IP address restriction (optional, 0.0.0.0/0 means everyone)
-	  		ServiceUtils.parseIso8601Date("2009-10-16T06:31:56.000Z")  // DateGreaterThan (optional)
-			);
+        // Build a policy document to define custom restrictions for a signed URL
+        String policy = CloudFrontService.buildPolicyForSignedUrl(
+            policyResourcePath, // Resource path (optional, may include '*' and '?' wildcards)
+            ServiceUtils.parseIso8601Date("2009-11-14T22:20:00.000Z"), // DateLessThan
+            "0.0.0.0/0", // CIDR IP address restriction (optional, 0.0.0.0/0 means everyone)
+            ServiceUtils.parseIso8601Date("2009-10-16T06:31:56.000Z")  // DateGreaterThan (optional)
+            );
 
         // Generate a signed URL using a custom policy document
-		String signedUrl = CloudFrontService.signUrl(
-	  		distributionDomain, // Domain name
-	  		s3ObjectKey, // S3 object key
-	  		keyPairId,     // Certificate identifier, an active trusted signer for the distribution
-	  		derPrivateKey, // DER Private key data
-	  		policy // Access control policy
-			);
-		System.out.println(signedUrl);
+        String signedUrl = CloudFrontService.signUrl(
+            distributionDomain, // Domain name
+            s3ObjectKey, // S3 object key
+            keyPairId,     // Certificate identifier, an active trusted signer for the distribution
+            derPrivateKey, // DER Private key data
+            policy // Access control policy
+            );
+        System.out.println(signedUrl);
 
-		
+        
         // ------------------------------------------------------------
         // CloudFront Streaming Distributions
         //
@@ -232,7 +232,7 @@ public class CloudFrontSamples {
 
         // List the streaming distributions applied to a given S3 bucket
         StreamingDistribution[] streamingDistributions = 
-        	cloudFrontService.listStreamingDistributions("jets3t-streaming");
+            cloudFrontService.listStreamingDistributions("jets3t-streaming");
         for (int i = 0; i < streamingDistributions.length; i++) {
             System.out.println("Streaming distribution " + (i + 1) + ": " + streamingDistributions[i]);
         }
@@ -240,7 +240,7 @@ public class CloudFrontSamples {
         // Create a new streaming distribution 
         String streamingBucket = "jets3t-streaming.s3.amazonaws.com";
         StreamingDistribution newStreamingDistribution = cloudFrontService.createStreamingDistribution(
-    		  streamingBucket, 
+            streamingBucket, 
             "" + System.currentTimeMillis(), // Caller reference - a unique string value
             null, // CNAME aliases for distribution
             "Test streaming distribution", // Comment
@@ -253,38 +253,38 @@ public class CloudFrontSamples {
         
         // List information about a streaming distribution
         StreamingDistribution streamingDistribution = 
-        	cloudFrontService.getStreamingDistributionInfo(testStreamingDistributionId);
+            cloudFrontService.getStreamingDistributionInfo(testStreamingDistributionId);
         System.out.println("Streaming Distribution: " + streamingDistribution);
 
         // List configuration information about a streaming distribution
         StreamingDistributionConfig streamingDistributionConfig = 
-        	cloudFrontService.getStreamingDistributionConfig(testStreamingDistributionId);
+            cloudFrontService.getStreamingDistributionConfig(testStreamingDistributionId);
         System.out.println("Streaming Distribution Config: " + streamingDistributionConfig);
 
         // Update a streaming distribution's configuration to add an extra CNAME alias
         StreamingDistributionConfig updatedStreamingDistributionConfig = 
-        	cloudFrontService.updateStreamingDistributionConfig(
-        		testStreamingDistributionId, 
-        		new String[] {"cname.jets3t-streaming.com"}, // CNAME aliases for distribution
-	            "Updated this streaming distribution", // Comment 
-	            true // Distribution enabled?
-	            );
+            cloudFrontService.updateStreamingDistributionConfig(
+                testStreamingDistributionId, 
+                new String[] {"cname.jets3t-streaming.com"}, // CNAME aliases for distribution
+                "Updated this streaming distribution", // Comment 
+                true // Distribution enabled?
+                );
         System.out.println("Updated Streaming Distribution Config: " 
-    		+ updatedStreamingDistributionConfig);
+            + updatedStreamingDistributionConfig);
 
         // Disable a streaming distribution, e.g. so that it may be deleted. 
-		  // The CloudFront service may take some time to disable and deploy the distribution.
+        // The CloudFront service may take some time to disable and deploy the distribution.
         StreamingDistributionConfig disabledStreamingDistributionConfig = 
-        	cloudFrontService.updateStreamingDistributionConfig(
-    			testStreamingDistributionId, new String[] {}, "Deleting distribution", false);
+            cloudFrontService.updateStreamingDistributionConfig(
+                testStreamingDistributionId, new String[] {}, "Deleting distribution", false);
         System.out.println("Disabled Streaming Distribution Config: " 
-    		+ disabledStreamingDistributionConfig);
+            + disabledStreamingDistributionConfig);
 
         // Check whether a streaming distribution is deployed
         StreamingDistribution streamingDistributionCheck = 
-        	cloudFrontService.getStreamingDistributionInfo(testStreamingDistributionId);
+            cloudFrontService.getStreamingDistributionInfo(testStreamingDistributionId);
         System.out.println("Streaming Distribution is deployed? " 
-    		+ streamingDistributionCheck.isDeployed());
+            + streamingDistributionCheck.isDeployed());
         
         // Convenience method to disable a streaming distribution prior to deletion
         cloudFrontService.disableStreamingDistributionForDeletion(testStreamingDistributionId);
