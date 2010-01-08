@@ -747,12 +747,13 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         while (metaDataIter.hasNext()) {
             Map.Entry entry = (Map.Entry) metaDataIter.next();
             String key = (String) entry.getKey();
-            Object value = entry.getValue();
+            Object objValue = entry.getValue();
 
-            if (key == null || !(value instanceof String)) {
+            if (key == null || !(objValue instanceof String)) {
                 // Ignore invalid metadata.
                 continue;
             }
+            String value = (String) objValue;
             
             // Ensure user-supplied metadata values are compatible with the REST interface.
         	// Key must be ASCII text, non-ASCII characters are not allowed in HTTP header names.
@@ -776,7 +777,16 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         			throw new S3ServiceException(message, encodingException); 
         		}
         	}
-            
+
+            // Fail early if user-supplied metadata cannot be represented as valid HTTP headers, 
+        	// rather than waiting for a SignatureDoesNotMatch error.
+        	// NOTE: These checks are very much incomplete.
+            if (value.contains("\n") || value.contains("\r")) {
+            	throw new S3ServiceException("The value of metadata item " + key 
+        			+ " cannot be represented as an HTTP header for the REST S3 interface: "
+        			+ value); 
+            }
+
             // Ensure each AMZ header is uniquely identified according to the lowercase name.
         	String duplicateValue = (String) headersAlreadySeenMap.get(key.toLowerCase());
             if (duplicateValue != null && !duplicateValue.equals(value)) {
@@ -786,7 +796,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
     				"Duplicate metadata name: '" + key + "', All metadata: " + metadata);            	
             } 
             
-            httpMethod.setRequestHeader(key, (String) value);
+            httpMethod.setRequestHeader(key, value);            
             headersAlreadySeenMap.put(key.toLowerCase(), value);
         }
     }
