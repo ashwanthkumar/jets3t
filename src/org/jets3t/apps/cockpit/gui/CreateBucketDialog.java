@@ -77,13 +77,12 @@ public class CreateBucketDialog extends JDialog implements ActionListener {
 
     
     static {
-        locationValueMap.put("United States Standard", S3Bucket.LOCATION_US);
-        locationValueMap.put("United States West", S3Bucket.LOCATION_US_WEST);
-        locationValueMap.put("Europe", S3Bucket.LOCATION_EUROPE);
-        
         locationNames = new String[] {
     		"US Standard", "US West (N. California)", "EU West (Ireland)"
 		};
+        locationValueMap.put(locationNames[0], S3Bucket.LOCATION_US);
+        locationValueMap.put(locationNames[1], S3Bucket.LOCATION_US_WEST);
+        locationValueMap.put(locationNames[2], S3Bucket.LOCATION_EUROPE);        
     }
     
     public CreateBucketDialog(String suggestedBucketName, Frame ownerFrame, 
