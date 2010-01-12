@@ -1686,7 +1686,7 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public S3Bucket getBucket(String bucketName) throws S3ServiceException {
-        assertAuthenticatedConnection("Create Bucket");
+        assertAuthenticatedConnection("Get Bucket");
 
         // List existing buckets and return the named bucket if it exists.
         S3Bucket[] existingBuckets = listAllBuckets();

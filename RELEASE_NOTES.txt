@@ -1,4 +1,13 @@
 -------------
+Version 0.7.3
+-------------
+
+COCKPIT
+
+- Fixed bug that caused Cockpit to create buckets in the US Standard 
+  location regardless of the location selected by the user.
+
+-------------
 Version 0.7.2
 -------------
 
