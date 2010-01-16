@@ -50,5 +50,9 @@ public class GrantAndPermission {
 			&& this.getPermission().equals(((GrantAndPermission)obj).getPermission())
 			);
 	}
+	
+	public String toString() {
+		return "GrantAndPermission [grantee=" + grantee + ", permission=" + permission + "]";
+	}
 
 }

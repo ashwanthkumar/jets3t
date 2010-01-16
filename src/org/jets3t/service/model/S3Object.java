@@ -233,9 +233,9 @@ public class S3Object extends BaseS3Object implements Cloneable {
     }
 	
     public String toString() {
-		return "S3Object [key=" + getKey() + ",bucket=" + (bucketName == null ? "<Unknown>" : bucketName)  
-			+ ",lastModified=" + getLastModifiedDate() + ", dataInputStream=" + dataInputStream 
-			+ "] Metadata=" + getMetadataMap();
+		return "S3Object [key=" + getKey() + ", bucket=" + (bucketName == null ? "<Unknown>" : bucketName)  
+			+ ", lastModified=" + getLastModifiedDate() + ", dataInputStream=" + dataInputStream 
+			+ ", Metadata=" + getMetadataMap() + "]";
 	}
 	
     /**
@@ -692,8 +692,11 @@ public class S3Object extends BaseS3Object implements Cloneable {
         objectMetadata.remove("request-id"); // HTTP request-specific information
         return objectMetadata;
     }
-
     
+    public String getVersionId() {
+		return (String) getMetadata("version-id");
+    }
+        
     public Object clone() {
         S3Object clone = new S3Object(key);
         clone.bucketName = bucketName;

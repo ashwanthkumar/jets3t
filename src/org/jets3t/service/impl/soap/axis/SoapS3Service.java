@@ -45,6 +45,7 @@ import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.VersionOrDeleteMarkersChunk;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.CanonicalGrantee;
 import org.jets3t.service.acl.EmailAddressGrantee;
@@ -72,6 +73,7 @@ import org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry;
 import org.jets3t.service.impl.soap.axis._2006_03_01.Permission;
 import org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry;
 import org.jets3t.service.impl.soap.axis._2006_03_01.PutObjectResult;
+import org.jets3t.service.model.BaseVersionOrDeleteMarker;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
@@ -102,9 +104,9 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author James Murty
  */
 public class SoapS3Service extends S3Service {
-    private static final long serialVersionUID = 6421138869712673819L;
-    
-    private static final Log log = LogFactory.getLog(SoapS3Service.class);
+	private static final long serialVersionUID = -7952919998435920809L;
+	
+	private static final Log log = LogFactory.getLog(SoapS3Service.class);
     private AmazonS3_ServiceLocator locator = null;
 
     /**
@@ -115,7 +117,7 @@ public class SoapS3Service extends S3Service {
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.7.1</code> or <code>My App Name/1.0</code>
+     * version number, for example: <code>Cockpit/0.7.3</code> or <code>My App Name/1.0</code>
      * @param jets3tProperties
      * JetS3t properties that will be applied within this service.
      * 
@@ -151,7 +153,7 @@ public class SoapS3Service extends S3Service {
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.7.1</code> or <code>My App Name/1.0</code>
+     * version number, for example: <code>Cockpit/0.7.3</code> or <code>My App Name/1.0</code>
      * @throws S3ServiceException
      */
     public SoapS3Service(AWSCredentials awsCredentials, String invokingApplicationDescription) 
@@ -702,7 +704,12 @@ public class SoapS3Service extends S3Service {
         return object;
     }
 
-    protected void deleteObjectImpl(String bucketName, String objectKey) throws S3ServiceException {
+    protected void deleteObjectImpl(String bucketName, String objectKey, String versionId) 
+    	throws S3ServiceException 
+	{
+    	if (versionId != null) {
+            throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
+    	}
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
@@ -720,9 +727,12 @@ public class SoapS3Service extends S3Service {
     protected Map copyObjectImpl(String sourceBucketName, String sourceObjectKey,
         String destinationBucketName, String destinationObjectKey,
         AccessControlList acl, Map destinationMetadata, Calendar ifModifiedSince, 
-        Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags) 
-        throws S3ServiceException 
+        Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags,
+        String versionId) throws S3ServiceException 
     {
+    	if (versionId != null) {
+            throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
+    	}
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
@@ -764,18 +774,24 @@ public class SoapS3Service extends S3Service {
     }
 
     protected S3Object getObjectDetailsImpl(String bucketName, String objectKey, Calendar ifModifiedSince, 
-        Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags) 
+        Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags, String versionId) 
         throws S3ServiceException
     {
+    	if (versionId != null) {
+            throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
+    	}
         return getObjectImpl(false, bucketName, objectKey, ifModifiedSince, ifUnmodifiedSince,
             ifMatchTags, ifNoneMatchTags, null, null);
     }
     
     protected S3Object getObjectImpl(String bucketName, String objectKey, Calendar ifModifiedSince, 
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags, 
-        Long byteRangeStart, Long byteRangeEnd)
+        Long byteRangeStart, Long byteRangeEnd, String versionId)
         throws S3ServiceException 
     {
+    	if (versionId != null) {
+            throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
+    	}
         return getObjectImpl(true, bucketName, objectKey, ifModifiedSince, ifUnmodifiedSince,
             ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd);
     }    
@@ -872,9 +888,12 @@ public class SoapS3Service extends S3Service {
         } 
     }
 
-    protected void putObjectAclImpl(String bucketName, String objectKey, AccessControlList acl) 
-        throws S3ServiceException 
+    protected void putObjectAclImpl(String bucketName, String objectKey, AccessControlList acl,
+		String versionId) throws S3ServiceException 
     {
+    	if (versionId != null) {
+            throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
+    	}
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
@@ -910,7 +929,12 @@ public class SoapS3Service extends S3Service {
         }        
     }
 
-    protected AccessControlList getObjectAclImpl(String bucketName, String objectKey) throws S3ServiceException {
+    protected AccessControlList getObjectAclImpl(String bucketName, String objectKey,
+		String versionId) throws S3ServiceException 
+	{
+    	if (versionId != null) {
+            throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
+    	}
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
@@ -1019,5 +1043,34 @@ public class SoapS3Service extends S3Service {
             "you to set a bucket's request payment configuration settings, " +
             "please use the REST API client class RestS3Service instead");        
     }
+
+	protected boolean isBucketVersioningEnabledImpl(String bucketName)
+			throws S3ServiceException 
+	{
+        throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
+	}
+
+	protected VersionOrDeleteMarkersChunk listVersionedObjectsChunkedImpl(
+			String bucketName, String prefix, String delimiter,
+			long maxListingLength, String priorLastKey,
+			String priorLastVersion, boolean completeListing)
+			throws S3ServiceException 
+	{
+        throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
+	}
+
+	protected BaseVersionOrDeleteMarker[] listVersionedObjectsImpl(
+			String bucketName, String prefix, String delimiter,
+			String keyMarker, String versionMarker, long maxListingLength)
+			throws S3ServiceException 
+	{
+        throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
+	}
+
+	protected void updateBucketVersioningStatusImpl(String bucketName,
+			boolean enabled) throws S3ServiceException 
+	{
+        throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
+	}
 
 }

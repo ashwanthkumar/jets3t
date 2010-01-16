@@ -161,6 +161,12 @@ public class Constants {
      */
     public static final String REQUESTER_PAYS_BUCKET_FLAG = "x-amz-request-payer=requester";
 
+    public static final String AMZ_REQUEST_ID_1 = "x-amz-request-id";
+    public static final String AMZ_REQUEST_ID_2 = "x-amz-id-2";
+    public static final String AMZ_SECURITY_TOKEN = "x-amz-security-token";
+    public static final String AMZ_VERSION_ID = "x-amz-version-id";
+    public static final String AMZ_DELETE_MARKER = "x-amz-delete-marker";
+
     ///////////////////////////////////
     // Headers used by SOAP S3 Services
     ///////////////////////////////////

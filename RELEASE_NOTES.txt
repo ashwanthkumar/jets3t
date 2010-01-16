@@ -2,6 +2,12 @@
 Version 0.7.3
 -------------
 
+TOOLKIT
+
+  * General
+
+- Added support for the new S3 Versioning feature (Beta Design).
+
 COCKPIT
 
 - Fixed bug that caused Cockpit to create buckets in the US Standard 

@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  * 
- * Copyright 2008 James Murty, 2008 Zmanda Inc
+ * Copyright 2008-2010 James Murty, 2008 Zmanda Inc
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,10 +36,13 @@ import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.GrantAndPermission;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
+import org.jets3t.service.model.BaseVersionOrDeleteMarker;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
+import org.jets3t.service.model.S3DeleteMarker;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Owner;
+import org.jets3t.service.model.S3Version;
 import org.jets3t.service.mx.MxDelegate;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.AWSDevPayCredentials;
@@ -69,14 +72,14 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author Nikolas Coukouma
  */
 public abstract class S3Service implements Serializable {
-	private static final long serialVersionUID = -6791155699534955067L;
+	private static final long serialVersionUID = -3021937315520850814L;
 
 	private static final Log log = LogFactory.getLog(S3Service.class);
     
     /**
-     * The JetS3t suite version number implemented by this service: 0.7.1
+     * The JetS3t suite version number implemented by this service.
      */
-    public static final String VERSION_NO__JETS3T_TOOLKIT = "0.7.1";
+    public static final String VERSION_NO__JETS3T_TOOLKIT = "0.7.3";
     
     public static final int BUCKET_STATUS__MY_BUCKET = 0;
     public static final int BUCKET_STATUS__DOES_NOT_EXIST = 1;
@@ -117,7 +120,7 @@ public abstract class S3Service implements Serializable {
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.7.1</code> or <code>My App Name/1.0</code>
+     * version number, for example: <code>Cockpit/0.7.3</code> or <code>My App Name/1.0</code>
      * @param jets3tProperties
      * JetS3t properties that will be applied within this service.
      * @throws S3ServiceException
@@ -169,7 +172,7 @@ public abstract class S3Service implements Serializable {
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.7.1</code> or <code>My App Name/1.0</code>
+     * version number, for example: <code>Cockpit/0.7.3</code> or <code>My App Name/1.0</code>
      * @throws S3ServiceException
      */
     protected S3Service(AWSCredentials awsCredentials, String invokingApplicationDescription)
@@ -520,13 +523,13 @@ public abstract class S3Service implements Serializable {
             if (devPayCredentials.getProductToken() != null) {
                 String securityToken = devPayCredentials.getUserToken() 
                     + "," + devPayCredentials.getProductToken();
-                headersMap.put("x-amz-security-token", securityToken);
+                headersMap.put(Constants.AMZ_SECURITY_TOKEN, securityToken);
             } else {
-                headersMap.put("x-amz-security-token", devPayCredentials.getUserToken());                
+                headersMap.put(Constants.AMZ_SECURITY_TOKEN, devPayCredentials.getUserToken());                
             }
             
-            uriPath += "x-amz-security-token=" +  
-                RestUtils.encodeUrlString((String) headersMap.get("x-amz-security-token")) + "&";
+            uriPath += Constants.AMZ_SECURITY_TOKEN + "=" +  
+                RestUtils.encodeUrlString((String) headersMap.get(Constants.AMZ_SECURITY_TOKEN)) + "&";
         }
                 
         uriPath += "AWSAccessKeyId=" + awsCredentials.getAccessKey();
@@ -1425,6 +1428,59 @@ public abstract class S3Service implements Serializable {
     }
 
     /**
+     * Returns an object representing the details and data of an item in S3, without applying any
+     * preconditions.
+     * <p>
+     * This method can be performed by anonymous services. Anonymous services 
+     * can get a publicly-readable object.
+     * <p>
+     * <b>Important:</b> It is the caller's responsibility to close the object's data input stream.
+     * The data stream should be consumed and closed as soon as is practical as network connections 
+     * may be held open until the streams are closed. Excessive unclosed streams can lead to 
+     * connection starvation.
+     *  
+     * @param bucketName
+     * the name of the bucket containing the object.
+     * @param objectKey
+     * the key identifying the object.
+     * @return
+     * the object with the given key in S3, including the object's data input stream.
+     * @throws S3ServiceException
+     */
+    public S3Object getObject(String bucketName, String objectKey) throws S3ServiceException {
+        return getObject(new S3Bucket(bucketName), objectKey, 
+    		null, null, null, null, null, null);
+    }
+
+    /**
+     * Returns an object representing the details and data of an item in S3 with a specific
+     * given version, without applying any preconditions. Versioned objects are only available
+     * from buckets with versioning enabled, see {@link #enableBucketVersioning(String)}.
+     * <p>
+     * This method can be performed by anonymous services. Anonymous services 
+     * can get a publicly-readable object.
+     * <p>
+     * <b>Important:</b> It is the caller's responsibility to close the object's data input stream.
+     * The data stream should be consumed and closed as soon as is practical as network connections 
+     * may be held open until the streams are closed. Excessive unclosed streams can lead to 
+     * connection starvation.
+     *  
+     * @param bucketName
+     * the name of the versioned bucket containing the object.
+     * @param objectKey
+     * the key identifying the object.
+     * @return
+     * the object with the given key in S3, including the object's data input stream.
+     * @throws S3ServiceException
+     */
+    public S3Object getVersionedObject(String versionId, String bucketName, String objectKey) 
+    	throws S3ServiceException 
+	{
+        MxDelegate.getInstance().registerS3ObjectGetEvent(bucketName, objectKey);
+        return getObjectImpl(bucketName, objectKey, null, null, null, null, null, null, versionId); 
+    }
+
+    /**
      * Returns an object representing the details of an item in S3 without the object's data, and
      * without applying any preconditions.
      * <p>
@@ -1446,6 +1502,49 @@ public abstract class S3Service implements Serializable {
         return getObjectDetails(bucket, objectKey, null, null, null, null);
     }
 
+    /**
+     * Returns an object representing the details of an item in S3 without the object's data, and
+     * without applying any preconditions.
+     * <p>
+     * This method can be performed by anonymous services. Anonymous services 
+     * can get a publicly-readable object's details.
+     * 
+     * @param bucketName
+     * the name of the bucket containing the object.
+     * @param objectKey
+     * the key identifying the object.
+     * @return
+     * the object with the given key in S3, including only general details and metadata (not the data
+     * input stream)
+     * @throws S3ServiceException
+     */
+    public S3Object getObjectDetails(String bucketName, String objectKey) throws S3ServiceException {
+        return getObjectDetails(new S3Bucket(bucketName), objectKey, null, null, null, null);
+    }
+
+    /**
+     * Returns an object representing the details of an item in S3 with a specific given version, 
+     * without the object's data and without applying any preconditions. Versioned objects are only 
+     * available from buckets with versioning enabled, see {@link #enableBucketVersioning(String)}.
+     * <p>
+     * This method can be performed by anonymous services. Anonymous services 
+     * can get a publicly-readable object's details.
+     * 
+     * @param bucketName
+     * the name of the versioned bucket containing the object.
+     * @param objectKey
+     * the key identifying the object.
+     * @return
+     * the object with the given key in S3, including only general details and metadata (not the data
+     * input stream)
+     * @throws S3ServiceException
+     */
+    public S3Object getVersionedObjectDetails(String versionId, String bucketName, 
+		String objectKey) throws S3ServiceException 
+	{
+	    MxDelegate.getInstance().registerS3ObjectHeadEvent(bucketName, objectKey);
+	    return getObjectDetailsImpl(bucketName, objectKey, null, null, null, null, versionId); 
+	}
 
     /**
      * Lists the buckets belonging to the service user. 
@@ -1568,6 +1667,72 @@ public abstract class S3Service implements Serializable {
     }
 
     /**
+     * Lists versioning information in a versioned bucket where the objects 
+     * match a given constraints. The S3 service will also be instructed to send 
+     * response messages containing no more than a given number of object results. 
+     * <p>
+     * This operation can only be performed by the bucket owner.
+     * 
+     * @param bucketName
+     * the name of the the versioned bucket whose contents will be listed. 
+     * @param prefix
+     * only objects with a key that starts with this prefix will be listed
+     * @param delimiter
+     * only list objects with key names up to this delimiter, may be null. 
+     * See note above.
+     * @param maxListingLength
+     * the maximum number of objects to include in each result message sent by
+     * S3. This value has <strong>no effect</strong> on the number of objects
+     * that will be returned by this method, because it will always return all 
+     * the objects in the bucket.
+     * @return
+     * the set of objects contained in a bucket whose keys start with the given prefix.
+     * @throws S3ServiceException
+     */
+    public BaseVersionOrDeleteMarker[] listVersionedObjects(String bucketName, String prefix, 
+		String delimiter) 
+    	throws S3ServiceException
+    {
+        return listVersionedObjectsImpl(bucketName, prefix, delimiter, null, null, 1000);
+    }
+    
+    /**
+     * Return version information for a specific object.
+     * <p>
+     * This is a convenience function that applies logic in addition to the LISTVERSIONS 
+     * S3 operation to simplify retrieval of an object's version history. This method
+     * is *not* the most efficient way of retrieving version history in bulk, so if you
+     * need version history for multiple objects you should use the 
+     * {@link #listVersionedObjects(String, String, String)} or
+     * {@link #listVersionedObjectsChunked(String, String, String, long, String, String, boolean)}
+     * methods instead.
+     * 
+     * @param bucketName
+     * the name of the versioned bucket containing the object.
+     * @param objectKey
+     * the key identifying the object.
+     * @return
+     * an array of {@link S3Version} and {@link S3DeleteMarker} objects that describe
+     * the version history of the given object.
+     * 
+     * @throws S3ServiceException
+     */
+    public BaseVersionOrDeleteMarker[] getObjectVersions(String bucketName, String objectKey) 
+    	throws S3ServiceException
+    {
+    	BaseVersionOrDeleteMarker[] matchesForNamePrefix = 
+    		listVersionedObjectsImpl(bucketName, objectKey, null, null, null, 1000);
+    	// Limit results to only matches for the exact object key name
+    	int exactMatchCount = 0;
+    	for (int i = 0; i < matchesForNamePrefix.length && i <= exactMatchCount; i++) {
+    		if (matchesForNamePrefix[i].getKey().equals(objectKey)) {
+    			exactMatchCount++;
+    		}
+    	}
+    	return (BaseVersionOrDeleteMarker[]) Arrays.copyOf(matchesForNamePrefix, exactMatchCount);
+    }    
+
+    /**
      * Lists the objects in a bucket matching a prefix, chunking the results into batches of
      * a given size, and returning each chunk separately. It is the responsibility of the caller 
      * to building a complete bucket object listing by performing follow-up requests if necessary.
@@ -1645,6 +1810,50 @@ public abstract class S3Service implements Serializable {
             maxListingLength, priorLastKey, completeListing);
         MxDelegate.getInstance().registerS3ObjectMBean(bucketName, chunk.getObjects());
         return chunk;
+    }    
+
+    /**
+     * Lists information for a versioned bucket where the items match given constarints.
+     * Depending on the value of the completeListing variable, this method can be set to 
+     * automatically perform follow-up requests to build a complete object listing, or to 
+     * return only a partial listing.
+     * <p>
+     * The objects returned by this method contain only minimal information
+     * such as the object's size, ETag, and LastModified timestamp. To retrieve
+     * the objects' metadata you must perform follow-up <code>getObject</code>
+     * or <code>getObjectDetails</code> operations.
+     * <p>
+     * This method can be performed by anonymous services. Anonymous services 
+     * can list the contents of a publicly-readable bucket.
+     * 
+     * @param bucketName
+     * the name of the versioned bucket whose contents will be listed. 
+     * @param prefix
+     * only objects with a key that starts with this prefix will be listed
+     * @param maxListingLength
+     * the maximum number of objects to include in each result chunk
+     * @param priorLastKey
+     * the last object key received in a prior call to this method. The next chunk of items
+     * listed will start with the next object in the bucket <b>after</b> this key name.
+     * This parameter may be null, in which case the listing will start at the beginning of the
+     * bucket's object contents.
+     * @param priorLastVersionId
+     * the last version ID received in a prior call to this method. The next chunk of items
+     * listed will start with the next object version <b>after</b> this version.
+     * This parameter can only be used with a non-null priorLastKey.
+     * @param completeListing
+     * if true, the service class will automatically perform follow-up requests to 
+     * build a complete bucket object listing.
+     * @return
+     * the set of objects contained in a bucket whose keys start with the given prefix.
+     * @throws S3ServiceException
+     */
+    public VersionOrDeleteMarkersChunk listVersionedObjectsChunked(String bucketName, 
+		String prefix, String delimiter, long maxListingLength, String priorLastKey, 
+		String priorLastVersionId, boolean completeListing) throws S3ServiceException
+    {
+        return listVersionedObjectsChunkedImpl(bucketName, prefix, delimiter, 
+            maxListingLength, priorLastKey, priorLastVersionId, completeListing);
     }    
 
     /**
@@ -1776,7 +1985,47 @@ public abstract class S3Service implements Serializable {
     public void deleteBucket(String bucketName) throws S3ServiceException {
         deleteBucketImpl(bucketName);
     }
+    
+    /**
+     * Enable the S3 object versioning feature for a bucket. 
+     * The versioning feature many not be available in all S3 locations.
+     * 
+     * @param bucketName
+     * the name of the bucket that will have versioning enabled.
+     * @throws S3ServiceException
+     */
+    public void enableBucketVersioning(String bucketName) 
+    	throws S3ServiceException 
+	{
+    	updateBucketVersioningStatusImpl(bucketName, true);
+    }
 
+    /**
+     * Suspend (disabled) the S3 object versioning feature for a bucket. 
+     * The versioning feature many not be available in all S3 locations.
+     * 
+     * @param bucketName
+     * the name of the versioned bucket that will have versioning suspended.
+     * @throws S3ServiceException
+     */
+    public void suspendBucketVersioning(String bucketName) 
+		throws S3ServiceException 
+	{
+    	updateBucketVersioningStatusImpl(bucketName, false);
+	}
+
+    /**
+     * Return true if the given bucket has the S3 object versioning feature enabled, false
+     * otherwise. The versioning feature may not be available in all S3 locations.
+     * 
+     * @param bucketName
+     * the name of the bucket.
+     * @throws S3ServiceException
+     */
+    public boolean isBucketVersioningEnabled(String bucketName) throws S3ServiceException {
+    	return isBucketVersioningEnabledImpl(bucketName);
+    }
+    
     /**
      * Puts an object inside an existing bucket in S3, creating a new object or overwriting
      * an existing one with the same key.
@@ -1805,8 +2054,8 @@ public abstract class S3Service implements Serializable {
     }
     
     /**
-     * Copy an object from your S3 account. You can copy an object within a 
-     * single bucket, or between buckets, and can optionally update the object's 
+     * Copy an object within your S3 account. You can copy an object within a 
+     * single bucket or between buckets, and can optionally update the object's 
      * metadata at the same time. 
      * <p>
      * This method cannot be performed by anonymous services. You must have read 
@@ -1863,12 +2112,78 @@ public abstract class S3Service implements Serializable {
         return copyObjectImpl(sourceBucketName, sourceObjectKey, 
             destinationBucketName, destinationObject.getKey(), 
             destinationObject.getAcl(), destinationMetadata,
-            ifModifiedSince, ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags);
+            ifModifiedSince, ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, null);
     }
 
     /**
-     * Copy an object from your S3 account. You can copy an object within a 
-     * single bucket, or between buckets, and can optionally update the object's 
+     * Copy an object with a specific version within your S3 account. You can copy an object 
+     * within a single bucket or between buckets, and can optionally update the object's 
+     * metadata at the same time. 
+     * <p>
+     * This method cannot be performed by anonymous services. You must have read 
+     * access to the source object and write access to the destination bucket.
+     * <p>
+     * An object can be copied over itself, in which case you can update its 
+     * metadata without making any other changes.
+     * 
+     * @param versionId
+     * identifier matching an existing object version that will be copied.
+     * @param sourceBucketName
+     * the name of the versioned bucket that contains the original object. 
+     * @param sourceObjectKey
+     * the key name of the original object.
+     * @param destinationBucketName
+     * the name of the destination bucket to which the object will be copied.
+     * @param destinationObject
+     * the object that will be created by the copy operation. If this item 
+     * includes an AccessControlList setting the copied object will be assigned
+     * that ACL, otherwise the copied object will be assigned the default private
+     * ACL setting. 
+     * @param replaceMetadata
+     * If this parameter is true, the copied object will be assigned the metadata
+     * values present in the destinationObject. Otherwise, the copied object will
+     * have the same metadata as the original object.
+     * @param ifModifiedSince
+     * a precondition specifying a date after which the object must have been 
+     * modified, ignored if null.
+     * @param ifUnmodifiedSince
+     * a precondition specifying a date after which the object must not have 
+     * been modified, ignored if null.
+     * @param ifMatchTags
+     * a precondition specifying an MD5 hash the object must match, ignored if 
+     * null.
+     * @param ifNoneMatchTags
+     * a precondition specifying an MD5 hash the object must not match, ignored 
+     * if null.
+     * 
+     * @return
+     * a map of the header and result information returned by S3 after the object
+     * copy. The map includes the object's MD5 hash value (ETag), its size
+     * (Content-Length), and update timestamp (Last-Modified).    
+     * 
+     * @throws S3ServiceException
+     */        
+    public Map copyVersionedObject(String versionId, String sourceBucketName, 
+		String sourceObjectKey, String destinationBucketName, S3Object destinationObject, 
+		boolean replaceMetadata, Calendar ifModifiedSince, 
+		Calendar ifUnmodifiedSince, String[] ifMatchTags,
+        String[] ifNoneMatchTags) throws S3ServiceException 
+    {
+    	assertAuthenticatedConnection("copyVersionedObject");
+        Map destinationMetadata =
+            replaceMetadata ? destinationObject.getModifiableMetadata() : null;
+        
+        MxDelegate.getInstance().registerS3ObjectCopyEvent(sourceBucketName, sourceObjectKey);
+        return copyObjectImpl(sourceBucketName, sourceObjectKey, 
+            destinationBucketName, destinationObject.getKey(), 
+            destinationObject.getAcl(), destinationMetadata,
+            ifModifiedSince, ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, versionId);
+    }
+
+  
+    /**
+     * Copy an object within your S3 account. You can copy an object within a 
+     * single bucket or between buckets, and can optionally update the object's 
      * metadata at the same time. 
      * <p>
      * This method cannot be performed by anonymous services. You must have read 
@@ -1899,7 +2214,7 @@ public abstract class S3Service implements Serializable {
      * (Content-Length), and update timestamp (Last-Modified).    
      * 
      * @throws S3ServiceException
-     */    
+     */   
     public Map copyObject(String sourceBucketName, String sourceObjectKey, 
         String destinationBucketName, S3Object destinationObject,
         boolean replaceMetadata) throws S3ServiceException 
@@ -1907,7 +2222,51 @@ public abstract class S3Service implements Serializable {
         return copyObject(sourceBucketName, sourceObjectKey, destinationBucketName, 
             destinationObject, replaceMetadata, null, null, null, null);
     }                
-    
+
+    /**
+     * Copy an object with a specific version within your S3 account. You can copy an object 
+     * within a single bucket or between buckets, and can optionally update the object's 
+     * metadata at the same time. 
+     * <p>
+     * This method cannot be performed by anonymous services. You must have read 
+     * access to the source object and write access to the destination bucket.
+     * <p>
+     * An object can be copied over itself, in which case you can update its 
+     * metadata without making any other changes.
+     * 
+     * @param versionId
+     * identifier matching an existing object version that will be copied.
+     * @param sourceBucketName
+     * the name of the versioned bucket that contains the original object. 
+     * @param sourceObjectKey
+     * the key name of the original object.
+     * @param destinationBucketName
+     * the name of the destination bucket to which the object will be copied.
+     * @param destinationObject
+     * the object that will be created by the copy operation. If this item 
+     * includes an AccessControlList setting the copied object will be assigned
+     * that ACL, otherwise the copied object will be assigned the default private
+     * ACL setting. 
+     * @param replaceMetadata
+     * If this parameter is true, the copied object will be assigned the metadata
+     * values present in the destinationObject. Otherwise, the copied object will
+     * have the same metadata as the original object.
+     * 
+     * @return
+     * a map of the header and result information returned by S3 after the object
+     * copy. The map includes the object's MD5 hash value (ETag), its size
+     * (Content-Length), and update timestamp (Last-Modified).    
+     * 
+     * @throws S3ServiceException
+     */   
+    public Map copyVersionedObject(String versionId, String sourceBucketName, String sourceObjectKey, 
+        String destinationBucketName, S3Object destinationObject,
+        boolean replaceMetadata) throws S3ServiceException 
+    {
+        return copyVersionedObject(versionId, sourceBucketName, sourceObjectKey, 
+    		destinationBucketName, destinationObject, replaceMetadata, null, null, null, null);
+    }                
+
     /**
      * Move an object from your S3 account. This method works by invoking the
      * {@link #copyObject(String, String, String, S3Object, boolean)} method to 
@@ -2090,7 +2449,30 @@ public abstract class S3Service implements Serializable {
     public void deleteObject(String bucketName, String objectKey) throws S3ServiceException {
         assertValidObject(objectKey, "deleteObject");
         MxDelegate.getInstance().registerS3ObjectDeleteEvent(bucketName, objectKey);
-        deleteObjectImpl(bucketName, objectKey);
+        deleteObjectImpl(bucketName, objectKey, null);
+    }
+
+    /**
+     * Deletes a object version from a bucket in S3. This will delete only the specific 
+     * version identified and will not affect any other Version or DeleteMarkers related
+     * to the object. 
+     * <p>
+     * This operation can only be performed by the owner of the S3 bucket. 
+     *
+     * @param versionId
+     * the identifier of an object version that will be deleted. 
+     * @param bucketName
+     * the name of the versioned bucket containing the object to be deleted.
+     * @param objectKey
+     * the key representing the object in S3.
+     * @throws S3ServiceException
+     */
+    public void deleteVersionedObject(String versionId, String bucketName, String objectKey) 
+    	throws S3ServiceException 
+	{
+        assertValidObject(objectKey, "deleteVersionedObject");
+        MxDelegate.getInstance().registerS3ObjectDeleteEvent(bucketName, objectKey);
+        deleteObjectImpl(bucketName, objectKey, versionId);
     }
 
     /**
@@ -2128,7 +2510,47 @@ public abstract class S3Service implements Serializable {
         assertValidBucket(bucket, "Get Object Details");
         MxDelegate.getInstance().registerS3ObjectHeadEvent(bucket.getName(), objectKey);
         return getObjectDetailsImpl(bucket.getName(), objectKey, ifModifiedSince, ifUnmodifiedSince, 
-            ifMatchTags, ifNoneMatchTags);
+            ifMatchTags, ifNoneMatchTags, null);
+    }
+
+    /**
+     * Returns an object representing the details of a versioned object in S3 that also 
+     * meets any given preconditions. The object is returned without the object's data.
+     * <p>
+     * An exception is thrown if any of the preconditions fail. 
+     * Preconditions are only applied if they are non-null.
+     * <p>
+     * This method can be performed by anonymous services. Anonymous services
+     * can get details of publicly-readable objects.
+     * 
+     * @param versionId
+     * the identifier of the object version to return.
+     * @param bucket
+     * the versioned bucket containing the object.
+     * This must be a valid S3Bucket object that is non-null and contains a name.
+     * @param objectKey
+     * the key identifying the object.
+     * @param ifModifiedSince
+     * a precondition specifying a date after which the object must have been modified, ignored if null.
+     * @param ifUnmodifiedSince
+     * a precondition specifying a date after which the object must not have been modified, ignored if null.
+     * @param ifMatchTags
+     * a precondition specifying an MD5 hash the object must match, ignored if null.
+     * @param ifNoneMatchTags
+     * a precondition specifying an MD5 hash the object must not match, ignored if null.
+     * @return
+     * the object with the given key in S3, including only general details and metadata (not the data
+     * input stream)
+     * @throws S3ServiceException
+     */
+    public S3Object getVersionedObjectDetails(String versionId, S3Bucket bucket, String objectKey,
+        Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
+        String[] ifNoneMatchTags) throws S3ServiceException
+    {
+        assertValidBucket(bucket, "Get Versioned Object Details");
+        MxDelegate.getInstance().registerS3ObjectHeadEvent(bucket.getName(), objectKey);
+        return getObjectDetailsImpl(bucket.getName(), objectKey, ifModifiedSince, ifUnmodifiedSince, 
+            ifMatchTags, ifNoneMatchTags, versionId);
     }
 
     /**
@@ -2164,7 +2586,45 @@ public abstract class S3Service implements Serializable {
     {
         MxDelegate.getInstance().registerS3ObjectHeadEvent(bucketName, objectKey);
         return getObjectDetailsImpl(bucketName, objectKey, ifModifiedSince, ifUnmodifiedSince, 
-            ifMatchTags, ifNoneMatchTags);
+            ifMatchTags, ifNoneMatchTags, null);
+    }
+
+    /**
+     * Returns an object representing the details of a versioned object in S3 that also meets 
+     * any given preconditions. The object is returned without the object's data.
+     * <p>
+     * An exception is thrown if any of the preconditions fail. 
+     * Preconditions are only applied if they are non-null.
+     * <p>
+     * This method can be performed by anonymous services. Anonymous services
+     * can get details of publicly-readable objects.
+     * 
+     * @param versionId
+     * the identifier of the object version to return.
+     * @param bucketName
+     * the name of the versioned bucket containing the object.
+     * @param objectKey
+     * the key identifying the object.
+     * @param ifModifiedSince
+     * a precondition specifying a date after which the object must have been modified, ignored if null.
+     * @param ifUnmodifiedSince
+     * a precondition specifying a date after which the object must not have been modified, ignored if null.
+     * @param ifMatchTags
+     * a precondition specifying an MD5 hash the object must match, ignored if null.
+     * @param ifNoneMatchTags
+     * a precondition specifying an MD5 hash the object must not match, ignored if null.
+     * @return
+     * the object with the given key in S3, including only general details and metadata (not the data
+     * input stream)
+     * @throws S3ServiceException
+     */    
+    public S3Object getVersionedObjectDetails(String versionId, String bucketName, String objectKey,
+        Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
+        String[] ifNoneMatchTags) throws S3ServiceException
+    {
+        MxDelegate.getInstance().registerS3ObjectHeadEvent(bucketName, objectKey);
+        return getObjectDetailsImpl(bucketName, objectKey, ifModifiedSince, ifUnmodifiedSince, 
+            ifMatchTags, ifNoneMatchTags, versionId);
     }
 
     /**
@@ -2213,7 +2673,60 @@ public abstract class S3Service implements Serializable {
         assertValidBucket(bucket, "Get Object");
         MxDelegate.getInstance().registerS3ObjectGetEvent(bucket.getName(), objectKey);
         return getObjectImpl(bucket.getName(), objectKey, ifModifiedSince, ifUnmodifiedSince, 
-            ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd);
+            ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd, null);
+    }
+
+    /**
+     * Returns an object representing the details and data of a versioned object in S3 that 
+     * also meets any given preconditions.
+     * <p>
+     * <b>Important:</b> It is the caller's responsibility to close the object's data input stream.
+     * The data stream should be consumed and closed as soon as is practical as network connections 
+     * may be held open until the streams are closed. Excessive unclosed streams can lead to 
+     * connection starvation.
+     * <p>
+     * An exception is thrown if any of the preconditions fail. 
+     * Preconditions are only applied if they are non-null.
+     * <p>
+     * This method can be performed by anonymous services. Anonymous services
+     * can get publicly-readable objects.
+     * <p>
+     * <b>Implementation notes</b><p>
+     * Implementations should use {@link #assertValidBucket} assertion.
+     * 
+     * @param versionId
+     * the identifier of the object version to return.
+     * @param bucket
+     * the versioned bucket containing the object.
+     * This must be a valid S3Bucket object that is non-null and contains a name.
+     * @param objectKey
+     * the key identifying the object.
+     * @param ifModifiedSince
+     * a precondition specifying a date after which the object must have been modified, ignored if null.
+     * @param ifUnmodifiedSince
+     * a precondition specifying a date after which the object must not have been modified, ignored if null.
+     * @param ifMatchTags
+     * a precondition specifying an MD5 hash the object must match, ignored if null.
+     * @param ifNoneMatchTags
+     * a precondition specifying an MD5 hash the object must not match, ignored if null.
+     * @param byteRangeStart
+     * include only a portion of the object's data - starting at this point, ignored if null. 
+     * @param byteRangeEnd
+     * include only a portion of the object's data - ending at this point, ignored if null. 
+     * @return
+     * the object with the given key in S3, including only general details and metadata (not the data
+     * input stream)
+     * @throws S3ServiceException
+     */
+    public S3Object getVersionedObject(String versionId, S3Bucket bucket, String objectKey, 
+		Calendar ifModifiedSince, Calendar ifUnmodifiedSince, 
+		String[] ifMatchTags, String[] ifNoneMatchTags,
+        Long byteRangeStart, Long byteRangeEnd) throws S3ServiceException 
+    {
+        assertValidBucket(bucket, "Get Versioned Object");
+        MxDelegate.getInstance().registerS3ObjectGetEvent(bucket.getName(), objectKey);
+        return getObjectImpl(bucket.getName(), objectKey, ifModifiedSince, ifUnmodifiedSince, 
+            ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd, versionId);
     }
 
     /**
@@ -2260,7 +2773,58 @@ public abstract class S3Service implements Serializable {
     {
         MxDelegate.getInstance().registerS3ObjectGetEvent(bucketName, objectKey);
         return getObjectImpl(bucketName, objectKey, ifModifiedSince, ifUnmodifiedSince, 
-            ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd);
+            ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd, null);
+    }
+
+    /**
+     * Returns an object representing the details and data of a versioned object in S3 that 
+     * also meets any given preconditions.
+     * <p>
+     * <b>Important:</b> It is the caller's responsibility to close the object's data input stream.
+     * The data stream should be consumed and closed as soon as is practical as network connections 
+     * may be held open until the streams are closed. Excessive unclosed streams can lead to 
+     * connection starvation.
+     * <p>
+     * An exception is thrown if any of the preconditions fail. 
+     * Preconditions are only applied if they are non-null.
+     * <p>
+     * This method can be performed by anonymous services. Anonymous services 
+     * can get a publicly-readable object.
+     * <p>
+     * <b>Implementation notes</b><p>
+     * Implementations should use {@link #assertValidBucket} assertion.
+     * 
+     * @param versionId
+     * the identifier of the object version to return.
+     * @param bucketName
+     * the name of the versioned bucket containing the object.
+     * @param objectKey
+     * the key identifying the object.
+     * @param ifModifiedSince
+     * a precondition specifying a date after which the object must have been modified, ignored if null.
+     * @param ifUnmodifiedSince
+     * a precondition specifying a date after which the object must not have been modified, ignored if null.
+     * @param ifMatchTags
+     * a precondition specifying an MD5 hash the object must match, ignored if null.
+     * @param ifNoneMatchTags
+     * a precondition specifying an MD5 hash the object must not match, ignored if null.
+     * @param byteRangeStart
+     * include only a portion of the object's data - starting at this point, ignored if null. 
+     * @param byteRangeEnd
+     * include only a portion of the object's data - ending at this point, ignored if null. 
+     * @return
+     * the object with the given key in S3, including only general details and metadata (not the data
+     * input stream)
+     * @throws S3ServiceException
+     */
+    public S3Object getVersionedObject(String versionId, String bucketName, String objectKey, 
+		Calendar ifModifiedSince, Calendar ifUnmodifiedSince, 
+		String[] ifMatchTags, String[] ifNoneMatchTags,
+        Long byteRangeStart, Long byteRangeEnd) throws S3ServiceException 
+    {
+        MxDelegate.getInstance().registerS3ObjectGetEvent(bucketName, objectKey);
+        return getObjectImpl(bucketName, objectKey, ifModifiedSince, ifUnmodifiedSince, 
+            ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd, versionId);
     }
 
     /**
@@ -2310,8 +2874,37 @@ public abstract class S3Service implements Serializable {
             throw new S3ServiceException("The object '" + objectKey +
                 "' does not include ACL information");
         }
-        putObjectAclImpl(bucketName, objectKey, acl);
+        putObjectAclImpl(bucketName, objectKey, acl, null);
     }
+
+    /**
+     * Applies access control settings to a versioned object. 
+     * The ACL settings must be included with the object.
+     * 
+     * This method can be performed by anonymous services, but can only succeed if the
+     * object's existing ACL already allows write access by the anonymous user.
+     * In general, you can only access the ACL of an object if the ACL already in place
+     * for that object (in S3) allows you to do so. See  
+     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
+     * the S3 documentation on ACLs</a> for more details on access to ACLs.
+     * 
+     * @param versionId
+     * the identifier of the object version whose ACL will be updated.
+     * @param bucketName
+     * the name of the versioned bucket containing the object to modify.
+     * @param objectKey
+     * the key name of the object with ACL settings that will be applied.
+     * @throws S3ServiceException
+     */
+    public void putVersionedObjectAcl(String versionId, String bucketName, 
+		String objectKey, AccessControlList acl) throws S3ServiceException 
+	{
+	    if (acl == null) {
+	        throw new S3ServiceException("The object '" + objectKey +
+	            "' does not include ACL information");
+	    }
+	    putObjectAclImpl(bucketName, objectKey, acl, versionId);
+	}
 
     /**
      * Applies access control settings to a bucket. The ACL settings must be included
@@ -2375,9 +2968,39 @@ public abstract class S3Service implements Serializable {
      * the ACL settings of the bucket or object.
      * @throws S3ServiceException
      */
-    public AccessControlList getObjectAcl(S3Bucket bucket, String objectKey) throws S3ServiceException {
+    public AccessControlList getObjectAcl(S3Bucket bucket, String objectKey) 
+    	throws S3ServiceException 
+	{
         assertValidBucket(bucket, "Get Object Access Control List");
-        return getObjectAclImpl(bucket.getName(), objectKey);
+        return getObjectAclImpl(bucket.getName(), objectKey, null);
+    }
+
+    /**
+     * Retrieves the access control settings of a versioned object.
+     * 
+     * This method can be performed by anonymous services, but can only succeed if the
+     * object's existing ACL already allows read access by the anonymous user.
+     * In general, you can only access the ACL of an object if the ACL already in place
+     * for that object (in S3) allows you to do so. See  
+     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
+     * the S3 documentation on ACLs</a> for more details on access to ACLs.
+     * 
+     * @param versionId
+     * the identifier of the object version whose ACL will be returned.
+     * @param bucket
+     * the versioned bucket whose ACL settings will be retrieved (if objectKey is null) or the bucket 
+     * containing the object whose ACL settings will be retrieved (if objectKey is non-null).
+     * @param objectKey
+     * if non-null, the key of the object whose ACL settings will be retrieved. Ignored if null.
+     * @return
+     * the ACL settings of the bucket or object.
+     * @throws S3ServiceException
+     */
+    public AccessControlList getVersionedObjectAcl(String versionId, S3Bucket bucket, 
+		String objectKey) throws S3ServiceException 
+	{
+        assertValidBucket(bucket, "Get versioned Object Access Control List");
+        return getObjectAclImpl(bucket.getName(), objectKey, versionId);
     }
 
     /**
@@ -2399,9 +3022,37 @@ public abstract class S3Service implements Serializable {
      * the ACL settings of the bucket or object.
      * @throws S3ServiceException
      */
-    public AccessControlList getObjectAcl(String bucketName, String objectKey) throws S3ServiceException {
-        return getObjectAclImpl(bucketName, objectKey);
+    public AccessControlList getObjectAcl(String bucketName, String objectKey) 
+    	throws S3ServiceException 
+	{
+        return getObjectAclImpl(bucketName, objectKey, null);
     }
+
+    /**
+     * Retrieves the access control settings of a versioned object.
+     * 
+     * This method can be performed by anonymous services, but can only succeed if the
+     * object's existing ACL already allows write access by the anonymous user.
+     * In general, you can only access the ACL of an object if the ACL already in place
+     * for that object (in S3) allows you to do so. See  
+     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
+     * the S3 documentation on ACLs</a> for more details on access to ACLs.
+     * 
+     * @param versionId
+     * the identifier of the object version whose ACL will be returned.
+     * @param bucketName
+     * the name of the versioned bucket containing the object whose ACL settings will be retrieved. 
+     * @param objectKey
+     * if non-null, the key of the object whose ACL settings will be retrieved. Ignored if null.
+     * @return
+     * the ACL settings of the bucket or object.
+     * @throws S3ServiceException
+     */
+    public AccessControlList getVersionedObjectAcl(String versionId, String bucketName, 
+		String objectKey) throws S3ServiceException 
+	{
+	    return getObjectAclImpl(bucketName, objectKey, versionId);
+	}
 
     /**
      * Retrieves the access control settings of a bucket.
@@ -2706,6 +3357,10 @@ public abstract class S3Service implements Serializable {
     protected abstract S3Object[] listObjectsImpl(String bucketName, String prefix, 
         String delimiter, long maxListingLength) throws S3ServiceException;
 
+    protected abstract BaseVersionOrDeleteMarker[] listVersionedObjectsImpl(String bucketName, 
+		String prefix, String delimiter, String keyMarker, String versionMarker,
+		long maxListingLength) throws S3ServiceException;
+
     /**
      * Lists objects in a bucket up to the maximum listing length specified.
      *
@@ -2727,6 +3382,30 @@ public abstract class S3Service implements Serializable {
     protected abstract S3ObjectsChunk listObjectsChunkedImpl(String bucketName, String prefix, 
         String delimiter, long maxListingLength, String priorLastKey, boolean completeListing) 
         throws S3ServiceException;
+
+    /**
+     * Lists version or delete markers in a versioned bucket, up to the maximum listing 
+     * length specified.
+     *
+     * <p>
+     * <b>Implementation notes</b>
+     * The implementation of this method returns only as many items as requested in the chunk
+     * size. It is the responsibility of the caller to build a complete object listing from 
+     * multiple chunks, should this be necessary.
+     * </p>
+     * 
+     * @param bucketName
+     * @param prefix
+     * @param delimiter
+     * @param maxListingLength
+     * @param priorLastKey
+     * @param completeListing
+     * @throws S3ServiceException
+     */
+    protected abstract VersionOrDeleteMarkersChunk listVersionedObjectsChunkedImpl(
+		String bucketName, String prefix, String delimiter, long maxListingLength, 
+		String priorLastKey, String priorLastVersion, boolean completeListing) 
+    	throws S3ServiceException;
 
     /**
      * Creates a bucket.
@@ -2752,6 +3431,12 @@ public abstract class S3Service implements Serializable {
         AccessControlList acl) throws S3ServiceException;
     
     protected abstract void deleteBucketImpl(String bucketName) throws S3ServiceException;
+
+    protected abstract void updateBucketVersioningStatusImpl(String bucketName, boolean enabled) 
+		throws S3ServiceException;
+
+    protected abstract boolean isBucketVersioningEnabledImpl(String bucketName) 
+    	throws S3ServiceException;
 
     protected abstract S3Object putObjectImpl(String bucketName, S3Object object) throws S3ServiceException;
     
@@ -2790,26 +3475,28 @@ public abstract class S3Service implements Serializable {
         String destinationBucketName, String destinationObjectKey,
         AccessControlList acl, Map destinationMetadata,
         Calendar ifModifiedSince, Calendar ifUnmodifiedSince, 
-        String[] ifMatchTags, String[] ifNoneMatchTags) throws S3ServiceException;     
+        String[] ifMatchTags, String[] ifNoneMatchTags, String versionId) 
+    	throws S3ServiceException;     
 
-    protected abstract void deleteObjectImpl(String bucketName, String objectKey) throws S3ServiceException;
+    protected abstract void deleteObjectImpl(String bucketName, String objectKey,
+		String versionId) throws S3ServiceException;
     
     protected abstract S3Object getObjectDetailsImpl(String bucketName, String objectKey,
         Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
-        String[] ifNoneMatchTags) throws S3ServiceException;
+        String[] ifNoneMatchTags, String versionId) throws S3ServiceException;
 
     protected abstract S3Object getObjectImpl(String bucketName, String objectKey, Calendar ifModifiedSince,
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags,
-        Long byteRangeStart, Long byteRangeEnd) throws S3ServiceException;
+        Long byteRangeStart, Long byteRangeEnd, String versionId) throws S3ServiceException;
 
     protected abstract void putBucketAclImpl(String bucketName, AccessControlList acl) 
         throws S3ServiceException;
 
-    protected abstract void putObjectAclImpl(String bucketName, String objectKey, AccessControlList acl) 
-        throws S3ServiceException;
+    protected abstract void putObjectAclImpl(String bucketName, String objectKey, 
+		AccessControlList acl, String versionId) throws S3ServiceException;
 
-    protected abstract AccessControlList getObjectAclImpl(String bucketName, String objectKey)
-        throws S3ServiceException;
+    protected abstract AccessControlList getObjectAclImpl(String bucketName, String objectKey,
+		String versionId) throws S3ServiceException;
 
     protected abstract AccessControlList getBucketAclImpl(String bucketName) throws S3ServiceException;
         

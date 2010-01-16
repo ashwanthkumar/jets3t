@@ -40,7 +40,9 @@ public class S3Owner implements Serializable {
     }
 	
 	public String toString() {
-		return "S3Owner [name=" + getDisplayName() + ",id=" + getId() + "]";
+		return "S3Owner ["
+			+ (getDisplayName() != null ? "name=" + getDisplayName() + ", " : "")
+			+ "id=" + getId() + "]";
 	}
 
 	public String getId() {

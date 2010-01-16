@@ -31,6 +31,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HostConfiguration;
@@ -214,17 +216,37 @@ public class RestUtils {
             buf.append(resource.substring(0, queryIndex));
         }
 
-        // ...unless there is an acl, torrent, logging or requestPayment parameter.
+        // ...unless parameter is one of: acl, torrent, logging, requestPayment, 
+        // versions, versioning, versionId.
+        boolean existingParams = false;
         if (resource.matches(".*[&?]acl($|=|&).*")) {
             buf.append("?acl");
+            existingParams = true;
         } else if (resource.matches(".*[&?]torrent($|=|&).*")) {
             buf.append("?torrent");
+            existingParams = true;
         } else if (resource.matches(".*[&?]logging($|=|&).*")) {
             buf.append("?logging");
+            existingParams = true;
         } else if (resource.matches(".*[&?]location($|=|&).*")) {
             buf.append("?location");
+            existingParams = true;
         } else if (resource.matches(".*[&?]requestPayment($|=|&).*")) {
             buf.append("?requestPayment");
+            existingParams = true;
+        } else if (resource.matches(".*[&?]versions($|=|&).*")) {
+            buf.append("?versions");
+            existingParams = true;
+        } else if (resource.matches(".*[&?]versioning($|=|&).*")) {
+            buf.append("?versioning");
+            existingParams = true;
+        } 
+        if (resource.matches(".*[&?](versionId=.+)($|&).*")) {
+        	Pattern pattern = Pattern.compile(".*[&?](versionId=.+)($|&).*");
+        	Matcher matcher = pattern.matcher(resource);
+        	if (matcher.matches()) {
+                buf.append( (existingParams ? "&" : "?") + matcher.group(1));
+        	}
         }
 
         return buf.toString();

@@ -82,5 +82,11 @@ public class CanonicalGrantee implements GranteeInterface {
 	public int hashCode() {		
 		return id.hashCode();
 	}
+	
+	public String toString() {
+		return "CanonicalGrantee [id=" + id 
+			+ (displayName != null ? ", displayName=" + displayName : "")
+			+ "]";
+	}
 
 }

@@ -43,8 +43,11 @@ import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
+import org.jets3t.service.model.S3DeleteMarker;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Owner;
+import org.jets3t.service.model.BaseVersionOrDeleteMarker;
+import org.jets3t.service.model.S3Version;
 import org.jets3t.service.utils.ServiceUtils;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
@@ -100,7 +103,7 @@ public class XmlResponsesSaxParser {
      * @throws S3ServiceException
      *        any parsing, IO or other exceptions are wrapped in an S3ServiceException.
      */
-    protected void parseXmlInputStream(DefaultHandler handler, InputStream inputStream)
+    protected void parseXmlInputStream(MyDefaultHandler handler, InputStream inputStream)
         throws S3ServiceException
     {
         try {
@@ -125,7 +128,7 @@ public class XmlResponsesSaxParser {
         }
     }
     
-    protected InputStream sanitizeXmlDocument(DefaultHandler handler, InputStream inputStream) 
+    protected InputStream sanitizeXmlDocument(MyDefaultHandler handler, InputStream inputStream) 
         throws S3ServiceException 
     {
         if (!properties.getBoolProperty("xmlparser.sanitize-listings", true)) {
@@ -184,7 +187,7 @@ public class XmlResponsesSaxParser {
      * the XML handler object populated with data parsed from the XML stream.
      * @throws S3ServiceException
      */
-    public ListBucketHandler parseListBucketObjectsResponse(InputStream inputStream)
+    public ListBucketHandler parseListBucketResponse(InputStream inputStream)
         throws S3ServiceException
     {
         ListBucketHandler handler = new ListBucketHandler();
@@ -264,7 +267,7 @@ public class XmlResponsesSaxParser {
      * @param inputStream
      * 
      * @return
-     * true if the bucket's is configured as Requester Pays, false if it is 
+     * true if the bucket is configured as Requester Pays, false if it is 
      * configured as Owner pays.
      *      
      * @throws S3ServiceException
@@ -277,6 +280,30 @@ public class XmlResponsesSaxParser {
         return handler.isRequesterPays();
     }
 
+    /**
+     * @param inputStream
+     * 
+     * @return
+     * true if the bucket has versioning enabled, false otherwise.
+     *      
+     * @throws S3ServiceException
+     */
+    public boolean parseVersioningConfigurationResponse(InputStream inputStream)
+        throws S3ServiceException
+    {
+        VersioningConfigurationHandler handler = new VersioningConfigurationHandler();
+        parseXmlInputStream(handler, inputStream);
+        return handler.isVersioningEnabled();
+    }
+
+    public ListVersionsResultsHandler parseListVersionsResponse(InputStream inputStream)
+	    throws S3ServiceException
+	{
+    	ListVersionsResultsHandler handler = new ListVersionsResultsHandler();
+	    parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
+	    return handler;
+	}
+
     // ////////////
     // Handlers //
     // ////////////
@@ -285,10 +312,9 @@ public class XmlResponsesSaxParser {
      * Handler for ListBucket response XML documents.
      * The document is parsed into {@link S3Object}s available via the {@link #getObjects()} method.
      */
-    public class ListBucketHandler extends DefaultHandler {
+    public class ListBucketHandler extends MyDefaultHandler {
         private S3Object currentObject = null;
         private S3Owner currentOwner = null;
-        private StringBuffer currText = null;
         private boolean insideCommonPrefixes = false;
 
         private List objects = new ArrayList();
@@ -302,10 +328,6 @@ public class XmlResponsesSaxParser {
         private boolean listingTruncated = false;
         private String lastKey = null;        
         private String nextMarker = null;
-
-        public ListBucketHandler() {
-            super();
-        }
 
         /**
          * If the listing is truncated this method will return the marker that should be used
@@ -369,14 +391,8 @@ public class XmlResponsesSaxParser {
             return requestMaxKeys;
         }
         
-        public void startDocument() {
-        }
-
-        public void endDocument() {
-        }
-
-        public void startElement(String uri, String name, String qName, Attributes attrs) {
-            if (name.equals("Contents")) {
+        public void startElement(String name) {
+        	if (name.equals("Contents")) {
                 currentObject = new S3Object();
                 currentObject.setBucketName(bucketName);
             } else if (name.equals("Owner")) {
@@ -385,11 +401,9 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("CommonPrefixes")) {
                 insideCommonPrefixes = true;
             }
-            this.currText = new StringBuffer();
         }
 
-        public void endElement(String uri, String name, String qName) {
-            String elementText = this.currText.toString();
+        public void endElement(String name, String elementText) {
             // Listing details
             if (name.equals("Name")) {
                 bucketName = elementText;
@@ -459,10 +473,6 @@ public class XmlResponsesSaxParser {
                 insideCommonPrefixes = false;
             }
         }
-
-        public void characters(char ch[], int start, int length) {
-            this.currText.append(ch, start, length);
-        }
     }
 
     /**
@@ -472,17 +482,11 @@ public class XmlResponsesSaxParser {
      * @author James Murty
      *
      */
-    public class ListAllMyBucketsHandler extends DefaultHandler {
+    public class ListAllMyBucketsHandler extends MyDefaultHandler {
         private S3Owner bucketsOwner = null;
         private S3Bucket currentBucket = null;
-        private StringBuffer currText = null;
         
-        private List buckets = null;
-
-        public ListAllMyBucketsHandler() {
-            super();
-            buckets = new ArrayList();
-        }
+        private List buckets = new ArrayList();
 
         /**
          * @return
@@ -500,23 +504,15 @@ public class XmlResponsesSaxParser {
             return bucketsOwner;
         }
 
-        public void startDocument() {
-        }
-
-        public void endDocument() {
-        }
-
-        public void startElement(String uri, String name, String qName, Attributes attrs) {
+        public void startElement(String name) {
             if (name.equals("Bucket")) {
                 currentBucket = new S3Bucket();
             } else if (name.equals("Owner")) {
                 bucketsOwner = new S3Owner();
             }
-            this.currText = new StringBuffer();
         }
 
-        public void endElement(String uri, String name, String qName) {
-            String elementText = this.currText.toString();
+        public void endElement(String name, String elementText) {
             // Listing details.
             if (name.equals("ID")) {
                 bucketsOwner.setId(elementText);
@@ -543,10 +539,6 @@ public class XmlResponsesSaxParser {
                 }
             }
         }
-
-        public void characters(char ch[], int start, int length) {
-            this.currText.append(ch, start, length);
-        }
     }
 
     /**
@@ -557,19 +549,14 @@ public class XmlResponsesSaxParser {
      * @author James Murty
      *
      */
-    public class AccessControlListHandler extends DefaultHandler {
+    public class AccessControlListHandler extends MyDefaultHandler {
         private AccessControlList accessControlList = null;
 
         private S3Owner owner = null;
         private GranteeInterface currentGrantee = null;
         private Permission currentPermission = null;
-        private StringBuffer currText = null;
 
         private boolean insideACL = false;
-
-        public AccessControlListHandler() {
-            super();
-        }
 
         /**
          * @return
@@ -579,13 +566,7 @@ public class XmlResponsesSaxParser {
             return accessControlList;
         }
 
-        public void startDocument() {
-        }
-
-        public void endDocument() {
-        }
-
-        public void startElement(String uri, String name, String qName, Attributes attrs) {
+        public void startElement(String name) {
             if (name.equals("Owner")) {
                 owner = new S3Owner();
             } else if (name.equals("AccessControlList")) {
@@ -593,11 +574,9 @@ public class XmlResponsesSaxParser {
                 accessControlList.setOwner(owner);
                 insideACL = true;
             }
-            this.currText = new StringBuffer();
         }
 
-        public void endElement(String uri, String name, String qName) {
-            String elementText = this.currText.toString();
+        public void endElement(String name, String elementText) {
             // Owner details.
             if (name.equals("ID") && !insideACL) {
                 owner.setId(elementText);
@@ -624,10 +603,6 @@ public class XmlResponsesSaxParser {
                 insideACL = false;
             }
         }
-
-        public void characters(char ch[], int start, int length) {
-            this.currText.append(ch, start, length);
-        }
     }
 
     /**
@@ -638,18 +613,13 @@ public class XmlResponsesSaxParser {
      * @author James Murty
      *
      */
-    public class BucketLoggingStatusHandler extends DefaultHandler {
+    public class BucketLoggingStatusHandler extends MyDefaultHandler {
         private S3BucketLoggingStatus bucketLoggingStatus = null;
 
         private String targetBucket = null;
         private String targetPrefix = null;
-        private StringBuffer currText = null;
         private GranteeInterface currentGrantee = null;
         private Permission currentPermission = null;
-
-        public BucketLoggingStatusHandler() {
-            super();
-        }
 
         /**
          * @return
@@ -659,21 +629,13 @@ public class XmlResponsesSaxParser {
             return bucketLoggingStatus;
         }
 
-        public void startDocument() {
-        }
-
-        public void endDocument() {
-        }
-
-        public void startElement(String uri, String name, String qName, Attributes attrs) {
+        public void startElement(String name) {
             if (name.equals("BucketLoggingStatus")) {
                 bucketLoggingStatus = new S3BucketLoggingStatus();
             }
-            this.currText = new StringBuffer();
         }
 
-        public void endElement(String uri, String name, String qName) {
-            String elementText = this.currText.toString();
+        public void endElement(String name, String elementText) {
             if (name.equals("TargetBucket")) {
                 targetBucket = elementText;
             } else if (name.equals("TargetPrefix")) {
@@ -702,28 +664,18 @@ public class XmlResponsesSaxParser {
             	bucketLoggingStatus.addTargetGrant(grantAndPermission);
             }            
         }
-
-        public void characters(char ch[], int start, int length) {
-            this.currText.append(ch, start, length);
-        }
     }
     
     /**
      * Handler for CreateBucketConfiguration response XML documents for a bucket.
-     * The document is parsed into a String representing the bucket's lcoation,
+     * The document is parsed into a String representing the bucket's location,
      * available via the {@link #getLocation()} method.
      * 
      * @author James Murty
      *
      */
-    public class BucketLocationHandler extends DefaultHandler {
+    public class BucketLocationHandler extends MyDefaultHandler {
         private String location = null;
-
-        private StringBuffer currText = null;
-
-        public BucketLocationHandler() {
-            super();
-        }
 
         /**
          * @return
@@ -733,20 +685,7 @@ public class XmlResponsesSaxParser {
             return location;
         }
 
-        public void startDocument() {
-        }
-
-        public void endDocument() {
-        }
-
-        public void startElement(String uri, String name, String qName, Attributes attrs) {
-            if (name.equals("CreateBucketConfiguration")) {
-            } 
-            this.currText = new StringBuffer();
-        }
-
-        public void endElement(String uri, String name, String qName) {
-            String elementText = this.currText.toString();
+        public void endElement(String name, String elementText) {
             if (name.equals("LocationConstraint")) {
                 if (elementText.length() == 0) {
                     location = null;
@@ -755,14 +694,10 @@ public class XmlResponsesSaxParser {
                 }
             } 
         }
-
-        public void characters(char ch[], int start, int length) {
-            this.currText.append(ch, start, length);
-        }
     }
 
     
-    public class CopyObjectResultHandler extends DefaultHandler {
+    public class CopyObjectResultHandler extends MyDefaultHandler {
         // Data items for successful copy
         private String etag = null;
         private Date lastModified = null;
@@ -774,13 +709,6 @@ public class XmlResponsesSaxParser {
         private String errorHostId = null;
         private boolean receivedErrorResponse = false;
         
-
-        private StringBuffer currText = null;
-
-        public CopyObjectResultHandler() {
-            super();
-        }
-
         public Date getLastModified() {
             return lastModified;
         }
@@ -808,26 +736,16 @@ public class XmlResponsesSaxParser {
         public boolean isErrorResponse() {
             return receivedErrorResponse;
         }
-        
 
-        public void startDocument() {
-        }
-
-        public void endDocument() {
-        }
-
-        public void startElement(String uri, String name, String qName, Attributes attrs) {
+        public void startElement(String name) {
             if (name.equals("CopyObjectResult")) {
                 receivedErrorResponse = false;
             } else if (name.equals("Error")) {
                 receivedErrorResponse = true;
             }
-            this.currText = new StringBuffer();
         }
 
-        public void endElement(String uri, String name, String qName) {
-            String elementText = this.currText.toString();
-
+        public void endElement(String name, String elementText) {
             if (name.equals("LastModified")) {
                 try {
                     lastModified = ServiceUtils.parseIso8601Date(elementText);
@@ -848,56 +766,230 @@ public class XmlResponsesSaxParser {
                 errorHostId = elementText;
             }
         }
-
-        public void characters(char ch[], int start, int length) {
-            this.currText.append(ch, start, length);
-        }
     }
 
     /**
      * Handler for RequestPaymentConfiguration response XML documents for a bucket.
-     * The document is parsed into a boolean value: true if the bucket's is configured
+     * The document is parsed into a boolean value: true if the bucket is configured
      * as Requester Pays, false if it is configured as Owner pays. This boolean value
      * is available via the {@link #isRequesterPays()} method.
      * 
      * @author James Murty
      */
-    public class RequestPaymentConfigurationHandler extends DefaultHandler {
+    public class RequestPaymentConfigurationHandler extends MyDefaultHandler {
         private String payer = null;
-
-        private StringBuffer currText = null;
-
-        public RequestPaymentConfigurationHandler() {
-            super();
-        }
 
         /**
          * @return
-         * true if the bucket's is configured as Requester Pays, false if it is 
+         * true if the bucket is configured as Requester Pays, false if it is 
          * configured as Owner pays.
          */
         public boolean isRequesterPays() {            
             return "Requester".equals(payer);
         }
 
-        public void startDocument() {
-        }
-
-        public void endDocument() {
-        }
-
-        public void startElement(String uri, String name, String qName, Attributes attrs) {
-            if (name.equals("RequestPaymentConfiguration")) {
-            } 
-            this.currText = new StringBuffer();
-        }
-
-        public void endElement(String uri, String name, String qName) {
-            String elementText = this.currText.toString();
+        public void endElement(String name, String elementText) {
             if (name.equals("Payer")) {
                 payer = elementText;
             } 
         }
+    }
+
+    public class VersioningConfigurationHandler extends MyDefaultHandler {
+        private String status = null;
+
+        /**
+         * @return
+         * true if the bucket has versioning enabled, false otherwise.
+         */
+        public boolean isVersioningEnabled() {            
+            return "Enabled".equals(status);
+        }
+
+        public void endElement(String name, String elementText) {
+            if (name.equals("Status")) {
+                status = elementText;
+            } 
+        }
+    }
+
+    public class ListVersionsResultsHandler extends MyDefaultHandler {
+        private List items = new ArrayList();
+        private List commonPrefixes = new ArrayList();
+        
+    	private String key = null;
+    	private String versionId = null;
+    	private boolean isLatest = false;
+    	private Date lastModified = null;
+    	private S3Owner owner = null;
+
+    	private String etag = null;
+    	private long size = 0;
+    	private String storageClass = null;
+
+        private boolean insideCommonPrefixes = false;
+
+        // Listing properties.
+        private String bucketName = null;
+        private String requestPrefix = null;
+        private String keyMarker = null;
+        private String versionIdMarker = null;
+        private long requestMaxKeys = 0;
+        private boolean listingTruncated = false;
+        private String nextMarker = null;
+        private String nextVersionIdMarker = null;
+
+        /**
+         * @return
+         * true if the listing document was truncated, and therefore only contained a subset of the
+         * available S3 objects.
+         */
+        public boolean isListingTruncated() {
+            return listingTruncated;
+        }
+
+        /**
+         * @return
+         * the S3 objects contained in the listing.
+         */
+        public BaseVersionOrDeleteMarker[] getItems() {
+            return (BaseVersionOrDeleteMarker[]) items.toArray(new BaseVersionOrDeleteMarker[items.size()]);
+        }
+
+        public String[] getCommonPrefixes() {
+            return (String[]) commonPrefixes.toArray(new String[commonPrefixes.size()]);
+        }
+
+        public String getRequestPrefix() {
+            return requestPrefix;
+        }
+
+        public String getKeyMarker() {
+            return keyMarker;
+        }
+        
+        public String getVersionIdMarker() {
+            return versionIdMarker;
+        }
+
+        public String getNextKeyMarker() {
+            return nextMarker;
+        }
+
+        public String getNextVersionIdMarker() {
+            return nextVersionIdMarker;
+        }
+
+        public long getRequestMaxKeys() {
+            return requestMaxKeys;
+        }
+        
+        public void startElement(String name) {
+            if (name.equals("Owner")) {
+                owner = null;
+            } else if (name.equals("CommonPrefixes")) {
+                insideCommonPrefixes = true;
+            }
+        }
+
+        public void endElement(String name, String elementText) {
+            // Listing details
+            if (name.equals("Name")) {
+                bucketName = elementText;
+                if (log.isDebugEnabled()) {
+                	log.debug("Examining listing for bucket: " + bucketName);
+                }
+            } else if (!insideCommonPrefixes && name.equals("Prefix")) {
+            	requestPrefix = elementText;
+            } else if (name.equals("KeyMarker")) {
+                keyMarker = elementText;
+            } else if (name.equals("NextKeyMarker")) {
+                nextMarker = elementText;
+            } else if (name.equals("VersionIdMarker")) {
+                versionIdMarker = elementText;
+            } else if (name.equals("NextVersionIdMarker")) {
+                nextVersionIdMarker = elementText;
+            } else if (name.equals("MaxKeys")) {
+                requestMaxKeys = Long.parseLong(elementText);
+            } else if (name.equals("IsTruncated")) {
+                String isTruncatedStr = elementText.toLowerCase(Locale.getDefault());
+                if (isTruncatedStr.startsWith("false")) {
+                    listingTruncated = false;
+                } else if (isTruncatedStr.startsWith("true")) {
+                    listingTruncated = true;
+                } else {
+                    throw new RuntimeException("Invalid value for IsTruncated field: "
+                        + isTruncatedStr);
+                }
+            }
+            // Version/DeleteMarker finished.
+            else if (name.equals("Version")) {
+            	BaseVersionOrDeleteMarker item = new S3Version(key, versionId, 
+        			isLatest, lastModified, owner, etag, size, storageClass); 
+            	items.add(item);
+            } else if (name.equals("DeleteMarker")) {
+            	BaseVersionOrDeleteMarker item = new S3DeleteMarker(key, versionId, 
+            			isLatest, lastModified, owner); 
+            	items.add(item);
+
+            // Version/DeleteMarker details
+            } else if (name.equals("Key")) {
+            	key = elementText;
+            } else if (name.equals("VersionId")) {
+            	versionId = elementText;
+            } else if (name.equals("IsLatest")) {
+            	isLatest = "true".equals(elementText);
+            } else if (name.equals("LastModified")) {
+                try {
+                    lastModified = ServiceUtils.parseIso8601Date(elementText);
+                } catch (ParseException e) {
+                    throw new RuntimeException(
+                		"Non-ISO8601 date for LastModified in bucket's versions listing output: " 
+                		+ elementText, e);
+                }
+            } else if (name.equals("ETag")) {
+                etag = elementText;
+            } else if (name.equals("Size")) {
+                size = Long.parseLong(elementText);
+            } else if (name.equals("StorageClass")) {
+                storageClass = elementText;
+            }
+            // Owner details.
+            else if (name.equals("ID")) {
+                owner = new S3Owner();                
+                owner.setId(elementText);
+            } else if (name.equals("DisplayName")) {
+                owner.setDisplayName(elementText);
+            }
+            // Common prefixes.
+            else if (insideCommonPrefixes && name.equals("Prefix")) {
+                commonPrefixes.add(elementText);
+            } else if (name.equals("CommonPrefixes")) {
+                insideCommonPrefixes = false;
+            }
+        }
+    }
+
+    public class MyDefaultHandler extends DefaultHandler {
+        private StringBuffer currText = null;
+
+        public void startDocument() {}
+
+        public void endDocument() {}
+
+        public void startElement(String uri, String name, String qName, Attributes attrs) {
+            this.currText = new StringBuffer();
+            this.startElement(name);
+        }
+
+        public void startElement(String name) { }
+
+        public void endElement(String uri, String name, String qName) {
+            String elementText = this.currText.toString();
+            this.endElement(name, elementText);
+        }
+
+        public void endElement(String name, String content) { }
 
         public void characters(char ch[], int start, int length) {
             this.currText.append(ch, start, length);
