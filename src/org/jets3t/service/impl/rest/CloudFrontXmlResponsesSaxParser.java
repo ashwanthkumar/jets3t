@@ -408,7 +408,7 @@ public class CloudFrontXmlResponsesSaxParser {
         	this.trustedSignerSelf = true;
         }
         
-        public void endAWSAccountNumber(String text) {
+        public void endAwsAccountNumber(String text) {
         	this.trustedSignerAwsAccountNumberList.add(text);
         }
 

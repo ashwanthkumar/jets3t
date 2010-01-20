@@ -8,6 +8,11 @@ TOOLKIT
 
 - Added support for the new S3 Versioning feature (Beta Design).
 
+  * CloudFront Service
+
+- Fixed bug parsing that prevented AWS Account Numbers from 
+  being parsed from XML responses into a DistributionConfig object.
+
 COCKPIT
 
 - Fixed bug that caused Cockpit to create buckets in the US Standard 
