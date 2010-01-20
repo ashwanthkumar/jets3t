@@ -466,13 +466,13 @@ public class CodeSamples {
          */
         // 
         S3Bucket versioningBucket = new S3Bucket(
-    		"test-versioning", S3Bucket.LOCATION_US_WEST);
+            "test-versioning", S3Bucket.LOCATION_US_WEST);
         s3Service.createBucket(versioningBucket);
         String vBucketName = versioningBucket.getName();
         
         // Test whether versioning is enabled for a bucket
-		boolean versioningEnabled = 
-			s3Service.isBucketVersioningEnabled(vBucketName); 
+        boolean versioningEnabled = 
+            s3Service.isBucketVersioningEnabled(vBucketName); 
         System.out.println("Versioning enabled ? " + versioningEnabled);
 
         // Suspend (disable) versioning for a bucket.
@@ -494,74 +494,73 @@ public class CodeSamples {
         versionedObject = new S3Object("versioned-object", "Final version");
         s3Service.putObject(vBucketName, versionedObject);
         
-	    // If you retrieve an object with the standard method you will
+        // If you retrieve an object with the standard method you will
         // get the latest version, and if the object is in a versioned
         // bucket its Version ID will be available
-	    versionedObject = s3Service.getObject(vBucketName, "versioned-object");
-	    String finalVersionId = versionedObject.getVersionId();
-	    System.out.println("Version ID: " + finalVersionId);
+        versionedObject = s3Service.getObject(vBucketName, "versioned-object");
+        String finalVersionId = versionedObject.getVersionId();
+        System.out.println("Version ID: " + finalVersionId);
 
-	    // If you delete a versioned object it is no longer available using
-	    // standard methods...
+        // If you delete a versioned object it is no longer available using
+        // standard methods...
         s3Service.deleteObject(vBucketName, "versioned-object");
         try {
-        	s3Service.getObject(vBucketName, "versioned-object");
+            s3Service.getObject(vBucketName, "versioned-object");
         } catch (S3ServiceException e) {
-        	if (e.getResponseCode() == 404) {
-	        	System.out.println("Is deleted object versioned? " 
-	    			+ e.getResponseHeaders().get(Constants.AMZ_DELETE_MARKER));
-	        	System.out.println("Delete marker version ID: " 
-	    			+ e.getResponseHeaders().get(Constants.AMZ_VERSION_ID));
-        	}
+            if (e.getResponseCode() == 404) {
+                System.out.println("Is deleted object versioned? " 
+                    + e.getResponseHeaders().get(Constants.AMZ_DELETE_MARKER));
+                System.out.println("Delete marker version ID: " 
+                    + e.getResponseHeaders().get(Constants.AMZ_VERSION_ID));
+            }
         }
         // ... but you can use a versioning-aware method to retrieve any of 
         // the prior versions by Version ID.
         versionedObject = s3Service.getVersionedObject(finalVersionId, 
-        		vBucketName, "versioned-object");
+            vBucketName, "versioned-object");
         String versionedData = ServiceUtils.readInputStreamToString(
-    		versionedObject.getDataInputStream(), "UTF-8"); 
+            versionedObject.getDataInputStream(), "UTF-8"); 
         System.out.println("Data from prior version of deleted document: " 
-    		+ versionedData);     		
+            + versionedData);             
 
         // List all the object versions in the bucket, with no prefix
         // or delimiter restrictions. Each result object will be one of
         // S3Version or S3DeleteMarker.
-	    BaseVersionOrDeleteMarker[] versions = 
-	    	s3Service.listVersionedObjects(vBucketName, null, null);
-	    for (int i = 0; i < versions.length; i++) {
-	    	System.out.println(versions[i]);
-	    }
+        BaseVersionOrDeleteMarker[] versions = 
+            s3Service.listVersionedObjects(vBucketName, null, null);
+        for (int i = 0; i < versions.length; i++) {
+            System.out.println(versions[i]);
+        }
 
-	    // List versions of objects that match a prefix.
-	    String versionPrefix = "versioned-object";
-	    versions = s3Service.listVersionedObjects(vBucketName, versionPrefix, null);
+        // List versions of objects that match a prefix.
+        String versionPrefix = "versioned-object";
+        versions = s3Service.listVersionedObjects(vBucketName, versionPrefix, null);
 
-	    // JetS3t includes a convenience method to list only the versions
-	    // for a specific object, even if it shares a prefix with other objects.
-	    versions = s3Service.getObjectVersions(vBucketName, "versioned-object");
+        // JetS3t includes a convenience method to list only the versions
+        // for a specific object, even if it shares a prefix with other objects.
+        versions = s3Service.getObjectVersions(vBucketName, "versioned-object");
 
-	    // There are versioning-aware methods corresponding to all S3 operations
-	    s3Service.getVersionedObjectDetails(finalVersionId, 
-	    		vBucketName, "versioned-object");
+        // There are versioning-aware methods corresponding to all S3 operations
+        s3Service.getVersionedObjectDetails(finalVersionId, 
+            vBucketName, "versioned-object");
 
-	    s3Service.copyVersionedObject(finalVersionId, 
-	    		vBucketName, "versioned-object", 
-    		"destination-bucket", new S3Object("copied-from-version"), 
-    		false, null, null, null, null);
+        s3Service.copyVersionedObject(finalVersionId, 
+            vBucketName, "versioned-object", 
+            "destination-bucket", new S3Object("copied-from-version"), 
+            false, null, null, null, null);
     
-	    AccessControlList versionedObjectAcl = 
-	    	s3Service.getVersionedObjectAcl(finalVersionId, 
-	    			vBucketName, "versioned-object");
+        AccessControlList versionedObjectAcl = 
+            s3Service.getVersionedObjectAcl(finalVersionId, 
+                vBucketName, "versioned-object");
     
-	    s3Service.putVersionedObjectAcl(finalVersionId, 
-	    		vBucketName, "versioned-object",
-    			versionedObjectAcl);
+        s3Service.putVersionedObjectAcl(finalVersionId, 
+            vBucketName, "versioned-object", versionedObjectAcl);
     
-	    // To delete an object version once-and-for-all you must use the
-	    // versioning-specific delete operation, and you can only do so
-	    // if you are the owner of the bucket containing the version.
-	    s3Service.deleteVersionedObject(finalVersionId, 
-	    		vBucketName, "versioned-object");
+        // To delete an object version once-and-for-all you must use the
+        // versioning-specific delete operation, and you can only do so
+        // if you are the owner of the bucket containing the version.
+        s3Service.deleteVersionedObject(finalVersionId, 
+            vBucketName, "versioned-object");
 
         /* *****************
          * Advanced Examples
