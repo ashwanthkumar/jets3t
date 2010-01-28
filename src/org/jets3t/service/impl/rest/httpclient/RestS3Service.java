@@ -1431,9 +1431,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             commonPrefixes.addAll(Arrays.asList(partialCommonPrefixes));
 
             incompleteListing = handler.isListingTruncated();            
+            nextKeyMarker = handler.getNextKeyMarker();
+            nextVersionIdMarker = handler.getNextVersionIdMarker();
             if (incompleteListing) {
-                nextKeyMarker = handler.getNextKeyMarker();
-                nextVersionIdMarker = handler.getNextVersionIdMarker();
                 if (log.isDebugEnabled()) {
                     log.debug("Yet to receive complete listing of bucket versions, "
                         + "continuing with key-marker=" + nextKeyMarker
