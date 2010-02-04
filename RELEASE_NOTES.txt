@@ -7,6 +7,11 @@ TOOLKIT
   * General
 
 - Added support for the new S3 Versioning feature (Beta Design).
+- S3ServiceMulti#downloadObjects method now automatically verifies
+  that the data received matches the ETag MD5 hash value provided by
+  S3. JetS3t's applications, and any third-party clients that use 
+  this method, will therefore get automatic data verificaiton of
+  downloads similar to that provided (in most cases) for uploads.
 
   * CloudFront Service
 

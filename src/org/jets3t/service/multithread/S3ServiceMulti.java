@@ -26,6 +26,8 @@ import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -2086,13 +2088,45 @@ public class S3ServiceMulti implements Serializable {
                 bufferedOutputStream = new BufferedOutputStream(
                     downloadPackage.getOutputStream());
 
+                MessageDigest messageDigest = null;
+                try {
+                    messageDigest = MessageDigest.getInstance("MD5");
+                } catch (NoSuchAlgorithmException e) {
+                	if (log.isWarnEnabled()) {
+                		log.warn("Unable to calculate MD5 hash of data received as algorithm is not available", e);
+                	}
+                }
+
                 try {
                     byte[] buffer = new byte[1024];
                     int byteCount = -1;
     
                     while ((byteCount = bufferedInputStream.read(buffer)) != -1) {
                         bufferedOutputStream.write(buffer, 0, byteCount);
+
+                        if (messageDigest != null) {
+                            messageDigest.update(buffer, 0, byteCount);
+                        }            
                     }
+                    
+                    // Check that actual bytes received match expected hash value
+                    if (messageDigest != null) {
+                        byte[] dataMD5Hash = messageDigest.digest();
+                        String hexMD5OfDownloadedData = ServiceUtils.toHex(dataMD5Hash);
+                        
+                        if (!hexMD5OfDownloadedData.equals(object.getETag())) {
+                            throw new S3ServiceException("Mismatch between MD5 hash of downloaded data ("
+                                + hexMD5OfDownloadedData + ") and ETag returned by S3 (" 
+                                + object.getETag() + ") for object key: "
+                                + object.getKey());
+                        } else {
+                            if (log.isDebugEnabled()) {
+                                log.debug("Object download was automatically verified, the calculated MD5 hash "+ 
+                                    "value matched the ETag provided by S3: " + object.getKey());
+                            }
+                        }                        
+                    }
+
                 } finally {
                     if (bufferedOutputStream != null) {
                         bufferedOutputStream.close();                        
@@ -2104,7 +2138,7 @@ public class S3ServiceMulti implements Serializable {
 
                 object.setDataInputStream(null);
                 object.setDataInputFile(downloadPackage.getDataFile());
-                
+
                 // If data was downloaded to a file, set the file's Last Modified date
                 // to the original last modified date metadata stored with the object.                
                 if (restoreLastModifiedDate && downloadPackage.getDataFile() != null) {
