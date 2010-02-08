@@ -166,6 +166,7 @@ public class Constants {
     public static final String AMZ_SECURITY_TOKEN = "x-amz-security-token";
     public static final String AMZ_VERSION_ID = "x-amz-version-id";
     public static final String AMZ_DELETE_MARKER = "x-amz-delete-marker";
+    public static final String AMZ_MULTI_FACTOR_AUTH_CODE = "x-amz-mfa";
 
     ///////////////////////////////////
     // Headers used by SOAP S3 Services

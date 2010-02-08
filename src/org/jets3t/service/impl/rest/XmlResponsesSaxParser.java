@@ -43,6 +43,7 @@ import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
+import org.jets3t.service.model.S3BucketVersioningStatus;
 import org.jets3t.service.model.S3DeleteMarker;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Owner;
@@ -288,12 +289,12 @@ public class XmlResponsesSaxParser {
      *      
      * @throws S3ServiceException
      */
-    public boolean parseVersioningConfigurationResponse(InputStream inputStream)
-        throws S3ServiceException
+    public S3BucketVersioningStatus parseVersioningConfigurationResponse(
+		InputStream inputStream) throws S3ServiceException
     {
         VersioningConfigurationHandler handler = new VersioningConfigurationHandler();
         parseXmlInputStream(handler, inputStream);
-        return handler.isVersioningEnabled();
+        return handler.getVersioningStatus();
     }
 
     public ListVersionsResultsHandler parseListVersionsResponse(InputStream inputStream)
@@ -796,20 +797,24 @@ public class XmlResponsesSaxParser {
     }
 
     public class VersioningConfigurationHandler extends MyDefaultHandler {
+    	private S3BucketVersioningStatus versioningStatus = null;
         private String status = null;
+        private String mfaStatus = null;
 
-        /**
-         * @return
-         * true if the bucket has versioning enabled, false otherwise.
-         */
-        public boolean isVersioningEnabled() {            
-            return "Enabled".equals(status);
+        public S3BucketVersioningStatus getVersioningStatus() {
+        	return this.versioningStatus;
         }
 
         public void endElement(String name, String elementText) {
             if (name.equals("Status")) {
-                status = elementText;
-            } 
+            	this.status = elementText;
+            } else if (name.equals("MfaDelete")) {
+            	this.mfaStatus = elementText;
+            } else if (name.equals("VersioningConfiguration")) {
+            	this.versioningStatus = new S3BucketVersioningStatus(
+        			"Enabled".equals(status),
+        			"Enabled".equals(mfaStatus));
+            }
         }
     }
 

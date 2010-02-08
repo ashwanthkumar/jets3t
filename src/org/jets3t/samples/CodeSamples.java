@@ -37,6 +37,7 @@ import org.jets3t.service.acl.Permission;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.BaseVersionOrDeleteMarker;
 import org.jets3t.service.model.S3Bucket;
+import org.jets3t.service.model.S3BucketVersioningStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.multithread.DownloadPackage;
 import org.jets3t.service.multithread.S3ServiceSimpleMulti;
@@ -464,18 +465,19 @@ public class CodeSamples {
          * the initial beta phase it is only available in the 
          * "us-west-1" (S3Bucket.LOCATION_US_WEST) location.
          */
-        // 
-        S3Bucket versioningBucket = new S3Bucket(
-            "test-versioning", S3Bucket.LOCATION_US_WEST);
-        s3Service.createBucket(versioningBucket);
+        // Create a bucket to test versioning
+        S3Bucket versioningBucket = s3Service.getOrCreateBucket(
+            "test-versioning");
         String vBucketName = versioningBucket.getName();
         
-        // Test whether versioning is enabled for a bucket
-        boolean versioningEnabled = 
-            s3Service.isBucketVersioningEnabled(vBucketName); 
-        System.out.println("Versioning enabled ? " + versioningEnabled);
+        // Check bucket versioning status for the bucket
+        S3BucketVersioningStatus versioningStatus =
+            s3Service.getBucketVersioningStatus(vBucketName); 
+        System.out.println("Versioning enabled ? " 
+            + versioningStatus.isVersioningEnabled());
 
-        // Suspend (disable) versioning for a bucket.
+        // Suspend (disable) versioning for a bucket -- will have no
+        // effect if bucket versioning is not yet enabled.
         // This will not delete any existing object versions.
         s3Service.suspendBucketVersioning(vBucketName);
         
@@ -541,8 +543,12 @@ public class CodeSamples {
         versions = s3Service.getObjectVersions(vBucketName, "versioned-object");
 
         // There are versioning-aware methods corresponding to all S3 operations
-        s3Service.getVersionedObjectDetails(finalVersionId, 
-            vBucketName, "versioned-object");
+        versionedObject = s3Service.getVersionedObjectDetails(
+            finalVersionId, vBucketName, "versioned-object");
+        // Confirm that S3 returned the versioned object you requested
+        if (!finalVersionId.equals(versionedObject.getVersionId())) {
+            throw new Exception("Incorrect version!");
+        }
 
         s3Service.copyVersionedObject(finalVersionId, 
             vBucketName, "versioned-object", 
@@ -562,6 +568,39 @@ public class CodeSamples {
         s3Service.deleteVersionedObject(finalVersionId, 
             vBucketName, "versioned-object");
 
+        //////////////////////////////////////////////////////////////
+        // For additional data protection you can require multi-factor
+        // authentication (MFA) to delete object versions.
+        //////////////////////////////////////////////////////////////
+        
+        // Require multi-factor authentication to delete versions. 
+        s3Service.enableBucketVersioningWithMFA(vBucketName);
+
+        // Check MFA status for the bucket
+        versioningStatus = s3Service.getBucketVersioningStatus(vBucketName);
+        System.out.println("Multi-factor auth required to delete versions ? "
+            + versioningStatus.isMultiFactorAuthDeleteRequired());
+
+        // If MFA is enabled for a bucket you must provide the serial number
+        // for your multi-factor authentication device and a recent code to 
+        // delete object versions.
+        String multiFactorSerialNumber = "#111222333";
+        String multiFactorAuthCode = "12345678";
+        
+        s3Service.deleteVersionedObjectWithMFA(finalVersionId,
+            multiFactorSerialNumber, multiFactorAuthCode, vBucketName, "versioned-object");
+        
+        // With MFA enabled, you must provide your multi-factor auth credentials
+        // to disable MFA.
+        s3Service.disableMFAForVersionedBucket(vBucketName,
+            multiFactorSerialNumber, multiFactorAuthCode);
+
+        // With MFA enabled, you must provide your multi-factor auth credentials
+        // to suspend S3 versioning altogether. However, the credentials will not
+        // be needed if you have already disabled MFA.
+        s3Service.suspendBucketVersioningWithMFA(vBucketName, 
+            multiFactorSerialNumber, multiFactorAuthCode);
+                
         /* *****************
          * Advanced Examples
          * ***************** 

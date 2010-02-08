@@ -76,6 +76,7 @@ import org.jets3t.service.impl.soap.axis._2006_03_01.PutObjectResult;
 import org.jets3t.service.model.BaseVersionOrDeleteMarker;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
+import org.jets3t.service.model.S3BucketVersioningStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Owner;
 import org.jets3t.service.security.AWSCredentials;
@@ -704,10 +705,12 @@ public class SoapS3Service extends S3Service {
         return object;
     }
 
-    protected void deleteObjectImpl(String bucketName, String objectKey, String versionId) 
+    protected void deleteObjectImpl(String bucketName, String objectKey, 
+		String versionId, String multiFactorSerialNumber, String multiFactorAuthCode)
     	throws S3ServiceException 
 	{
-    	if (versionId != null) {
+    	if (versionId != null || multiFactorSerialNumber != null || multiFactorAuthCode != null) 
+    	{
             throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
     	}
         try {
@@ -1044,7 +1047,7 @@ public class SoapS3Service extends S3Service {
             "please use the REST API client class RestS3Service instead");        
     }
 
-	protected boolean isBucketVersioningEnabledImpl(String bucketName)
+	protected S3BucketVersioningStatus getBucketVersioningStatusImpl(String bucketName)
 			throws S3ServiceException 
 	{
         throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
@@ -1068,7 +1071,9 @@ public class SoapS3Service extends S3Service {
 	}
 
 	protected void updateBucketVersioningStatusImpl(String bucketName,
-			boolean enabled) throws S3ServiceException 
+			boolean enabled, boolean multiFactorAuthDeleteEnabled,
+			String multiFactorSerialNumber, String multiFactorAuthCode)
+			throws S3ServiceException 
 	{
         throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
 	}
