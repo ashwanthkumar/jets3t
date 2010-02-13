@@ -33,7 +33,7 @@ import org.apache.commons.httpclient.util.ExceptionUtil;
 /**
  * Signals a problem with auto-detecting the proxy information using the java
  * plugin.
- * 
+ *
  * <p>
  * DISCLAIMER: HttpClient developers DO NOT actively support this component.
  * The component is provided as a reference material, which may be inappropriate
@@ -43,7 +43,7 @@ import org.apache.commons.httpclient.util.ExceptionUtil;
 public class ProxyDetectionException extends Exception {
 
     /**
-     * Creates a new ProxyDetectionException with a <tt>null</tt> detail message. 
+     * Creates a new ProxyDetectionException with a <tt>null</tt> detail message.
      */
     public ProxyDetectionException() {
         super();
@@ -51,7 +51,7 @@ public class ProxyDetectionException extends Exception {
 
     /**
      * Creates a new ProxyDetectionException with the specified detail message.
-     * 
+     *
      * @param message The exception detail message
      */
     public ProxyDetectionException(String message) {
@@ -59,12 +59,12 @@ public class ProxyDetectionException extends Exception {
     }
 
     /**
-     * Creates a new ProxyDetectionException with the specified detail message 
+     * Creates a new ProxyDetectionException with the specified detail message
      * and cause.
-     * 
+     *
      * @param message the exception detail message
-     * @param cause the <tt>Throwable</tt> that caused this exception, or 
-     *              <tt>null</tt> if the cause is unavailable, unknown, or not 
+     * @param cause the <tt>Throwable</tt> that caused this exception, or
+     *              <tt>null</tt> if the cause is unavailable, unknown, or not
      *              a <tt>Throwable</tt>
      */
     public ProxyDetectionException(String message, Throwable cause) {

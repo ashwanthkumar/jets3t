@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2006 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.service.utils;
 
@@ -63,7 +63,7 @@ import org.jets3t.service.io.UnrecoverableIOException;
 
 /**
  * Utilities useful for REST/HTTP S3Service implementations.
- * 
+ *
  * @author James Murty
  */
 public class RestUtils {
@@ -97,13 +97,13 @@ public class RestUtils {
         "cache-control",
         "content-disposition",
         "content-encoding"
-        }); 
+        });
 
 
     /**
      * Encodes a URL string, and ensures that spaces are encoded as "%20" instead of "+" to keep
      * fussy web browsers happier.
-     * 
+     *
      * @param path
      * @return
      * encoded URL.
@@ -113,7 +113,7 @@ public class RestUtils {
         try {
             String encodedPath = URLEncoder.encode(path, Constants.DEFAULT_ENCODING);
             // Web browsers do not always handle '+' characters well, use the well-supported '%20' instead.
-            encodedPath = encodedPath.replaceAll("\\+", "%20");            
+            encodedPath = encodedPath.replaceAll("\\+", "%20");
             return encodedPath;
         } catch (UnsupportedEncodingException uee) {
             throw new S3ServiceException("Unable to encode path: " + path, uee);
@@ -123,7 +123,7 @@ public class RestUtils {
     /**
      * Encodes a URL string but leaves a delimiter string unencoded.
      * Spaces are encoded as "%20" instead of "+".
-     * 
+     *
      * @param path
      * @param delimiter
      * @return
@@ -141,10 +141,10 @@ public class RestUtils {
         }
         return result.toString();
     }
-    
+
     /**
-     * Calculate the canonical string for a REST/HTTP request to S3.  
-     * 
+     * Calculate the canonical string for a REST/HTTP request to S3.
+     *
      * When expires is non-null, it will be used instead of the Date header.
      */
     public static String makeS3CanonicalString(String method, String resource, Map headersMap, String expires)
@@ -161,20 +161,20 @@ public class RestUtils {
                 Map.Entry entry = (Map.Entry) headerIter.next();
                 Object key = entry.getKey();
                 Object value = entry.getValue();
-                
-                if (key == null) continue;                
+
+                if (key == null) continue;
                 String lk = key.toString().toLowerCase(Locale.getDefault());
 
                 // Ignore any headers that are not particularly interesting.
                 if (lk.equals("content-type") || lk.equals("content-md5") || lk.equals("date") ||
                     lk.startsWith(Constants.REST_HEADER_PREFIX))
-                {                        
+                {
                     interestingHeaders.put(lk, value);
                 }
             }
         }
 
-        // Remove default date timestamp if "x-amz-date" is set. 
+        // Remove default date timestamp if "x-amz-date" is set.
         if (interestingHeaders.containsKey(Constants.REST_METADATA_ALTERNATE_DATE)) {
             interestingHeaders.put("date", "");
         }
@@ -199,7 +199,7 @@ public class RestUtils {
             Map.Entry entry = (Map.Entry) i.next();
             String key = (String) entry.getKey();
             Object value = entry.getValue();
-            
+
             if (key.startsWith(Constants.REST_HEADER_PREFIX)) {
                 buf.append(key).append(':').append(value);
             } else {
@@ -216,7 +216,7 @@ public class RestUtils {
             buf.append(resource.substring(0, queryIndex));
         }
 
-        // ...unless parameter is one of: acl, torrent, logging, requestPayment, 
+        // ...unless parameter is one of: acl, torrent, logging, requestPayment,
         // versions, versioning, versionId.
         boolean existingParams = false;
         if (resource.matches(".*[&?]acl($|=|&).*")) {
@@ -240,24 +240,24 @@ public class RestUtils {
         } else if (resource.matches(".*[&?]versioning($|=|&).*")) {
             buf.append("?versioning");
             existingParams = true;
-        } 
+        }
         if (resource.matches(".*[&?](versionId=.+)($|&).*")) {
-        	Pattern pattern = Pattern.compile(".*[&?](versionId=.+)($|&).*");
-        	Matcher matcher = pattern.matcher(resource);
-        	if (matcher.matches()) {
+            Pattern pattern = Pattern.compile(".*[&?](versionId=.+)($|&).*");
+            Matcher matcher = pattern.matcher(resource);
+            if (matcher.matches()) {
                 buf.append( (existingParams ? "&" : "?") + matcher.group(1));
-        	}
+            }
         }
 
         return buf.toString();
     }
-    
+
     /**
      * Renames metadata property names to be suitable for use as HTTP Headers. This is done
-     * by renaming any non-HTTP headers to have the prefix <code>x-amz-meta-</code> and leaving the 
-     * HTTP header names unchanged. The HTTP header names left unchanged are those found in 
-     * {@link #HTTP_HEADER_METADATA_NAMES} 
-     * 
+     * by renaming any non-HTTP headers to have the prefix <code>x-amz-meta-</code> and leaving the
+     * HTTP header names unchanged. The HTTP header names left unchanged are those found in
+     * {@link #HTTP_HEADER_METADATA_NAMES}
+     *
      * @param metadata
      * @return
      * a map of metadata property name/value pairs renamed to be suitable for use as HTTP headers.
@@ -267,36 +267,36 @@ public class RestUtils {
         // Add all meta-data headers.
         if (metadata != null) {
             Iterator metaDataIter = metadata.entrySet().iterator();
-            while (metaDataIter.hasNext()) {                
+            while (metaDataIter.hasNext()) {
                 Map.Entry entry = (Map.Entry) metaDataIter.next();
                 String key = (String) entry.getKey();
                 Object value = entry.getValue();
 
-                if (!HTTP_HEADER_METADATA_NAMES.contains(key.toLowerCase(Locale.getDefault())) 
-                    && !key.startsWith(Constants.REST_HEADER_PREFIX)) 
+                if (!HTTP_HEADER_METADATA_NAMES.contains(key.toLowerCase(Locale.getDefault()))
+                    && !key.startsWith(Constants.REST_HEADER_PREFIX))
                 {
                     key = Constants.REST_METADATA_PREFIX + key;
-                }                
+                }
                 convertedMetadata.put(key, value);
             }
         }
         return convertedMetadata;
-    }    
-    
+    }
+
     /**
-     * Initialises, or re-initialises, the underlying HttpConnectionManager and 
-     * HttpClient objects a service will use to communicate with an AWS service. 
-	 * If proxy settings are specified in this service's {@link Jets3tProperties} object,
+     * Initialises, or re-initialises, the underlying HttpConnectionManager and
+     * HttpClient objects a service will use to communicate with an AWS service.
+     * If proxy settings are specified in this service's {@link Jets3tProperties} object,
      * these settings will also be passed on to the underlying objects.
-     * 
+     *
      * @param hostConfig
      * Custom HTTP host configuration; e.g to register a custom Protocol Socket Factory.
      * This parameter may be null, in which case a default host configuration will be
      * used.
      */
-    public static HttpClientAndConnectionManager initHttpConnection(final AWSRequestAuthorizer awsRequestAuthorizer, 
+    public static HttpClientAndConnectionManager initHttpConnection(final AWSRequestAuthorizer awsRequestAuthorizer,
         HostConfiguration hostConfig, Jets3tProperties jets3tProperties, String userAgentDescription,
-        CredentialsProvider credentialsProvider) 
+        CredentialsProvider credentialsProvider)
     {
         // Configure HttpClient properties based on Jets3t Properties.
         HttpConnectionManagerParams connectionParams = new HttpConnectionManagerParams();
@@ -311,18 +311,18 @@ public class RestUtils {
         // *and* also set the maximum number of total connections (new in 0.7.1).
         // The max connections per host setting is made the same value as the max
         // global connections if there is no per-host property.
-        int maxConnections = 
-        	jets3tProperties.getIntProperty("httpclient.max-connections", 20);
-        int maxConnectionsPerHost = 
-        	jets3tProperties.getIntProperty("httpclient.max-connections-per-host", 0);
+        int maxConnections =
+            jets3tProperties.getIntProperty("httpclient.max-connections", 20);
+        int maxConnectionsPerHost =
+            jets3tProperties.getIntProperty("httpclient.max-connections-per-host", 0);
         if (maxConnectionsPerHost == 0) {
-        	maxConnectionsPerHost = maxConnections;
+            maxConnectionsPerHost = maxConnections;
         }
-        
+
         connectionParams.setMaxConnectionsPerHost(
-    		HostConfiguration.ANY_HOST_CONFIGURATION, maxConnectionsPerHost);
+        	HostConfiguration.ANY_HOST_CONFIGURATION, maxConnectionsPerHost);
         connectionParams.setMaxTotalConnections(maxConnections);
-                
+
         // Connection properties to take advantage of S3 window scaling.
         if (jets3tProperties.containsKey("httpclient.socket-receive-buffer")) {
             connectionParams.setReceiveBufferSize(jets3tProperties.
@@ -332,18 +332,18 @@ public class RestUtils {
             connectionParams.setSendBufferSize(jets3tProperties.
                 getIntProperty("httpclient.socket-send-buffer", 0));
         }
-        
+
         connectionParams.setTcpNoDelay(true);
-                
+
         MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
         connectionManager.setParams(connectionParams);
-        
+
         // Set user agent string.
         HttpClientParams clientParams = new HttpClientParams();
         String userAgent = jets3tProperties.getStringProperty("httpclient.useragent", null);
         if (userAgent == null) {
             userAgent = ServiceUtils.getUserAgentDescription(userAgentDescription);
-        }        
+        }
         if (log.isDebugEnabled()) {
             log.debug("Setting user agent string: " + userAgent);
         }
@@ -353,18 +353,18 @@ public class RestUtils {
         clientParams.setBooleanParameter("http.protocol.expect-continue", true);
 
         // Replace default error retry handler.
-        final int retryMaxCount = jets3tProperties.getIntProperty("httpclient.retry-max", 5);        
-        
+        final int retryMaxCount = jets3tProperties.getIntProperty("httpclient.retry-max", 5);
+
         clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
             public boolean retryMethod(HttpMethod httpMethod, IOException ioe, int executionCount) {
                 if (executionCount > retryMaxCount) {
                     if (log.isWarnEnabled()) {
-                        log.warn("Retried connection " + executionCount 
+                        log.warn("Retried connection " + executionCount
                             + " times, which exceeds the maximum retry count of " + retryMaxCount);
                     }
-                    return false;                    
+                    return false;
                 }
-                
+
                 if  (ioe instanceof UnrecoverableIOException) {
                     if (log.isDebugEnabled()) {
                         log.debug("Deliberate interruption, will not retry");
@@ -374,13 +374,13 @@ public class RestUtils {
 
                 // Release underlying connection so we will get a new one (hopefully) when we retry.
                 httpMethod.releaseConnection();
-                
+
                 if (log.isDebugEnabled()) {
-                    log.debug("Retrying " + httpMethod.getName() + " request with path '" 
-                        + httpMethod.getPath() + "' - attempt " + executionCount 
+                    log.debug("Retrying " + httpMethod.getName() + " request with path '"
+                        + httpMethod.getPath() + "' - attempt " + executionCount
                         + " of " + retryMaxCount);
                 }
-                
+
                 // Build the authorization string for the method.
                 try {
                     awsRequestAuthorizer.authorizeHttpRequest(httpMethod);
@@ -389,18 +389,18 @@ public class RestUtils {
                         log.warn("Unable to generate updated authorization string for retried request", e);
                     }
                 }
-                
+
                 return true;
             }
         });
 
         long connectionManagerTimeout = jets3tProperties.getLongProperty(
-    		"httpclient.connection-manager-timeout", 0);
+        	"httpclient.connection-manager-timeout", 0);
         clientParams.setConnectionManagerTimeout(connectionManagerTimeout);
-        
+
         HttpClient httpClient = new HttpClient(clientParams, connectionManager);
         httpClient.setHostConfiguration(hostConfig);
-        
+
         if (credentialsProvider != null) {
             if (log.isDebugEnabled()) {
                 log.debug("Using credentials provider class: " + credentialsProvider.getClass().getName());
@@ -409,11 +409,11 @@ public class RestUtils {
             if (jets3tProperties.getBoolProperty("httpclient.authentication-preemptive", false)) {
                 httpClient.getParams().setAuthenticationPreemptive(true);
             }
-        }              
-        
+        }
+
         return new HttpClientAndConnectionManager(httpClient, connectionManager);
     }
-    
+
     /**
      * Initialises this service's HTTP proxy by auto-detecting the proxy settings.
      */
@@ -423,7 +423,7 @@ public class RestUtils {
 
     /**
      * Initialises this service's HTTP proxy with the given proxy settings.
-     * 
+     *
      * @param proxyHostAddress
      * @param proxyPort
      */
@@ -432,22 +432,22 @@ public class RestUtils {
     }
 
     /**
-     * Initialises this service's HTTP proxy for authentication using the given 
+     * Initialises this service's HTTP proxy for authentication using the given
      * proxy settings.
-     * 
+     *
      * @param proxyHostAddress
      * @param proxyPort
      * @param proxyUser
      * @param proxyPassword
      * @param proxyDomain
      * if a proxy domain is provided, an {@link NTCredentials} credential provider
-     * will be used. If the proxy domain is null, a 
-     * {@link UsernamePasswordCredentials} credentials provider will be used.   
+     * will be used. If the proxy domain is null, a
+     * {@link UsernamePasswordCredentials} credentials provider will be used.
      */
-    public static void initHttpProxy(HttpClient httpClient, String proxyHostAddress, 
-        int proxyPort, String proxyUser, String proxyPassword, String proxyDomain) 
+    public static void initHttpProxy(HttpClient httpClient, String proxyHostAddress,
+        int proxyPort, String proxyUser, String proxyPassword, String proxyDomain)
     {
-        initHttpProxy(httpClient, false, proxyHostAddress, proxyPort, 
+        initHttpProxy(httpClient, false, proxyHostAddress, proxyPort,
             proxyUser, proxyPassword, proxyDomain);
     }
 
@@ -460,19 +460,19 @@ public class RestUtils {
      * @param proxyPassword
      * @param proxyDomain
      */
-    protected static void initHttpProxy(HttpClient httpClient, boolean proxyAutodetect, 
-        String proxyHostAddress, int proxyPort, String proxyUser, 
-        String proxyPassword, String proxyDomain) 
+    protected static void initHttpProxy(HttpClient httpClient, boolean proxyAutodetect,
+        String proxyHostAddress, int proxyPort, String proxyUser,
+        String proxyPassword, String proxyDomain)
     {
         HostConfiguration hostConfig = httpClient.getHostConfiguration();
-        
+
         // Use explicit proxy settings, if available.
         if (proxyHostAddress != null && proxyPort != -1) {
             if (log.isInfoEnabled()) {
                 log.info("Using Proxy: " + proxyHostAddress + ":" + proxyPort);
             }
             hostConfig.setProxy(proxyHostAddress, proxyPort);
-            
+
             if (proxyUser != null && !proxyUser.trim().equals("")) {
                 if (proxyDomain != null) {
                     httpClient.getState().setProxyCredentials(
@@ -487,48 +487,48 @@ public class RestUtils {
             }
         }
         // If no explicit settings are available, try autodetecting proxies (unless autodetect is disabled)
-        else if (proxyAutodetect) {        
+        else if (proxyAutodetect) {
             // Try to detect any proxy settings from applet.
             ProxyHost proxyHost = null;
-            try {            
+            try {
                 proxyHost = PluginProxyUtil.detectProxy(new URL("http://" + Constants.S3_HOSTNAME));
                 if (proxyHost != null) {
                     if (log.isInfoEnabled()) {
                         log.info("Using Proxy: " + proxyHost.getHostName() + ":" + proxyHost.getPort());
                     }
                     hostConfig.setProxyHost(proxyHost);
-                }                
+                }
             } catch (Throwable t) {
                 if (log.isDebugEnabled()) {
                     log.debug("Unable to set proxy configuration", t);
                 }
-            }        
-        }                
+            }
+        }
     }
 
     /**
      * Calculates a time offset value to reflect the time difference between your
-     * computer's clock and the current time according to an AWS server, and 
+     * computer's clock and the current time according to an AWS server, and
      * returns the calculated time difference.
-     * 
+     *
      * Ideally you should not rely on this method to overcome clock-related
      * disagreements between your computer and AWS. If you computer is set
-     * to update its clock periodically and has the correct timezone setting 
+     * to update its clock periodically and has the correct timezone setting
      * you should never have to resort to this work-around.
      */
     public static long getAWSTimeAdjustment() throws Exception {
         RestS3Service restService = new RestS3Service(null);
         HttpClient client = restService.getHttpClient();
         long timeOffset = 0;
-        
+
         // Connect to an AWS server to obtain response headers.
         GetMethod getMethod = new GetMethod("http://aws.amazon.com/");
         int result = client.executeMethod(getMethod);
-        
+
         if (result == 200) {
             Header dateHeader = getMethod.getResponseHeader("Date");
             // Retrieve the time according to AWS, based on the Date header
-            Date awsTime = ServiceUtils.parseRfc822Date(dateHeader.getValue());            
+            Date awsTime = ServiceUtils.parseRfc822Date(dateHeader.getValue());
 
             // Calculate the difference between the current time according to AWS,
             // and the current time according to your computer's clock.
@@ -543,12 +543,12 @@ public class RestUtils {
             if (log.isWarnEnabled()) {
                 log.warn("Unable to calculate value of time offset between the "
                     + "local machine and AWS server");
-            }            
+            }
         }
 
         return timeOffset;
     }
-    
+
     public static Map convertHeadersToMap(Header[] headers) {
         Map s3Headers = new HashMap();
         for (int i = 0; i < headers.length; i++) {
@@ -557,5 +557,5 @@ public class RestUtils {
         }
         return s3Headers;
     }
-        
+
 }

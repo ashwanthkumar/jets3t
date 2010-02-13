@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2006 James Murty, 2008 Zmanda Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.service;
 
@@ -22,24 +22,24 @@ import java.io.File;
 
 /**
  * Constants used by the S3Service and its implementation classes.
- * 
+ *
  * @author James Murty
  * @author Nikolas Coukouma
  */
 public class Constants {
 
-    public static String S3_HOSTNAME = "s3.amazonaws.com";        
+    public static String S3_HOSTNAME = "s3.amazonaws.com";
 
     ////////////////////////////////////
     // Default file names and locations.
     ////////////////////////////////////
-    
+
     /**
      * The name of the <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html#jets3t">JetS3t properties</a>
      * file: jets3t.properties
      */
     public static String JETS3T_PROPERTIES_FILENAME = "jets3t.properties";
-    
+
     /**
      * The file containing local Cockpit preferences.
      */
@@ -56,13 +56,13 @@ public class Constants {
      * The property name suffix for the tokens of products
      */
     public static String DEVPAY_PRODUCT_TOKEN_PROP_SUFFIX = ".token";
-    
+
     /**
-     * The name of the <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html#ignore">JetS3t ignore</a> 
-     * file: .jets3t-ignore 
+     * The name of the <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html#ignore">JetS3t ignore</a>
+     * file: .jets3t-ignore
      */
     public static String JETS3T_IGNORE_FILENAME = ".jets3t-ignore";
-    
+
     /**
      * The default preferences directory: &lt;user.home&gt;/.jets3t
      */
@@ -75,7 +75,7 @@ public class Constants {
     public static String FILE_PATH_DELIM = "/";
 
     /**
-     * The default encoding used for text data: UTF-8 
+     * The default encoding used for text data: UTF-8
      */
     public static String DEFAULT_ENCODING = "UTF-8";
 
@@ -88,10 +88,10 @@ public class Constants {
     // JetS3t-specific metadata item names.
     ///////////////////////////////////////
     /**
-     * MISTYPED metadata header for storing the original date of a local file uploaded to S3, 
+     * MISTYPED metadata header for storing the original date of a local file uploaded to S3,
      * so it can be used subsequently to compare files instead of relying on the S3 upload date.
-     * 
-     * @deprecated 0.6.0 
+     *
+     * @deprecated 0.6.0
      */
     public static final String METADATA_JETS3T_LOCAL_FILE_DATE_DEPRECATED = "jets3t-original-file-date-iso860";
 
@@ -113,7 +113,7 @@ public class Constants {
     public static final String METADATA_JETS3T_CRYPTO_ALGORITHM = "jets3t-crypto-alg";
 
     /**
-     * Metadata header for storing information about the JetS3t version of encryption applied 
+     * Metadata header for storing information about the JetS3t version of encryption applied
      * (to keep encryption compatibility between versions).
      */
     public static final String METADATA_JETS3T_CRYPTO_VERSION = "jets3t-crypto-ver";
@@ -131,7 +131,7 @@ public class Constants {
      * Default number of objects to include in each chunk of an object listing.
      */
     public static final long DEFAULT_OBJECT_LIST_CHUNK_SIZE = 1000;
-    
+
     ///////////////////////////////////
     // Headers used by REST S3 Services
     ///////////////////////////////////
@@ -155,7 +155,7 @@ public class Constants {
     public static final String XML_NAMESPACE = "http://s3.amazonaws.com/doc/2006-03-01/";
 
     /**
-     * A flag used to indicate that the sender is willing to accept any Requester Pays 
+     * A flag used to indicate that the sender is willing to accept any Requester Pays
      * bucket fees imposed by the request. This flag may be used in request Headers,
      * or as a parameter.
      */
@@ -176,5 +176,5 @@ public class Constants {
      * SOAP service name: AmazonS3
      */
     public static final String SOAP_SERVICE_NAME = "AmazonS3";
-    
+
 }

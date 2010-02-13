@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2006 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.service.security;
 
@@ -62,22 +62,22 @@ import org.jets3t.service.utils.ServiceUtils;
 /**
  * Utility class to handle encryption and decryption in the JetS3t suite.
  * <p>
- * The encryption method used by JetS3t has changed after version 0.4.0, from standard triple DES 
- * to the proper password-based encryption method PBEWithMD5AndDES. For backwards compatibility this 
- * class retains the ability to decrypt items encrypted with the original 0.4.0 algorithm, however 
- * these mechanisms are deprecated and could be removed from JetS3t at any time. 
- * </p> 
+ * The encryption method used by JetS3t has changed after version 0.4.0, from standard triple DES
+ * to the proper password-based encryption method PBEWithMD5AndDES. For backwards compatibility this
+ * class retains the ability to decrypt items encrypted with the original 0.4.0 algorithm, however
+ * these mechanisms are deprecated and could be removed from JetS3t at any time.
+ * </p>
  * <p>
- * This class uses properties obtained through {@link org.jets3t.service.Jets3tProperties}. 
- * For more information on these properties please refer to 
+ * This class uses properties obtained through {@link org.jets3t.service.Jets3tProperties}.
+ * For more information on these properties please refer to
  * <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html">JetS3t Configuration</a>
  * </p>
- * 
+ *
  * @author James Murty
  */
 public class EncryptionUtil {
     private static final Log log = LogFactory.getLog(EncryptionUtil.class);
-    
+
     public static final String DEFAULT_VERSION = "2";
     public static final String DEFAULT_ALGORITHM = "PBEWithMD5AndDES";
 
@@ -85,65 +85,65 @@ public class EncryptionUtil {
     private String version = null;
     private SecretKey key = null;
     private AlgorithmParameterSpec algParamSpec = null;
-    
+
     int ITERATION_COUNT = 5000;
     byte[] salt = {
         (byte)0xA4, (byte)0x0B, (byte)0xC8, (byte)0x34,
         (byte)0xD6, (byte)0x95, (byte)0xF3, (byte)0x13
     };
-    
+
     static {
         try {
-            Class bouncyCastleProviderClass = 
+            Class bouncyCastleProviderClass =
                 Class.forName("org.bouncycastle.jce.provider.BouncyCastleProvider");
             if (bouncyCastleProviderClass != null) {
                 Provider bouncyCastleProvider = (Provider) bouncyCastleProviderClass
-                    .getConstructor(new Class[] {}).newInstance(new Object[] {});                        
+                    .getConstructor(new Class[] {}).newInstance(new Object[] {});
                 Security.addProvider(bouncyCastleProvider);
             }
             if (log.isDebugEnabled()) {
-            	log.debug("Loaded security provider BouncyCastleProvider");
+                log.debug("Loaded security provider BouncyCastleProvider");
             }
         } catch (RuntimeException e) {
-        	throw e;
+            throw e;
         } catch (Exception e) {
-        	if (log.isDebugEnabled()) {
-        		log.debug("Unable to load security provider BouncyCastleProvider");            
-        	}
+            if (log.isDebugEnabled()) {
+            	log.debug("Unable to load security provider BouncyCastleProvider");
+            }
         }
     }
 
     /**
      * Constructs class configured with the provided password, and set up to use the encryption
-     * method specified.  
-     * 
+     * method specified.
+     *
      * @param encryptionKey
      *        the password to use for encryption/decryption.
      * @param algorithm
      *        the Java name of an encryption algorithm to use, eg PBEWithMD5AndDES
      * @param version
      *        the version of encyption to use, for historic and future compatibility.
-     *        Unless using an historic version, this should always be 
+     *        Unless using an historic version, this should always be
      *        {@link #DEFAULT_VERSION}
-     * 
+     *
      * @throws InvalidKeyException
      * @throws NoSuchAlgorithmException
      * @throws NoSuchPaddingException
      * @throws InvalidKeySpecException
      */
-    public EncryptionUtil(String encryptionKey, String algorithm, String version) throws 
-        InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException 
+    public EncryptionUtil(String encryptionKey, String algorithm, String version) throws
+        InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException
     {
         this.algorithm = algorithm;
         this.version = version;
         if (log.isDebugEnabled()) {
-        	log.debug("Cryptographic properties: algorithm=" + this.algorithm + ", version=" + this.version);
+            log.debug("Cryptographic properties: algorithm=" + this.algorithm + ", version=" + this.version);
         }
-        
+
         if (!DEFAULT_VERSION.equals(version)) {
             throw new RuntimeException("Unrecognised crypto version setting: " + version);
         }
-            
+
         PBEKeySpec keyspec = new PBEKeySpec(encryptionKey.toCharArray(), salt, ITERATION_COUNT, 32);
         SecretKeyFactory skf = SecretKeyFactory.getInstance(algorithm);
         key = skf.generateSecret(keyspec);
@@ -153,25 +153,25 @@ public class EncryptionUtil {
     /**
      * Constructs class configured with the provided password, and set up to use the default encryption
      * algorithm PBEWithMD5AndDES.
-     * 
+     *
      * @param encryptionKey
      *        the password to use for encryption/decryption.
-     *        
+     *
      * @throws InvalidKeyException
      * @throws NoSuchAlgorithmException
      * @throws NoSuchPaddingException
      * @throws InvalidKeySpecException
      */
     public EncryptionUtil(String encryptionKey) throws InvalidKeyException,
-        NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException 
+        NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException
     {
         this(encryptionKey, "PBEWithMD5AndDES", DEFAULT_VERSION);
     }
-        
+
     /**
-     * Constructs the class using the obsolete methodology from 0.4.0, which used the 
+     * Constructs the class using the obsolete methodology from 0.4.0, which used the
      * DESede algorithm instead of a PBE version.
-     * 
+     *
      * @param encryptionKey
      * @param encryptionScheme
      * @param blockMode
@@ -180,66 +180,66 @@ public class EncryptionUtil {
      * @throws NoSuchAlgorithmException
      * @throws NoSuchPaddingException
      * @throws InvalidKeySpecException
-     * @throws UnsupportedEncodingException 
-     * @throws  
-     * 
+     * @throws UnsupportedEncodingException
+     * @throws
+     *
      * @deprecated
      */
     private EncryptionUtil(String encryptionKey, String encryptionScheme, String blockMode,
         String paddingMode) throws InvalidKeyException, NoSuchAlgorithmException,
-        NoSuchPaddingException, InvalidKeySpecException, UnsupportedEncodingException 
+        NoSuchPaddingException, InvalidKeySpecException, UnsupportedEncodingException
     {
         byte[] KEY_BASE_BYTES = new byte[] {
-            (byte)0xC2, (byte)0xAB, (byte)0xE2, (byte)0x80, (byte)0xA0, (byte)0x0E, 
-            (byte)0xC2, (byte)0xBB, (byte)0xC3, (byte)0xA6, (byte)0xE2, (byte)0x80, 
-            (byte)0x94, (byte)0x72, (byte)0x3D, (byte)0xC3, (byte)0xB4, (byte)0x18, 
-            (byte)0x14, (byte)0x51, (byte)0xC5, (byte)0x92, (byte)0x20, (byte)0x79, 
-            (byte)0xE2, (byte)0x84, (byte)0xA2, (byte)0x53, (byte)0x34, (byte)0x43, 
-            (byte)0x2E, (byte)0x24, (byte)0x53, (byte)0xC3, (byte)0xBF, (byte)0xC3, 
-            (byte)0x92, (byte)0x74, (byte)0xCB, (byte)0x9A, (byte)0xC3, (byte)0xA0, 
-            (byte)0xC3, (byte)0xA1, (byte)0x49, (byte)0xC3, (byte)0x8C, (byte)0x5B, 
-            (byte)0xE2, (byte)0x88, (byte)0x86, (byte)0x4F, (byte)0xC3, (byte)0x8B, 
-            (byte)0xC3, (byte)0x96, (byte)0xC3, (byte)0x84, (byte)0x75, (byte)0x40, 
-            (byte)0xE2, (byte)0x80, (byte)0x9D, (byte)0x1C, (byte)0xC2, (byte)0xA9, 
-            (byte)0x64, (byte)0x46, (byte)0x16, (byte)0x54, (byte)0x17, (byte)0x03, 
-            (byte)0xC2, (byte)0xB4, (byte)0xC3, (byte)0xA4, (byte)0xE2, (byte)0x81, 
-            (byte)0x84, (byte)0xC3, (byte)0xA1, (byte)0x4E, (byte)0x68, (byte)0xC3, 
-            (byte)0x8B, (byte)0xC3, (byte)0xAA, (byte)0x76, (byte)0xC2, (byte)0xAB, 
-            (byte)0x1D, (byte)0xE2, (byte)0x80, (byte)0x94, (byte)0xC2, (byte)0xA3, 
-            (byte)0x6C, (byte)0xC3, (byte)0xBB, (byte)0x5E, (byte)0x75, (byte)0xE2, 
-            (byte)0x80, (byte)0x9D, (byte)0xC3, (byte)0x83, (byte)0x10, (byte)0xCF, 
-            (byte)0x80, (byte)0x2B, (byte)0x74, (byte)0xC5, (byte)0x93, (byte)0x3A, 
-            (byte)0xC3, (byte)0x80, (byte)0x4B, (byte)0x37, (byte)0x51, (byte)0xC2, 
-            (byte)0xA7, (byte)0xE2, (byte)0x88, (byte)0x9E, (byte)0x48, (byte)0x3E, 
-            (byte)0xE2, (byte)0x80, (byte)0x9E, (byte)0x3A, (byte)0x69, (byte)0xC3, 
-            (byte)0x8A, (byte)0x75, (byte)0x11, (byte)0xE2, (byte)0x80, (byte)0xB0, 
-            (byte)0xC3, (byte)0x94, (byte)0xC3, (byte)0xBC, (byte)0x51, (byte)0xC3, 
-            (byte)0x93, (byte)0x23, (byte)0xE2, (byte)0x80, (byte)0xBA, (byte)0xC2, 
-            (byte)0xA5, (byte)0x31, (byte)0xE2, (byte)0x80, (byte)0x94, (byte)0x7A, 
-            (byte)0x6A, (byte)0xC2, (byte)0xB5, (byte)0xE2, (byte)0x81, (byte)0x84, 
-            (byte)0xE2, (byte)0x80, (byte)0xB9, (byte)0x29, (byte)0x31, (byte)0x6F, 
-            (byte)0xE2, (byte)0x80, (byte)0xB0, (byte)0xC3, (byte)0xB7, (byte)0x4D, 
-            (byte)0xC3, (byte)0x98, (byte)0x35, (byte)0x44, (byte)0x46, (byte)0xC3, 
-            (byte)0xAD, (byte)0xC2, (byte)0xAB, (byte)0xC5, (byte)0xB8, (byte)0x2E, 
-            (byte)0x23, (byte)0x63, (byte)0x3B, (byte)0xC2, (byte)0xAF, (byte)0xC2, 
-            (byte)0xB7, (byte)0xEF, (byte)0xA3, (byte)0xBF, (byte)0xCB, (byte)0x86, 
-            (byte)0xC3, (byte)0x8C, (byte)0x42, (byte)0xCE, (byte)0xA9, (byte)0xE2, 
+            (byte)0xC2, (byte)0xAB, (byte)0xE2, (byte)0x80, (byte)0xA0, (byte)0x0E,
+            (byte)0xC2, (byte)0xBB, (byte)0xC3, (byte)0xA6, (byte)0xE2, (byte)0x80,
+            (byte)0x94, (byte)0x72, (byte)0x3D, (byte)0xC3, (byte)0xB4, (byte)0x18,
+            (byte)0x14, (byte)0x51, (byte)0xC5, (byte)0x92, (byte)0x20, (byte)0x79,
+            (byte)0xE2, (byte)0x84, (byte)0xA2, (byte)0x53, (byte)0x34, (byte)0x43,
+            (byte)0x2E, (byte)0x24, (byte)0x53, (byte)0xC3, (byte)0xBF, (byte)0xC3,
+            (byte)0x92, (byte)0x74, (byte)0xCB, (byte)0x9A, (byte)0xC3, (byte)0xA0,
+            (byte)0xC3, (byte)0xA1, (byte)0x49, (byte)0xC3, (byte)0x8C, (byte)0x5B,
+            (byte)0xE2, (byte)0x88, (byte)0x86, (byte)0x4F, (byte)0xC3, (byte)0x8B,
+            (byte)0xC3, (byte)0x96, (byte)0xC3, (byte)0x84, (byte)0x75, (byte)0x40,
+            (byte)0xE2, (byte)0x80, (byte)0x9D, (byte)0x1C, (byte)0xC2, (byte)0xA9,
+            (byte)0x64, (byte)0x46, (byte)0x16, (byte)0x54, (byte)0x17, (byte)0x03,
+            (byte)0xC2, (byte)0xB4, (byte)0xC3, (byte)0xA4, (byte)0xE2, (byte)0x81,
+            (byte)0x84, (byte)0xC3, (byte)0xA1, (byte)0x4E, (byte)0x68, (byte)0xC3,
+            (byte)0x8B, (byte)0xC3, (byte)0xAA, (byte)0x76, (byte)0xC2, (byte)0xAB,
+            (byte)0x1D, (byte)0xE2, (byte)0x80, (byte)0x94, (byte)0xC2, (byte)0xA3,
+            (byte)0x6C, (byte)0xC3, (byte)0xBB, (byte)0x5E, (byte)0x75, (byte)0xE2,
+            (byte)0x80, (byte)0x9D, (byte)0xC3, (byte)0x83, (byte)0x10, (byte)0xCF,
+            (byte)0x80, (byte)0x2B, (byte)0x74, (byte)0xC5, (byte)0x93, (byte)0x3A,
+            (byte)0xC3, (byte)0x80, (byte)0x4B, (byte)0x37, (byte)0x51, (byte)0xC2,
+            (byte)0xA7, (byte)0xE2, (byte)0x88, (byte)0x9E, (byte)0x48, (byte)0x3E,
+            (byte)0xE2, (byte)0x80, (byte)0x9E, (byte)0x3A, (byte)0x69, (byte)0xC3,
+            (byte)0x8A, (byte)0x75, (byte)0x11, (byte)0xE2, (byte)0x80, (byte)0xB0,
+            (byte)0xC3, (byte)0x94, (byte)0xC3, (byte)0xBC, (byte)0x51, (byte)0xC3,
+            (byte)0x93, (byte)0x23, (byte)0xE2, (byte)0x80, (byte)0xBA, (byte)0xC2,
+            (byte)0xA5, (byte)0x31, (byte)0xE2, (byte)0x80, (byte)0x94, (byte)0x7A,
+            (byte)0x6A, (byte)0xC2, (byte)0xB5, (byte)0xE2, (byte)0x81, (byte)0x84,
+            (byte)0xE2, (byte)0x80, (byte)0xB9, (byte)0x29, (byte)0x31, (byte)0x6F,
+            (byte)0xE2, (byte)0x80, (byte)0xB0, (byte)0xC3, (byte)0xB7, (byte)0x4D,
+            (byte)0xC3, (byte)0x98, (byte)0x35, (byte)0x44, (byte)0x46, (byte)0xC3,
+            (byte)0xAD, (byte)0xC2, (byte)0xAB, (byte)0xC5, (byte)0xB8, (byte)0x2E,
+            (byte)0x23, (byte)0x63, (byte)0x3B, (byte)0xC2, (byte)0xAF, (byte)0xC2,
+            (byte)0xB7, (byte)0xEF, (byte)0xA3, (byte)0xBF, (byte)0xCB, (byte)0x86,
+            (byte)0xC3, (byte)0x8C, (byte)0x42, (byte)0xCE, (byte)0xA9, (byte)0xE2,
             (byte)0x88, (byte)0x86, (byte)0x76, (byte)0xE2, (byte)0x84, (byte)0xA2
         };
 
-        algorithm = "DESede/CBC/PKCS5Padding";        
+        algorithm = "DESede/CBC/PKCS5Padding";
         encryptionKey = encryptionKey + new String(KEY_BASE_BYTES, Constants.DEFAULT_ENCODING);
-    
+
         int keyOffset = 0;
         byte spec[] = new byte[8];
         for (int specOffset = 0; specOffset < spec.length; specOffset++) {
             keyOffset = (keyOffset + 7) % encryptionKey.length();
             spec[specOffset] = encryptionKey.getBytes()[keyOffset];
         }
-        
+
         KeySpec keySpec = new DESedeKeySpec(encryptionKey.getBytes());
         algParamSpec = new IvParameterSpec(spec);
-        key = SecretKeyFactory.getInstance(encryptionScheme).generateSecret(keySpec);        
+        key = SecretKeyFactory.getInstance(encryptionScheme).generateSecret(keySpec);
     }
 
     /**
@@ -247,38 +247,38 @@ public class EncryptionUtil {
      * in JetS3t releases prior to version 0.5.0. This method is deprecated as the crypto
      * configuration used has changed, and this method is provided for backwards compatibility only.
      * This method could be removed at any time.
-     *  
+     *
      * @param encryptionKey
      * the key (password) to use when encrypting data.
      * @return
      * an EncryptionUtil object configured in a way compatible with the crypto mechanisms used in
      * the JetS3t release version 0.4.0.
-     * 
+     *
      * @throws InvalidKeyException
      * @throws NoSuchAlgorithmException
      * @throws NoSuchPaddingException
      * @throws InvalidKeySpecException
-     * @throws UnsupportedEncodingException 
-     * 
+     * @throws UnsupportedEncodingException
+     *
      * @deprecated as of JetS3t version 0.5.0
      */
-    public static EncryptionUtil getObsoleteEncryptionUtil(String encryptionKey) throws 
-        InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException, 
-        UnsupportedEncodingException 
+    public static EncryptionUtil getObsoleteEncryptionUtil(String encryptionKey) throws
+        InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException,
+        UnsupportedEncodingException
     {
         return new EncryptionUtil(encryptionKey, "DESede", "CBC", "PKCS5Padding");
     }
-    
-    protected Cipher initEncryptModeCipher() throws NoSuchAlgorithmException, NoSuchPaddingException, 
-        InvalidKeyException, InvalidAlgorithmParameterException 
+
+    protected Cipher initEncryptModeCipher() throws NoSuchAlgorithmException, NoSuchPaddingException,
+        InvalidKeyException, InvalidAlgorithmParameterException
     {
         Cipher cipher = Cipher.getInstance(algorithm);
         cipher.init(Cipher.ENCRYPT_MODE, key, algParamSpec);
         return cipher;
     }
 
-    protected Cipher initDecryptModeCipher() throws NoSuchAlgorithmException, NoSuchPaddingException, 
-        InvalidKeyException, InvalidAlgorithmParameterException 
+    protected Cipher initDecryptModeCipher() throws NoSuchAlgorithmException, NoSuchPaddingException,
+        InvalidKeyException, InvalidAlgorithmParameterException
     {
         Cipher cipher = Cipher.getInstance(algorithm);
         cipher.init(Cipher.DECRYPT_MODE, key, algParamSpec);
@@ -287,12 +287,12 @@ public class EncryptionUtil {
 
     /**
      * Encrypts a UTF-8 string to byte data.
-     * 
+     *
      * @param data
      * data to encrypt.
      * @return
      * encrypted data.
-     * 
+     *
      * @throws IllegalStateException
      * @throws IllegalBlockSizeException
      * @throws BadPaddingException
@@ -305,7 +305,7 @@ public class EncryptionUtil {
      */
     public byte[] encrypt(String data) throws IllegalStateException, IllegalBlockSizeException,
         BadPaddingException, UnsupportedEncodingException, InvalidKeySpecException,
-        InvalidKeyException, InvalidAlgorithmParameterException, 
+        InvalidKeyException, InvalidAlgorithmParameterException,
         NoSuchAlgorithmException, NoSuchPaddingException
     {
         Cipher cipher = initEncryptModeCipher();
@@ -314,12 +314,12 @@ public class EncryptionUtil {
 
     /**
      * Decrypts byte data to a UTF-8 string.
-     * 
+     *
      * @param data
      * data to decrypt.
      * @return
      * UTF-8 string of decrypted data.
-     * 
+     *
      * @throws InvalidKeyException
      * @throws InvalidAlgorithmParameterException
      * @throws UnsupportedEncodingException
@@ -339,7 +339,7 @@ public class EncryptionUtil {
 
     /**
      * Decrypts a UTF-8 string.
-     * 
+     *
      * @param data
      * data to decrypt.
      * @param startIndex
@@ -348,7 +348,7 @@ public class EncryptionUtil {
      * end index of data to decrypt.
      * @return
      * UTF-8 string of decrypted data.
-     * 
+     *
      * @throws InvalidKeyException
      * @throws InvalidAlgorithmParameterException
      * @throws UnsupportedEncodingException
@@ -369,12 +369,12 @@ public class EncryptionUtil {
 
     /**
      * Encrypts byte data to bytes.
-     * 
+     *
      * @param data
      * data to encrypt.
      * @return
      * encrypted data.
-     * 
+     *
      * @throws IllegalStateException
      * @throws IllegalBlockSizeException
      * @throws BadPaddingException
@@ -384,7 +384,7 @@ public class EncryptionUtil {
      * @throws NoSuchPaddingException
      */
     public byte[] encrypt(byte[] data) throws IllegalStateException, IllegalBlockSizeException,
-        BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, 
+        BadPaddingException, InvalidKeyException, InvalidAlgorithmParameterException,
         NoSuchAlgorithmException, NoSuchPaddingException
     {
         Cipher cipher = initEncryptModeCipher();
@@ -393,12 +393,12 @@ public class EncryptionUtil {
 
     /**
      * Decrypts byte data to bytes.
-     * 
+     *
      * @param data
      * data to decrypt
      * @return
      * decrypted data.
-     * 
+     *
      * @throws InvalidKeyException
      * @throws InvalidAlgorithmParameterException
      * @throws IllegalStateException
@@ -417,7 +417,7 @@ public class EncryptionUtil {
 
     /**
      * Decrypts a byte data range to bytes.
-     *  
+     *
      * @param data
      * @param startIndex
      * @param endIndex
@@ -440,8 +440,8 @@ public class EncryptionUtil {
     }
 
     /**
-     * Wraps an input stream in an encrypting cipher stream. 
-     * 
+     * Wraps an input stream in an encrypting cipher stream.
+     *
      * @param is
      * @return
      * encrypting cipher input stream.
@@ -459,7 +459,7 @@ public class EncryptionUtil {
 
     /**
      * Wraps an input stream in an decrypting cipher stream.
-     * 
+     *
      * @param is
      * @return
      * decrypting cipher input stream.
@@ -477,7 +477,7 @@ public class EncryptionUtil {
 
     /**
      * Wraps an output stream in an encrypting cipher stream.
-     * 
+     *
      * @param os
      * @return
      * encrypting cipher output stream.
@@ -495,7 +495,7 @@ public class EncryptionUtil {
 
     /**
      * Wraps an output stream in a decrypting cipher stream.
-     * 
+     *
      * @param os
      * @return
      * decrypting cipher output stream.
@@ -510,34 +510,34 @@ public class EncryptionUtil {
         Cipher cipher = initDecryptModeCipher();
         return new CipherOutputStream(os, cipher);
     }
-    
+
     /**
      * Returns an estimate of the number of bytes that will result when data
      * of the given length is encrypted. The accuracy of this estimate may
      * depend on the cipher you are using, so be wary of trusting this estimate
      * without supporting evidence.
-     * 
+     *
      * @param inputSize
      * The number of bytes you intend to encrypt.
-     * 
+     *
      * @return
      * an estimate of the number of bytes that will be generated by the
      * encryption cipher for the given number of bytes of input.
-     * 
+     *
      * @throws InvalidKeyException
      * @throws InvalidAlgorithmParameterException
      * @throws NoSuchAlgorithmException
      * @throws NoSuchPaddingException
      */
     public long getEncryptedOutputSize(long inputSize) throws InvalidKeyException,
-        InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchPaddingException 
+        InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchPaddingException
     {
         Cipher cipher = initEncryptModeCipher();
         long outputSize = 0;
-        
+
         // Break input size into integer-sized chunks so we can estimate values
         // for large inputs.
-        int maxChunk = Integer.MAX_VALUE - 8192; 
+        int maxChunk = Integer.MAX_VALUE - 8192;
         while (inputSize >= maxChunk) {
             outputSize += cipher.getOutputSize(maxChunk);
             inputSize -= maxChunk;
@@ -556,24 +556,24 @@ public class EncryptionUtil {
 
     /**
      * Returns true if the given cipher is available and can be used by this encryption
-     * utility. To determine whether the cipher can actually be used a test string is 
+     * utility. To determine whether the cipher can actually be used a test string is
      * encrypted using the cipher.
-     * 
+     *
      * @param cipher
      * @return
      * true if the cipher is available and can be used, false otherwise.
      */
     public static boolean isCipherAvailableForUse(String cipher) {
         try {
-            EncryptionUtil encryptionUtil = 
+            EncryptionUtil encryptionUtil =
                 new EncryptionUtil("Sample Key", cipher, EncryptionUtil.DEFAULT_VERSION);
             encryptionUtil.encrypt("Testing encryption...");
         } catch (RuntimeException e) {
-        	throw e;
+            throw e;
         } catch (Exception e) {
-        	if (log.isDebugEnabled()) {
-        		log.debug("Availability test failed for encryption cipher " + cipher);
-        	}
+            if (log.isDebugEnabled()) {
+            	log.debug("Availability test failed for encryption cipher " + cipher);
+            }
             return false;
         }
         return true;
@@ -583,11 +583,11 @@ public class EncryptionUtil {
      * Lists the PBE ciphers available on the system, optionally eliminating those
      * ciphers that are apparently available but cannot actually be used (perhaps due to
      * the lack of export-grade JCE settings).
-     * 
+     *
      * @param testAvailability
      * if true each apparently available cipher is tested and only those that pass
      * {@link #isCipherAvailableForUse(String)} are returned.
-     *  
+     *
      * @return
      * a list of all the available PBE cipher names on the system.
      */
@@ -598,13 +598,13 @@ public class EncryptionUtil {
             String cipher = (String) iter.next();
             if (cipher.toLowerCase().startsWith("pbe")) {
                 if (!testAvailability || isCipherAvailableForUse(cipher)) {
-                    pbeCiphers.add(cipher);                    
+                    pbeCiphers.add(cipher);
                 }
             }
         }
-        return (String[]) pbeCiphers.toArray(new String[pbeCiphers.size()]);           
+        return (String[]) pbeCiphers.toArray(new String[pbeCiphers.size()]);
     }
-    
+
     public static Provider[] listAvailableProviders() {
         return Security.getProviders();
     }
@@ -612,24 +612,24 @@ public class EncryptionUtil {
     /**
      * Generate an RSA SHA1 signature of the given data using the given private
      * key DER certificate.
-     * 
+     *
      * Based on example code from:
      * http://www.java2s.com/Tutorial/Java/0490__Security/RSASignatureGeneration.htm
      * http://forums.sun.com/thread.jspa?threadID=5175986
-     * 
-     * @throws NoSuchAlgorithmException 
-     * @throws InvalidKeyException 
-     * @throws SignatureException 
-     * @throws InvalidKeySpecException 
-     * @throws NoSuchProviderException 
+     *
+     * @throws NoSuchAlgorithmException
+     * @throws InvalidKeyException
+     * @throws SignatureException
+     * @throws InvalidKeySpecException
+     * @throws NoSuchProviderException
      */
-    public static byte[] signWithRsaSha1(byte[] derPrivateKeyBytes, byte[] dataToSign) 
-    	throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, 
-    	InvalidKeySpecException, NoSuchProviderException 
-	{
-    	// Build an RSA private key from private key data 
+    public static byte[] signWithRsaSha1(byte[] derPrivateKeyBytes, byte[] dataToSign)
+        throws NoSuchAlgorithmException, InvalidKeyException, SignatureException,
+        InvalidKeySpecException, NoSuchProviderException
+    {
+        // Build an RSA private key from private key data
         PKCS8EncodedKeySpec privSpec = new PKCS8EncodedKeySpec(derPrivateKeyBytes);
-    	KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         RSAPrivateKey privateKey = (RSAPrivateKey) keyFactory.generatePrivate(privSpec);
 
         // Sign data
@@ -640,48 +640,48 @@ public class EncryptionUtil {
         byte[] signatureBytes = signature.sign();
         return signatureBytes;
     }
-    
+
     /**
-     * Convert a PEM encoded RSA certificate file into a DER format byte array. 
-     * 
+     * Convert a PEM encoded RSA certificate file into a DER format byte array.
+     *
      * @param is
      * Input stream for PEM encoded RSA certificate data.
-     * 
+     *
      * @return
      * The RSA certificate data in DER format.
-     * 
+     *
      * @throws IOException
      */
     public static byte[] convertRsaPemToDer(InputStream is) throws IOException {
-    	String pemData = ServiceUtils.readInputStreamToString(is, "UTF-8");
-    	// Strip PEM header and footer
-    	int headerEndOffset = pemData.indexOf('\n');
-    	int footerStartOffset = pemData.indexOf("-----END");
-    	String strippedPemData = pemData.substring(headerEndOffset + 1, footerStartOffset - 1);
-    	
-    	// Decode Base64 PEM data to DER bytes
-    	byte[] derBytes = ServiceUtils.fromBase64(strippedPemData);
-    	return derBytes;
+        String pemData = ServiceUtils.readInputStreamToString(is, "UTF-8");
+        // Strip PEM header and footer
+        int headerEndOffset = pemData.indexOf('\n');
+        int footerStartOffset = pemData.indexOf("-----END");
+        String strippedPemData = pemData.substring(headerEndOffset + 1, footerStartOffset - 1);
+
+        // Decode Base64 PEM data to DER bytes
+        byte[] derBytes = ServiceUtils.fromBase64(strippedPemData);
+        return derBytes;
     }
 
-    public static void main(String[] args) throws Exception {        
+    public static void main(String[] args) throws Exception {
         Provider[] providers = EncryptionUtil.listAvailableProviders();
         System.out.println("Providers:");
         for (int i = 0; i < providers.length; i++) {
             System.out.println(" - " + providers[i]);
         }
-        
+
         String[] ciphers = EncryptionUtil.listAvailablePbeCiphers(false);
         System.out.println("PBE Ciphers available (untested):");
         for (int i = 0; i < ciphers.length; i++) {
             System.out.println(" - " + ciphers[i]);
         }
-        
+
         ciphers = EncryptionUtil.listAvailablePbeCiphers(true);
         System.out.println("PBE Ciphers available (tested):");
         for (int i = 0; i < ciphers.length; i++) {
             System.out.println(" - " + ciphers[i]);
-        }        
+        }
     }
 
 }

@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2006 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.apps.uploader;
 
@@ -137,44 +137,44 @@ import org.jets3t.service.utils.signedurl.SignedUrlAndObject;
 import com.centerkey.utils.BareBonesBrowserLaunch;
 
 /**
- * Dual application and applet for uploading files and XML metadata information to the Amazon S3 
+ * Dual application and applet for uploading files and XML metadata information to the Amazon S3
  * service.
  * <p>
- * For more information and help please see the 
+ * For more information and help please see the
  * <a href="http://jets3t.s3.amazonaws.com/applications/uploader.html">Uploader Guide</a>.
  * </p>
  * <p>
  * The Uploader is highly configurable through properties specified in a file
- * <tt>uploader.properties</tt>. This file <b>must be available</b> at the root of the classpath. 
- * 
+ * <tt>uploader.properties</tt>. This file <b>must be available</b> at the root of the classpath.
+ *
  * @author James Murty
  */
 public class Uploader extends JApplet implements S3ServiceEventListener, ActionListener, ListSelectionListener, HyperlinkActivatedListener, CredentialsProvider {
     private static final long serialVersionUID = -1648566055636164308L;
 
     private static final Log log = LogFactory.getLog(Uploader.class);
-    
-    public static final String APPLICATION_DESCRIPTION = "Uploader/0.7.3"; 
-            
+
+    public static final String APPLICATION_DESCRIPTION = "Uploader/0.7.3";
+
     public static final String UPLOADER_PROPERTIES_FILENAME = "uploader.properties";
-    
+
     private static final String UPLOADER_VERSION_ID = "JetS3t Uploader/0.7.3";
-    
+
     public static final int WIZARD_SCREEN_1 = 1;
     public static final int WIZARD_SCREEN_2 = 2;
     public static final int WIZARD_SCREEN_3 = 3;
     public static final int WIZARD_SCREEN_4 = 4;
     public static final int WIZARD_SCREEN_5 = 5;
-    
+
     /*
      * Error codes displayed when errors occur. Each possbile error condition has its own code
-     * to aid in resolving user's problems. 
+     * to aid in resolving user's problems.
      */
     public static final String ERROR_CODE__MISSING_REQUIRED_PARAM = "100";
     public static final String ERROR_CODE__S3_UPLOAD_FAILED = "101";
     public static final String ERROR_CODE__UPLOAD_REQUEST_DECLINED = "102";
     public static final String ERROR_CODE__TRANSACTION_ID_REQUIRED_TO_CREATE_XML_SUMMARY = "103";
-    
+
     /*
      * HTTP connection settings for communication *with Gatekeeper only*, the
      * S3 connection parameters are set in the jets3t.properties file.
@@ -182,63 +182,63 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     public static final int HTTP_CONNECTION_TIMEOUT = 60000;
     public static final int SOCKET_CONNECTION_TIMEOUT = 60000;
     public static final int MAX_CONNECTION_RETRIES = 5;
-    
-    
+
+
     private Frame ownerFrame = null;
-    
+
     private UserInputFields userInputFields = null;
     private Properties userInputProperties = null;
-    
+
     private HttpClient httpClientGatekeeper = null;
     private S3ServiceMulti s3ServiceMulti = null;
-    
+
     /**
      * The files to upload to S3.
      */
     private File[] filesToUpload = null;
-    
+
     /**
      * The list of file extensions accepted by the Uploader.
      */
     private ArrayList validFileExtensions = new ArrayList();
-    
+
     /**
      * Uploader's properties.
      */
     private Jets3tProperties uploaderProperties = null;
-    
+
     /**
      * Properties set in stand-alone application from the command line arguments.
      */
     private Properties standAloneArgumentProperties = null;
-    
+
     private final ByteFormatter byteFormatter = new ByteFormatter();
     private final TimeFormatter timeFormatter = new TimeFormatter();
-    
+
     /*
      * Upload file constraints.
      */
     private int fileMaxCount = 0;
     private long fileMaxSizeMB = 0;
     private long fileMinSizeMB = 0;
-    
+
     /*
      * Insets used throughout the application.
      */
     private final Insets insetsDefault = new Insets(3, 5, 3, 5);
     private final Insets insetsNone = new Insets(0, 0, 0, 0);
-    
+
     private final GuiUtils guiUtils = new GuiUtils();
 
     private int currentState = 0;
-    
+
     private boolean isRunningAsApplet = false;
-        
+
     private HashMap parametersMap = new HashMap();
-    
+
     private SkinsFactory skinsFactory = null;
     private final GridBagLayout GRID_BAG_LAYOUT = new GridBagLayout();
-    
+
     /*
      * GUI elements that need to be referenced outside initGui method.
      */
@@ -259,34 +259,34 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     private JHtmlLabel progressStatusTextLabel = null;
     private JHtmlLabel finalMessageLabel = null;
     private CancelEventTrigger uploadCancelEventTrigger = null;
-    
+
     /**
      * Set to true when the object/file being uploaded is the final in a set, eg when
      * the XML metadata is being uploaded after a movie file.
      */
     private volatile boolean uploadingFinalObject = false;
-    
+
     /**
-     * If set to true via the "xmlSummary" configuration property, the Uploader will 
-     * generate an XML summary document describing the files uploaded by the user and 
+     * If set to true via the "xmlSummary" configuration property, the Uploader will
+     * generate an XML summary document describing the files uploaded by the user and
      * will upload this summary document to S3.
      */
     private volatile boolean includeXmlSummaryDoc = false;
-    
+
     /**
      * Set to true when a file upload has been cancelled, to prevent the Uploader from
      * uploading an XML summary file when the prior file upload was cancelled.
      */
     private volatile boolean uploadCancelled = false;
-    
+
     /**
      * Set to true if an upload failed due to a key name clash in S3, in which case an error
      * message is displayed in the final 'thankyou' screen.
      */
     private boolean fatalErrorOccurred = false;
-    
+
     /**
-     * Variable to store application exceptions, so that client failure information can be 
+     * Variable to store application exceptions, so that client failure information can be
      * included in the information provided to the Gatekeeper when uploads are retried.
      */
     private Exception priorFailureException = null;
@@ -297,10 +297,10 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     public Uploader() {
         isRunningAsApplet = true;
     }
-            
+
     /**
      * Constructor to run this application in a stand-alone window.
-     * 
+     *
      * @param ownerFrame the frame the application will be displayed in
      * @throws S3ServiceException
      */
@@ -308,23 +308,23 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         this.ownerFrame = ownerFrame;
         this.standAloneArgumentProperties = standAloneArgumentProperties;
         isRunningAsApplet = false;
-                
+
         init();
-        
+
         ownerFrame.getContentPane().add(this);
         ownerFrame.setBounds(this.getBounds());
-        ownerFrame.setVisible(true);                        
+        ownerFrame.setVisible(true);
     }
-    
+
     /**
-     * Prepares application to run as a GUI by finding/creating a root owner JFrame, and 
+     * Prepares application to run as a GUI by finding/creating a root owner JFrame, and
      * (if necessary) creating a directory for storing remembered logins.
      */
     public void init() {
         super.init();
-        
+
         boolean isMissingRequiredInitProperty = false;
-        
+
         // Find or create a Frame to own modal dialog boxes.
         if (this.ownerFrame == null) {
             Component c = this;
@@ -332,12 +332,12 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 c = c.getParent();
             }
             if (!(c instanceof Frame)) {
-                this.ownerFrame = new JFrame();        
+                this.ownerFrame = new JFrame();
             } else {
-                this.ownerFrame = (Frame) c;                    
+                this.ownerFrame = (Frame) c;
             }
         }
-        
+
         // Read properties from uploader.properties in classpath.
         uploaderProperties = Jets3tProperties.getInstance(UPLOADER_PROPERTIES_FILENAME);
 
@@ -355,14 +355,14 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     isMissingRequiredInitProperty = true;
                 } else {
                     log.debug("Found applet parameter: " + paramName + "='" + paramValue + "'");
-                    
+
                     // Set params as properties in the central properties source for this application.
                     // Note that parameter values will over-write properties with the same name.
                     uploaderProperties.setProperty(paramName, paramValue);
-                    
+
                     // Store params in a separate map, which is used to build XML document.
                     parametersMap.put(paramName, paramValue);
-                }                
+                }
             }
         } else {
             // Add application parameters properties.
@@ -371,14 +371,14 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 while (e.hasMoreElements()) {
                     String propName = (String) e.nextElement();
                     String propValue = standAloneArgumentProperties.getProperty(propName);
-                    
+
                     // Fatal error if a parameter is missing.
                     if (null == propValue) {
                         log.error("Missing required command-line property: " + propName);
                         isMissingRequiredInitProperty = true;
                     } else {
                         log.debug("Using command-line property: " + propName + "='" + propValue + "'");
-                        
+
                         // Set arguments as properties in the central properties source for this application.
                         // Note that argument values will over-write properties with the same name.
                         uploaderProperties.setProperty(propName, propValue);
@@ -386,18 +386,18 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                         // Store arguments in a separate map, which is used to build XML document.
                         parametersMap.put(propName, propValue);
                     }
-                }                
+                }
             }
         }
 
-        // Determine the file constraints. 
+        // Determine the file constraints.
         fileMaxCount = uploaderProperties.getIntProperty("file.maxCount", 1);
         fileMaxSizeMB = uploaderProperties.getLongProperty("file.maxSizeMB", 200);
         fileMinSizeMB = uploaderProperties.getLongProperty("file.minSizeMB", 0);
-        
+
         // Initialise the GUI.
-        initGui();             
-        
+        initGui();
+
         // Jump to error page if there was an exception raised during initialisation.
         if (isMissingRequiredInitProperty) {
             failWithFatalError(ERROR_CODE__MISSING_REQUIRED_PARAM);
@@ -410,26 +410,26 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             StringTokenizer st = new StringTokenizer(validFileExtensionsStr, ",");
             while (st.hasMoreTokens()) {
                 validFileExtensions.add(st.nextToken().toLowerCase(Locale.getDefault()));
-            }            
-        }        
-    }    
+            }
+        }
+    }
 
-    
+
     /**
      * Initialises the application's GUI elements.
      */
     private void initGui() {
-        // Initialise skins factory. 
-        skinsFactory = SkinsFactory.getInstance(uploaderProperties.getProperties()); 
-        
+        // Initialise skins factory.
+        skinsFactory = SkinsFactory.getInstance(uploaderProperties.getProperties());
+
         // Set Skinned Look and Feel.
-        LookAndFeel lookAndFeel = skinsFactory.createSkinnedMetalTheme("SkinnedLookAndFeel");        
+        LookAndFeel lookAndFeel = skinsFactory.createSkinnedMetalTheme("SkinnedLookAndFeel");
         try {
             UIManager.setLookAndFeel(lookAndFeel);
         } catch (UnsupportedLookAndFeelException e) {
             log.error("Unable to set skinned LookAndFeel", e);
         }
-        
+
         // Apply branding
         String applicationTitle = replaceMessageVariables(
             uploaderProperties.getStringProperty("gui.applicationTitle", null));
@@ -437,13 +437,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             ownerFrame.setTitle(applicationTitle);
         }
         String applicationIconPath = uploaderProperties.getStringProperty("gui.applicationIcon", null);
-        if (!isRunningAsApplet && applicationIconPath != null) {            
+        if (!isRunningAsApplet && applicationIconPath != null) {
             guiUtils.applyIcon(ownerFrame, applicationIconPath);
         }
-        String footerHtml = uploaderProperties.getStringProperty("gui.footerHtml", null);        
-        String footerIconPath = uploaderProperties.getStringProperty("gui.footerIcon", null);        
-        
-        // Footer for branding        
+        String footerHtml = uploaderProperties.getStringProperty("gui.footerHtml", null);
+        String footerIconPath = uploaderProperties.getStringProperty("gui.footerIcon", null);
+
+        // Footer for branding
         boolean includeFooter = false;
         JHtmlLabel footerLabel = skinsFactory.createSkinnedJHtmlLabel("FooterLabel");
         footerLabel.setHyperlinkeActivatedListener(this);
@@ -455,15 +455,15 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         if (footerIconPath != null) {
             guiUtils.applyIcon(footerLabel, footerIconPath);
         }
-        
+
         userInputFields = new UserInputFields(insetsDefault, this, skinsFactory);
-        
+
         // Screeen 1 : User input fields.
         JPanel screen1Panel = skinsFactory.createSkinnedJPanel("Screen1Panel");
         screen1Panel.setLayout(GRID_BAG_LAYOUT);
         userInputFields.buildFieldsPanel(screen1Panel, uploaderProperties);
-        
-        
+
+
         // Screen 2 : Drag/drop panel.
         JPanel screen2Panel = skinsFactory.createSkinnedJPanel("Screen2Panel");
         screen2Panel.setLayout(GRID_BAG_LAYOUT);
@@ -471,12 +471,12 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         dragDropTargetLabel.setHyperlinkeActivatedListener(this);
         dragDropTargetLabel.setHorizontalAlignment(JLabel.CENTER);
         dragDropTargetLabel.setVerticalAlignment(JLabel.CENTER);
-                
+
         JButton chooseFileButton = skinsFactory.createSkinnedJButton("ChooseFileButton");
         chooseFileButton.setActionCommand("ChooseFile");
         chooseFileButton.addActionListener(this);
         configureButton(chooseFileButton, "screen.2.browseButton");
-        
+
         screen2Panel.add(dragDropTargetLabel,
             new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
         screen2Panel.add(chooseFileButton,
@@ -490,14 +490,14 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         fileToUploadLabel.setHorizontalAlignment(JLabel.CENTER);
         fileToUploadLabel.setVerticalAlignment(JLabel.CENTER);
         screen3Panel.add(fileToUploadLabel,
-            new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));        
-        
+            new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
+
         // Screen 4 : Upload progress.
         JPanel screen4Panel = skinsFactory.createSkinnedJPanel("Screen4Panel");
         screen4Panel.setLayout(GRID_BAG_LAYOUT);
         fileInformationLabel = skinsFactory.createSkinnedJHtmlLabel("FileInformationLabel");
-        fileInformationLabel.setHyperlinkeActivatedListener(this);        
-        fileInformationLabel.setHorizontalAlignment(JLabel.CENTER);        
+        fileInformationLabel.setHyperlinkeActivatedListener(this);
+        fileInformationLabel.setHorizontalAlignment(JLabel.CENTER);
         progressBar = skinsFactory.createSkinnedJProgressBar("ProgressBar", 0, 100);
         progressBar.setStringPainted(true);
         progressStatusTextLabel = skinsFactory.createSkinnedJHtmlLabel("ProgressStatusTextLabel");
@@ -512,7 +512,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         cancelUploadButton.setActionCommand("CancelUpload");
         cancelUploadButton.addActionListener(this);
         configureButton(cancelUploadButton, "screen.4.cancelButton");
-        
+
         screen4Panel.add(fileInformationLabel,
             new GridBagConstraints(0, 0, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         screen4Panel.add(progressBar,
@@ -532,15 +532,15 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         finalMessageLabel.setHorizontalAlignment(JLabel.CENTER);
         screen5Panel.add(finalMessageLabel,
             new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
-        
+
         // Wizard Button panel.
-        backButton = skinsFactory.createSkinnedJButton("backButton"); 
+        backButton = skinsFactory.createSkinnedJButton("backButton");
         backButton.setActionCommand("Back");
         backButton.addActionListener(this);
         nextButton = skinsFactory.createSkinnedJButton("nextButton");
         nextButton.setActionCommand("Next");
         nextButton.addActionListener(this);
-        
+
         buttonsPanel = skinsFactory.createSkinnedJPanel("ButtonsPanel");
         buttonsPanelCardLayout = new CardLayout();
         buttonsPanel.setLayout(buttonsPanelCardLayout);
@@ -553,7 +553,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             new GridBagConstraints(1, 0, 1, 1, 1, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
         buttonsPanel.add(buttonsInvisiblePanel, "invisible");
         buttonsPanel.add(buttonsVisiblePanel, "visible");
-        
+
         // Overall content panel.
         appContentPanel = skinsFactory.createSkinnedJPanel("ApplicationContentPanel");
         appContentPanel.setLayout(GRID_BAG_LAYOUT);
@@ -573,7 +573,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             new GridBagConstraints(0, 2, 1, 1, 1, 0.2, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
         if (includeFooter) {
             log.debug("Adding footer for branding");
-            appContentPanel.add(footerLabel, 
+            appContentPanel.add(footerLabel,
                 new GridBagConstraints(0, 3, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         }
         this.getContentPane().add(appContentPanel);
@@ -581,10 +581,10 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         userGuidanceLabel = skinsFactory.createSkinnedJHtmlLabel("UserGuidanceLabel");
         userGuidanceLabel.setHyperlinkeActivatedListener(this);
         userGuidanceLabel.setHorizontalAlignment(JLabel.CENTER);
-        
-        userGuidancePanel.add(userGuidanceLabel, 
+
+        userGuidancePanel.add(userGuidanceLabel,
             new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsNone, 0, 0));
-        navigationPanel.add(buttonsPanel, 
+        navigationPanel.add(buttonsPanel,
             new GridBagConstraints(0, 0, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsNone, 0, 0));
 
         primaryPanel.add(screen1Panel, "screen1");
@@ -592,64 +592,64 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         primaryPanel.add(screen3Panel, "screen3");
         primaryPanel.add(screen4Panel, "screen4");
         primaryPanel.add(screen5Panel, "screen5");
-        
+
         // Set preferred sizes
         int preferredWidth = uploaderProperties.getIntProperty("gui.minSizeWidth", 400);
         int preferredHeight = uploaderProperties.getIntProperty("gui.minSizeHeight", 500);
         this.setBounds(new Rectangle(new Dimension(preferredWidth, preferredHeight)));
-        
+
         // Initialize drop target.
         initDropTarget(new Component[] {this} );
-        
+
         // Revert to default Look and Feel for all future GUI elements (eg Dialog boxes).
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
             log.error("Unable to set default system LookAndFeel", e);
         }
-        
+
         wizardStepForward();
     }
-       
+
     /**
      * Initialise the application's File drop targets for drag and drop copying of local files
      * to S3.
-     * 
+     *
      * @param dropTargetComponents
-     * the components files can be dropped on to transfer them to S3 
+     * the components files can be dropped on to transfer them to S3
      */
     private void initDropTarget(Component[] dropTargetComponents) {
         DropTargetListener dropTargetListener = new DropTargetListener() {
-            
+
             private Border originalBorder = appContentPanel.getBorder();
             private Border dragOverBorder = BorderFactory.createBevelBorder(1);
-            
+
             private boolean checkValidDrag(DropTargetDragEvent dtde) {
                 if (dtde.isDataFlavorSupported(DataFlavor.javaFileListFlavor)
-                    && (DnDConstants.ACTION_COPY == dtde.getDropAction() 
-                        || DnDConstants.ACTION_MOVE == dtde.getDropAction())) 
+                    && (DnDConstants.ACTION_COPY == dtde.getDropAction()
+                        || DnDConstants.ACTION_MOVE == dtde.getDropAction()))
                 {
                     dtde.acceptDrag(dtde.getDropAction());
                     return true;
                 } else {
                     dtde.rejectDrag();
                     return false;
-                }                    
+                }
             }
-            
+
             public void dragEnter(DropTargetDragEvent dtde) {
                 if (checkValidDrag(dtde)) {
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
                             appContentPanel.setBorder(dragOverBorder);
                         };
-                    });                    
-                } 
+                    });
+                }
             }
             public void dragOver(DropTargetDragEvent dtde) {
                 checkValidDrag(dtde);
             }
-            
+
             public void dropActionChanged(DropTargetDragEvent dtde) {
                 checkValidDrag(dtde);
             }
@@ -659,12 +659,12 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     public void run() {
                         appContentPanel.setBorder(originalBorder);
                     };
-                });                    
+                });
             }
-            
+
             public void drop(DropTargetDropEvent dtde) {
                 if (dtde.isDataFlavorSupported(DataFlavor.javaFileListFlavor)
-                    && (DnDConstants.ACTION_COPY == dtde.getDropAction() 
+                    && (DnDConstants.ACTION_COPY == dtde.getDropAction()
                         || DnDConstants.ACTION_MOVE == dtde.getDropAction()))
                 {
                     dtde.acceptDrop(dtde.getDropAction());
@@ -673,7 +673,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                             appContentPanel.setBorder(originalBorder);
                         };
                     });
-                    
+
                     try {
                         final List fileList = (List) dtde.getTransferable().getTransferData(
                             DataFlavor.javaFileListFlavor);
@@ -690,16 +690,16 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     }
                 } else {
                     dtde.rejectDrop();
-                }    
+                }
             }
         };
-        
+
         // Attach drop target listener to each target component.
         for (int i = 0; i < dropTargetComponents.length; i++) {
             new DropTarget(dropTargetComponents[i], DnDConstants.ACTION_COPY, dropTargetListener, true);
         }
     }
-    
+
     /**
      * Checks that all the files in a list are acceptable for uploading.
      * Files are checked against the following criteria:
@@ -709,25 +709,25 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * <li>The file has a file extension matching one of those explicitly allowed</li>
      * </ul>
      * Any deviations from the rules result in an error message, and the method returns false.
-     * A side-effect of this method is that the wizard is moved forward one screen if the 
+     * A side-effect of this method is that the wizard is moved forward one screen if the
      * files are all valid.
-     * 
+     *
      * @param fileList
      * A list of {@link File}s to check.
-     * 
+     *
      * @return
      * true if the files in the list are all acceptable, false otherwise.
      */
     private boolean checkProposedUploadFiles(List fileList) {
         // Check number of files for upload is within constraints.
         if (fileMaxCount > 0 && fileList.size() > fileMaxCount) {
-            String errorMessage = "You may only upload " + fileMaxCount 
+            String errorMessage = "You may only upload " + fileMaxCount
                 + (fileMaxCount == 1? " file" : " files") + " at a time";
             ErrorDialog.showDialog(ownerFrame, this, uploaderProperties.getProperties(),
                 errorMessage, null);
             return false;
         }
-        
+
         // Check file size within constraints.
         Iterator iter = fileList.iterator();
         while (iter.hasNext()) {
@@ -744,8 +744,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     "File size must be less than " + fileMaxSizeMB + " MB", null);
                 return false;
             }
-        }        
-        
+        }
+
         // Check file extension is acceptable.
         if (validFileExtensions.size() > 0) {
             iter = fileList.iterator();
@@ -757,45 +757,45 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     String extList = validFileExtensions.toString();
                     extList = extList.substring(1, extList.length() -1);
                     extList = extList.replaceAll(",", " ");
-                    
+
                     ErrorDialog.showDialog(ownerFrame, this, uploaderProperties.getProperties(),
-                        "<html>File name must end with one of the following extensions:<br>" + 
-                        extList + "</html>", null);                                
+                        "<html>File name must end with one of the following extensions:<br>" +
+                        extList + "</html>", null);
                     return false;
                 }
             }
         }
-        
-        filesToUpload = (File[]) fileList.toArray(new File[fileList.size()]); 
+
+        filesToUpload = (File[]) fileList.toArray(new File[fileList.size()]);
         return true;
     }
-    
+
     /**
-     * Builds a Gatekeeper response based on AWS credential information available in the Uploader 
+     * Builds a Gatekeeper response based on AWS credential information available in the Uploader
      * properties. The response signs URLs to be valid for 1 day.
      * <p>
      * The required properties are:
      * <ul>
-     * <li>AwsAccessKey</li> 
-     * <li>AwsSecretKey</li> 
+     * <li>AwsAccessKey</li>
+     * <li>AwsSecretKey</li>
      * <li>S3BucketName</li>
-     * </ul> 
-     * 
+     * </ul>
+     *
      * @param objects
      * @return
      */
     private GatekeeperMessage buildGatekeeperResponse(S3Object[] objects) throws Exception {
-        
+
         String awsAccessKey = userInputProperties.getProperty("AwsAccessKey");
         String awsSecretKey = userInputProperties.getProperty("AwsSecretKey");
         String s3BucketName = userInputProperties.getProperty("S3BucketName");
-        
+
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.DATE, 1);
         Date expiryDate = cal.getTime();
 
         AWSCredentials awsCredentials = new AWSCredentials(awsAccessKey, awsSecretKey);
-        
+
         try {
             /*
              *  Build Gatekeeper request.
@@ -805,48 +805,48 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             gatekeeperMessage.addApplicationProperties(parametersMap); // Add any Applet/Application parameters as application properties.
 
             for (int i = 0; i < objects.length; i++) {
-                String signedPutUrl = S3Service.createSignedPutUrl(s3BucketName, objects[i].getKey(), 
+                String signedPutUrl = S3Service.createSignedPutUrl(s3BucketName, objects[i].getKey(),
                     objects[i].getMetadataMap(), awsCredentials, expiryDate, false);
-                
+
                 SignatureRequest signatureRequest = new SignatureRequest(
                     SignatureRequest.SIGNATURE_TYPE_PUT, objects[i].getKey());
                 signatureRequest.setBucketName(s3BucketName);
                 signatureRequest.setObjectMetadata(objects[i].getMetadataMap());
                 signatureRequest.signRequest(signedPutUrl);
-                
-                gatekeeperMessage.addSignatureRequest(signatureRequest);                
+
+                gatekeeperMessage.addSignatureRequest(signatureRequest);
             }
-                        
+
             return gatekeeperMessage;
-            
+
         } catch (Exception e) {
             throw new Exception("Unable to generate locally-signed PUT URLs for testing", e);
-        }        
+        }
     }
-    
+
     /**
      * Retrieves a signed PUT URL from the given URL address.
      * The URL must point at a server-side script or service that accepts POST messages.
-     * The POST message will include parameters for all the items in uploaderProperties, 
+     * The POST message will include parameters for all the items in uploaderProperties,
      * that is everything in the file uploader.properties plus all the applet's parameters.
      * Based on this input, the server-side script decides whether to allow access and return
      * a signed PUT URL.
-     * 
+     *
      * @param credsProviderParamName
      * the name of the parameter containing the server URL target for the PUT request.
      * @return
      * the AWS credentials provided by the server-side script if access was allowed, null otherwise.
-     * 
+     *
      * @throws HttpException
      * @throws Exception
      */
-    private GatekeeperMessage contactGatewayServer(S3Object[] objects) 
-        throws HttpException, Exception 
+    private GatekeeperMessage contactGatewayServer(S3Object[] objects)
+        throws HttpException, Exception
     {
-        // Retrieve credentials from URL location value by the property 'credentialsServiceUrl'.  
+        // Retrieve credentials from URL location value by the property 'credentialsServiceUrl'.
         String gatekeeperUrl = uploaderProperties.getStringProperty(
             "gatekeeperUrl", "Missing required property gatekeeperUrl");
-        
+
         /*
          *  Build Gatekeeper request.
          */
@@ -856,35 +856,35 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
         // Make the Uploader's identifier available to Gatekeeper for version compatibility checking (if necessary)
         gatekeeperMessage.addApplicationProperty(
-            GatekeeperMessage.PROPERTY_CLIENT_VERSION_ID, UPLOADER_VERSION_ID);        
-        
+            GatekeeperMessage.PROPERTY_CLIENT_VERSION_ID, UPLOADER_VERSION_ID);
+
         // If a prior failure has occurred, add information about this failure.
         if (priorFailureException != null) {
-            gatekeeperMessage.addApplicationProperty(GatekeeperMessage.PROPERTY_PRIOR_FAILURE_MESSAGE, 
+            gatekeeperMessage.addApplicationProperty(GatekeeperMessage.PROPERTY_PRIOR_FAILURE_MESSAGE,
                 priorFailureException.getMessage());
             // Now reset the prior failure variable.
             priorFailureException = null;
         }
-        
+
         // Add all S3 objects as candiates for PUT signing.
         for (int i = 0; i < objects.length; i++) {
             SignatureRequest signatureRequest = new SignatureRequest(
                 SignatureRequest.SIGNATURE_TYPE_PUT, objects[i].getKey());
             signatureRequest.setObjectMetadata(objects[i].getMetadataMap());
-            
+
             gatekeeperMessage.addSignatureRequest(signatureRequest);
         }
-        
-        
+
+
         /*
          *  Build HttpClient POST message.
          */
-        
+
         // Add all properties/parameters to credentials POST request.
         PostMethod postMethod = new PostMethod(gatekeeperUrl);
         Properties properties = gatekeeperMessage.encodeToProperties();
         Iterator propsIter = properties.entrySet().iterator();
-        while (propsIter.hasNext()) { 
+        while (propsIter.hasNext()) {
             Map.Entry entry = (Map.Entry) propsIter.next();
             String fieldName = (String) entry.getKey();
             String fieldValue = (String) entry.getValue();
@@ -893,9 +893,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
         // Create Http Client if necessary, and include User Agent information.
         if (httpClientGatekeeper == null) {
-            httpClientGatekeeper = initHttpConnection(); 
+            httpClientGatekeeper = initHttpConnection();
         }
-        
+
         // Try to detect any necessary proxy configurations.
         try {
             ProxyHost proxyHost = PluginProxyUtil.detectProxy(new URL(gatekeeperUrl));
@@ -903,18 +903,18 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 HostConfiguration hostConfig = new HostConfiguration();
                 hostConfig.setProxyHost(proxyHost);
                 httpClientGatekeeper.setHostConfiguration(hostConfig);
-                
+
                 httpClientGatekeeper.getParams().setAuthenticationPreemptive(true);
-                httpClientGatekeeper.getParams().setParameter(CredentialsProvider.PROVIDER, this);                     
+                httpClientGatekeeper.getParams().setParameter(CredentialsProvider.PROVIDER, this);
             }
         } catch (Throwable t) {
             log.debug("No proxy detected");
-        }            
+        }
 
         // Perform Gateway request.
         log.debug("Contacting Gatekeeper at: " + gatekeeperUrl);
-        try {                        
-            int responseCode = httpClientGatekeeper.executeMethod(postMethod);            
+        try {
+            int responseCode = httpClientGatekeeper.executeMethod(postMethod);
             String contentType = postMethod.getResponseHeader("Content-Type").getValue();
             if (responseCode == 200) {
                 InputStream responseInputStream = null;
@@ -925,12 +925,12 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     responseInputStream = new GZIPInputStream(postMethod.getResponseBodyAsStream());
                 } else {
                     responseInputStream = postMethod.getResponseBodyAsStream();
-                }                
-                
+                }
+
                 if (responseInputStream == null) {
-                    throw new IOException("No response input stream available from Gatekeeper");                    
-                }         
-                
+                    throw new IOException("No response input stream available from Gatekeeper");
+                }
+
                 Properties responseProperties = new Properties();
                 try {
                     responseProperties.load(responseInputStream);
@@ -938,9 +938,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     responseInputStream.close();
                 }
 
-                GatekeeperMessage gatekeeperResponseMessage = 
+                GatekeeperMessage gatekeeperResponseMessage =
                     GatekeeperMessage.decodeFromProperties(responseProperties);
-                
+
                 // Check for Gatekeeper Error Code in response.
                 String gatekeeperErrorCode = gatekeeperResponseMessage.getApplicationProperties()
                     .getProperty(GatekeeperMessage.APP_PROPERTY_GATEKEEPER_ERROR_CODE);
@@ -949,28 +949,28 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     failWithFatalError(gatekeeperErrorCode);
                     return null;
                 }
-                
+
                 if (gatekeeperResponseMessage.getSignatureRequests().length != objects.length) {
-                    throw new Exception("The Gatekeeper service did not provide the necessary " 
+                    throw new Exception("The Gatekeeper service did not provide the necessary "
                         + objects.length + " response items");
                 }
-                
+
                 return gatekeeperResponseMessage;
-            } else {                
-                log.debug("The Gatekeeper did not permit a request. Response code: " 
+            } else {
+                log.debug("The Gatekeeper did not permit a request. Response code: "
                     + responseCode + ", Response content type: " + contentType);
                 throw new Exception("The Gatekeeper did not permit your request");
             }
         } catch (Exception e) {
             throw new Exception("Gatekeeper did not respond", e);
         } finally {
-            postMethod.releaseConnection();            
+            postMethod.releaseConnection();
         }
     }
-    
+
     private GatekeeperMessage retrieveGatekeeperResponse(S3Object[] objects) throws Exception {
         // Check whether Uploader has all necessary credentials from user inputs.
-        boolean s3CredentialsProvided =                
+        boolean s3CredentialsProvided =
             userInputProperties.getProperty("AwsAccessKey") != null
             && userInputProperties.getProperty("AwsSecretKey") != null
             && userInputProperties.getProperty("S3BucketName") != null;
@@ -981,40 +981,40 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 + "will generate its own Gatekeeper response");
             gatekeeperMessage = buildGatekeeperResponse(objects);
         } else {
-            gatekeeperMessage = contactGatewayServer(objects);                
-        }            
+            gatekeeperMessage = contactGatewayServer(objects);
+        }
         return gatekeeperMessage;
     }
-    
+
     /**
      * Uploads to S3 the file referenced by the variable fileToUpload, providing
      * progress feedback to the user all the while.
      *
      */
-    private void uploadFilesToS3() {        
+    private void uploadFilesToS3() {
         try {
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
-                    // Creating file hash message 
+                    // Creating file hash message
                     progressStatusTextLabel.setText(replaceMessageVariables(
-                        uploaderProperties.getStringProperty("screen.4.hashingMessage", 
+                        uploaderProperties.getStringProperty("screen.4.hashingMessage",
                         "Missing property 'screen.4.hashingMessage'")));
                 };
-            });                                                       
-            
+            });
+
             // Calculate total files size.
             final long filesSizeTotal[] = new long[1];
             for (int i = 0; i < filesToUpload.length; i++) {
                 filesSizeTotal[0] += filesToUpload[i].length();
             }
-            
-            // Monitor generation of MD5 hash, and provide feedback via the progress bar. 
+
+            // Monitor generation of MD5 hash, and provide feedback via the progress bar.
             BytesProgressWatcher progressWatcher = new BytesProgressWatcher(filesSizeTotal[0]) {
                 public void updateBytesTransferred(long byteCount) {
                     super.updateBytesTransferred(byteCount);
-                    
-                    final int percentage = 
-                        (int)((double)getBytesTransferred() * 100 / getBytesToTransfer());                            
+
+                    final int percentage =
+                        (int)((double)getBytesTransferred() * 100 / getBytesToTransfer());
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
                             progressBar.setValue(percentage);
@@ -1022,7 +1022,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     });
                 }
             };
-            
+
             // Create objects for upload from file listing.
             S3Object[] objectsForUpload = new S3Object[filesToUpload.length];
             for (int i = 0; i < filesToUpload.length; i++) {
@@ -1031,28 +1031,28 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 byte[] fileHash = ServiceUtils.computeMD5Hash(
                     new ProgressMonitoredInputStream( // Report on MD5 hash progress.
                         new FileInputStream(file), progressWatcher));
-                
+
                 S3Object object = new S3Object(null, file);
                 object.setMd5Hash(fileHash);
-                objectsForUpload[i] = object; 
+                objectsForUpload[i] = object;
             }
-            
+
             // Obtain Gatekeeper response.
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
                     progressStatusTextLabel.setText(
-                        replaceMessageVariables(uploaderProperties.getStringProperty("screen.4.connectingMessage", 
+                        replaceMessageVariables(uploaderProperties.getStringProperty("screen.4.connectingMessage",
                         "Missing property 'screen.4.connectingMessage'")));
                     progressBar.setValue(0);
                 };
-            });                 
-            
+            });
+
             GatekeeperMessage gatekeeperMessage = null;
-            
+
             try {
-                gatekeeperMessage = retrieveGatekeeperResponse(objectsForUpload);                
+                gatekeeperMessage = retrieveGatekeeperResponse(objectsForUpload);
             } catch (Exception e) {
-                log.info("Upload request was denied", e);                
+                log.info("Upload request was denied", e);
                 failWithFatalError(ERROR_CODE__UPLOAD_REQUEST_DECLINED);
                 return;
             }
@@ -1060,21 +1060,21 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             if (gatekeeperMessage == null) {
                 return;
             }
-            
+
             log.debug("Gatekeeper response properties: " + gatekeeperMessage.encodeToProperties());
-            
+
             XmlGenerator xmlGenerator = new XmlGenerator();
             xmlGenerator.addApplicationProperties(gatekeeperMessage.getApplicationProperties());
             xmlGenerator.addMessageProperties(gatekeeperMessage.getMessageProperties());
-                                    
+
             SignedUrlAndObject[] uploadItems = prepareSignedObjects(
                 objectsForUpload, gatekeeperMessage.getSignatureRequests(), xmlGenerator);
-            
+
             if (s3ServiceMulti == null) {
                 s3ServiceMulti = new S3ServiceMulti(
                     new RestS3Service(null, APPLICATION_DESCRIPTION, this), this);
             }
-                      
+
             /*
              * Prepare XML Summary document for upload, if the summary option is set.
              */
@@ -1087,38 +1087,38 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     failWithFatalError(ERROR_CODE__TRANSACTION_ID_REQUIRED_TO_CREATE_XML_SUMMARY);
                     return;
                 }
-                
+
                 summaryXmlObject = new S3Object(
                     null, priorTransactionId + ".xml", xmlGenerator.generateXml());
                 summaryXmlObject.setContentType(Mimetypes.MIMETYPE_XML);
                 summaryXmlObject.addMetadata(GatekeeperMessage.PROPERTY_TRANSACTION_ID, priorTransactionId);
-                summaryXmlObject.addMetadata(GatekeeperMessage.SUMMARY_DOCUMENT_METADATA_FLAG, "true");                 
+                summaryXmlObject.addMetadata(GatekeeperMessage.SUMMARY_DOCUMENT_METADATA_FLAG, "true");
             }
-            
+
             // PUT the user's selected files in S3.
             uploadCancelled = false;
             uploadingFinalObject = (!includeXmlSummaryDoc);
             s3ServiceMulti.putObjects(uploadItems);
-            
+
             // If an XML summary document is required, PUT this in S3 as well.
-            if (includeXmlSummaryDoc && !uploadCancelled && !fatalErrorOccurred) {                
+            if (includeXmlSummaryDoc && !uploadCancelled && !fatalErrorOccurred) {
                 SwingUtilities.invokeLater(new Runnable() {
                     public void run() {
                         fileInformationLabel.setText(
-                            replaceMessageVariables(uploaderProperties.getStringProperty("screen.4.summaryFileInformation", 
+                            replaceMessageVariables(uploaderProperties.getStringProperty("screen.4.summaryFileInformation",
                             "Missing property 'screen.4.summaryFileInformation'")));
                         progressStatusTextLabel.setText(
-                            replaceMessageVariables(uploaderProperties.getStringProperty("screen.4.connectingMessage", 
+                            replaceMessageVariables(uploaderProperties.getStringProperty("screen.4.connectingMessage",
                             "Missing property 'screen.4.connectingMessage'")));
                     };
-                });                                 
-                
+                });
+
                 // Retrieve signed URL to PUT the XML summary document.
-                gatekeeperMessage = retrieveGatekeeperResponse(new S3Object[] {summaryXmlObject});                
-                SignedUrlAndObject[] xmlSummaryItem = 
-                    prepareSignedObjects(new S3Object[] {summaryXmlObject}, 
+                gatekeeperMessage = retrieveGatekeeperResponse(new S3Object[] {summaryXmlObject});
+                SignedUrlAndObject[] xmlSummaryItem =
+                    prepareSignedObjects(new S3Object[] {summaryXmlObject},
                         gatekeeperMessage.getSignatureRequests(), null);
-                
+
                 // PUT the XML summary document.
                 uploadingFinalObject = true;
                 s3ServiceMulti.putObjects(xmlSummaryItem);
@@ -1133,25 +1133,25 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     ErrorDialog.showDialog(ownerFrame, null, uploaderProperties.getProperties(),
                         "File upload failed", e);
                 };
-            });                    
-        } 
+            });
+        }
     }
-    
-    private SignedUrlAndObject[] prepareSignedObjects(S3Object[] objects, 
+
+    private SignedUrlAndObject[] prepareSignedObjects(S3Object[] objects,
         SignatureRequest[] signatureRequests, XmlGenerator xmlGenerator) throws Exception
     {
         List signedObjects = new ArrayList();
         String firstDeclineReason = null;
-        
+
         for (int i = 0; i < signatureRequests.length; i++) {
             SignatureRequest request = signatureRequests[i];
             S3Object object = objects[i];
-            
+
             // Store summary information in XML document generator.
             if (xmlGenerator != null) {
                 Map clonedMetadata = new HashMap();
                 clonedMetadata.putAll(object.getMetadataMap());
-                xmlGenerator.addSignatureRequest(object.getKey(), object.getBucketName(), 
+                xmlGenerator.addSignatureRequest(object.getKey(), object.getBucketName(),
                     clonedMetadata, request);
             }
 
@@ -1166,7 +1166,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 if (request.getObjectMetadata() != null && request.getObjectMetadata().size() > 0) {
                     object.replaceAllMetadata(request.getObjectMetadata());
                 }
-                
+
                 SignedUrlAndObject urlAndObject = new SignedUrlAndObject(request.getSignedUrl(), object);
                 signedObjects.add(urlAndObject);
             } else {
@@ -1182,12 +1182,12 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             }
         }
         if (firstDeclineReason != null) {
-            throw new Exception("Your upload" + (objects.length > 1 ? "s were" : " was") 
+            throw new Exception("Your upload" + (objects.length > 1 ? "s were" : " was")
                 + " declined by the Gatekeeper. Reason: " + firstDeclineReason);
         }
         return (SignedUrlAndObject[]) signedObjects.toArray(new SignedUrlAndObject[signedObjects.size()]);
     }
-    
+
     /**
      * Listener method that responds to events from the jets3t toolkit when objects are
      * created in S3 - ie when files are uploaded.
@@ -1201,13 +1201,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     cancelUploadButton.setEnabled(!isXmlSummaryUpload);
                 }
             });
-            
+
             ThreadWatcher watcher = event.getThreadWatcher();
             uploadCancelEventTrigger = watcher.getCancelEventListener();
-            
+
             // Show percentage of bytes transferred.
             String bytesTotalStr = byteFormatter.formatByteSize(watcher.getBytesTotal());
-            final String statusText = "Uploaded 0 of " + bytesTotalStr;                
+            final String statusText = "Uploaded 0 of " + bytesTotalStr;
 
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
@@ -1215,24 +1215,24 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     progressBar.setValue(0);
                 }
             });
-        } 
+        }
         else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
             ThreadWatcher watcher = event.getThreadWatcher();
-            
+
             if (watcher.getBytesTransferred() >= watcher.getBytesTotal()) {
                 // Upload is completed, just waiting on resonse from S3.
                 String statusText = "Upload completed, awaiting confirmation";
-                
+
                 progressBar.setValue(100);
                 progressStatusTextLabel.setText(replaceMessageVariables(statusText));
                 progressTransferDetailsLabel.setText("");
-            } else {                    
+            } else {
                 String bytesCompletedStr = byteFormatter.formatByteSize(watcher.getBytesTransferred());
                 String bytesTotalStr = byteFormatter.formatByteSize(watcher.getBytesTotal());
                 String statusText = "Uploaded " + bytesCompletedStr + " of " + bytesTotalStr;
-                int percentage = (int) 
+                int percentage = (int)
                     (((double)watcher.getBytesTransferred() / watcher.getBytesTotal()) * 100);
-                
+
                 long bytesPerSecond = watcher.getBytesPerSecond();
                 String transferDetailsText = "Speed: " + byteFormatter.formatByteSize(bytesPerSecond) + "/s";
 
@@ -1243,7 +1243,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                     }
                     transferDetailsText += "Time remaining: " + timeFormatter.formatTime(secondsRemaining);
                 }
-                                
+
                 progressBar.setValue(percentage);
                 progressStatusTextLabel.setText(replaceMessageVariables(statusText));
                 progressTransferDetailsLabel.setText(replaceMessageVariables(transferDetailsText));
@@ -1253,17 +1253,17 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             if (uploadingFinalObject) {
                 drawWizardScreen(WIZARD_SCREEN_5);
             }
-            progressBar.setValue(0);          
+            progressBar.setValue(0);
             progressStatusTextLabel.setText("");
             progressTransferDetailsLabel.setText("");
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
                     cancelUploadButton.setEnabled(false);
                 }
-            });            
+            });
         }
         else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
-            progressBar.setValue(0);          
+            progressBar.setValue(0);
             progressStatusTextLabel.setText("");
             progressTransferDetailsLabel.setText("");
             uploadCancelled = true;
@@ -1272,10 +1272,10 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 public void run() {
                     cancelUploadButton.setEnabled(false);
                 }
-            });            
+            });
         }
         else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
-            progressBar.setValue(0);          
+            progressBar.setValue(0);
             progressStatusTextLabel.setText("");
             progressTransferDetailsLabel.setText("");
             failWithFatalError(ERROR_CODE__S3_UPLOAD_FAILED);
@@ -1283,14 +1283,14 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 public void run() {
                     cancelUploadButton.setEnabled(false);
                 }
-            });            
+            });
         }
     }
-    
+
     /**
      * Configures a button's text, tooltip and image using uploader properties prefixed
      * with the given properties prefix.
-     * 
+     *
      * @param button
      * @param propertiesPrefix
      */
@@ -1303,14 +1303,14 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             .getStringProperty(propertiesPrefix + ".text", null));
         String buttonTooltip = replaceMessageVariables(uploaderProperties
             .getStringProperty(propertiesPrefix + ".tooltip", null));
-        
+
         boolean hasImage = false;
         boolean hasText = false;
-        
+
         if (buttonImagePath != null && buttonImagePath.length() > 0) {
             if (!guiUtils.applyIcon(button, buttonImagePath)) {
-                log.error("Unable to load image URL for a button with property prefix '" 
-                    + propertiesPrefix + "'. Image path: " + buttonImagePath);                                        
+                log.error("Unable to load image URL for a button with property prefix '"
+                    + propertiesPrefix + "'. Image path: " + buttonImagePath);
             } else {
                 hasImage = true;
             }
@@ -1329,13 +1329,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             button.setVisible(false);
         } else {
             button.setVisible(true);
-        }   
+        }
     }
-        
+
     /**
      * Draws the wizard screen appropriate to the stage in the wizard process the user has
-     * reached.  
-     * 
+     * reached.
+     *
      * @param nextState
      * an integer detailing the screen the user is moving to.
      */
@@ -1344,75 +1344,75 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         String title = uploaderProperties.getStringProperty(
             "screen." + nextState + ".title", "");
         userGuidanceLabel.setText(replaceMessageVariables(title));
-        
+
         configureButton(nextButton, "screen." + nextState + ".nextButton");
         configureButton(backButton, "screen." + nextState + ".backButton");
-        
+
         this.getDropTarget().setActive(false);
-        
+
         if (nextState == WIZARD_SCREEN_1) {
             primaryPanelCardLayout.show(primaryPanel, "screen1");
             buttonsPanelCardLayout.show(buttonsPanel, "visible");
         } else if (nextState == WIZARD_SCREEN_2) {
             userInputProperties = userInputFields.getUserInputsAsProperties(false);
-            
+
             primaryPanelCardLayout.show(primaryPanel, "screen2");
             dragDropTargetLabel.setText(
-                replaceMessageVariables(uploaderProperties.getStringProperty("screen.2.dragDropPrompt", 
+                replaceMessageVariables(uploaderProperties.getStringProperty("screen.2.dragDropPrompt",
                 "Missing property 'screen.2.dragDropPrompt'")));
             this.getDropTarget().setActive(true);
         } else if (nextState == WIZARD_SCREEN_3) {
             primaryPanelCardLayout.show(primaryPanel, "screen3");
-            String fileInformation = uploaderProperties.getStringProperty("screen.3.fileInformation", 
+            String fileInformation = uploaderProperties.getStringProperty("screen.3.fileInformation",
                 "Missing property 'screen.3.fileInformation'");
             fileToUploadLabel.setText(replaceMessageVariables(fileInformation));
         } else if (nextState == WIZARD_SCREEN_4) {
             primaryPanelCardLayout.show(primaryPanel, "screen4");
-            
-            String fileInformation = uploaderProperties.getStringProperty("screen.4.fileInformation", 
+
+            String fileInformation = uploaderProperties.getStringProperty("screen.4.fileInformation",
                 "Missing property 'screen.4.fileInformation'");
             fileInformationLabel.setText(replaceMessageVariables(fileInformation));
 
             cancelUploadButton.setEnabled(false);
             new Thread() {
-                public void run() {                           
+                public void run() {
                     uploadFilesToS3();
                 }
-            }.start();                    
+            }.start();
         } else if (nextState == WIZARD_SCREEN_5) {
             primaryPanelCardLayout.show(primaryPanel, "screen5");
 
             String finalMessage = null;
             if (fatalErrorOccurred) {
-                finalMessage = uploaderProperties.getStringProperty("screen.5.errorMessage", 
-                    "Missing property 'screen.5.errorMessage'");                
-            } else {                
-                finalMessage = uploaderProperties.getStringProperty("screen.5.thankyouMessage", 
-                    "Missing property 'screen.5.thankyouMessage'");                
+                finalMessage = uploaderProperties.getStringProperty("screen.5.errorMessage",
+                    "Missing property 'screen.5.errorMessage'");
+            } else {
+                finalMessage = uploaderProperties.getStringProperty("screen.5.thankyouMessage",
+                    "Missing property 'screen.5.thankyouMessage'");
             }
-            
+
             finalMessageLabel.setText(replaceMessageVariables(finalMessage));
         } else {
             log.error("Ignoring unexpected wizard screen number: " + nextState);
             return;
         }
-        currentState = nextState;                   
+        currentState = nextState;
     }
-    
+
     /**
      * Move the wizard forward one step/screen.
      */
     private void wizardStepForward() {
         drawWizardScreen(currentState + 1);
     }
-    
+
     /**
      * Move the wizard backward one step/screen.
      */
     private void wizardStepBackward() {
         drawWizardScreen(currentState - 1);
     }
-    
+
     /**
      * When a fatal error occurs, go straight to last screen to display the error message
      * and make the error code available as a variable (<code>${errorCode}</code>) to be used
@@ -1420,20 +1420,20 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * <p>
      * If there is an Uploader property <code>errorCodeMessage.&lt;code&gt;</code> corresponding
      * to this error code, the value of this property is made available as a variable
-     * (<code>${errorMessage}</code>). If there is no such property available the 
-     * <code>${errorMessage}</code> variable will be an empty string. 
-     * 
-     * 
+     * (<code>${errorMessage}</code>). If there is no such property available the
+     * <code>${errorMessage}</code> variable will be an empty string.
+     *
+     *
      * @param errorCode
      * the error code, which may correspond with an error message in uploader.properties.
      */
     private void failWithFatalError(String errorCode) {
         uploaderProperties.setProperty("errorCode", errorCode);
-        
+
         String errorCodeMessagePropertyName = "errorCodeMessage." + errorCode;
         String errorCodeMessage = uploaderProperties.getStringProperty(errorCodeMessagePropertyName, "");
         uploaderProperties.setProperty("errorMessage", errorCodeMessage);
-        
+
         fatalErrorOccurred = true;
         drawWizardScreen(WIZARD_SCREEN_5);
     }
@@ -1452,17 +1452,17 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * </ul>
      * If the variable named in the input string is not available, or has no value, the variable
      * reference is left in the result.
-     * 
+     *
      * @param message
      * string that may have variables to replace
      * @return
-     * the input string with any variable referenced replaced with the variable's value. 
+     * the input string with any variable referenced replaced with the variable's value.
      */
     private String replaceMessageVariables(String message) {
         if (message == null) {
             return "";
         }
-        
+
         String result = message;
         // Replace upload file variables, if an upload file has been chosen.
         if (filesToUpload != null) {
@@ -1472,9 +1472,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 filesSize += filesToUpload[i].length();
                 fileNameList.append(filesToUpload[i].getName()).append(" ");
             }
-            
+
             result = result.replaceAll("\\$\\{fileNameList\\}", fileNameList.toString());
-            result = result.replaceAll("\\$\\{filesSize\\}", byteFormatter.formatByteSize(filesSize));                    
+            result = result.replaceAll("\\$\\{filesSize\\}", byteFormatter.formatByteSize(filesSize));
         }
         result = result.replaceAll("\\$\\{maxFileSize\\}", String.valueOf(fileMaxSizeMB));
         result = result.replaceAll("\\$\\{maxFileCount\\}", String.valueOf(fileMaxCount));
@@ -1482,7 +1482,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         String extList = validFileExtensions.toString();
         extList = extList.substring(1, extList.length() -1);
         extList = extList.replaceAll(",", " ");
-        result = result.replaceAll("\\$\\{validFileExtensions\\}", extList);        
+        result = result.replaceAll("\\$\\{validFileExtensions\\}", extList);
 
         Pattern pattern = Pattern.compile("\\$\\{.+?\\}");
         Matcher matcher = pattern.matcher(result);
@@ -1502,22 +1502,22 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 log.debug("Replacing variable '" + variableName + "' with value from uploader.properties file");
                 replacement = uploaderProperties.getStringProperty(variableName, null);
             }
-            
+
             if (replacement != null) {
-                result = result.substring(0, matcher.start()) + replacement + 
+                result = result.substring(0, matcher.start()) + replacement +
                 result.substring(matcher.end());
                 offset = matcher.start() + 1;
-                matcher.reset(result);                
+                matcher.reset(result);
             } else {
-                offset = matcher.start() + 1;                
+                offset = matcher.start() + 1;
             }
         }
         if (!result.equals(message)) {
             log.debug("Replaced variables in text: " + message + " => " + result);
-        }                            
+        }
         return result;
     }
-    
+
     /**
      * Handles GUI actions.
      */
@@ -1528,26 +1528,26 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             wizardStepBackward();
         } else if ("ChooseFile".equals(actionEvent.getActionCommand())) {
             JFileChooser fileChooser = new JFileChooser();
-            
+
             if (validFileExtensions.size() > 0) {
                 UploaderFileExtensionFilter filter = new UploaderFileExtensionFilter(
                     "Allowed files", validFileExtensions);
-                fileChooser.setFileFilter(filter);                            
+                fileChooser.setFileFilter(filter);
             }
-            
+
             fileChooser.setMultiSelectionEnabled(fileMaxCount > 1);
             fileChooser.setDialogTitle("Choose file" + (fileMaxCount > 1 ? "s" : "") + " to upload");
             fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
             fileChooser.setApproveButtonText("Choose file" + (fileMaxCount > 1 ? "s" : ""));
-            
+
             int returnVal = fileChooser.showOpenDialog(ownerFrame);
             if (returnVal != JFileChooser.APPROVE_OPTION) {
                     return;
             }
-            
+
             List fileList = new ArrayList();
             if (fileChooser.getSelectedFiles().length > 0) {
-                fileList.addAll(Arrays.asList(fileChooser.getSelectedFiles()));                
+                fileList.addAll(Arrays.asList(fileChooser.getSelectedFiles()));
             } else {
                 fileList.add(fileChooser.getSelectedFile());
             }
@@ -1565,34 +1565,34 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             log.warn("Unrecognised action command, ignoring: " + actionEvent.getActionCommand());
         }
     }
-    
+
     private HttpClient initHttpConnection() {
         // Set client parameters.
         HttpClientParams clientParams = new HttpClientParams();
-        
-        clientParams.setParameter(HttpMethodParams.USER_AGENT, 
+
+        clientParams.setParameter(HttpMethodParams.USER_AGENT,
             ServiceUtils.getUserAgentDescription(APPLICATION_DESCRIPTION));
 
-        // Replace default error retry handler.        
+        // Replace default error retry handler.
         clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
             public boolean retryMethod(HttpMethod httpMethod, IOException ioe, int executionCount) {
                 if (executionCount > MAX_CONNECTION_RETRIES) {
-                    log.error("Retried connection " + executionCount 
+                    log.error("Retried connection " + executionCount
                         + " times, which exceeds the maximum retry count of " + MAX_CONNECTION_RETRIES);
-                    return false;                    
+                    return false;
                 }
-                log.warn("Retrying request - attempt " + executionCount + " of " + MAX_CONNECTION_RETRIES);                
+                log.warn("Retrying request - attempt " + executionCount + " of " + MAX_CONNECTION_RETRIES);
                 return true;
             }
         });
-        
-        
+
+
         // Set connection parameters.
         HttpConnectionManagerParams connectionParams = new HttpConnectionManagerParams();
         connectionParams.setConnectionTimeout(HTTP_CONNECTION_TIMEOUT);
-        connectionParams.setSoTimeout(SOCKET_CONNECTION_TIMEOUT);        
+        connectionParams.setSoTimeout(SOCKET_CONNECTION_TIMEOUT);
         connectionParams.setStaleCheckingEnabled(false);
-        
+
         HttpClient httpClient = new HttpClient(clientParams);
         httpClient.getHttpConnectionManager().setParams(connectionParams);
         return httpClient;
@@ -1602,11 +1602,11 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * Follows hyperlinks clicked on by a user. This is achieved differently depending on whether
      * Cockpit is running as an applet or as a stand-alone application:
      * <ul>
-     * <li>Application: Detects the default browser application for the user's system (using 
+     * <li>Application: Detects the default browser application for the user's system (using
      * <tt>BareBonesBrowserLaunch</tt>) and opens the link as a new window in that browser</li>
      * <li>Applet: Opens the link in the current browser using the applet's context</li>
      * </ul>
-     * 
+     *
      * @param url
      * the url to open
      * @param target
@@ -1615,7 +1615,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     public void followHyperlink(URL url, String target) {
         if (isRunningAsApplet) {
             if (target == null) {
-                getAppletContext().showDocument(url);                
+                getAppletContext().showDocument(url);
             } else {
                 getAppletContext().showDocument(url, target);
             }
@@ -1623,13 +1623,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             BareBonesBrowserLaunch.openURL(url.toString());
         }
     }
-    
+
     /**
      * Implementation method for the CredentialsProvider interface.
      * <p>
-     * Based on sample code:  
-     * <a href="http://svn.apache.org/viewvc/jakarta/commons/proper/httpclient/trunk/src/examples/InteractiveAuthenticationExample.java?view=markup">InteractiveAuthenticationExample</a> 
-     * 
+     * Based on sample code:
+     * <a href="http://svn.apache.org/viewvc/jakarta/commons/proper/httpclient/trunk/src/examples/InteractiveAuthenticationExample.java?view=markup">InteractiveAuthenticationExample</a>
+     *
      */
     public Credentials getCredentials(AuthScheme authscheme, String host, int port, boolean proxy) throws CredentialsNotAvailableException {
         if (authscheme == null) {
@@ -1637,22 +1637,22 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         }
         try {
             Credentials credentials = null;
-            
+
             if (authscheme instanceof NTLMScheme) {
                 AuthenticationDialog pwDialog = new AuthenticationDialog(
-                    ownerFrame, "Authentication Required", 
+                    ownerFrame, "Authentication Required",
                     "<html>Host <b>" + host + ":" + port + "</b> requires Windows authentication</html>", true);
                 pwDialog.setVisible(true);
                 if (pwDialog.getUser().length() > 0) {
-                    credentials = new NTCredentials(pwDialog.getUser(), pwDialog.getPassword(), 
+                    credentials = new NTCredentials(pwDialog.getUser(), pwDialog.getPassword(),
                         host, pwDialog.getDomain());
                 }
                 pwDialog.dispose();
             } else
             if (authscheme instanceof RFC2617Scheme) {
                 AuthenticationDialog pwDialog = new AuthenticationDialog(
-                    ownerFrame, "Authentication Required", 
-                    "<html><center>Host <b>" + host + ":" + port + "</b>" 
+                    ownerFrame, "Authentication Required",
+                    "<html><center>Host <b>" + host + ":" + port + "</b>"
                     + " requires authentication for the realm:<br><b>" + authscheme.getRealm() + "</b></center></html>", false);
                 pwDialog.setVisible(true);
                 if (pwDialog.getUser().length() > 0) {
@@ -1667,9 +1667,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         } catch (IOException e) {
             throw new CredentialsNotAvailableException(e.getMessage(), e);
         }
-    }   
+    }
 
-    
+
     // S3 Service events that are not used in this Uploader application.
     public void s3ServiceEventPerformed(ListObjectsEvent event) {}
     public void s3ServiceEventPerformed(CreateBucketsEvent event) {}
@@ -1681,11 +1681,11 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     public void s3ServiceEventPerformed(DownloadObjectsEvent event) {}
     public void s3ServiceEventPerformed(CopyObjectsEvent event) {}
     public void valueChanged(ListSelectionEvent arg0) {}
-    
-    
+
+
     /**
      * Run the Uploader as a stand-alone application.
-     * 
+     *
      * @param args
      * @throws Exception
      */
@@ -1706,7 +1706,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             public void windowActivated(WindowEvent e) {
             }
             public void windowDeactivated(WindowEvent e) {
-            }           
+            }
         });
 
         // Read arguments as properties of the form: <propertyName>'='<propertyValue>
@@ -1714,7 +1714,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         if (args.length > 0) {
             for (int i = 0; i < args.length; i++) {
                 String arg = args[i];
-                int delimIndex = arg.indexOf("="); 
+                int delimIndex = arg.indexOf("=");
                 if (delimIndex >= 0) {
                     String name = arg.substring(0, delimIndex);
                     String value = arg.substring(delimIndex + 1);
@@ -1724,8 +1724,8 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 }
             }
         }
-        
+
         new Uploader(ownerFrame, argumentProperties);
     }
-    
+
 }

@@ -25,7 +25,7 @@ public class CopyObjectResult  implements java.io.Serializable {
 
     /**
      * Gets the lastModified value for this CopyObjectResult.
-     * 
+     *
      * @return lastModified
      */
     public java.util.Calendar getLastModified() {
@@ -35,7 +35,7 @@ public class CopyObjectResult  implements java.io.Serializable {
 
     /**
      * Sets the lastModified value for this CopyObjectResult.
-     * 
+     *
      * @param lastModified
      */
     public void setLastModified(java.util.Calendar lastModified) {
@@ -45,7 +45,7 @@ public class CopyObjectResult  implements java.io.Serializable {
 
     /**
      * Gets the ETag value for this CopyObjectResult.
-     * 
+     *
      * @return ETag
      */
     public java.lang.String getETag() {
@@ -55,7 +55,7 @@ public class CopyObjectResult  implements java.io.Serializable {
 
     /**
      * Sets the ETag value for this CopyObjectResult.
-     * 
+     *
      * @param ETag
      */
     public void setETag(java.lang.String ETag) {
@@ -73,11 +73,11 @@ public class CopyObjectResult  implements java.io.Serializable {
         }
         __equalsCalc = obj;
         boolean _equals;
-        _equals = true && 
-            ((this.lastModified==null && other.getLastModified()==null) || 
+        _equals = true &&
+            ((this.lastModified==null && other.getLastModified()==null) ||
              (this.lastModified!=null &&
               this.lastModified.equals(other.getLastModified()))) &&
-            ((this.ETag==null && other.getETag()==null) || 
+            ((this.ETag==null && other.getETag()==null) ||
              (this.ETag!=null &&
               this.ETag.equals(other.getETag())));
         __equalsCalc = null;
@@ -132,10 +132,10 @@ public class CopyObjectResult  implements java.io.Serializable {
      * Get Custom Serializer
      */
     public static org.apache.axis.encoding.Serializer getSerializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanSerializer(
             _javaType, _xmlType, typeDesc);
     }
@@ -144,10 +144,10 @@ public class CopyObjectResult  implements java.io.Serializable {
      * Get Custom Deserializer
      */
     public static org.apache.axis.encoding.Deserializer getDeserializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanDeserializer(
             _javaType, _xmlType, typeDesc);
     }

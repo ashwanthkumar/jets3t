@@ -25,7 +25,7 @@ public class Grant  implements java.io.Serializable {
 
     /**
      * Gets the grantee value for this Grant.
-     * 
+     *
      * @return grantee
      */
     public org.jets3t.service.impl.soap.axis._2006_03_01.Grantee getGrantee() {
@@ -35,7 +35,7 @@ public class Grant  implements java.io.Serializable {
 
     /**
      * Sets the grantee value for this Grant.
-     * 
+     *
      * @param grantee
      */
     public void setGrantee(org.jets3t.service.impl.soap.axis._2006_03_01.Grantee grantee) {
@@ -45,7 +45,7 @@ public class Grant  implements java.io.Serializable {
 
     /**
      * Gets the permission value for this Grant.
-     * 
+     *
      * @return permission
      */
     public org.jets3t.service.impl.soap.axis._2006_03_01.Permission getPermission() {
@@ -55,7 +55,7 @@ public class Grant  implements java.io.Serializable {
 
     /**
      * Sets the permission value for this Grant.
-     * 
+     *
      * @param permission
      */
     public void setPermission(org.jets3t.service.impl.soap.axis._2006_03_01.Permission permission) {
@@ -73,11 +73,11 @@ public class Grant  implements java.io.Serializable {
         }
         __equalsCalc = obj;
         boolean _equals;
-        _equals = true && 
-            ((this.grantee==null && other.getGrantee()==null) || 
+        _equals = true &&
+            ((this.grantee==null && other.getGrantee()==null) ||
              (this.grantee!=null &&
               this.grantee.equals(other.getGrantee()))) &&
-            ((this.permission==null && other.getPermission()==null) || 
+            ((this.permission==null && other.getPermission()==null) ||
              (this.permission!=null &&
               this.permission.equals(other.getPermission())));
         __equalsCalc = null;
@@ -132,10 +132,10 @@ public class Grant  implements java.io.Serializable {
      * Get Custom Serializer
      */
     public static org.apache.axis.encoding.Serializer getSerializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanSerializer(
             _javaType, _xmlType, typeDesc);
     }
@@ -144,10 +144,10 @@ public class Grant  implements java.io.Serializable {
      * Get Custom Deserializer
      */
     public static org.apache.axis.encoding.Deserializer getDeserializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanDeserializer(
             _javaType, _xmlType, typeDesc);
     }

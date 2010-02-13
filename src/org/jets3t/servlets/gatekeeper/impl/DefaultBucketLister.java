@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2007 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.servlets.gatekeeper.impl;
 
@@ -32,15 +32,15 @@ import org.jets3t.servlets.gatekeeper.BucketLister;
 import org.jets3t.servlets.gatekeeper.ClientInformation;
 
 /**
- * Default BucketLister implementation that lists all objects in the configured bucket. 
- *  
+ * Default BucketLister implementation that lists all objects in the configured bucket.
+ *
  * @author James Murty
  */
 public class DefaultBucketLister extends BucketLister {
 
-	protected AWSCredentials awsCredentials = null;
-	private String s3BucketName = null;
-	
+    protected AWSCredentials awsCredentials = null;
+    private String s3BucketName = null;
+
     /**
      * Constructs the Bucket lister with the required parameters.
      * <p>
@@ -51,13 +51,13 @@ public class DefaultBucketLister extends BucketLister {
      * <li><tt>S3BucketName</tt>: The bucket all objects are stored in (regardless of what bucket
      * name the client provided).</li>
      * </ul>
-     * 
+     *
      * @param servletConfig
      * @throws ServletException
      */
     public DefaultBucketLister(ServletConfig servletConfig) throws ServletException {
         super(servletConfig);
-                
+
         String awsAccessKey = servletConfig.getInitParameter("AwsAccessKey");
         String awsSecretKey = servletConfig.getInitParameter("AwsSecretKey");
 
@@ -74,8 +74,8 @@ public class DefaultBucketLister extends BucketLister {
         }
         if (missingInitParam) {
             throw new ServletException(errorMessage);
-        }        
-        
+        }
+
         this.awsCredentials = new AWSCredentials(awsAccessKey, awsSecretKey);
 
         s3BucketName = servletConfig.getInitParameter("S3BucketName");
@@ -85,9 +85,9 @@ public class DefaultBucketLister extends BucketLister {
         }
     }
 
-    public void listObjects(GatekeeperMessage gatekeeperMessage, 
-    		ClientInformation clientInformation) throws S3ServiceException
-    {                
+    public void listObjects(GatekeeperMessage gatekeeperMessage,
+        	ClientInformation clientInformation) throws S3ServiceException
+    {
         // Build prefix based on user's path and any additional prefix provided.
         String prefix = null;
         if (gatekeeperMessage.getApplicationProperties().containsKey("Prefix")) {
@@ -98,20 +98,20 @@ public class DefaultBucketLister extends BucketLister {
         RestS3Service service = new RestS3Service(awsCredentials);
 
         // List objects in the configured bucket.
-    	S3Object[] objects = service.listObjects(s3BucketName, prefix, null, 1000);
-        
-        // Package object information in SignatureRequest objects. This data will be 
+        S3Object[] objects = service.listObjects(s3BucketName, prefix, null, 1000);
+
+        // Package object information in SignatureRequest objects. This data will be
         // automatically encoded and sent across the wire back to the client.
-    	for (int i = 0; i < objects.length; i++) {
-    		SignatureRequest sr = new SignatureRequest();
+        for (int i = 0; i < objects.length; i++) {
+        	SignatureRequest sr = new SignatureRequest();
             sr.setObjectMetadata(objects[i].getMetadataMap());
-            sr.addObjectMetadata(S3Object.METADATA_HEADER_LAST_MODIFIED_DATE, 
+            sr.addObjectMetadata(S3Object.METADATA_HEADER_LAST_MODIFIED_DATE,
                 ServiceUtils.formatIso8601Date(objects[i].getLastModifiedDate()));
             sr.setObjectKey(objects[i].getKey());
-    		gatekeeperMessage.addSignatureRequest(sr);
-    	}
-        
-        gatekeeperMessage.addApplicationProperty("AccountDescription", 
+        	gatekeeperMessage.addSignatureRequest(sr);
+        }
+
+        gatekeeperMessage.addApplicationProperty("AccountDescription",
             "<html>Bucket: <b>" + s3BucketName + "</b></html>");
 
         // Include an application property to inform Cockpit Lite of the user's bucket

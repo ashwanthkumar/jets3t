@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2007 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.service.utils.signedurl;
 
@@ -48,21 +48,21 @@ import org.jets3t.service.utils.gatekeeper.SignatureRequest;
 
 /**
  * Utility class to handle common operations performed by Gatekeeper client applications.
- * 
+ *
  * @author James Murty
  */
 public class GatekeeperClientUtils {
 
-	private HttpClient httpClientGatekeeper = null;
+    private HttpClient httpClientGatekeeper = null;
 
-	private static final Log log = LogFactory.getLog(GatekeeperClientUtils.class);
+    private static final Log log = LogFactory.getLog(GatekeeperClientUtils.class);
 
     /**
-     * Variable to store application exceptions, so that client failure information can be 
+     * Variable to store application exceptions, so that client failure information can be
      * included in the information provided to the Gatekeeper when uploads are retried.
      */
     private Exception priorFailureException = null;
-    
+
     private String gatekeeperUrl = null;
     private String userAgentDescription;
     private int maxRetryCount;
@@ -76,16 +76,16 @@ public class GatekeeperClientUtils {
      * @param connectionTimeoutMS
      * @param credentialsProvider
      */
-    public GatekeeperClientUtils(String gatekeeperUrl, String userAgentDescription, 
-        int maxRetryCount, int connectionTimeoutMS, CredentialsProvider credentialsProvider) 
+    public GatekeeperClientUtils(String gatekeeperUrl, String userAgentDescription,
+        int maxRetryCount, int connectionTimeoutMS, CredentialsProvider credentialsProvider)
     {
-    	this.gatekeeperUrl = gatekeeperUrl;
-    	this.userAgentDescription = userAgentDescription;
-    	this.maxRetryCount = maxRetryCount;
-    	this.connectionTimeout = connectionTimeoutMS;
-        this.credentialsProvider = credentialsProvider; 
+        this.gatekeeperUrl = gatekeeperUrl;
+        this.userAgentDescription = userAgentDescription;
+        this.maxRetryCount = maxRetryCount;
+        this.connectionTimeout = connectionTimeoutMS;
+        this.credentialsProvider = credentialsProvider;
     }
-	
+
     /**
      * Prepares objects for HTTP communications with the Gatekeeper servlet.
      * @return
@@ -93,19 +93,19 @@ public class GatekeeperClientUtils {
     private HttpClient initHttpConnection() {
         // Set client parameters.
         HttpClientParams clientParams = new HttpClientParams();
-        
-        clientParams.setParameter(HttpMethodParams.USER_AGENT, 
+
+        clientParams.setParameter(HttpMethodParams.USER_AGENT,
             ServiceUtils.getUserAgentDescription(userAgentDescription));
-        
-        // Replace default error retry handler.        
+
+        // Replace default error retry handler.
         clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
             public boolean retryMethod(HttpMethod httpMethod, IOException ioe, int executionCount) {
                 if (executionCount > maxRetryCount) {
                     if (log.isErrorEnabled()) {
-                        log.error("Retried connection " + executionCount 
+                        log.error("Retried connection " + executionCount
                             + " times, which exceeds the maximum retry count of " + maxRetryCount);
                     }
-                    return false;                    
+                    return false;
                 }
                 if (log.isWarnEnabled()) {
                     log.warn("Retrying request - attempt " + executionCount + " of " + maxRetryCount);
@@ -113,26 +113,26 @@ public class GatekeeperClientUtils {
                 return true;
             }
         });
-        
-        
+
+
         // Set connection parameters.
         HttpConnectionManagerParams connectionParams = new HttpConnectionManagerParams();
         connectionParams.setConnectionTimeout(connectionTimeout);
-        connectionParams.setSoTimeout(connectionTimeout);        
+        connectionParams.setSoTimeout(connectionTimeout);
         connectionParams.setStaleCheckingEnabled(false);
-        
+
         HttpClient httpClient = new HttpClient(clientParams);
         httpClient.getHttpConnectionManager().setParams(connectionParams);
-        
+
         // httpClient.getParams().setAuthenticationPreemptive(true);
-        httpClient.getParams().setParameter(CredentialsProvider.PROVIDER, credentialsProvider);                     
+        httpClient.getParams().setParameter(CredentialsProvider.PROVIDER, credentialsProvider);
 
         return httpClient;
     }
 
     /**
      * Request permission from the Gatekeeper for a particular operation.
-     * 
+     *
      * @param operationType
      * @param bucketName
      * @param objects
@@ -140,45 +140,45 @@ public class GatekeeperClientUtils {
      * @throws HttpException
      * @throws Exception
      */
-    public GatekeeperMessage requestActionThroughGatekeeper(String operationType, String bucketName, 
-    		S3Object[] objects, Map applicationPropertiesMap) 
-        throws HttpException, Exception 
+    public GatekeeperMessage requestActionThroughGatekeeper(String operationType, String bucketName,
+        	S3Object[] objects, Map applicationPropertiesMap)
+        throws HttpException, Exception
     {
         /*
          *  Build Gatekeeper request.
          */
         GatekeeperMessage gatekeeperMessage = new GatekeeperMessage();
-        gatekeeperMessage.addApplicationProperties(applicationPropertiesMap);        
+        gatekeeperMessage.addApplicationProperties(applicationPropertiesMap);
         gatekeeperMessage.addApplicationProperty(
-        		GatekeeperMessage.PROPERTY_CLIENT_VERSION_ID, userAgentDescription);
+            	GatekeeperMessage.PROPERTY_CLIENT_VERSION_ID, userAgentDescription);
 
         // If a prior failure has occurred, add information about this failure.
         if (priorFailureException != null) {
-            gatekeeperMessage.addApplicationProperty(GatekeeperMessage.PROPERTY_PRIOR_FAILURE_MESSAGE, 
+            gatekeeperMessage.addApplicationProperty(GatekeeperMessage.PROPERTY_PRIOR_FAILURE_MESSAGE,
                 priorFailureException.getMessage());
             // Now reset the prior failure variable.
             priorFailureException = null;
         }
-        
+
         // Add all S3 objects as candiates for PUT signing.
         for (int i = 0; i < objects.length; i++) {
             SignatureRequest signatureRequest = new SignatureRequest(
-            		operationType, objects[i].getKey());
+                	operationType, objects[i].getKey());
             signatureRequest.setObjectMetadata(objects[i].getMetadataMap());
             signatureRequest.setBucketName(bucketName);
-            
+
             gatekeeperMessage.addSignatureRequest(signatureRequest);
         }
-                
+
         /*
          *  Build HttpClient POST message.
          */
-        
+
         // Add all properties/parameters to credentials POST request.
         PostMethod postMethod = new PostMethod(gatekeeperUrl);
         Properties properties = gatekeeperMessage.encodeToProperties();
         Iterator propsIter = properties.entrySet().iterator();
-        while (propsIter.hasNext()) { 
+        while (propsIter.hasNext()) {
             Map.Entry entry = (Map.Entry) propsIter.next();
             String fieldName = (String) entry.getKey();
             String fieldValue = (String) entry.getValue();
@@ -187,9 +187,9 @@ public class GatekeeperClientUtils {
 
         // Create Http Client if necessary, and include User Agent information.
         if (httpClientGatekeeper == null) {
-            httpClientGatekeeper = initHttpConnection(); 
+            httpClientGatekeeper = initHttpConnection();
         }
-        
+
         // Try to detect any necessary proxy configurations.
         try {
             ProxyHost proxyHost = PluginProxyUtil.detectProxy(new URL(gatekeeperUrl));
@@ -202,14 +202,14 @@ public class GatekeeperClientUtils {
             if (log.isDebugEnabled()) {
                 log.debug("No proxy detected");
             }
-        }            
+        }
 
         // Perform Gateway request.
         if (log.isDebugEnabled()) {
             log.debug("Contacting Gatekeeper at: " + gatekeeperUrl);
         }
-        try {                        
-            int responseCode = httpClientGatekeeper.executeMethod(postMethod);            
+        try {
+            int responseCode = httpClientGatekeeper.executeMethod(postMethod);
             String contentType = postMethod.getResponseHeader("Content-Type").getValue();
             if (responseCode == 200) {
                 InputStream responseInputStream = null;
@@ -222,12 +222,12 @@ public class GatekeeperClientUtils {
                     responseInputStream = new GZIPInputStream(postMethod.getResponseBodyAsStream());
                 } else {
                     responseInputStream = postMethod.getResponseBodyAsStream();
-                }                
-                
+                }
+
                 if (responseInputStream == null) {
-                    throw new IOException("No response input stream available from Gatekeeper");                    
-                }         
-                
+                    throw new IOException("No response input stream available from Gatekeeper");
+                }
+
                 Properties responseProperties = new Properties();
                 try {
                     responseProperties.load(responseInputStream);
@@ -235,9 +235,9 @@ public class GatekeeperClientUtils {
                     responseInputStream.close();
                 }
 
-                GatekeeperMessage gatekeeperResponseMessage = 
+                GatekeeperMessage gatekeeperResponseMessage =
                     GatekeeperMessage.decodeFromProperties(responseProperties);
-                
+
                 // Check for Gatekeeper Error Code in response.
                 String gatekeeperErrorCode = gatekeeperResponseMessage.getApplicationProperties()
                     .getProperty(GatekeeperMessage.APP_PROPERTY_GATEKEEPER_ERROR_CODE);
@@ -246,44 +246,44 @@ public class GatekeeperClientUtils {
                         log.warn("Received Gatekeeper error code: " + gatekeeperErrorCode);
                     }
                 }
-                
+
                 return gatekeeperResponseMessage;
             } else {
                 if (log.isDebugEnabled()) {
-                    log.debug("The Gatekeeper did not permit a request. Response code: " 
+                    log.debug("The Gatekeeper did not permit a request. Response code: "
                         + responseCode + ", Response content type: " + contentType);
                 }
                 throw new IOException("The Gatekeeper did not permit your request");
             }
         } catch (IOException e) {
-        	throw e;
+            throw e;
         } catch (Exception e) {
             throw new Exception("Gatekeeper did not respond", e);
         } finally {
-            postMethod.releaseConnection();            
+            postMethod.releaseConnection();
         }
-    }  
-    
+    }
+
     /**
-     * Parse the data in a set of SignatureRequest objects and build the corresponding 
-     * S3Objects represented by that data. 
-     * 
+     * Parse the data in a set of SignatureRequest objects and build the corresponding
+     * S3Objects represented by that data.
+     *
      * @param srs
      * signature requests that represent S3 objects.
      * @return
      * objects reconstructed from the provided signature requests.
      */
     public S3Object[] buildS3ObjectsFromSignatureRequests(SignatureRequest[] srs) {
-    	S3Object[] objects = new S3Object[srs.length];
-    	for (int i = 0; i < srs.length; i++) {
-    		objects[i] = new S3Object(srs[i].getObjectKey());
-    		objects[i].addAllMetadata(srs[i].getObjectMetadata());
-    	}
-    	return objects;
+        S3Object[] objects = new S3Object[srs.length];
+        for (int i = 0; i < srs.length; i++) {
+        	objects[i] = new S3Object(srs[i].getObjectKey());
+        	objects[i].addAllMetadata(srs[i].getObjectMetadata());
+        }
+        return objects;
     }
-    
+
     public String getGatekeeperUrl() {
         return gatekeeperUrl;
     }
-        
+
 }

@@ -26,22 +26,22 @@ package org.jets3t.service.impl.rest;
  */
 public class HttpException extends Exception {
 
-	private static final long serialVersionUID = 1122712836821079256L;
-	
-	private int responseCode = 0;
-	private String responseMessage = null;
-	
-	public HttpException(int responseCode, String responseMessage) {
-		this.responseCode = responseCode;
-		this.responseMessage = responseMessage;
-	}
+    private static final long serialVersionUID = 1122712836821079256L;
 
-	public int getResponseCode() {
-		return responseCode;
-	}
+    private int responseCode = 0;
+    private String responseMessage = null;
+    
+    public HttpException(int responseCode, String responseMessage) {
+    	this.responseCode = responseCode;
+    	this.responseMessage = responseMessage;
+    }
 
-	public String getResponseMessage() {
-		return responseMessage;
-	}
-	
+    public int getResponseCode() {
+    	return responseCode;
+    }
+
+    public String getResponseMessage() {
+    	return responseMessage;
+    }
+    
 }

@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2006 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.apps.cockpit.gui;
 
@@ -33,14 +33,14 @@ import org.jets3t.gui.JHtmlLabel;
 /**
  * A panel for prompting a user to provide a passphrase and password used to store or access their
  * AWS credentials in S3.
- * 
+ *
  * @author James Murty
  */
 public class LoginPassphrasePanel extends JPanel {
     private static final long serialVersionUID = -5554177389537270280L;
 
     private final Insets insetsDefault = new Insets(3, 5, 3, 5);
-    
+
     private HyperlinkActivatedListener hyperlinkListener = null;
     private JTextField passphraseTextField = null;
     private JPasswordField passwordPasswordField = null;
@@ -48,31 +48,31 @@ public class LoginPassphrasePanel extends JPanel {
     public LoginPassphrasePanel(HyperlinkActivatedListener hyperlinkListener) {
         super(new GridBagLayout());
         this.hyperlinkListener = hyperlinkListener;
-        
+
         initGui();
     }
-    
+
     private void initGui() {
         // Textual information.
-        String descriptionText = 
+        String descriptionText =
             "<html><center>" +
             "Your AWS Credentials are stored in an encrypted object in your S3 account. " +
             "To access your credentials you must provide your unique passphrase and a password." +
             "<br><font size=\"-2\">You need to store your AWS credentials before you can use this login method.</font>" +
             "</center></html>";
-        
-        String passphraseLabelText = 
+
+        String passphraseLabelText =
             "Passphrase";
-        String passphraseTooltipText = 
+        String passphraseTooltipText =
             "An easy to remember phrase of 6 characters or more that is unlikely to be used by anyone else";
-        String passwordLabelText = 
+        String passwordLabelText =
             "Password";
         String passwordTooltipText =
             "A password of at least 6 characters";
-        
+
         // Components.
         JHtmlLabel descriptionLabel = new JHtmlLabel(descriptionText, hyperlinkListener);
-        descriptionLabel.setHorizontalAlignment(JLabel.CENTER);        
+        descriptionLabel.setHorizontalAlignment(JLabel.CENTER);
         JHtmlLabel passphraseLabel = new JHtmlLabel(passphraseLabelText, hyperlinkListener);
         passphraseTextField = new JTextField();
         passphraseTextField.setName("LoginPassphrasePanel.Passphrase");
@@ -81,7 +81,7 @@ public class LoginPassphrasePanel extends JPanel {
         passwordPasswordField = new JPasswordField();
         passwordPasswordField.setName("LoginPassphrasePanel.Password");
         passwordPasswordField.setToolTipText(passwordTooltipText);
-        
+
         int row = 0;
         add(descriptionLabel, new GridBagConstraints(0, row++,
             1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
@@ -93,12 +93,12 @@ public class LoginPassphrasePanel extends JPanel {
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         add(passwordPasswordField, new GridBagConstraints(0, row++,
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        
+
         // Padder.
         add(new JLabel(), new GridBagConstraints(0, row++,
             1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
-    }    
-    
+    }
+
     /**
      * @return
      * the passphrase provided by the user (may be an empty string)
@@ -106,7 +106,7 @@ public class LoginPassphrasePanel extends JPanel {
     public String getPassphrase() {
         return passphraseTextField.getText();
     }
-    
+
     /**
      * @return
      * the password provided by the user (may be an empty string)
@@ -114,5 +114,5 @@ public class LoginPassphrasePanel extends JPanel {
     public String getPassword() {
         return new String(passwordPasswordField.getPassword());
     }
-    
+
 }

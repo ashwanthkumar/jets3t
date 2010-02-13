@@ -29,7 +29,7 @@ public class LoggingSettings  implements java.io.Serializable {
 
     /**
      * Gets the targetBucket value for this LoggingSettings.
-     * 
+     *
      * @return targetBucket
      */
     public java.lang.String getTargetBucket() {
@@ -39,7 +39,7 @@ public class LoggingSettings  implements java.io.Serializable {
 
     /**
      * Sets the targetBucket value for this LoggingSettings.
-     * 
+     *
      * @param targetBucket
      */
     public void setTargetBucket(java.lang.String targetBucket) {
@@ -49,7 +49,7 @@ public class LoggingSettings  implements java.io.Serializable {
 
     /**
      * Gets the targetPrefix value for this LoggingSettings.
-     * 
+     *
      * @return targetPrefix
      */
     public java.lang.String getTargetPrefix() {
@@ -59,7 +59,7 @@ public class LoggingSettings  implements java.io.Serializable {
 
     /**
      * Sets the targetPrefix value for this LoggingSettings.
-     * 
+     *
      * @param targetPrefix
      */
     public void setTargetPrefix(java.lang.String targetPrefix) {
@@ -69,7 +69,7 @@ public class LoggingSettings  implements java.io.Serializable {
 
     /**
      * Gets the targetGrants value for this LoggingSettings.
-     * 
+     *
      * @return targetGrants
      */
     public org.jets3t.service.impl.soap.axis._2006_03_01.Grant[] getTargetGrants() {
@@ -79,7 +79,7 @@ public class LoggingSettings  implements java.io.Serializable {
 
     /**
      * Sets the targetGrants value for this LoggingSettings.
-     * 
+     *
      * @param targetGrants
      */
     public void setTargetGrants(org.jets3t.service.impl.soap.axis._2006_03_01.Grant[] targetGrants) {
@@ -97,14 +97,14 @@ public class LoggingSettings  implements java.io.Serializable {
         }
         __equalsCalc = obj;
         boolean _equals;
-        _equals = true && 
-            ((this.targetBucket==null && other.getTargetBucket()==null) || 
+        _equals = true &&
+            ((this.targetBucket==null && other.getTargetBucket()==null) ||
              (this.targetBucket!=null &&
               this.targetBucket.equals(other.getTargetBucket()))) &&
-            ((this.targetPrefix==null && other.getTargetPrefix()==null) || 
+            ((this.targetPrefix==null && other.getTargetPrefix()==null) ||
              (this.targetPrefix!=null &&
               this.targetPrefix.equals(other.getTargetPrefix()))) &&
-            ((this.targetGrants==null && other.getTargetGrants()==null) || 
+            ((this.targetGrants==null && other.getTargetGrants()==null) ||
              (this.targetGrants!=null &&
               java.util.Arrays.equals(this.targetGrants, other.getTargetGrants())));
         __equalsCalc = null;
@@ -178,10 +178,10 @@ public class LoggingSettings  implements java.io.Serializable {
      * Get Custom Serializer
      */
     public static org.apache.axis.encoding.Serializer getSerializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanSerializer(
             _javaType, _xmlType, typeDesc);
     }
@@ -190,10 +190,10 @@ public class LoggingSettings  implements java.io.Serializable {
      * Get Custom Deserializer
      */
     public static org.apache.axis.encoding.Deserializer getDeserializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanDeserializer(
             _javaType, _xmlType, typeDesc);
     }

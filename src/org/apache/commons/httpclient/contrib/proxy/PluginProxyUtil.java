@@ -40,21 +40,21 @@ import org.apache.commons.logging.LogFactory;
 
 /**
  * A utility class that gives applets the ability to detect proxy host settings.
- * This was adapted from a post from Chris Forster on 20030227 to a Sun Java 
+ * This was adapted from a post from Chris Forster on 20030227 to a Sun Java
  * forum here:
  * http://forum.java.sun.com/thread.jspa?threadID=364342&tstart=120
- * 
- * The algorithm - which relies on Sun java plugin internal classes in some 
+ *
+ * The algorithm - which relies on Sun java plugin internal classes in some
  * cases - was maintained, but the following changes were made:
- * 
+ *
  * 1. Logging was used to allow control of debug type messages.
  * 2. Reflection is used instead of direct references to Sun internal classes
  *    to avoid the need to have these classes in the CLASSPATH to compile.
- * 3. Removed the use of global variables to allow this class to be used in 
+ * 3. Removed the use of global variables to allow this class to be used in
  *    a multi-threaded environment.
  * 4. Add the use of exception to indicate to the caller when proxy detection
  *    failed as opposed to when no proxy is configured.
- *    
+ *
  * <p>
  * DISCLAIMER: HttpClient developers DO NOT actively support this component.
  * The component is provided as a reference material, which may be inappropriate
@@ -62,47 +62,47 @@ import org.apache.commons.logging.LogFactory;
  * </p>
  */
 public class PluginProxyUtil {
-    
+
     /** Log object for this class */
-    private static final Log LOG = LogFactory.getLog(PluginProxyUtil.class);  
-    
-    /** 
-     * This is used internally to indicate that no proxy detection succeeded 
+    private static final Log LOG = LogFactory.getLog(PluginProxyUtil.class);
+
+    /**
+     * This is used internally to indicate that no proxy detection succeeded
      * and no proxy setting is to be used - failover is unnecessary
      */
     private static final ProxyHost NO_PROXY_HOST = new ProxyHost("",80);
-    
+
     /**
-     * The system property that is used to convey proxy information in some VM's 
+     * The system property that is used to convey proxy information in some VM's
      */
-    private static final String PLUGIN_PROXY_CONFIG_PROP = 
+    private static final String PLUGIN_PROXY_CONFIG_PROP =
                                                 "javaplugin.proxy.config.list";
-    
+
     /**
      * Returns the Proxy Host information using settings from the java plugin.
-     * 
+     *
      * @param sampleURL the url target for which proxy host information is
-     *                  required 
-     * @return the proxy host info (name and port) or null if a direct 
-     *         connection is allowed to the target url.  
+     *                  required
+     * @return the proxy host info (name and port) or null if a direct
+     *         connection is allowed to the target url.
      * @throws ProxyDetectionException if detection failed
      */
-    public static ProxyHost detectProxy(URL sampleURL) 
+    public static ProxyHost detectProxy(URL sampleURL)
         throws ProxyDetectionException
     {
-        
+
         ProxyHost result = null;
         String javaVers = System.getProperty("java.runtime.version");
-        
+
         if (LOG.isDebugEnabled()) {
             LOG.debug("About to attempt auto proxy detection under Java " +
                       "version:"+javaVers);
         }
-        
-        // If specific, known detection methods fail may try fallback 
+
+        // If specific, known detection methods fail may try fallback
         // detection method
-        boolean invokeFailover = false; 
-     
+        boolean invokeFailover = false;
+
         if (javaVers.startsWith("1.3"))  {
             result = detectProxySettingsJDK13(sampleURL);
             if (result == null) {
@@ -134,47 +134,47 @@ public class PluginProxyUtil {
 
     /**
      * Use Sun-specific internal plugin proxy classes for 1.3.X
-     * Look around for the 1.3.X plugin proxy detection class. Without it, 
+     * Look around for the 1.3.X plugin proxy detection class. Without it,
      * cannot autodetect...
-     * 
+     *
      * @param sampleURL the URL to check proxy settings for
      * @return ProxyHost the host and port of the proxy that should be used
      * @throws ProxyDetectionException if detection failed
      */
-    private static ProxyHost detectProxySettingsJDK13(URL sampleURL) 
+    private static ProxyHost detectProxySettingsJDK13(URL sampleURL)
         throws ProxyDetectionException
     {
         ProxyHost result = null;
         try {
-            // Attempt to discover proxy info by asking internal plugin 
+            // Attempt to discover proxy info by asking internal plugin
             // code to locate proxy path to server sampleURL...
-            Class pluginProxyHandler = 
+            Class pluginProxyHandler =
                 Class.forName("sun.plugin.protocol.PluginProxyHandler");
-            Method getDefaultProxyHandlerMethod = 
+            Method getDefaultProxyHandlerMethod =
                 pluginProxyHandler.getDeclaredMethod("getDefaultProxyHandler",
                                                      null);
-            Object proxyHandlerObj = 
+            Object proxyHandlerObj =
                 getDefaultProxyHandlerMethod.invoke(null, null);
             if (proxyHandlerObj != null) {
                 Class proxyHandlerClass = proxyHandlerObj.getClass();
-                Method getProxyInfoMethod = 
+                Method getProxyInfoMethod =
                     proxyHandlerClass.getDeclaredMethod("getProxyInfo",
                                                         new Class[]{URL.class});
-                Object proxyInfoObject = 
-                    getProxyInfoMethod.invoke(proxyHandlerObj, 
+                Object proxyInfoObject =
+                    getProxyInfoMethod.invoke(proxyHandlerObj,
                                               new Object[] { sampleURL });
                 if (proxyInfoObject != null) {
                     Class proxyInfoClass = proxyInfoObject.getClass();
-                    Method getProxyMethod = 
+                    Method getProxyMethod =
                         proxyInfoClass.getDeclaredMethod("getProxy", null);
-                    boolean useProxy = 
+                    boolean useProxy =
                         (getProxyMethod.invoke(proxyInfoObject, null) != null);
                     if (useProxy) {
-                        String proxyIP = 
+                        String proxyIP =
                             (String)getProxyMethod.invoke(proxyInfoObject, null);
-                        Method getProxyPortMethod = 
+                        Method getProxyPortMethod =
                             proxyInfoClass.getDeclaredMethod("getPort", null);
-                        Integer portInteger = 
+                        Integer portInteger =
                             (Integer)getProxyPortMethod.invoke(proxyInfoObject, null);
                         int proxyPort = portInteger.intValue();
                         if (LOG.isDebugEnabled()) {
@@ -187,7 +187,7 @@ public class PluginProxyUtil {
                             LOG.debug("1.3.X reported NULL for " +
                                       "proxyInfo.getProxy (no proxy assumed)");
                         }
-                        result = NO_PROXY_HOST;                                            
+                        result = NO_PROXY_HOST;
                     }
                 } else {
                     if (LOG.isDebugEnabled()) {
@@ -200,22 +200,22 @@ public class PluginProxyUtil {
                 throw new ProxyDetectionException(
                   "Sun Plugin 1.3.X failed to provide a default proxy handler");
             }
-        } catch (RuntimeException e) {            
+        } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
             LOG.debug("Sun Plugin 1.3.X proxy detection class not " +
                      "found, will try failover detection" /*, e*/);
-        }        
+        }
         return result;
     }
-    
+
     /**
      * Returns the proxy information for the specified sampleURL using JRE 1.4+
      * specific plugin classes.
-     * 
+     *
      * Notes:
-     *     Plugin 1.4+ Final added 
-     *     com.sun.java.browser.net.* classes ProxyInfo & ProxyService... 
+     *     Plugin 1.4+ Final added
+     *     com.sun.java.browser.net.* classes ProxyInfo & ProxyService...
      *     Use those with JREs => 1.4+
      *
      * @param sampleURL the URL to check proxy settings for
@@ -224,65 +224,65 @@ public class PluginProxyUtil {
     private static ProxyHost detectProxySettingsJDK14_JDK15_JDK16(URL sampleURL) {
         ProxyHost result = null;
         try {
-            // Look around for the 1.4+ plugin proxy detection class... 
+            // Look around for the 1.4+ plugin proxy detection class...
             // Without it, cannot autodetect...
-            Class ProxyServiceClass = 
+            Class ProxyServiceClass =
                 Class.forName("com.sun.java.browser.net.ProxyService");
-            Method getProxyInfoMethod = 
-                ProxyServiceClass.getDeclaredMethod("getProxyInfo", 
+            Method getProxyInfoMethod =
+                ProxyServiceClass.getDeclaredMethod("getProxyInfo",
                                                     new Class[] {URL.class});
-            Object proxyInfoArrayObj = 
+            Object proxyInfoArrayObj =
                 getProxyInfoMethod.invoke(null, new Object[] {sampleURL});
-            
-            if (proxyInfoArrayObj == null  
+
+            if (proxyInfoArrayObj == null
                     || Array.getLength(proxyInfoArrayObj) == 0) {
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("1.4+ reported NULL proxy (no proxy assumed)");
                 }
-                result = NO_PROXY_HOST;                    
+                result = NO_PROXY_HOST;
             } else {
                 Object proxyInfoObject = Array.get(proxyInfoArrayObj, 0);
                 Class proxyInfoClass = proxyInfoObject.getClass();
-                Method getHostMethod = 
+                Method getHostMethod =
                     proxyInfoClass.getDeclaredMethod("getHost",null);
-                String proxyIP = 
+                String proxyIP =
                     (String)getHostMethod.invoke(proxyInfoObject, null);
-                Method getPortMethod = 
+                Method getPortMethod =
                     proxyInfoClass.getDeclaredMethod("getPort",null);
-                Integer portInteger = 
+                Integer portInteger =
                     (Integer)getPortMethod.invoke(proxyInfoObject, null);
-                int proxyPort = portInteger.intValue(); 
+                int proxyPort = portInteger.intValue();
                 if (LOG.isDebugEnabled()) {
-                    LOG.debug("1.4+ Proxy info get Proxy:"+proxyIP+ 
+                    LOG.debug("1.4+ Proxy info get Proxy:"+proxyIP+
                               " get Port:"+proxyPort);
                 }
                 result = new ProxyHost(proxyIP, proxyPort);
             }
-        } catch (RuntimeException e) {            
+        } catch (RuntimeException e) {
             throw e;
-        } catch (Exception e) { 
+        } catch (Exception e) {
             LOG.debug("Sun Plugin 1.4+ proxy detection class not found, " +
                      "will try failover detection" /*, e*/);
-        }        
+        }
         return result;
     }
-    
+
     /**
-     * Returns the proxy host information found by inspecting the system 
+     * Returns the proxy host information found by inspecting the system
      * property "javaplugin.proxy.config.list".
-     * 
+     *
      * @return ProxyHost the host and port of the proxy that should be used
      * @throws ProxyDetectionException if an exception is encountered while
-     *                                 parsing the value of 
+     *                                 parsing the value of
      *                                 PLUGIN_PROXY_CONFIG_PROP
      */
-    private static ProxyHost getPluginProxyConfigSettings() 
+    private static ProxyHost getPluginProxyConfigSettings()
         throws ProxyDetectionException
     {
         ProxyHost result = null;
         try {
             Properties properties = System.getProperties();
-            String proxyList = 
+            String proxyList =
                 properties.getProperty("javaplugin.proxy.config.list");
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Plugin Proxy Config List Property:"+proxyList);
@@ -290,23 +290,23 @@ public class PluginProxyUtil {
             boolean useProxy = (proxyList != null);
             if (useProxy) {
                 proxyList = proxyList.toUpperCase(Locale.getDefault());
-                //  Using HTTP proxy as proxy for HTTP proxy tunnelled SSL 
+                //  Using HTTP proxy as proxy for HTTP proxy tunnelled SSL
                 //  socket (should be listed FIRST)....
-                //  1/14/03 1.3.1_06 appears to omit HTTP portion of 
+                //  1/14/03 1.3.1_06 appears to omit HTTP portion of
                 //  reported proxy list... Mod to accomodate this...
-                //  Expecting proxyList of "HTTP=XXX.XXX.XXX.XXX:Port" OR 
+                //  Expecting proxyList of "HTTP=XXX.XXX.XXX.XXX:Port" OR
                 //  "XXX.XXX.XXX.XXX:Port" & assuming HTTP...
                 String proxyIP="";
                 if (proxyList.indexOf("HTTP=") > -1) {
-                    proxyIP = 
-                        proxyList.substring(proxyList.indexOf("HTTP=")+5, 
+                    proxyIP =
+                        proxyList.substring(proxyList.indexOf("HTTP=")+5,
                                             proxyList.indexOf(":"));
                 } else {
                     proxyIP = proxyList.substring(0, proxyList.indexOf(":"));
                 }
                 int endOfPort = proxyList.indexOf(",");
                 if (endOfPort < 1) endOfPort = proxyList.length();
-                String portString = 
+                String portString =
                     proxyList.substring(proxyList.indexOf(":")+1,endOfPort);
                 int proxyPort = Integer.parseInt(portString);
                 if (LOG.isDebugEnabled()) {
@@ -328,5 +328,5 @@ public class PluginProxyUtil {
             }
         }
         return result;
-    }    
+    }
 }

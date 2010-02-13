@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2010 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.service;
 
@@ -27,10 +27,10 @@ public class VersionOrDeleteMarkersChunk {
     private String[] commonPrefixes = null;
     private String nextKeyMarker = null;
     private String nextVersionIdMarker = null;
-    
-    public VersionOrDeleteMarkersChunk(String prefix, String delimiter, 
-		BaseVersionOrDeleteMarker[] items, String[] commonPrefixes,
-		String nextKeyMarker, String nextVersionIdMarker) 
+
+    public VersionOrDeleteMarkersChunk(String prefix, String delimiter,
+    	BaseVersionOrDeleteMarker[] items, String[] commonPrefixes,
+    	String nextKeyMarker, String nextVersionIdMarker)
     {
         this.prefix = prefix;
         this.delimiter = delimiter;
@@ -43,11 +43,11 @@ public class VersionOrDeleteMarkersChunk {
     public BaseVersionOrDeleteMarker[] getItems() {
         return items;
     }
-    
+
     public int getItemCount() {
-    	return items.length;
+        return items.length;
     }
-    
+
     /**
      * @return
      * the common prefixes in this chunk.
@@ -57,7 +57,7 @@ public class VersionOrDeleteMarkersChunk {
     }
 
     /**
-     * @return 
+     * @return
      * the last key returned by the previous chunk if that chunk was incomplete, null otherwise.
      */
     public String getNextKeyMarker() {
@@ -69,7 +69,7 @@ public class VersionOrDeleteMarkersChunk {
     }
 
     /**
-     * @return 
+     * @return
      * the prefix applied when this object chunk was generated. If no prefix was
      * applied, this method will return null.
      */
@@ -78,16 +78,16 @@ public class VersionOrDeleteMarkersChunk {
     }
 
     /**
-     * @return 
-     * the delimiter applied when this object chunk was generated. If no 
+     * @return
+     * the delimiter applied when this object chunk was generated. If no
      * delimiter was applied, this method will return null.
      */
     public String getDelimiter() {
         return delimiter;
     }
-    
+
     public boolean isListingComplete() {
-    	return (nextKeyMarker != null && nextVersionIdMarker != null);
+        return (nextKeyMarker != null && nextVersionIdMarker != null);
     }
 
 }

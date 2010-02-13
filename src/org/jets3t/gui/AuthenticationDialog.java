@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2006 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.gui;
 
@@ -38,9 +38,9 @@ import javax.swing.KeyStroke;
 
 
 /**
- * Dialog box for a user to enter authentication information for HTTP communication, such as 
- * NT or Basic authentication. 
- * 
+ * Dialog box for a user to enter authentication information for HTTP communication, such as
+ * NT or Basic authentication.
+ *
  * @author James Murty
  */
 public class AuthenticationDialog extends JDialog implements ActionListener {
@@ -52,19 +52,19 @@ public class AuthenticationDialog extends JDialog implements ActionListener {
     private JPasswordField passwordField = null;
 
     private boolean isNtAuthentication = false;
-    
+
     private String domain = "";
     private String user = "";
     private String password = "";
 
     /**
      * Construct modal dialog for display over a Frame.
-     * 
+     *
      * @param owner     Frame over which this dialog will be displayed and centred.
      * @param title     the dialog's title text
-     * @param question  the question/statement to prompt the user for their password, may be html 
+     * @param question  the question/statement to prompt the user for their password, may be html
      *                  compatible with {@link JHtmlLabel}
-     * @param isNtAuthentication   if true a domain name is required in addition to the username and password.  
+     * @param isNtAuthentication   if true a domain name is required in addition to the username and password.
      */
     public AuthenticationDialog(Frame owner, String title, String question, boolean isNtAuthentication) {
         super(owner, title, true);
@@ -74,11 +74,11 @@ public class AuthenticationDialog extends JDialog implements ActionListener {
 
     /**
      * Construct modal dialog for display over another Dialog.
-     * 
+     *
      * @param owner     Dialog over which this dialog will be displayed and centred.
      * @param title     the dialog's title text
      * @param question  the question/statement to prompt the user for their password
-     * @param isNtAuthentication   if true a domain name is required in addition to the username and password.  
+     * @param isNtAuthentication   if true a domain name is required in addition to the username and password.
      */
     public AuthenticationDialog(Dialog owner, String title, String question, boolean isNtAuthentication) {
         super(owner, title, true);
@@ -88,31 +88,31 @@ public class AuthenticationDialog extends JDialog implements ActionListener {
 
     /**
      * Initialises all GUI elements.
-     * 
+     *
      * @param question  the question/statement to prompt the user for their password
      */
     private void initGui(String question) {
         this.setResizable(false);
         this.setDefaultCloseOperation(JDialog.HIDE_ON_CLOSE);
-        
+
         int rowIndex = 0;
 
         JPanel container = new JPanel(new GridBagLayout());
         JHtmlLabel questionLabel = new JHtmlLabel(question, null);
         container.add(questionLabel, new GridBagConstraints(0, rowIndex++, 2, 1, 0, 0,
             GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsDefault, 0, 0));
-        
+
         domainField = new JTextField();
-        usernameField = new JTextField();        
+        usernameField = new JTextField();
         passwordField = new JPasswordField();
-        
+
         if (isNtAuthentication) {
             container.add(new JLabel("Domain:"), new GridBagConstraints(0, rowIndex, 1, 1, 0, 0,
                 GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
             container.add(domainField, new GridBagConstraints(1, rowIndex++, 1, 1, 1, 0,
                 GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         }
-        
+
         container.add(new JLabel("User:"), new GridBagConstraints(0, rowIndex, 1, 1, 0, 0,
             GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
         container.add(usernameField, new GridBagConstraints(1, rowIndex++, 1, 1, 1, 0,
@@ -137,9 +137,9 @@ public class AuthenticationDialog extends JDialog implements ActionListener {
 
         container.add(buttonsContainer, new GridBagConstraints(0, rowIndex++, 2, 1, 0, 0,
             GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsDefault, 0, 0));
-        
+
         // Set default ENTER and ESCAPE buttons.
-        this.getRootPane().setDefaultButton(okButton);        
+        this.getRootPane().setDefaultButton(okButton);
         this.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
             .put(KeyStroke.getKeyStroke("ESCAPE"), "ESCAPE");
         this.getRootPane().getActionMap().put("ESCAPE", new AbstractAction() {
@@ -148,7 +148,7 @@ public class AuthenticationDialog extends JDialog implements ActionListener {
             public void actionPerformed(ActionEvent actionEvent) {
                 cancelButton.doClick();
             }
-        });        
+        });
 
         this.getContentPane().add(container);
         this.pack();
@@ -174,7 +174,7 @@ public class AuthenticationDialog extends JDialog implements ActionListener {
     }
 
     /**
-     * @return  
+     * @return
      * the domain entered by the user, or null if the dialog was cancelled or NT authentication wasn't used.
      */
     public String getDomain() {
@@ -182,7 +182,7 @@ public class AuthenticationDialog extends JDialog implements ActionListener {
     }
 
     /**
-     * @return  
+     * @return
      * the user name entered by the user, or null if the dialog was cancelled.
      */
     public String getUser() {
@@ -190,7 +190,7 @@ public class AuthenticationDialog extends JDialog implements ActionListener {
     }
 
     /**
-     * @return  
+     * @return
      * the password entered by the user, or null if the dialog was cancelled.
      */
     public String getPassword() {

@@ -21,7 +21,7 @@ public class Result  implements java.io.Serializable {
 
     /**
      * Gets the status value for this Result.
-     * 
+     *
      * @return status
      */
     public org.jets3t.service.impl.soap.axis._2006_03_01.Status getStatus() {
@@ -31,7 +31,7 @@ public class Result  implements java.io.Serializable {
 
     /**
      * Sets the status value for this Result.
-     * 
+     *
      * @param status
      */
     public void setStatus(org.jets3t.service.impl.soap.axis._2006_03_01.Status status) {
@@ -49,8 +49,8 @@ public class Result  implements java.io.Serializable {
         }
         __equalsCalc = obj;
         boolean _equals;
-        _equals = true && 
-            ((this.status==null && other.getStatus()==null) || 
+        _equals = true &&
+            ((this.status==null && other.getStatus()==null) ||
              (this.status!=null &&
               this.status.equals(other.getStatus())));
         __equalsCalc = null;
@@ -96,10 +96,10 @@ public class Result  implements java.io.Serializable {
      * Get Custom Serializer
      */
     public static org.apache.axis.encoding.Serializer getSerializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanSerializer(
             _javaType, _xmlType, typeDesc);
     }
@@ -108,10 +108,10 @@ public class Result  implements java.io.Serializable {
      * Get Custom Deserializer
      */
     public static org.apache.axis.encoding.Deserializer getDeserializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanDeserializer(
             _javaType, _xmlType, typeDesc);
     }

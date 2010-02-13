@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2006 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.service.impl.rest;
 
@@ -58,9 +58,9 @@ import org.xml.sax.helpers.DefaultHandler;
 import org.xml.sax.helpers.XMLReaderFactory;
 
 /**
- * XML Sax parser to read XML documents returned by S3 via the REST interface, converting these 
+ * XML Sax parser to read XML documents returned by S3 via the REST interface, converting these
  * documents into JetS3t objects.
- * 
+ *
  * @author James Murty
  */
 public class XmlResponsesSaxParser {
@@ -70,16 +70,16 @@ public class XmlResponsesSaxParser {
     private Jets3tProperties properties = null;
 
     /**
-     * Constructs the XML SAX parser.  
-     * 
+     * Constructs the XML SAX parser.
+     *
      * @param properties
      * the JetS3t properties that will be applied when parsing XML documents.
-     * 
+     *
      * @throws S3ServiceException
      */
     public XmlResponsesSaxParser(Jets3tProperties properties) throws S3ServiceException {
         this.properties = properties;
-        
+
         // Ensure we can load the XML Reader.
         try {
             xr = XMLReaderFactory.createXMLReader();
@@ -94,7 +94,7 @@ public class XmlResponsesSaxParser {
             }
         }
     }
-    
+
     /**
      * Parses an XML document from an input stream using a document handler.
      * @param handler
@@ -108,9 +108,9 @@ public class XmlResponsesSaxParser {
         throws S3ServiceException
     {
         try {
-        	if (log.isDebugEnabled()) {
-        		log.debug("Parsing XML response document with handler: " + handler.getClass());
-        	}
+            if (log.isDebugEnabled()) {
+            	log.debug("Parsing XML response document with handler: " + handler.getClass());
+            }
             BufferedReader breader = new BufferedReader(new InputStreamReader(inputStream,
                 Constants.DEFAULT_ENCODING));
             xr.setContentHandler(handler);
@@ -120,62 +120,62 @@ public class XmlResponsesSaxParser {
             try {
                 inputStream.close();
             } catch (IOException e) {
-            	if (log.isErrorEnabled()) {
-            		log.error("Unable to close response InputStream up after XML parse failure", e);
-            	}
+                if (log.isErrorEnabled()) {
+                	log.error("Unable to close response InputStream up after XML parse failure", e);
+                }
             }
             throw new S3ServiceException("Failed to parse XML document with handler "
                 + handler.getClass(), t);
         }
     }
-    
-    protected InputStream sanitizeXmlDocument(MyDefaultHandler handler, InputStream inputStream) 
-        throws S3ServiceException 
+
+    protected InputStream sanitizeXmlDocument(MyDefaultHandler handler, InputStream inputStream)
+        throws S3ServiceException
     {
         if (!properties.getBoolProperty("xmlparser.sanitize-listings", true)) {
             // No sanitizing will be performed, return the original input stream unchanged.
             return inputStream;
         } else {
-        	if (log.isDebugEnabled()) {
-        		log.debug("Sanitizing XML document destined for handler " + handler.getClass());
-        	}
-            
+            if (log.isDebugEnabled()) {
+            	log.debug("Sanitizing XML document destined for handler " + handler.getClass());
+            }
+
             InputStream sanitizedInputStream = null;
 
             try {
-                /* Read object listing XML document from input stream provided into a 
-                 * string buffer, so we can replace troublesome characters before 
+                /* Read object listing XML document from input stream provided into a
+                 * string buffer, so we can replace troublesome characters before
                  * sending the document to the XML parser.
                  */
                 StringBuffer listingDocBuffer = new StringBuffer();
                 BufferedReader br = new BufferedReader(
                     new InputStreamReader(inputStream, Constants.DEFAULT_ENCODING));
-                
+
                 char[] buf = new char[8192];
-                int read = -1;            
+                int read = -1;
                 while ((read = br.read(buf)) != -1) {
                     listingDocBuffer.append(buf, 0, read);
-                }  
+                }
                 br.close();
-    
-                // Replace any carriage return (\r) characters with explicit XML 
-                // character entities, to prevent the SAX parser from 
+
+                // Replace any carriage return (\r) characters with explicit XML
+                // character entities, to prevent the SAX parser from
                 // misinterpreting 0x0D characters as 0x0A.
-                String listingDoc = listingDocBuffer.toString().replaceAll("\r", "&#013;");      
+                String listingDoc = listingDocBuffer.toString().replaceAll("\r", "&#013;");
 
                 sanitizedInputStream = new ByteArrayInputStream(
-                    listingDoc.getBytes(Constants.DEFAULT_ENCODING));                
+                    listingDoc.getBytes(Constants.DEFAULT_ENCODING));
             } catch (Throwable t) {
                 try {
                     inputStream.close();
                 } catch (IOException e) {
-                	if (log.isErrorEnabled()) {
-                		log.error("Unable to close response InputStream after failure sanitizing XML document", e);
-                	}
+                    if (log.isErrorEnabled()) {
+                    	log.error("Unable to close response InputStream after failure sanitizing XML document", e);
+                    }
                 }
                 throw new S3ServiceException("Failed to sanitize XML document destined for handler "
-                    + handler.getClass(), t);            
-            }   
+                    + handler.getClass(), t);
+            }
             return sanitizedInputStream;
         }
     }
@@ -214,12 +214,12 @@ public class XmlResponsesSaxParser {
 
     /**
      * Parses an AccessControlListHandler response XML document from an input stream.
-     * 
+     *
      * @param inputStream
      * XML data input stream.
      * @return
      * the XML handler object populated with data parsed from the XML stream.
-     * 
+     *
      * @throws S3ServiceException
      */
     public AccessControlListHandler parseAccessControlListResponse(InputStream inputStream)
@@ -232,12 +232,12 @@ public class XmlResponsesSaxParser {
 
     /**
      * Parses a LoggingStatus response XML document for a bucket from an input stream.
-     * 
+     *
      * @param inputStream
      * XML data input stream.
      * @return
      * the XML handler object populated with data parsed from the XML stream.
-     * 
+     *
      * @throws S3ServiceException
      */
     public BucketLoggingStatusHandler parseLoggingStatusResponse(InputStream inputStream)
@@ -263,14 +263,14 @@ public class XmlResponsesSaxParser {
         parseXmlInputStream(handler, inputStream);
         return handler;
     }
-    
+
     /**
      * @param inputStream
-     * 
+     *
      * @return
-     * true if the bucket is configured as Requester Pays, false if it is 
+     * true if the bucket is configured as Requester Pays, false if it is
      * configured as Owner pays.
-     *      
+     *
      * @throws S3ServiceException
      */
     public boolean parseRequestPaymentConfigurationResponse(InputStream inputStream)
@@ -283,14 +283,14 @@ public class XmlResponsesSaxParser {
 
     /**
      * @param inputStream
-     * 
+     *
      * @return
      * true if the bucket has versioning enabled, false otherwise.
-     *      
+     *
      * @throws S3ServiceException
      */
     public S3BucketVersioningStatus parseVersioningConfigurationResponse(
-		InputStream inputStream) throws S3ServiceException
+    	InputStream inputStream) throws S3ServiceException
     {
         VersioningConfigurationHandler handler = new VersioningConfigurationHandler();
         parseXmlInputStream(handler, inputStream);
@@ -298,12 +298,12 @@ public class XmlResponsesSaxParser {
     }
 
     public ListVersionsResultsHandler parseListVersionsResponse(InputStream inputStream)
-	    throws S3ServiceException
-	{
-    	ListVersionsResultsHandler handler = new ListVersionsResultsHandler();
-	    parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
-	    return handler;
-	}
+        throws S3ServiceException
+    {
+        ListVersionsResultsHandler handler = new ListVersionsResultsHandler();
+        parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
+        return handler;
+    }
 
     // ////////////
     // Handlers //
@@ -327,13 +327,13 @@ public class XmlResponsesSaxParser {
         private String requestMarker = null;
         private long requestMaxKeys = 0;
         private boolean listingTruncated = false;
-        private String lastKey = null;        
+        private String lastKey = null;
         private String nextMarker = null;
 
         /**
          * If the listing is truncated this method will return the marker that should be used
-         * in subsequent bucket list calls to complete the listing. 
-         * 
+         * in subsequent bucket list calls to complete the listing.
+         *
          * @return
          * null if the listing is not truncated, otherwise the next marker if it's available or
          * the last object key seen if the next marker isn't available.
@@ -343,13 +343,13 @@ public class XmlResponsesSaxParser {
                 if (nextMarker != null) {
                     return nextMarker;
                 } else if (lastKey != null) {
-                    return lastKey;                    
+                    return lastKey;
                 } else {
-                	if (log.isWarnEnabled()) {
-                		log.warn("Unable to find Next Marker or Last Key for truncated listing");
-                	}
+                    if (log.isWarnEnabled()) {
+                    	log.warn("Unable to find Next Marker or Last Key for truncated listing");
+                    }
                     return null;
-                }                
+                }
             } else {
                 return null;
             }
@@ -383,7 +383,7 @@ public class XmlResponsesSaxParser {
         public String getRequestMarker() {
             return requestMarker;
         }
-        
+
         public String getNextMarker() {
             return nextMarker;
         }
@@ -391,9 +391,9 @@ public class XmlResponsesSaxParser {
         public long getRequestMaxKeys() {
             return requestMaxKeys;
         }
-        
+
         public void startElement(String name) {
-        	if (name.equals("Contents")) {
+            if (name.equals("Contents")) {
                 currentObject = new S3Object();
                 currentObject.setBucketName(bucketName);
             } else if (name.equals("Owner")) {
@@ -409,7 +409,7 @@ public class XmlResponsesSaxParser {
             if (name.equals("Name")) {
                 bucketName = elementText;
                 if (log.isDebugEnabled()) {
-                	log.debug("Examining listing for bucket: " + bucketName);
+                    log.debug("Examining listing for bucket: " + bucketName);
                 }
             } else if (!insideCommonPrefixes && name.equals("Prefix")) {
                 requestPrefix = elementText;
@@ -434,18 +434,18 @@ public class XmlResponsesSaxParser {
             else if (name.equals("Contents")) {
                 objects.add(currentObject);
                 if (log.isDebugEnabled()) {
-                	log.debug("Created new S3Object from listing: " + currentObject);
+                    log.debug("Created new S3Object from listing: " + currentObject);
                 }
             } else if (name.equals("Key")) {
                 currentObject.setKey(elementText);
-                lastKey = elementText;                
+                lastKey = elementText;
             } else if (name.equals("LastModified")) {
                 try {
                     currentObject.setLastModifiedDate(ServiceUtils.parseIso8601Date(elementText));
                 } catch (ParseException e) {
                     throw new RuntimeException(
-                		"Non-ISO8601 date for LastModified in bucket's object listing output: " 
-                		+ elementText, e);
+                    	"Non-ISO8601 date for LastModified in bucket's object listing output: "
+                    	+ elementText, e);
                 }
             } else if (name.equals("ETag")) {
                 currentObject.setETag(elementText);
@@ -462,7 +462,7 @@ public class XmlResponsesSaxParser {
                     currentOwner = new S3Owner();
                     currentObject.setOwner(currentOwner);
                 }
-                
+
                 currentOwner.setId(elementText);
             } else if (name.equals("DisplayName")) {
                 currentOwner.setDisplayName(elementText);
@@ -479,14 +479,14 @@ public class XmlResponsesSaxParser {
     /**
      * Handler for ListAllMyBuckets response XML documents.
      * The document is parsed into {@link S3Bucket}s available via the {@link #getBuckets()} method.
-     * 
+     *
      * @author James Murty
      *
      */
     public class ListAllMyBucketsHandler extends MyDefaultHandler {
         private S3Owner bucketsOwner = null;
         private S3Bucket currentBucket = null;
-        
+
         private List buckets = new ArrayList();
 
         /**
@@ -496,7 +496,7 @@ public class XmlResponsesSaxParser {
         public S3Bucket[] getBuckets() {
             return (S3Bucket[]) buckets.toArray(new S3Bucket[buckets.size()]);
         }
-        
+
         /**
          * @return
          * the owner of the buckets.
@@ -522,21 +522,21 @@ public class XmlResponsesSaxParser {
             }
             // Bucket item details.
             else if (name.equals("Bucket")) {
-            	if (log.isDebugEnabled()) {
-            		log.debug("Created new bucket from listing: " + currentBucket);
-            	}
+                if (log.isDebugEnabled()) {
+                	log.debug("Created new bucket from listing: " + currentBucket);
+                }
                 currentBucket.setOwner(bucketsOwner);
                 buckets.add(currentBucket);
             } else if (name.equals("Name")) {
                 currentBucket.setName(elementText);
             } else if (name.equals("CreationDate")) {
-            	elementText += ".000Z";
+                elementText += ".000Z";
                 try {
                     currentBucket.setCreationDate(ServiceUtils.parseIso8601Date(elementText));
                 } catch (ParseException e) {
                     throw new RuntimeException(
-                		"Non-ISO8601 date for CreationDate in list buckets output: " 
-                		+ elementText, e);
+                    	"Non-ISO8601 date for CreationDate in list buckets output: "
+                    	+ elementText, e);
                 }
             }
         }
@@ -544,9 +544,9 @@ public class XmlResponsesSaxParser {
 
     /**
      * Handler for AccessControlList response XML documents.
-     * The document is parsed into an {@link AccessControlList} object available via the 
+     * The document is parsed into an {@link AccessControlList} object available via the
      * {@link #getAccessControlList()} method.
-     * 
+     *
      * @author James Murty
      *
      */
@@ -608,9 +608,9 @@ public class XmlResponsesSaxParser {
 
     /**
      * Handler for LoggingStatus response XML documents for a bucket.
-     * The document is parsed into an {@link S3BucketLoggingStatus} object available via the 
+     * The document is parsed into an {@link S3BucketLoggingStatus} object available via the
      * {@link #getBucketLoggingStatus()} method.
-     * 
+     *
      * @author James Murty
      *
      */
@@ -644,7 +644,7 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("LoggingEnabled")) {
                 bucketLoggingStatus.setTargetBucketName(targetBucket);
                 bucketLoggingStatus.setLogfilePrefix(targetPrefix);
-            } 
+            }
             // Handle TargetGrants ACLs
             else if (name.equals("ID")) {
                 currentGrantee = new CanonicalGrantee();
@@ -660,18 +660,18 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("Permission")) {
                 currentPermission = Permission.parsePermission(elementText);
             } else if (name.equals("Grant")) {
-            	GrantAndPermission grantAndPermission = new GrantAndPermission(
-        			currentGrantee, currentPermission);
-            	bucketLoggingStatus.addTargetGrant(grantAndPermission);
-            }            
+                GrantAndPermission grantAndPermission = new GrantAndPermission(
+            		currentGrantee, currentPermission);
+                bucketLoggingStatus.addTargetGrant(grantAndPermission);
+            }
         }
     }
-    
+
     /**
      * Handler for CreateBucketConfiguration response XML documents for a bucket.
      * The document is parsed into a String representing the bucket's location,
      * available via the {@link #getLocation()} method.
-     * 
+     *
      * @author James Murty
      *
      */
@@ -693,23 +693,23 @@ public class XmlResponsesSaxParser {
                 } else {
                     location = elementText;
                 }
-            } 
+            }
         }
     }
 
-    
+
     public class CopyObjectResultHandler extends MyDefaultHandler {
         // Data items for successful copy
         private String etag = null;
         private Date lastModified = null;
-        
+
         // Data items for failed copy
         private String errorCode = null;
         private String errorMessage = null;
         private String errorRequestId = null;
         private String errorHostId = null;
         private boolean receivedErrorResponse = false;
-        
+
         public Date getLastModified() {
             return lastModified;
         }
@@ -717,7 +717,7 @@ public class XmlResponsesSaxParser {
         public String getETag() {
             return etag;
         }
-        
+
         public String getErrorCode() {
             return errorCode;
         }
@@ -733,7 +733,7 @@ public class XmlResponsesSaxParser {
         public String getErrorRequestId() {
             return errorRequestId;
         }
-        
+
         public boolean isErrorResponse() {
             return receivedErrorResponse;
         }
@@ -752,9 +752,9 @@ public class XmlResponsesSaxParser {
                     lastModified = ServiceUtils.parseIso8601Date(elementText);
                 } catch (ParseException e) {
                     throw new RuntimeException(
-                		"Non-ISO8601 date for LastModified in copy object output: " 
-                		+ elementText, e);
-                }                
+                    	"Non-ISO8601 date for LastModified in copy object output: "
+                    	+ elementText, e);
+                }
             } else if (name.equals("ETag")) {
                 etag = elementText;
             } else if (name.equals("Code")) {
@@ -774,7 +774,7 @@ public class XmlResponsesSaxParser {
      * The document is parsed into a boolean value: true if the bucket is configured
      * as Requester Pays, false if it is configured as Owner pays. This boolean value
      * is available via the {@link #isRequesterPays()} method.
-     * 
+     *
      * @author James Murty
      */
     public class RequestPaymentConfigurationHandler extends MyDefaultHandler {
@@ -782,38 +782,38 @@ public class XmlResponsesSaxParser {
 
         /**
          * @return
-         * true if the bucket is configured as Requester Pays, false if it is 
+         * true if the bucket is configured as Requester Pays, false if it is
          * configured as Owner pays.
          */
-        public boolean isRequesterPays() {            
+        public boolean isRequesterPays() {
             return "Requester".equals(payer);
         }
 
         public void endElement(String name, String elementText) {
             if (name.equals("Payer")) {
                 payer = elementText;
-            } 
+            }
         }
     }
 
     public class VersioningConfigurationHandler extends MyDefaultHandler {
-    	private S3BucketVersioningStatus versioningStatus = null;
+        private S3BucketVersioningStatus versioningStatus = null;
         private String status = null;
         private String mfaStatus = null;
 
         public S3BucketVersioningStatus getVersioningStatus() {
-        	return this.versioningStatus;
+            return this.versioningStatus;
         }
 
         public void endElement(String name, String elementText) {
             if (name.equals("Status")) {
-            	this.status = elementText;
+                this.status = elementText;
             } else if (name.equals("MfaDelete")) {
-            	this.mfaStatus = elementText;
+                this.mfaStatus = elementText;
             } else if (name.equals("VersioningConfiguration")) {
-            	this.versioningStatus = new S3BucketVersioningStatus(
-        			"Enabled".equals(status),
-        			"Enabled".equals(mfaStatus));
+                this.versioningStatus = new S3BucketVersioningStatus(
+            		"Enabled".equals(status),
+            		"Enabled".equals(mfaStatus));
             }
         }
     }
@@ -821,16 +821,16 @@ public class XmlResponsesSaxParser {
     public class ListVersionsResultsHandler extends MyDefaultHandler {
         private List items = new ArrayList();
         private List commonPrefixes = new ArrayList();
-        
-    	private String key = null;
-    	private String versionId = null;
-    	private boolean isLatest = false;
-    	private Date lastModified = null;
-    	private S3Owner owner = null;
 
-    	private String etag = null;
-    	private long size = 0;
-    	private String storageClass = null;
+        private String key = null;
+        private String versionId = null;
+        private boolean isLatest = false;
+        private Date lastModified = null;
+        private S3Owner owner = null;
+
+        private String etag = null;
+        private long size = 0;
+        private String storageClass = null;
 
         private boolean insideCommonPrefixes = false;
 
@@ -872,7 +872,7 @@ public class XmlResponsesSaxParser {
         public String getKeyMarker() {
             return keyMarker;
         }
-        
+
         public String getVersionIdMarker() {
             return versionIdMarker;
         }
@@ -888,7 +888,7 @@ public class XmlResponsesSaxParser {
         public long getRequestMaxKeys() {
             return requestMaxKeys;
         }
-        
+
         public void startElement(String name) {
             if (name.equals("Owner")) {
                 owner = null;
@@ -902,10 +902,10 @@ public class XmlResponsesSaxParser {
             if (name.equals("Name")) {
                 bucketName = elementText;
                 if (log.isDebugEnabled()) {
-                	log.debug("Examining listing for bucket: " + bucketName);
+                    log.debug("Examining listing for bucket: " + bucketName);
                 }
             } else if (!insideCommonPrefixes && name.equals("Prefix")) {
-            	requestPrefix = elementText;
+                requestPrefix = elementText;
             } else if (name.equals("KeyMarker")) {
                 keyMarker = elementText;
             } else if (name.equals("NextKeyMarker")) {
@@ -929,28 +929,28 @@ public class XmlResponsesSaxParser {
             }
             // Version/DeleteMarker finished.
             else if (name.equals("Version")) {
-            	BaseVersionOrDeleteMarker item = new S3Version(key, versionId, 
-        			isLatest, lastModified, owner, etag, size, storageClass); 
-            	items.add(item);
+                BaseVersionOrDeleteMarker item = new S3Version(key, versionId,
+            		isLatest, lastModified, owner, etag, size, storageClass);
+                items.add(item);
             } else if (name.equals("DeleteMarker")) {
-            	BaseVersionOrDeleteMarker item = new S3DeleteMarker(key, versionId, 
-            			isLatest, lastModified, owner); 
-            	items.add(item);
+                BaseVersionOrDeleteMarker item = new S3DeleteMarker(key, versionId,
+                		isLatest, lastModified, owner);
+                items.add(item);
 
             // Version/DeleteMarker details
             } else if (name.equals("Key")) {
-            	key = elementText;
+                key = elementText;
             } else if (name.equals("VersionId")) {
-            	versionId = elementText;
+                versionId = elementText;
             } else if (name.equals("IsLatest")) {
-            	isLatest = "true".equals(elementText);
+                isLatest = "true".equals(elementText);
             } else if (name.equals("LastModified")) {
                 try {
                     lastModified = ServiceUtils.parseIso8601Date(elementText);
                 } catch (ParseException e) {
                     throw new RuntimeException(
-                		"Non-ISO8601 date for LastModified in bucket's versions listing output: " 
-                		+ elementText, e);
+                    	"Non-ISO8601 date for LastModified in bucket's versions listing output: "
+                    	+ elementText, e);
                 }
             } else if (name.equals("ETag")) {
                 etag = elementText;
@@ -961,7 +961,7 @@ public class XmlResponsesSaxParser {
             }
             // Owner details.
             else if (name.equals("ID")) {
-                owner = new S3Owner();                
+                owner = new S3Owner();
                 owner.setId(elementText);
             } else if (name.equals("DisplayName")) {
                 owner.setDisplayName(elementText);

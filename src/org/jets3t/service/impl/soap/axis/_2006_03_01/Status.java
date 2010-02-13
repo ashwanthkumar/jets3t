@@ -25,7 +25,7 @@ public class Status  implements java.io.Serializable {
 
     /**
      * Gets the code value for this Status.
-     * 
+     *
      * @return code
      */
     public int getCode() {
@@ -35,7 +35,7 @@ public class Status  implements java.io.Serializable {
 
     /**
      * Sets the code value for this Status.
-     * 
+     *
      * @param code
      */
     public void setCode(int code) {
@@ -45,7 +45,7 @@ public class Status  implements java.io.Serializable {
 
     /**
      * Gets the description value for this Status.
-     * 
+     *
      * @return description
      */
     public java.lang.String getDescription() {
@@ -55,7 +55,7 @@ public class Status  implements java.io.Serializable {
 
     /**
      * Sets the description value for this Status.
-     * 
+     *
      * @param description
      */
     public void setDescription(java.lang.String description) {
@@ -73,9 +73,9 @@ public class Status  implements java.io.Serializable {
         }
         __equalsCalc = obj;
         boolean _equals;
-        _equals = true && 
+        _equals = true &&
             this.code == other.getCode() &&
-            ((this.description==null && other.getDescription()==null) || 
+            ((this.description==null && other.getDescription()==null) ||
              (this.description!=null &&
               this.description.equals(other.getDescription())));
         __equalsCalc = null;
@@ -128,10 +128,10 @@ public class Status  implements java.io.Serializable {
      * Get Custom Serializer
      */
     public static org.apache.axis.encoding.Serializer getSerializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanSerializer(
             _javaType, _xmlType, typeDesc);
     }
@@ -140,10 +140,10 @@ public class Status  implements java.io.Serializable {
      * Get Custom Deserializer
      */
     public static org.apache.axis.encoding.Deserializer getDeserializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanDeserializer(
             _javaType, _xmlType, typeDesc);
     }

@@ -153,8 +153,8 @@ public class S3ServiceMulti implements Serializable {
      * be created to do more work.
      */
     public void shutdown() throws S3ServiceException {
-    	this.isShutdown[0] = true;
-    	this.getS3Service().shutdown();
+        this.isShutdown[0] = true;
+        this.getS3Service().shutdown();
     }
     
     /**
@@ -163,7 +163,7 @@ public class S3ServiceMulti implements Serializable {
      * can no longer be used to do work.
      */
     public boolean isShutdown() {
-    	return this.isShutdown[0];
+        return this.isShutdown[0];
     }
 
     /**
@@ -979,7 +979,7 @@ public class S3ServiceMulti implements Serializable {
      * 
      * @return
      * true if all the threaded tasks completed successfully, false otherwise.
-     * @throws S3ServiceException 
+     * @throws S3ServiceException
      */
     public boolean downloadObjects(final S3Bucket bucket, 
         final DownloadPackage[] downloadPackages) throws S3ServiceException
@@ -998,13 +998,13 @@ public class S3ServiceMulti implements Serializable {
         for (int i = 0; i < runnables.length; i++) {
             if (downloadPackages[i].getObject() == null) {
                 // For signed URL downloads without corresponding object information, we create 
-            	// a surrogate S3Object containing nothing but the object's key name. 
-            	// This will allow the download to work, but total download size will not be known.
+                // a surrogate S3Object containing nothing but the object's key name. 
+                // This will allow the download to work, but total download size will not be known.
                 try {
                     URL url = new URL(downloadPackages[i].getSignedUrl());            
                     objects[i] = ServiceUtils.buildObjectFromUrl(url.getHost(), url.getPath());
                 } catch (RuntimeException e) {
-                	throw e;
+                    throw e;
                 } catch (Exception e) {
                     throw new S3ServiceException("Unable to determine S3 Object key name from signed URL: " + 
                         downloadPackages[i].getSignedUrl());
@@ -2070,12 +2070,12 @@ public class S3ServiceMulti implements Serializable {
             S3Object object = null;
 
             try {                
-            	if (!downloadPackage.isSignedDownload()) {
-            		object = s3Service.getObject(bucket, objectKey);
-            	} else {
+                if (!downloadPackage.isSignedDownload()) {
+                	object = s3Service.getObject(bucket, objectKey);
+                } else {
                     SignedUrlHandler handler = (SignedUrlHandler) s3Service;
                     object = handler.getObjectWithSignedUrl(downloadPackage.getSignedUrl());
-            	}
+                }
                 
                 // Replace the S3 object in the download package with the downloaded version to make metadata available.
                 downloadPackage.setObject(object);
@@ -2092,9 +2092,9 @@ public class S3ServiceMulti implements Serializable {
                 try {
                     messageDigest = MessageDigest.getInstance("MD5");
                 } catch (NoSuchAlgorithmException e) {
-                	if (log.isWarnEnabled()) {
-                		log.warn("Unable to calculate MD5 hash of data received as algorithm is not available", e);
-                	}
+                    if (log.isWarnEnabled()) {
+                    	log.warn("Unable to calculate MD5 hash of data received as algorithm is not available", e);
+                    }
                 }
 
                 try {
@@ -2474,7 +2474,7 @@ public class S3ServiceMulti implements Serializable {
                     try {
                         // Shut down threads if this service has been shutdown.
                         if (isShutdown[0]) {
-                        	throw new InterruptedException("S3ServiceMulti#shutdown method invoked");
+                            throw new InterruptedException("S3ServiceMulti#shutdown method invoked");
                         }
 
                         Thread.sleep(100);

@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2006 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.tests;
 
@@ -59,31 +59,31 @@ import org.jets3t.service.utils.ServiceUtils;
  * <p>
  * Any test case for S3Service implementations should extend this class as a starting point, then
  * add more test cases more specific to that particular implementation.
- * 
+ *
  * @author James Murty
  */
 public abstract class BaseS3ServiceTest extends TestCase {
     protected String TEST_PROPERTIES_FILENAME = "test.properties";
     protected AWSCredentials awsCredentials = null;
-    
+
     public BaseS3ServiceTest() throws IOException {
-        InputStream propertiesIS = 
+        InputStream propertiesIS =
             ClassLoader.getSystemResourceAsStream(TEST_PROPERTIES_FILENAME);
-        
+
         if (propertiesIS == null) {
-            throw new IOException("Unable to load test properties file from classpath: " 
+            throw new IOException("Unable to load test properties file from classpath: "
                 + TEST_PROPERTIES_FILENAME);
         }
-        
-        Properties testProperties = new Properties();        
+
+        Properties testProperties = new Properties();
         testProperties.load(propertiesIS);
         awsCredentials = new AWSCredentials(
             testProperties.getProperty("aws.accesskey"),
             testProperties.getProperty("aws.secretkey"));
     }
-    
+
     protected abstract S3Service getS3Service(AWSCredentials awsCredentials) throws S3ServiceException;
-            
+
     public void testObtainAnonymousServices() throws Exception {
         getS3Service(null);
     }
@@ -211,7 +211,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         // Update/overwrite object with real data content and some metadata.
         contentType = "text/plain";
         String objectData = "Just some rubbish text to include as data";
-        String dataMd5HashAsHex = ServiceUtils.toHex( 
+        String dataMd5HashAsHex = ServiceUtils.toHex(
             ServiceUtils.computeMD5Hash(objectData.getBytes()));
         HashMap metadata = new HashMap();
         metadata.put("creator", "S3ServiceTest");
@@ -232,7 +232,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         assertEquals("Mismatching hash", dataMd5HashAsHex, dataObject.getETag());
         assertEquals("Missing creator metadata", "S3ServiceTest", dataObject.getMetadata(
             "creator"));
-        assertEquals("Missing purpose metadata", "For testing purposes", 
+        assertEquals("Missing purpose metadata", "For testing purposes",
             dataObject.getMetadata("purpose"));
         assertNotNull("Expected data input stream to be available", dataObject.getDataInputStream());
         // Ensure we can get the data from S3.
@@ -251,16 +251,16 @@ public abstract class BaseS3ServiceTest extends TestCase {
         assertEquals("Mismatching hash", dataMd5HashAsHex, dataObject.getETag());
         assertEquals("Missing creator metadata", "S3ServiceTest", dataObject.getMetadata(
             "creator"));
-        assertEquals("Missing purpose metadata", "For testing purposes", 
+        assertEquals("Missing purpose metadata", "For testing purposes",
             dataObject.getMetadata("purpose"));
-        assertNull("Expected data input stream to be unavailable", dataObject.getDataInputStream());        
+        assertNull("Expected data input stream to be unavailable", dataObject.getDataInputStream());
         // Object's content length is only available from REST detail requests, not SOAP ones.
         // assertEquals("Unexpected size for object", objectData.length(), dataObject.getContentLength());
 
         // Test object GET constraints.
         Calendar objectCreationTimeCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"), Locale.US);
         objectCreationTimeCal.setTime(dataObject.getLastModifiedDate());
-        
+
         Calendar yesterday = (Calendar) objectCreationTimeCal.clone();
         yesterday.add(Calendar.DAY_OF_YEAR, -1);
         Calendar tomorrow = (Calendar) objectCreationTimeCal.clone();
@@ -284,7 +284,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         s3Service.getObjectDetails(bucket, object.getKey(), null, null, new String[] {dataMd5HashAsHex}, null);
         // Precondition: doesn't match incorrect hash
         try {
-            s3Service.getObjectDetails(bucket, object.getKey(), null, null, 
+            s3Service.getObjectDetails(bucket, object.getKey(), null, null,
                 new String[] {"__" + dataMd5HashAsHex.substring(2)}, null);
             fail("Hash values should not match");
         } catch (S3ServiceException e) {
@@ -296,7 +296,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         } catch (S3ServiceException e) {
         }
         // Precondition: doesn't match incorrect hash
-        s3Service.getObjectDetails(bucket, object.getKey(), null, null, null, 
+        s3Service.getObjectDetails(bucket, object.getKey(), null, null, null,
             new String[] {"__" + dataMd5HashAsHex.substring(2)});
 
         // Retrieve only a limited byte-range of the data, with a start and end.
@@ -322,16 +322,16 @@ public abstract class BaseS3ServiceTest extends TestCase {
         dataReceived = readStringFromInputStream(dataObject.getDataInputStream());
         dataExpected = objectData.substring(objectData.length() - byteRangeEnd.intValue());
         assertEquals("Mismatching data from range precondition", dataExpected, dataReceived);
-        
+
         // Clean-up.
         s3Service.deleteObject(bucket, object.getKey());
-        
+
         // Create object with tricky key.
         String trickyKey = "http://example.site.com/some/path/document name.html?param1=a@b#c$d&param2=(089)";
-        S3Object trickyObject = s3Service.putObject(bucket, 
+        S3Object trickyObject = s3Service.putObject(bucket,
             new S3Object(bucket, trickyKey, "Some test data"));
         assertEquals("Tricky key name mistmatch", trickyKey, trickyObject.getKey());
-        
+
         // Make sure the tricky named object really exists with its full name.
         S3Object[] objects = s3Service.listObjects(bucket);
         boolean trickyNamedObjectExists = false;
@@ -341,17 +341,17 @@ public abstract class BaseS3ServiceTest extends TestCase {
             }
         }
         assertTrue("Tricky key name object does not exist with its full name", trickyNamedObjectExists);
-        
+
         // Delete object with tricky key.
         s3Service.deleteObject(bucket, trickyObject.getKey());
 
-        
+
 //        s3Service.deleteBucket(bucket.getName());
     }
-    
+
     public void testACLManagement() throws Exception {
         String s3Url = "https://s3.amazonaws.com";
-        
+
         // Access public "third-party" bucket
         S3Service anonymousS3Service = getS3Service(null);
         boolean jets3tBucketAvailable = anonymousS3Service.isBucketAccessible("jets3t");
@@ -370,21 +370,21 @@ public abstract class BaseS3ServiceTest extends TestCase {
         URL url = new URL(s3Url + "/" + bucketName + "/" + RestUtils.encodeUrlString(privateKey));
         assertEquals("Expected denied access (403) error", 403, ((HttpURLConnection) url
             .openConnection()).getResponseCode());
-        
+
         // Get ACL details for private object so we can determine the bucket owner.
         AccessControlList bucketACL = s3Service.getBucketAcl(bucket);
         S3Owner bucketOwner = bucketACL.getOwner();
 
         // Create a public object.
         String publicKey = "Public Object #1";
-        object = new S3Object(bucket, publicKey, "Public object sample text");        
+        object = new S3Object(bucket, publicKey, "Public object sample text");
         AccessControlList acl = new AccessControlList();
         acl.setOwner(bucketOwner);
         acl.grantPermission(GroupGrantee.ALL_USERS, Permission.PERMISSION_READ);
         object.setAcl(acl);
         s3Service.putObject(bucket, object);
         url = new URL(s3Url + "/" + bucketName + "/" + RestUtils.encodeUrlString(publicKey));
-        assertEquals("Expected access (200)", 
+        assertEquals("Expected access (200)",
                 200, ((HttpURLConnection)url.openConnection()).getResponseCode());
 
         // Update ACL to make private object public.
@@ -422,14 +422,14 @@ public abstract class BaseS3ServiceTest extends TestCase {
         s3Service.deleteObject(bucket, publicKey2);
 //        s3Service.deleteBucket(bucket.getName());
     }
-    
+
     public void testObjectListing() throws Exception {
         S3Service s3Service = getS3Service(awsCredentials);
 
         String bucketName = awsCredentials.getAccessKey() + ".jets3t_TestCases";
 
         S3Bucket bucket = s3Service.createBucket(bucketName);
-        
+
         // Represent a directory structure in S3.
         List objectsList = new ArrayList();
         objectsList.add(new S3Object(bucket, "dir1"));
@@ -439,21 +439,21 @@ public abstract class BaseS3ServiceTest extends TestCase {
         objectsList.add(new S3Object(bucket, "dir1/dir1Level1/doc1Level2"));
         objectsList.add(new S3Object(bucket, "dir1/dir1Level1/dir1Level2"));
         objectsList.add(new S3Object(bucket, "dir1/dir1Level1/dir1Level2/doc1Level3"));
-        
+
         // Create objects
         Iterator iter = objectsList.iterator();
         while (iter.hasNext()) {
             S3Object object = (S3Object) iter.next();
             s3Service.putObject(bucket, object);
         }
-        
+
         S3Object[] objects = null;
-        
+
         // List all items in directory.
-        objects = s3Service.listObjects(bucket);        
-        assertEquals("Incorrect number of objects in directory structure", 
+        objects = s3Service.listObjects(bucket);
+        assertEquals("Incorrect number of objects in directory structure",
             objectsList.size(), objects.length);
-        
+
         // List items in chunks of size 2, ensure we get a total of seven.
         int chunkedObjectsCount = 0;
         int chunkedIterationsCount = 0;
@@ -465,55 +465,55 @@ public abstract class BaseS3ServiceTest extends TestCase {
             chunkedObjectsCount += chunk.getObjects().length;
             chunkedIterationsCount++;
         } while (priorLastKey != null);
-        assertEquals("Chunked bucket listing retreived incorrect number of objects", 
+        assertEquals("Chunked bucket listing retreived incorrect number of objects",
             objectsList.size(), chunkedObjectsCount);
-        assertEquals("Chunked bucket listing ran for an unexpected number of iterations", 
+        assertEquals("Chunked bucket listing ran for an unexpected number of iterations",
             (objectsList.size() + 1) / 2, chunkedIterationsCount);
-        
+
         // List objects with a prefix and delimiter to check common prefixes.
         S3ObjectsChunk chunk = s3Service.listObjectsChunked(
             bucket.getName(), "dir1/", "/", 100, null);
-        assertEquals("Chunked bucket listing with prefix and delimiter retreived incorrect number of objects", 
+        assertEquals("Chunked bucket listing with prefix and delimiter retreived incorrect number of objects",
             3, chunk.getObjects().length);
-        assertEquals("Chunked bucket listing with prefix and delimiter retreived incorrect number of common prefixes", 
+        assertEquals("Chunked bucket listing with prefix and delimiter retreived incorrect number of common prefixes",
             1, chunk.getCommonPrefixes().length);
-        
+
         // List the same items with a prefix.
-        objects = s3Service.listObjects(bucket, "dir1", null);        
+        objects = s3Service.listObjects(bucket, "dir1", null);
         assertEquals("Incorrect number of objects matching prefix", 7, objects.length);
-        
+
         // List items up one directory with a prefix (will include dir1Level1)
-        objects = s3Service.listObjects(bucket, "dir1/dir1Level1", null);        
+        objects = s3Service.listObjects(bucket, "dir1/dir1Level1", null);
         assertEquals("Incorrect number of objects matching prefix", 4, objects.length);
 
         // List items up one directory with a prefix (will not include dir1Level1)
-        objects = s3Service.listObjects(bucket, "dir1/dir1Level1/", null);        
+        objects = s3Service.listObjects(bucket, "dir1/dir1Level1/", null);
         assertEquals("Incorrect number of objects matching prefix", 3, objects.length);
 
         // Try a prefix matching no object keys.
-        objects = s3Service.listObjects(bucket, "dir1-NonExistent", null);        
+        objects = s3Service.listObjects(bucket, "dir1-NonExistent", null);
         assertEquals("Expected no results", 0, objects.length);
 
-        // Use delimiter with an partial prefix. 
-        objects = s3Service.listObjects(bucket, "dir", "/");        
+        // Use delimiter with an partial prefix.
+        objects = s3Service.listObjects(bucket, "dir", "/");
         assertEquals("Expected no results", 1, objects.length);
-        
+
         // Use delimiter to find item dir1 only.
-        objects = s3Service.listObjects(bucket, "dir1", "/");        
+        objects = s3Service.listObjects(bucket, "dir1", "/");
         assertEquals("Incorrect number of objects matching prefix and delimiter", 1, objects.length);
-        
+
         // Use delimiter to find items within dir1 only.
-        objects = s3Service.listObjects(bucket, "dir1/", "/");        
+        objects = s3Service.listObjects(bucket, "dir1/", "/");
         assertEquals("Incorrect number of objects matching prefix and delimiter", 3, objects.length);
 
         // List items up one directory with prefix and delimiter (will include only dir1Level1)
-        objects = s3Service.listObjects(bucket, "dir1/dir1Level1", "/");        
+        objects = s3Service.listObjects(bucket, "dir1/dir1Level1", "/");
         assertEquals("Incorrect number of objects matching prefix", 1, objects.length);
 
         // List items up one directory with prefix and delimiter (will include only contents of dir1Level1)
-        objects = s3Service.listObjects(bucket, "dir1/dir1Level1/", "/");        
+        objects = s3Service.listObjects(bucket, "dir1/dir1Level1/", "/");
         assertEquals("Incorrect number of objects matching prefix", 2, objects.length);
-        
+
         // Clean up.
         iter = objectsList.iterator();
         while (iter.hasNext()) {
@@ -529,43 +529,43 @@ public abstract class BaseS3ServiceTest extends TestCase {
         String bucketName = awsCredentials.getAccessKey() + ".jets3t_TestCases";
 
         S3Bucket bucket = s3Service.createBucket(bucketName);
-        
+
         // Check logging status is false
         S3BucketLoggingStatus loggingStatus = s3Service.getBucketLoggingStatus(bucket.getName());
-        assertFalse("Expected logging to be disabled for bucket " + bucketName, 
+        assertFalse("Expected logging to be disabled for bucket " + bucketName,
             loggingStatus.isLoggingEnabled());
-        
+
         // Enable logging (non-existent target bucket)
         try {
             S3BucketLoggingStatus newLoggingStatus = new S3BucketLoggingStatus(
                 awsCredentials.getAccessKey() + ".NonExistentBucketName", "access-log-");
             s3Service.setBucketLoggingStatus(bucket.getName(), newLoggingStatus, true);
-            fail("Using non-existent target bucket should have caused an exception");            
-        } catch (Exception e) {            
+            fail("Using non-existent target bucket should have caused an exception");
+        } catch (Exception e) {
         }
-        
+
         // Enable logging (in same bucket)
         S3BucketLoggingStatus newLoggingStatus = new S3BucketLoggingStatus(bucketName, "access-log-");
         s3Service.setBucketLoggingStatus(bucket.getName(), newLoggingStatus, true);
         loggingStatus = s3Service.getBucketLoggingStatus(bucket.getName());
-        assertTrue("Expected logging to be enabled for bucket " + bucketName, 
+        assertTrue("Expected logging to be enabled for bucket " + bucketName,
             loggingStatus.isLoggingEnabled());
         assertEquals("Target bucket", bucketName, loggingStatus.getTargetBucketName());
         assertEquals("Log file prefix", "access-log-", loggingStatus.getLogfilePrefix());
 
         // Add TargetGrants ACLs for log files
         newLoggingStatus.addTargetGrant(new GrantAndPermission(
-    		GroupGrantee.ALL_USERS, Permission.PERMISSION_READ));
+        	GroupGrantee.ALL_USERS, Permission.PERMISSION_READ));
         newLoggingStatus.addTargetGrant(new GrantAndPermission(
-    		GroupGrantee.AUTHENTICATED_USERS, Permission.PERMISSION_READ_ACP));
+        	GroupGrantee.AUTHENTICATED_USERS, Permission.PERMISSION_READ_ACP));
         s3Service.setBucketLoggingStatus(bucket.getName(), newLoggingStatus, false);
         // Retrieve and verify TargetGrants
-        loggingStatus = s3Service.getBucketLoggingStatus(bucket.getName());        
+        loggingStatus = s3Service.getBucketLoggingStatus(bucket.getName());
         assertEquals(2, loggingStatus.getTargetGrants().length);
-        GrantAndPermission gap = loggingStatus.getTargetGrants()[0]; 
+        GrantAndPermission gap = loggingStatus.getTargetGrants()[0];
         assertEquals(gap.getGrantee().getIdentifier(), GroupGrantee.ALL_USERS.getIdentifier());
         assertEquals(gap.getPermission(), Permission.PERMISSION_READ);
-        gap = loggingStatus.getTargetGrants()[1]; 
+        gap = loggingStatus.getTargetGrants()[1];
         assertEquals(gap.getGrantee().getIdentifier(), GroupGrantee.AUTHENTICATED_USERS.getIdentifier());
         assertEquals(gap.getPermission(), Permission.PERMISSION_READ_ACP);
 
@@ -573,7 +573,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         newLoggingStatus = new S3BucketLoggingStatus();
         s3Service.setBucketLoggingStatus(bucket.getName(), newLoggingStatus, true);
         loggingStatus = s3Service.getBucketLoggingStatus(bucket.getName());
-        assertFalse("Expected logging to be disabled for bucket " + bucketName, 
+        assertFalse("Expected logging to be disabled for bucket " + bucketName,
             loggingStatus.isLoggingEnabled());
 
 //        s3Service.deleteBucket(bucket.getName());
@@ -585,7 +585,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         String bucketName = awsCredentials.getAccessKey() + ".jets3t_TestCases";
 
         S3Bucket bucket = s3Service.createBucket(bucketName);
-        
+
         // Create test object, with private ACL
         String dataString = "Text for the URL Signing test object...";
         S3Object object = new S3Object(bucket, "Testing URL Signing", dataString);
@@ -599,13 +599,13 @@ public abstract class BaseS3ServiceTest extends TestCase {
         Date expiryDate = cal.getTime();
 
         // Create a signed HTTP PUT URL.
-        String signedPutUrl = S3Service.createSignedPutUrl(bucket.getName(), object.getKey(), 
+        String signedPutUrl = S3Service.createSignedPutUrl(bucket.getName(), object.getKey(),
             object.getMetadataMap(), awsCredentials, expiryDate, false);
 
         // Put the object in S3 using the signed URL (no AWS credentials required)
         RestS3Service restS3Service = new RestS3Service(null);
-        restS3Service.putObjectWithSignedUrl(signedPutUrl, object); 
-        
+        restS3Service.putObjectWithSignedUrl(signedPutUrl, object);
+
         // Ensure the object was created.
         S3Object objects[] = s3Service.listObjects(bucket, object.getKey(), null);
         assertEquals("Signed PUT URL failed to put/create object", objects.length, 1);
@@ -615,10 +615,10 @@ public abstract class BaseS3ServiceTest extends TestCase {
         try {
             restS3Service.putObjectWithSignedUrl(signedPutUrl, object);
             fail("Should not be able to use a signed URL for an object with a changed content-type");
-        } catch (S3ServiceException e) {            
+        } catch (S3ServiceException e) {
             object.setContentType("text/html");
         }
-        
+
         // Add an object header and ensure the signed PUT URL disallows the put.
         object.addMetadata("x-amz-example-header-2", "example-value");
         try {
@@ -633,15 +633,15 @@ public abstract class BaseS3ServiceTest extends TestCase {
         object.setKey("Testing URL Signing 2");
         object.setDataInputStream(new ByteArrayInputStream(dataString.getBytes()));
         object = restS3Service.putObjectWithSignedUrl(signedPutUrl, object);
-        assertEquals("Ensure returned object key is renamed based on signed PUT URL", 
+        assertEquals("Ensure returned object key is renamed based on signed PUT URL",
             originalName, object.getKey());
-        
+
         // Test last-resort MD5 sanity-check for uploaded object when ETag is missing.
         S3Object objectWithoutETag = new S3Object("Object Without ETag");
-        objectWithoutETag.setContentType("text/html");        
+        objectWithoutETag.setContentType("text/html");
         String objectWithoutETagSignedPutURL = S3Service.createSignedPutUrl(
-    		bucket.getName(), objectWithoutETag.getKey(), objectWithoutETag.getMetadataMap(), 
-    		awsCredentials, expiryDate, false);        
+        	bucket.getName(), objectWithoutETag.getKey(), objectWithoutETag.getMetadataMap(),
+        	awsCredentials, expiryDate, false);
         objectWithoutETag.setDataInputStream(new ByteArrayInputStream(dataString.getBytes()));
         objectWithoutETag.setContentLength(dataString.getBytes().length);
         restS3Service.putObjectWithSignedUrl(objectWithoutETagSignedPutURL, objectWithoutETag);
@@ -654,39 +654,39 @@ public abstract class BaseS3ServiceTest extends TestCase {
             .openConnection()).getResponseCode());
 
         // Create a signed HTTP GET URL.
-        String signedGetUrl = S3Service.createSignedGetUrl(bucket.getName(), object.getKey(), 
+        String signedGetUrl = S3Service.createSignedGetUrl(bucket.getName(), object.getKey(),
             awsCredentials, expiryDate, false);
 
         // Ensure the signed URL can retrieve the object.
         url = new URL(signedGetUrl);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection(); 
-        assertEquals("Expected signed GET URL ("+ signedGetUrl +") to retrieve object with response code 200", 
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        assertEquals("Expected signed GET URL ("+ signedGetUrl +") to retrieve object with response code 200",
             200, conn.getResponseCode());
-        
+
         // Sanity check the data in the S3 object.
         String objectData = (new BufferedReader(
             new InputStreamReader(conn.getInputStream())))
             .readLine();
         assertEquals("Unexpected data content in S3 object", dataString, objectData);
-        
+
         // Clean up.
         s3Service.deleteObject(bucket, object.getKey());
-        
+
 //        s3Service.deleteBucket(bucket.getName());
     }
-    
+
     public void testHashVerifiedUploads() throws Exception {
         S3Service s3Service = getS3Service(awsCredentials);
 
         String bucketName = awsCredentials.getAccessKey() + ".jets3t_TestCases";
 
         S3Bucket bucket = s3Service.createBucket(bucketName);
-        
+
         // Create test object with an MD5 hash of the data.
         String dataString = "Text for MD5 hashing...";
-        S3Object object = new S3Object(bucket, "Testing MD5 Hashing", dataString);        
+        S3Object object = new S3Object(bucket, "Testing MD5 Hashing", dataString);
         object.setContentType("text/plain");
-        
+
         // Calculate hash data for object.
         byte[] md5Hash = ServiceUtils.computeMD5Hash(dataString.getBytes());
 
@@ -699,8 +699,8 @@ public abstract class BaseS3ServiceTest extends TestCase {
             // This error check would be nice to have, but it only works for the REST interface, not SOAP.
             // assertEquals("Expected error code indicating invalid md5 hash", "InvalidDigest", e.getErrorCode());
         }
-        object = new S3Object(bucket, "Testing MD5 Hashing", dataString);        
-        
+        object = new S3Object(bucket, "Testing MD5 Hashing", dataString);
+
         // Ensure that using the wrong hash value fails.
         try {
             byte[] incorrectHash = new byte[md5Hash.length];
@@ -713,29 +713,29 @@ public abstract class BaseS3ServiceTest extends TestCase {
             // This error checks would be nice to have, but it only works for the REST interface, not SOAP.
             // assertEquals("Expected error code indicating invalid md5 hash", "BadDigest", e.getErrorCode());
         }
-        object = new S3Object(bucket, "Testing MD5 Hashing", dataString);        
+        object = new S3Object(bucket, "Testing MD5 Hashing", dataString);
 
         // Ensure that correct hash value succeeds.
         object.setMd5Hash(md5Hash);
         S3Object resultObject = s3Service.putObject(bucket, object);
-        
+
         // Ensure the ETag result matches the hex-encoded MD5 hash.
-        assertEquals("Hex-encoded MD5 hash should match ETag", resultObject.getETag(), 
+        assertEquals("Hex-encoded MD5 hash should match ETag", resultObject.getETag(),
             ServiceUtils.toHex(md5Hash));
 
         // Ensure we can convert the hex-encoded ETag to Base64 that matches the Base64 md5 hash.
         String md5HashBase64 = ServiceUtils.toBase64(md5Hash);
         String eTagBase64 = ServiceUtils.toBase64(ServiceUtils.fromHex(resultObject.getETag()));
-        assertEquals("Could not convert ETag and MD5 hash to matching Base64-encoded strings", 
+        assertEquals("Could not convert ETag and MD5 hash to matching Base64-encoded strings",
             md5HashBase64, eTagBase64);
 
         // Clean up.
         s3Service.deleteObject(bucket, object.getKey());
-        
+
 //        s3Service.deleteBucket(bucket.getName());
     }
 
-    
+
     private String readStringFromInputStream(InputStream is) throws IOException {
         StringBuffer sb = new StringBuffer();
         int b = -1;

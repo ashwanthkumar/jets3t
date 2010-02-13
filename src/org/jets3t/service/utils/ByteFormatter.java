@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2006 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.service.utils;
 
@@ -28,28 +28,28 @@ import org.apache.commons.logging.LogFactory;
 
 /**
  * Formats numeric byte values into human-readable strings.
- * 
+ *
  * @author James Murty
  */
 public class ByteFormatter {
     private static final Log log = LogFactory.getLog(ByteFormatter.class);
-    
+
     private String gigabyteSuffix = null;
     private String megabyteSuffix = null;
     private String kilobyteSuffix = null;
     private String byteSuffix = null;
-    private NumberFormatter nf = null; 
+    private NumberFormatter nf = null;
 
     /**
      * Constructs a formatter that will use default text to represent byte amounts.
      * Default values used:
      * <ul>
-     * <li>Gigabyte suffix: " GB"</li> 
-     * <li>Megabyte suffix: " MB"</li> 
-     * <li>Kilobyte suffix: " KB"</li> 
-     * <li>Byte suffix: " B"</li> 
+     * <li>Gigabyte suffix: " GB"</li>
+     * <li>Megabyte suffix: " MB"</li>
+     * <li>Kilobyte suffix: " KB"</li>
+     * <li>Byte suffix: " B"</li>
      * <li>Precision: 2 decimal places</li>
-     * </ul> 
+     * </ul>
      *
      */
     public ByteFormatter() {
@@ -58,7 +58,7 @@ public class ByteFormatter {
 
     /**
      * Constructs a formatter that will use the given values when formatting byte values.
-     * 
+     *
      * @param gigabyteSuffix
      * string to display at the end of gigabyte values.
      * @param megabyteSuffix
@@ -71,14 +71,14 @@ public class ByteFormatter {
      * the number of decimal places to use when converting byte amounts into kilo, mega or giga
      * byte values.
      */
-    public ByteFormatter(String gigabyteSuffix, String megabyteSuffix, String kilobyteSuffix, 
-        String byteSuffix, int decimalPlaces) 
+    public ByteFormatter(String gigabyteSuffix, String megabyteSuffix, String kilobyteSuffix,
+        String byteSuffix, int decimalPlaces)
     {
         this.gigabyteSuffix = gigabyteSuffix;
         this.megabyteSuffix = megabyteSuffix;
         this.kilobyteSuffix = kilobyteSuffix;
         this.byteSuffix = byteSuffix;
-        
+
         StringBuffer numberFormatString = new StringBuffer();
         numberFormatString.append("0").append((decimalPlaces > 0? "." : ""));
         for (int i = 0; i < decimalPlaces; i++) {
@@ -90,7 +90,7 @@ public class ByteFormatter {
     /**
      * Converts a byte size into a human-readable string, such as "1.43 MB" or "27 KB".
      * The values used are based on powers of 1024, ie 1 KB = 1024 bytes, not 1000 bytes.
-     * 
+     *
      * @param byteSize
      * the byte size of some item
      * @return
@@ -107,18 +107,18 @@ public class ByteFormatter {
                 result = nf.valueToString(new Double(byteSize / Math.pow(1024,2))) + megabyteSuffix;
             } else if (byteSize > 1024) {
                 // Report kilobytes
-                result = nf.valueToString(new Double(byteSize / Math.pow(1024,1))) + kilobyteSuffix;                    
+                result = nf.valueToString(new Double(byteSize / Math.pow(1024,1))) + kilobyteSuffix;
             } else if (byteSize >= 0) {
-                // Report bytes                
+                // Report bytes
                 result = byteSize + byteSuffix;
             }
         } catch (ParseException e) {
             if (log.isErrorEnabled()) {
-            	log.error("Unable to format byte size " + byteSize, e);
+                log.error("Unable to format byte size " + byteSize, e);
             }
             return byteSize + byteSuffix;
         }
         return result;
-    }    
+    }
 
 }

@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2008 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.gui;
 
@@ -65,21 +65,21 @@ import org.jets3t.service.model.cloudfront.LoggingStatus;
 
 /**
  * Dialog box for displaying and modifying CloudFront distributions.
- * <p> 
+ * <p>
  * The first time a bucket is selected its logging status is retrieved from S3 and the details are
  * displayed, as well as being cached so further lookups aren't necessary. The logging status is
  * modified by choosing/changing the target log bucket.
- * 
+ *
  * @author James Murty
  */
-public class ManageDistributionsDialog extends JDialog 
-	implements ActionListener, ListSelectionListener, HyperlinkActivatedListener 
+public class ManageDistributionsDialog extends JDialog
+    implements ActionListener, ListSelectionListener, HyperlinkActivatedListener
 {
     private static final long serialVersionUID = -6023438299751644436L;
 
     private CloudFrontService cloudFrontService = null;
-    
-    private GuiUtils guiUtils = new GuiUtils();    
+
+    private GuiUtils guiUtils = new GuiUtils();
 
     private Frame ownerFrame = null;
     private JTable distributionListTable = null;
@@ -97,25 +97,25 @@ public class ManageDistributionsDialog extends JDialog
     private JButton actionButton = null;
     private JButton deleteButton = null;
     private JButton finishedButton = null;
-        
+
     private final Insets insetsDefault = new Insets(3, 5, 3, 5);
     private final Insets insetsHorizontalOnly = new Insets(0, 5, 0, 5);
 
-    
-    public ManageDistributionsDialog(Frame ownerFrame, CloudFrontService cloudFrontService,  
-        String bucketNames[], HyperlinkActivatedListener hyperlinkListener) 
+
+    public ManageDistributionsDialog(Frame ownerFrame, CloudFrontService cloudFrontService,
+        String bucketNames[], HyperlinkActivatedListener hyperlinkListener)
     {
         super(ownerFrame, "CloudFront Distributions", true);
         this.ownerFrame = ownerFrame;
         this.cloudFrontService = cloudFrontService;
-        
+
         distributionListTableModel = new DistributionListTableModel();
-        distributionListTableModelSorter = new TableSorter(distributionListTableModel);        
+        distributionListTableModelSorter = new TableSorter(distributionListTableModel);
         distributionListTable = new JTable(distributionListTableModelSorter);
         distributionListTableModelSorter.setTableHeader(distributionListTable.getTableHeader());
         distributionListTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         distributionListTable.getSelectionModel().addListSelectionListener(this);
-        
+
         JLabel bucketLabel = new JLabel("Bucket:");
         bucketComboBox = new JComboBox(bucketNames);
         JLabel enabledLabel = new JLabel("Enabled:");
@@ -126,21 +126,21 @@ public class ManageDistributionsDialog extends JDialog
         loggingBucketComboBox.insertItemAt("-- Logging Disabled --", 0);
         loggingBucketComboBox.setSelectedIndex(0);
         loggingBucketComboBox.addActionListener(new ActionListener() {
-        	public void actionPerformed(ActionEvent e) {
-        		loggingPrefixTextField.setEnabled(
-    				loggingBucketComboBox.getSelectedIndex() > 0);
-        	}
+            public void actionPerformed(ActionEvent e) {
+            	loggingPrefixTextField.setEnabled(
+        			loggingBucketComboBox.getSelectedIndex() > 0);
+            }
         });
         JLabel loggingPrefixLabel = new JLabel("Logging prefix:");
         loggingPrefixTextField = new JTextField();
         loggingPrefixTextField.setEnabled(false);
-        
+
         cnamesTableModel = new CNAMETableModel();
         TableSorter cnamesTableModelSorter = new TableSorter(cnamesTableModel);
         cnamesTable = new JTable(cnamesTableModelSorter);
         cnamesTableModelSorter.setTableHeader(cnamesTable.getTableHeader());
         cnamesTable.getSelectionModel().addListSelectionListener(this);
-        
+
         removeCname = new JButton();
         removeCname.setToolTipText("Remove the selected CNAME");
         guiUtils.applyIcon(removeCname, "/images/nuvola/16x16/actions/viewmag-.png");
@@ -152,11 +152,11 @@ public class ManageDistributionsDialog extends JDialog
         guiUtils.applyIcon(addCname, "/images/nuvola/16x16/actions/viewmag+.png");
         addCname.setActionCommand("AddCname");
         addCname.addActionListener(this);
-        
+
         JLabel commentLabel = new JLabel("Comment");
         commentTextArea = new JTextArea();
         commentTextArea.setLineWrap(true);
-                
+
         JButton refreshButton = new JButton("Refresh Distributions");
         refreshButton.setActionCommand("RefreshDistributions");
         refreshButton.addActionListener(this);
@@ -176,9 +176,9 @@ public class ManageDistributionsDialog extends JDialog
         finishedButton = new JButton("Finished");
         finishedButton.setActionCommand("Finished");
         finishedButton.addActionListener(this);
-        
+
         // Set default ENTER and ESCAPE buttons.
-        this.getRootPane().setDefaultButton(finishedButton);        
+        this.getRootPane().setDefaultButton(finishedButton);
         this.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
             .put(KeyStroke.getKeyStroke("ESCAPE"), "ESCAPE");
         this.getRootPane().getActionMap().put("ESCAPE", new AbstractAction() {
@@ -187,74 +187,74 @@ public class ManageDistributionsDialog extends JDialog
             public void actionPerformed(ActionEvent actionEvent) {
                 setVisible(false);
             }
-        });        
-        
+        });
+
         JPanel distributionsButtonsPanel = new JPanel(new GridBagLayout());
-        distributionsButtonsPanel.add(refreshButton, new GridBagConstraints(0, 0, 
+        distributionsButtonsPanel.add(refreshButton, new GridBagConstraints(0, 0,
             1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsHorizontalOnly, 0, 0));
-        distributionsButtonsPanel.add(deleteButton, new GridBagConstraints(1, 0, 
+        distributionsButtonsPanel.add(deleteButton, new GridBagConstraints(1, 0,
             1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsHorizontalOnly, 0, 0));
 
         JPanel tablePanel = new JPanel(new GridBagLayout());
-        tablePanel.add(new JScrollPane(distributionListTable), new GridBagConstraints(0, 0, 
+        tablePanel.add(new JScrollPane(distributionListTable), new GridBagConstraints(0, 0,
             1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(3, 5, 0, 3), 0, 0));
-        tablePanel.add(distributionsButtonsPanel, new GridBagConstraints(0, 1, 
+        tablePanel.add(distributionsButtonsPanel, new GridBagConstraints(0, 1,
             1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsHorizontalOnly, 0, 0));
 
         JPanel cnameAddRemoveButtonsPanel = new JPanel(new GridBagLayout());
-        cnameAddRemoveButtonsPanel.add(removeCname, new GridBagConstraints(0, 0, 
+        cnameAddRemoveButtonsPanel.add(removeCname, new GridBagConstraints(0, 0,
             1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsHorizontalOnly, 0, 0));
-        cnameAddRemoveButtonsPanel.add(addCname, new GridBagConstraints(1, 0, 
+        cnameAddRemoveButtonsPanel.add(addCname, new GridBagConstraints(1, 0,
             1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsHorizontalOnly, 0, 0));
 
         JPanel detailPanel = new JPanel(new GridBagLayout());
         detailPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEtchedBorder(), "Distribution Details"));
         int row = 0;
-        detailPanel.add(bucketLabel, new GridBagConstraints(0, row, 
+        detailPanel.add(bucketLabel, new GridBagConstraints(0, row,
             1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-        detailPanel.add(bucketComboBox, new GridBagConstraints(1, row++, 
+        detailPanel.add(bucketComboBox, new GridBagConstraints(1, row++,
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        detailPanel.add(enabledLabel, new GridBagConstraints(0, row, 
+        detailPanel.add(enabledLabel, new GridBagConstraints(0, row,
             1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-        detailPanel.add(enabledCheckbox, new GridBagConstraints(1, row++, 
-            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-
-        detailPanel.add(loggingBucketLabel, new GridBagConstraints(0, row, 
-            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-        detailPanel.add(loggingBucketComboBox, new GridBagConstraints(1, row++, 
-            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        detailPanel.add(loggingPrefixLabel, new GridBagConstraints(0, row, 
-            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
-        detailPanel.add(loggingPrefixTextField, new GridBagConstraints(1, row++, 
+        detailPanel.add(enabledCheckbox, new GridBagConstraints(1, row++,
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
 
-        detailPanel.add(new JScrollPane(cnamesTable), new GridBagConstraints(0, row++, 
+        detailPanel.add(loggingBucketLabel, new GridBagConstraints(0, row,
+            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+        detailPanel.add(loggingBucketComboBox, new GridBagConstraints(1, row++,
+            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        detailPanel.add(loggingPrefixLabel, new GridBagConstraints(0, row,
+            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+        detailPanel.add(loggingPrefixTextField, new GridBagConstraints(1, row++,
+            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+
+        detailPanel.add(new JScrollPane(cnamesTable), new GridBagConstraints(0, row++,
             2, 1, 1, 2, GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(3, 5, 0, 5), 0, 0));
-        detailPanel.add(cnameAddRemoveButtonsPanel, new GridBagConstraints(0, row++, 
+        detailPanel.add(cnameAddRemoveButtonsPanel, new GridBagConstraints(0, row++,
             2, 1, 1, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsHorizontalOnly, 0, 0));
-        detailPanel.add(commentLabel, new GridBagConstraints(0, row++, 
+        detailPanel.add(commentLabel, new GridBagConstraints(0, row++,
             2, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsHorizontalOnly, 0, 0));
-        detailPanel.add(new JScrollPane(commentTextArea), new GridBagConstraints(0, row++, 
+        detailPanel.add(new JScrollPane(commentTextArea), new GridBagConstraints(0, row++,
             2, 1, 0, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
-        detailPanel.add(actionButton, new GridBagConstraints(0, row++, 
+        detailPanel.add(actionButton, new GridBagConstraints(0, row++,
             2, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsHorizontalOnly, 0, 0));
-            
+
         this.getContentPane().setLayout(new GridBagLayout());
-        this.getContentPane().add(tablePanel, new GridBagConstraints(0, 0, 
-            1, 1, 1, 2, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));        
-        this.getContentPane().add(detailPanel, new GridBagConstraints(0, 1, 
-            1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsHorizontalOnly, 0, 0));        
-        this.getContentPane().add(finishedButton, new GridBagConstraints(0, 2, 
+        this.getContentPane().add(tablePanel, new GridBagConstraints(0, 0,
+            1, 1, 1, 2, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsDefault, 0, 0));
+        this.getContentPane().add(detailPanel, new GridBagConstraints(0, 1,
+            1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsHorizontalOnly, 0, 0));
+        this.getContentPane().add(finishedButton, new GridBagConstraints(0, 2,
             1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsHorizontalOnly, 0, 0));
-                
+
         // Size dialog
         this.pack();
-        this.setSize(690, 550);        
-        
+        this.setSize(690, 550);
+
         // Micro-managed column widths, because Java table columns are stupid... yuk.
         TableColumnModel columnModel = distributionListTable.getColumnModel();
         columnModel.getColumn(0).setPreferredWidth(40);  // Status
-        columnModel.getColumn(1).setPreferredWidth(50);  // Enabled? 
+        columnModel.getColumn(1).setPreferredWidth(50);  // Enabled?
         columnModel.getColumn(2).setPreferredWidth(170); // Bucket
         columnModel.getColumn(3).setPreferredWidth(210); // Domain name
         columnModel.getColumn(4).setPreferredWidth(220); // Last Modified
@@ -262,16 +262,16 @@ public class ManageDistributionsDialog extends JDialog
 
         refreshDistributions();
     }
-    
+
     protected void refreshDistributions() {
         (new Thread() {
             public void run() {
-                final ProgressDialog progressDialog = 
+                final ProgressDialog progressDialog =
                     new ProgressDialog(ownerFrame, "Listing Distributions", null);
-                
+
                 SwingUtilities.invokeLater(new Runnable() {
                     public void run() {
-                        progressDialog.startDialog("Listing Distributions", null, 0, 0, null, null);                               
+                        progressDialog.startDialog("Listing Distributions", null, 0, 0, null, null);
                     }
                  });
 
@@ -279,18 +279,18 @@ public class ManageDistributionsDialog extends JDialog
                     final Distribution[] distributions = cloudFrontService.listDistributions();
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
-                            int priorSelection = distributionListTable.getSelectedRow(); 
-                            
+                            int priorSelection = distributionListTable.getSelectedRow();
+
                             distributionListTableModel.removeAll();
                             for (int i = 0; i < distributions.length; i++) {
                                 distributionListTableModel.addDistribution(distributions[i]);
                             }
-                            
+
                             if (priorSelection >= 0 && priorSelection < distributionListTable.getRowCount()) {
                                 distributionListTable.setRowSelectionInterval(priorSelection, priorSelection);
                             } else if (distributionListTable.getRowCount() > 0) {
                                 distributionListTable.setRowSelectionInterval(0, 0);
-                            }        
+                            }
                         }
                      });
                 } catch (Exception e) {
@@ -303,82 +303,82 @@ public class ManageDistributionsDialog extends JDialog
                     String errorMessage = "Failed to list distributions";
                     if (e instanceof CloudFrontServiceException) {
                         errorMessage = ((CloudFrontServiceException)e).getErrorMessage();
-                    }                        
+                    }
                     ErrorDialog.showDialog(ownerFrame, null, errorMessage, e);
                 }
                 SwingUtilities.invokeLater(new Runnable() {
                     public void run() {
-                        progressDialog.stopDialog();    
+                        progressDialog.stopDialog();
                     }
                  });
             }
         }).start();
     }
-    
+
     public void valueChanged(ListSelectionEvent e) {
         if (e.getValueIsAdjusting()) {
             return;
         }
 
         if (e.getSource().equals(distributionListTable.getSelectionModel())) {
-            int tableIndex = distributionListTable.getSelectedRow();                
+            int tableIndex = distributionListTable.getSelectedRow();
             if (tableIndex < 0) {
                 return;
             }
             Distribution distribution = distributionListTableModel.getDistributionAtRow(
                 distributionListTableModelSorter.modelIndex(tableIndex));
-            
+
             if (distribution == null) {
                 // Special case, allow the creation of a new distribution.
                 deleteButton.setEnabled(false);
-                
+
                 bucketComboBox.setEnabled(true);
                 enabledCheckbox.setSelected(false);
-                
+
                 loggingBucketComboBox.setSelectedIndex(0);
                 loggingPrefixTextField.setText("");
-                
+
                 cnamesTableModel.removeAll();
                 commentTextArea.setText("");
-                
+
                 actionButton.setText("New Distribution");
                 actionButton.setActionCommand("NewDistribution");
                 actionButton.setEnabled(true);
             } else {
-            	// Retrieve distribution's configuration to access current logging status settings.
+                // Retrieve distribution's configuration to access current logging status settings.
                 DistributionConfig distributionConfig = null;
                 try {
-                	distributionConfig = cloudFrontService.getDistributionConfig(distribution.getId());
+                    distributionConfig = cloudFrontService.getDistributionConfig(distribution.getId());
                 } catch (CloudFrontServiceException ex) {
-                	String message = "Unable to retrieve configuration information " 
-                		+ "for distribution: " + distribution.getId();
+                    String message = "Unable to retrieve configuration information "
+                    	+ "for distribution: " + distribution.getId();
                     ErrorDialog.showDialog(ownerFrame, this, message, ex);
                 }
-            	
+
                 bucketComboBox.setSelectedItem(distribution.getOriginAsBucketName());
                 bucketComboBox.setEnabled(false);
                 enabledCheckbox.setSelected(distribution.isEnabled());
-                
+
                 if (distributionConfig != null && distributionConfig.getLoggingStatus() != null) {
                     loggingBucketComboBox.setSelectedItem(
-                		distributionConfig.getLoggingStatus().getShortBucketName());
+                    	distributionConfig.getLoggingStatus().getShortBucketName());
                     loggingPrefixTextField.setText(
-                		distributionConfig.getLoggingStatus().getPrefix());                	
+                    	distributionConfig.getLoggingStatus().getPrefix());
                 } else {
                     loggingBucketComboBox.setSelectedIndex(0);
-                    loggingPrefixTextField.setText("");                	
+                    loggingPrefixTextField.setText("");
                 }
-                
+
                 cnamesTableModel.removeAll();
                 String[] cnames = distribution.getCNAMEs();
                 for (int i = 0; i < cnames.length; i++) {
                     cnamesTableModel.addCname(cnames[i]);
                 }
                 commentTextArea.setText(distribution.getComment());
-                
+
                 // Update possible actions
                 deleteButton.setEnabled(!distribution.isEnabled() && distribution.isDeployed());
-                
+
                 actionButton.setText("Update Distribution");
                 actionButton.setActionCommand("UpdateDistribution");
                 actionButton.setEnabled(distribution.isDeployed());
@@ -388,7 +388,7 @@ public class ManageDistributionsDialog extends JDialog
         }
     }
 
-        
+
     public void actionPerformed(ActionEvent event) {
         if (event.getSource().equals(finishedButton)) {
             this.setVisible(false);
@@ -405,8 +405,8 @@ public class ManageDistributionsDialog extends JDialog
             final Distribution distribution = distributionListTableModel.getDistributionAtRow(
                 distributionListTableModelSorter.modelIndex(
                     distributionListTable.getSelectedRow()));
-            
-            int answer = JOptionPane.showConfirmDialog(this, 
+
+            int answer = JOptionPane.showConfirmDialog(this,
                 "Delete the distribution " + distribution.getDomainName() + "?",
                 "Delete Distribution", JOptionPane.YES_NO_OPTION);
             if (answer == 1) { // NO
@@ -414,13 +414,13 @@ public class ManageDistributionsDialog extends JDialog
             } else {
                 (new Thread() {
                     public void run() {
-                        final ProgressDialog progressDialog = 
+                        final ProgressDialog progressDialog =
                             new ProgressDialog(ownerFrame, "Deleting Distribution", null);
-                        
+
                         SwingUtilities.invokeLater(new Runnable() {
                             public void run() {
-                                progressDialog.startDialog("Deleting distribution: " + distribution.getDomainName(), 
-                                    null, 0, 0, null, null);                               
+                                progressDialog.startDialog("Deleting distribution: " + distribution.getDomainName(),
+                                    null, 0, 0, null, null);
                             }
                          });
 
@@ -433,11 +433,11 @@ public class ManageDistributionsDialog extends JDialog
                                     progressDialog.stopDialog();
                                 }
                              });
-                            
+
                             String errorMessage = "Failed to delete distribution";
                             if (e instanceof CloudFrontServiceException) {
                                 errorMessage = ((CloudFrontServiceException)e).getErrorMessage();
-                            }                        
+                            }
                             ErrorDialog.showDialog(ownerFrame, null, errorMessage, e);
                         }
                         SwingUtilities.invokeLater(new Runnable() {
@@ -450,31 +450,31 @@ public class ManageDistributionsDialog extends JDialog
             }
         } else if (event.getActionCommand().equals("NewDistribution")) {
             final String origin = bucketComboBox.getSelectedItem() + ".s3.amazonaws.com";
-            
+
             (new Thread() {
                 public void run() {
-                    final ProgressDialog progressDialog = 
+                    final ProgressDialog progressDialog =
                         new ProgressDialog(ownerFrame, "Creating Distribution", null);
-                    
+
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
-                            progressDialog.startDialog("Creating distribution for: " + bucketComboBox.getSelectedItem(), 
-                                null, 0, 0, null, null);                               
+                            progressDialog.startDialog("Creating distribution for: " + bucketComboBox.getSelectedItem(),
+                                null, 0, 0, null, null);
                         }
                      });
 
                     try {
-                    	LoggingStatus loggingStatus = null;
-                    	if (loggingBucketComboBox.getSelectedIndex() > 0) {
-                    		String loggingBucket = (String) loggingBucketComboBox.getSelectedItem()
-                    			+ CloudFrontService.DEFAULT_BUCKET_SUFFIX;                    		
-                    		loggingStatus = new LoggingStatus(
-                    				loggingBucket,
-                    				loggingPrefixTextField.getText());
-                    	}
-                    	
-                        cloudFrontService.createDistribution(origin, null, 
-                            cnamesTableModel.getCnames(), commentTextArea.getText(), 
+                        LoggingStatus loggingStatus = null;
+                        if (loggingBucketComboBox.getSelectedIndex() > 0) {
+                        	String loggingBucket = (String) loggingBucketComboBox.getSelectedItem()
+                        		+ CloudFrontService.DEFAULT_BUCKET_SUFFIX;
+                        	loggingStatus = new LoggingStatus(
+                        			loggingBucket,
+                        			loggingPrefixTextField.getText());
+                        }
+
+                        cloudFrontService.createDistribution(origin, null,
+                            cnamesTableModel.getCnames(), commentTextArea.getText(),
                             enabledCheckbox.isSelected(), loggingStatus);
                         refreshDistributions();
                     } catch (Exception e) {
@@ -487,7 +487,7 @@ public class ManageDistributionsDialog extends JDialog
                         String errorMessage = "Failed to create distribution";
                         if (e instanceof CloudFrontServiceException) {
                             errorMessage = ((CloudFrontServiceException)e).getErrorMessage();
-                        }                        
+                        }
                         ErrorDialog.showDialog(ownerFrame, null, errorMessage, e);
                     }
                     SwingUtilities.invokeLater(new Runnable() {
@@ -501,31 +501,31 @@ public class ManageDistributionsDialog extends JDialog
             final Distribution distribution = distributionListTableModel.getDistributionAtRow(
                 distributionListTableModelSorter.modelIndex(
                     distributionListTable.getSelectedRow()));
-            
+
             (new Thread() {
                 public void run() {
-                    final ProgressDialog progressDialog = 
+                    final ProgressDialog progressDialog =
                         new ProgressDialog(ownerFrame, "Updating Distribution", null);
-                    
+
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
-                            progressDialog.startDialog("Updating distribution: " + distribution.getDomainName(), 
-                                null, 0, 0, null, null);                               
+                            progressDialog.startDialog("Updating distribution: " + distribution.getDomainName(),
+                                null, 0, 0, null, null);
                         }
                      });
 
                     try {
-                    	LoggingStatus loggingStatus = null;
-                    	if (loggingBucketComboBox.getSelectedIndex() > 0) {
-                    		String loggingBucket = (String) loggingBucketComboBox.getSelectedItem()
-                				+ CloudFrontService.DEFAULT_BUCKET_SUFFIX;                    		
-                    		loggingStatus = new LoggingStatus(
-                    				loggingBucket,
-                    				loggingPrefixTextField.getText());
-                    	}
-                    	
+                        LoggingStatus loggingStatus = null;
+                        if (loggingBucketComboBox.getSelectedIndex() > 0) {
+                        	String loggingBucket = (String) loggingBucketComboBox.getSelectedItem()
+                    			+ CloudFrontService.DEFAULT_BUCKET_SUFFIX;
+                        	loggingStatus = new LoggingStatus(
+                        			loggingBucket,
+                        			loggingPrefixTextField.getText());
+                        }
+
                         cloudFrontService.updateDistributionConfig(distribution.getId(),
-                            cnamesTableModel.getCnames(), commentTextArea.getText(), 
+                            cnamesTableModel.getCnames(), commentTextArea.getText(),
                             enabledCheckbox.isSelected(), loggingStatus);
                         refreshDistributions();
                     } catch (Exception e) {
@@ -538,7 +538,7 @@ public class ManageDistributionsDialog extends JDialog
                         String errorMessage = "Failed to update distribution";
                         if (e instanceof CloudFrontServiceException) {
                             errorMessage = ((CloudFrontServiceException)e).getErrorMessage();
-                        }                        
+                        }
                         ErrorDialog.showDialog(ownerFrame, null, errorMessage, e);
                     }
                     SwingUtilities.invokeLater(new Runnable() {
@@ -550,51 +550,51 @@ public class ManageDistributionsDialog extends JDialog
             }).start();
         }
     }
-        
+
     /**
      * Dialog box for displaying and modifying CloudFront distributions.
-     * 
+     *
      * @param ownerFrame
      * the frame that will own the dialog.
      * @param cloudFrontService
      * a CloudFrontService that will be used to query and update distributions. This
-     * service must be initialised with the necessary AWS credentials to perform the 
-     * API operations. 
+     * service must be initialised with the necessary AWS credentials to perform the
+     * API operations.
      * @param hyperlinkListener
      * the listener that will act on any hyperlink events triggered by the user clicking on HTTP links.
      */
-    public static void showDialog(Frame ownerFrame, CloudFrontService cloudFrontService, 
-        String[] bucketNames, HyperlinkActivatedListener hyperlinkListener) 
+    public static void showDialog(Frame ownerFrame, CloudFrontService cloudFrontService,
+        String[] bucketNames, HyperlinkActivatedListener hyperlinkListener)
     {
         ManageDistributionsDialog dialog = new ManageDistributionsDialog(
             ownerFrame, cloudFrontService, bucketNames, hyperlinkListener);
-        dialog.setVisible(true);        
+        dialog.setVisible(true);
         dialog.dispose();
     }
-    
+
     private class DistributionListTableModel extends DefaultTableModel {
         private static final long serialVersionUID = -8315527286580422385L;
 
         private ArrayList distributionList = new ArrayList();
-        
+
         private Icon inProgressIcon = null;
         private Icon deployedIcon = null;
-        
+
         public DistributionListTableModel() {
             super(new String[] {"Status", "Enabled", "Bucket", "Domain Name", "Last Modified"}, 0);
             this.addRow(new Object[] {null, null, "Add New Distribution", null, null});
-            
+
             JLabel dummyLabel = new JLabel();
             if (guiUtils.applyIcon(dummyLabel, "/images/nuvola/16x16/actions/noatunloopsong.png"))
             {
                 inProgressIcon = dummyLabel.getIcon();
-            }            
+            }
             if (guiUtils.applyIcon(dummyLabel, "/images/nuvola/16x16/actions/ok.png"))
             {
                 deployedIcon = dummyLabel.getIcon();
-            }            
+            }
         }
-        
+
         protected int findDistributionIndex(String bucketName) {
             return Collections.binarySearch(
                 distributionList, bucketName, new Comparator() {
@@ -607,17 +607,17 @@ public class ManageDistributionsDialog extends JDialog
                 }
             );
         }
-        
+
         public void addDistribution(Distribution distribution) {
             distributionList.add(distribution);
             this.insertRow(distributionList.size() - 1, new Object[] {
                 (distribution.isDeployed() ? deployedIcon : inProgressIcon),
                 Boolean.valueOf(distribution.isEnabled()),
-                distribution.getOriginAsBucketName(), distribution.getDomainName(), 
-        		distribution.getLastModifiedTime()
+                distribution.getOriginAsBucketName(), distribution.getDomainName(),
+            	distribution.getLastModifiedTime()
             });
         }
-        
+
         public Distribution getDistributionAtRow(int rowIndex) {
             if (rowIndex < distributionList.size()) {
                 return (Distribution) distributionList.get(rowIndex);
@@ -625,13 +625,13 @@ public class ManageDistributionsDialog extends JDialog
                 return null;
             }
         }
-        
+
         public void removeDistribution(String bucketName) {
             int index = findDistributionIndex(bucketName);
             this.removeRow(index);
             distributionList.remove(index);
         }
-        
+
         public void removeAll() {
             int rowCount = distributionList.size();
             for (int i = 0; i < rowCount; i++) {
@@ -639,18 +639,18 @@ public class ManageDistributionsDialog extends JDialog
             }
             distributionList.clear();
         }
-                
+
         public boolean isCellEditable(int row, int column) {
             return (column == 3 && row < distributionList.size());
         }
-        
+
         public Class getColumnClass(int columnIndex) {
             switch (columnIndex) {
             case 0: return Icon.class;
             case 1: return Boolean.class;
-            default:return String.class; 
+            default:return String.class;
             }
-        }        
+        }
     }
 
     private class CNAMETableModel extends DefaultTableModel {
@@ -659,11 +659,11 @@ public class ManageDistributionsDialog extends JDialog
         public CNAMETableModel() {
             super(new String[] {"CNAME Aliases"}, 0);
         }
-        
+
         public void addCname(String cname) {
             this.addRow(new Object[] {cname});
         }
-        
+
         public String[] getCnames() {
             String[] cnames = new String[this.getRowCount()];
             for (int i = 0; i < this.getRowCount(); i++) {
@@ -671,25 +671,25 @@ public class ManageDistributionsDialog extends JDialog
             }
             return cnames;
         }
-                
+
         public void removeAll() {
             int rowCount = this.getRowCount();
             for (int i = 0; i < rowCount; i++) {
                 this.removeRow(0);
             }
         }
-                
+
         public boolean isCellEditable(int row, int column) {
             return true;
-        }        
+        }
     }
-    
-	public void followHyperlink(URL url, String target) {            			
-	}
+
+    public void followHyperlink(URL url, String target) {
+    }
 
     /**
      * TODO: Remove once testing is complete.
-     * 
+     *
      * @param args
      * @throws Exception
      */
@@ -697,15 +697,15 @@ public class ManageDistributionsDialog extends JDialog
         JFrame testFrame = new JFrame("Test");
         CloudFrontService cloudFrontService = new CloudFrontService(SamplesUtils.loadAWSCredentials());
         S3Service s3Service = new RestS3Service(SamplesUtils.loadAWSCredentials());
-        
+
         S3Bucket[] buckets = s3Service.listAllBuckets();
         String[] bucketNames = new String[buckets.length];
         for (int i = 0; i < buckets.length; i++) {
             bucketNames[i] = buckets[i].getName();
         }
-        
+
         ManageDistributionsDialog.showDialog(testFrame, cloudFrontService, bucketNames, null);
         testFrame.dispose();
     }
-    
+
 }

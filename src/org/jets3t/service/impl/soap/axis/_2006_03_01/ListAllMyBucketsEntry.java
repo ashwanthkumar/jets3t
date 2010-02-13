@@ -25,7 +25,7 @@ public class ListAllMyBucketsEntry  implements java.io.Serializable {
 
     /**
      * Gets the name value for this ListAllMyBucketsEntry.
-     * 
+     *
      * @return name
      */
     public java.lang.String getName() {
@@ -35,7 +35,7 @@ public class ListAllMyBucketsEntry  implements java.io.Serializable {
 
     /**
      * Sets the name value for this ListAllMyBucketsEntry.
-     * 
+     *
      * @param name
      */
     public void setName(java.lang.String name) {
@@ -45,7 +45,7 @@ public class ListAllMyBucketsEntry  implements java.io.Serializable {
 
     /**
      * Gets the creationDate value for this ListAllMyBucketsEntry.
-     * 
+     *
      * @return creationDate
      */
     public java.util.Calendar getCreationDate() {
@@ -55,7 +55,7 @@ public class ListAllMyBucketsEntry  implements java.io.Serializable {
 
     /**
      * Sets the creationDate value for this ListAllMyBucketsEntry.
-     * 
+     *
      * @param creationDate
      */
     public void setCreationDate(java.util.Calendar creationDate) {
@@ -73,11 +73,11 @@ public class ListAllMyBucketsEntry  implements java.io.Serializable {
         }
         __equalsCalc = obj;
         boolean _equals;
-        _equals = true && 
-            ((this.name==null && other.getName()==null) || 
+        _equals = true &&
+            ((this.name==null && other.getName()==null) ||
              (this.name!=null &&
               this.name.equals(other.getName()))) &&
-            ((this.creationDate==null && other.getCreationDate()==null) || 
+            ((this.creationDate==null && other.getCreationDate()==null) ||
              (this.creationDate!=null &&
               this.creationDate.equals(other.getCreationDate())));
         __equalsCalc = null;
@@ -132,10 +132,10 @@ public class ListAllMyBucketsEntry  implements java.io.Serializable {
      * Get Custom Serializer
      */
     public static org.apache.axis.encoding.Serializer getSerializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanSerializer(
             _javaType, _xmlType, typeDesc);
     }
@@ -144,10 +144,10 @@ public class ListAllMyBucketsEntry  implements java.io.Serializable {
      * Get Custom Deserializer
      */
     public static org.apache.axis.encoding.Deserializer getDeserializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanDeserializer(
             _javaType, _xmlType, typeDesc);
     }

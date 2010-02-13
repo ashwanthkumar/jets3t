@@ -41,7 +41,7 @@ public class ListEntry  implements java.io.Serializable {
 
     /**
      * Gets the key value for this ListEntry.
-     * 
+     *
      * @return key
      */
     public java.lang.String getKey() {
@@ -51,7 +51,7 @@ public class ListEntry  implements java.io.Serializable {
 
     /**
      * Sets the key value for this ListEntry.
-     * 
+     *
      * @param key
      */
     public void setKey(java.lang.String key) {
@@ -61,7 +61,7 @@ public class ListEntry  implements java.io.Serializable {
 
     /**
      * Gets the lastModified value for this ListEntry.
-     * 
+     *
      * @return lastModified
      */
     public java.util.Calendar getLastModified() {
@@ -71,7 +71,7 @@ public class ListEntry  implements java.io.Serializable {
 
     /**
      * Sets the lastModified value for this ListEntry.
-     * 
+     *
      * @param lastModified
      */
     public void setLastModified(java.util.Calendar lastModified) {
@@ -81,7 +81,7 @@ public class ListEntry  implements java.io.Serializable {
 
     /**
      * Gets the ETag value for this ListEntry.
-     * 
+     *
      * @return ETag
      */
     public java.lang.String getETag() {
@@ -91,7 +91,7 @@ public class ListEntry  implements java.io.Serializable {
 
     /**
      * Sets the ETag value for this ListEntry.
-     * 
+     *
      * @param ETag
      */
     public void setETag(java.lang.String ETag) {
@@ -101,7 +101,7 @@ public class ListEntry  implements java.io.Serializable {
 
     /**
      * Gets the size value for this ListEntry.
-     * 
+     *
      * @return size
      */
     public long getSize() {
@@ -111,7 +111,7 @@ public class ListEntry  implements java.io.Serializable {
 
     /**
      * Sets the size value for this ListEntry.
-     * 
+     *
      * @param size
      */
     public void setSize(long size) {
@@ -121,7 +121,7 @@ public class ListEntry  implements java.io.Serializable {
 
     /**
      * Gets the owner value for this ListEntry.
-     * 
+     *
      * @return owner
      */
     public org.jets3t.service.impl.soap.axis._2006_03_01.CanonicalUser getOwner() {
@@ -131,7 +131,7 @@ public class ListEntry  implements java.io.Serializable {
 
     /**
      * Sets the owner value for this ListEntry.
-     * 
+     *
      * @param owner
      */
     public void setOwner(org.jets3t.service.impl.soap.axis._2006_03_01.CanonicalUser owner) {
@@ -141,7 +141,7 @@ public class ListEntry  implements java.io.Serializable {
 
     /**
      * Gets the storageClass value for this ListEntry.
-     * 
+     *
      * @return storageClass
      */
     public org.jets3t.service.impl.soap.axis._2006_03_01.StorageClass getStorageClass() {
@@ -151,7 +151,7 @@ public class ListEntry  implements java.io.Serializable {
 
     /**
      * Sets the storageClass value for this ListEntry.
-     * 
+     *
      * @param storageClass
      */
     public void setStorageClass(org.jets3t.service.impl.soap.axis._2006_03_01.StorageClass storageClass) {
@@ -169,21 +169,21 @@ public class ListEntry  implements java.io.Serializable {
         }
         __equalsCalc = obj;
         boolean _equals;
-        _equals = true && 
-            ((this.key==null && other.getKey()==null) || 
+        _equals = true &&
+            ((this.key==null && other.getKey()==null) ||
              (this.key!=null &&
               this.key.equals(other.getKey()))) &&
-            ((this.lastModified==null && other.getLastModified()==null) || 
+            ((this.lastModified==null && other.getLastModified()==null) ||
              (this.lastModified!=null &&
               this.lastModified.equals(other.getLastModified()))) &&
-            ((this.ETag==null && other.getETag()==null) || 
+            ((this.ETag==null && other.getETag()==null) ||
              (this.ETag!=null &&
               this.ETag.equals(other.getETag()))) &&
             this.size == other.getSize() &&
-            ((this.owner==null && other.getOwner()==null) || 
+            ((this.owner==null && other.getOwner()==null) ||
              (this.owner!=null &&
               this.owner.equals(other.getOwner()))) &&
-            ((this.storageClass==null && other.getStorageClass()==null) || 
+            ((this.storageClass==null && other.getStorageClass()==null) ||
              (this.storageClass!=null &&
               this.storageClass.equals(other.getStorageClass())));
         __equalsCalc = null;
@@ -273,10 +273,10 @@ public class ListEntry  implements java.io.Serializable {
      * Get Custom Serializer
      */
     public static org.apache.axis.encoding.Serializer getSerializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanSerializer(
             _javaType, _xmlType, typeDesc);
     }
@@ -285,10 +285,10 @@ public class ListEntry  implements java.io.Serializable {
      * Get Custom Deserializer
      */
     public static org.apache.axis.encoding.Deserializer getDeserializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanDeserializer(
             _javaType, _xmlType, typeDesc);
     }

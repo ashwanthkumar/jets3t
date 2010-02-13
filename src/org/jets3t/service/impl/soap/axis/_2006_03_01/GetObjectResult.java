@@ -36,7 +36,7 @@ public class GetObjectResult  extends org.jets3t.service.impl.soap.axis._2006_03
 
     /**
      * Gets the metadata value for this GetObjectResult.
-     * 
+     *
      * @return metadata
      */
     public org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] getMetadata() {
@@ -46,7 +46,7 @@ public class GetObjectResult  extends org.jets3t.service.impl.soap.axis._2006_03
 
     /**
      * Sets the metadata value for this GetObjectResult.
-     * 
+     *
      * @param metadata
      */
     public void setMetadata(org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] metadata) {
@@ -64,7 +64,7 @@ public class GetObjectResult  extends org.jets3t.service.impl.soap.axis._2006_03
 
     /**
      * Gets the data value for this GetObjectResult.
-     * 
+     *
      * @return data
      */
     public byte[] getData() {
@@ -74,7 +74,7 @@ public class GetObjectResult  extends org.jets3t.service.impl.soap.axis._2006_03
 
     /**
      * Sets the data value for this GetObjectResult.
-     * 
+     *
      * @param data
      */
     public void setData(byte[] data) {
@@ -84,7 +84,7 @@ public class GetObjectResult  extends org.jets3t.service.impl.soap.axis._2006_03
 
     /**
      * Gets the lastModified value for this GetObjectResult.
-     * 
+     *
      * @return lastModified
      */
     public java.util.Calendar getLastModified() {
@@ -94,7 +94,7 @@ public class GetObjectResult  extends org.jets3t.service.impl.soap.axis._2006_03
 
     /**
      * Sets the lastModified value for this GetObjectResult.
-     * 
+     *
      * @param lastModified
      */
     public void setLastModified(java.util.Calendar lastModified) {
@@ -104,7 +104,7 @@ public class GetObjectResult  extends org.jets3t.service.impl.soap.axis._2006_03
 
     /**
      * Gets the ETag value for this GetObjectResult.
-     * 
+     *
      * @return ETag
      */
     public java.lang.String getETag() {
@@ -114,7 +114,7 @@ public class GetObjectResult  extends org.jets3t.service.impl.soap.axis._2006_03
 
     /**
      * Sets the ETag value for this GetObjectResult.
-     * 
+     *
      * @param ETag
      */
     public void setETag(java.lang.String ETag) {
@@ -132,17 +132,17 @@ public class GetObjectResult  extends org.jets3t.service.impl.soap.axis._2006_03
         }
         __equalsCalc = obj;
         boolean _equals;
-        _equals = super.equals(obj) && 
-            ((this.metadata==null && other.getMetadata()==null) || 
+        _equals = super.equals(obj) &&
+            ((this.metadata==null && other.getMetadata()==null) ||
              (this.metadata!=null &&
               java.util.Arrays.equals(this.metadata, other.getMetadata()))) &&
-            ((this.data==null && other.getData()==null) || 
+            ((this.data==null && other.getData()==null) ||
              (this.data!=null &&
               java.util.Arrays.equals(this.data, other.getData()))) &&
-            ((this.lastModified==null && other.getLastModified()==null) || 
+            ((this.lastModified==null && other.getLastModified()==null) ||
              (this.lastModified!=null &&
               this.lastModified.equals(other.getLastModified()))) &&
-            ((this.ETag==null && other.getETag()==null) || 
+            ((this.ETag==null && other.getETag()==null) ||
              (this.ETag!=null &&
               this.ETag.equals(other.getETag())));
         __equalsCalc = null;
@@ -233,10 +233,10 @@ public class GetObjectResult  extends org.jets3t.service.impl.soap.axis._2006_03
      * Get Custom Serializer
      */
     public static org.apache.axis.encoding.Serializer getSerializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanSerializer(
             _javaType, _xmlType, typeDesc);
     }
@@ -245,10 +245,10 @@ public class GetObjectResult  extends org.jets3t.service.impl.soap.axis._2006_03
      * Get Custom Deserializer
      */
     public static org.apache.axis.encoding.Deserializer getDeserializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanDeserializer(
             _javaType, _xmlType, typeDesc);
     }

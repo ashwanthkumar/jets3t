@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2006 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.gui;
 
@@ -35,7 +35,7 @@ import org.apache.commons.logging.LogFactory;
  * Enhanced version of {@link JLabel} that changes the mouse curser to indicate when it passes over a
  * clickable HTML HREF link, and triggers a listener to follow the link when it is clicked.
  * <p>
- * This class is a modified version of example code authored by Jeffrey Bush:<br> 
+ * This class is a modified version of example code authored by Jeffrey Bush:<br>
  * http://forum.java.sun.com/thread.jspa?threadID=574895&messageID=2866170.
  */
 public class JHtmlLabel extends JLabel implements MouseListener, MouseMotionListener {
@@ -52,11 +52,11 @@ public class JHtmlLabel extends JLabel implements MouseListener, MouseMotionList
     public JHtmlLabel(HyperlinkActivatedListener listener) {
         this(null, listener);
     }
-    
+
     /**
-     * 
+     *
      * @param htmlText
-     * the html text to display in the label. This text doesn't necessarily have to be HTML, 
+     * the html text to display in the label. This text doesn't necessarily have to be HTML,
      * but why would you use this control if it isn't?
      * @param listener
      * a listener responsible for following an href link if it is triggered.
@@ -70,16 +70,16 @@ public class JHtmlLabel extends JLabel implements MouseListener, MouseMotionList
             setHyperlinkeActivatedListener(listener);
         }
         addMouseListener(this);
-        addMouseMotionListener(this);        
+        addMouseMotionListener(this);
     }
-    
+
     public void setHyperlinkeActivatedListener(HyperlinkActivatedListener listener) {
         this.listener = listener;
     }
 
     /**
      * Triggers the listener to follow an HTML href link that has been clicked.
-     *  
+     *
      */
     public void mouseClicked(MouseEvent e) {
         AccessibleJLabel acc = (AccessibleJLabel) getAccessibleContext();
@@ -94,7 +94,7 @@ public class JHtmlLabel extends JLabel implements MouseListener, MouseMotionList
             String target = (String) attr.getAttribute(HTML.Attribute.TARGET);
             try {
                 if (listener == null) {
-                    log.warn("No HyperlinkActivatedListener available to follow HTML link for label: " 
+                    log.warn("No HyperlinkActivatedListener available to follow HTML link for label: "
                         + getText());
                 } else {
                     listener.followHyperlink(new URL(href), target);
@@ -131,12 +131,12 @@ public class JHtmlLabel extends JLabel implements MouseListener, MouseMotionList
         if (stringIndexAtPoint < 0) {
             return;
         }
-        javax.swing.text.AttributeSet attr = acc.getCharacterAttribute(stringIndexAtPoint);        
+        javax.swing.text.AttributeSet attr = acc.getCharacterAttribute(stringIndexAtPoint);
         if (attr.getAttribute(HTML.Tag.A) == null) {
             setCursor(Cursor.getPredefinedCursor(Cursor.DEFAULT_CURSOR));
         } else {
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         }
     }
-    
+
 }

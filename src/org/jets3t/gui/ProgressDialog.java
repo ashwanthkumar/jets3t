@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2007 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.gui;
 
@@ -48,7 +48,7 @@ import org.jets3t.service.multithread.CancelEventTrigger;
  * A modal dialog box to display progress information to the user when a long-lived task
  * is running. If the long-lived task can be cancelled by the user, this dialog will invoke
  * the {@link CancelEventTrigger} when the user clicks the cancel button.
- * 
+ *
  * @author James Murty
  */
 public class ProgressDialog extends JDialog implements ActionListener {
@@ -69,11 +69,11 @@ public class ProgressDialog extends JDialog implements ActionListener {
 
     /**
      * Constructs the progress dialog box.
-     * 
+     *
      * @param owner         the Frame over which the progress dialog will be displayed and centred
      * @param title         the title for the progress dialog
      */
-    public ProgressDialog(Frame owner, String title, Properties applicationProperties) 
+    public ProgressDialog(Frame owner, String title, Properties applicationProperties)
     {
         super(owner, title, true);
         this.applicationProperties = applicationProperties;
@@ -81,50 +81,50 @@ public class ProgressDialog extends JDialog implements ActionListener {
     }
 
     private void initGui() {
-        // Initialise skins factory. 
-        skinsFactory = SkinsFactory.getInstance(applicationProperties); 
-        
+        // Initialise skins factory.
+        skinsFactory = SkinsFactory.getInstance(applicationProperties);
+
         // Set Skinned Look and Feel.
-        LookAndFeel lookAndFeel = skinsFactory.createSkinnedMetalTheme("SkinnedLookAndFeel");        
+        LookAndFeel lookAndFeel = skinsFactory.createSkinnedMetalTheme("SkinnedLookAndFeel");
         try {
             UIManager.setLookAndFeel(lookAndFeel);
         } catch (UnsupportedLookAndFeelException e) {
             log.error("Unable to set skinned LookAndFeel", e);
-        }       
+        }
 
         this.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
         this.setResizable(true);
-                    
+
         JPanel container = new JPanel(new GridBagLayout());
-        
-        statusMessageLabel = skinsFactory.createSkinnedJHtmlLabel("ProgressDialogStatusMessageLabel"); 
+
+        statusMessageLabel = skinsFactory.createSkinnedJHtmlLabel("ProgressDialogStatusMessageLabel");
         statusMessageLabel.setText(" ");
         statusMessageLabel.setHorizontalAlignment(JLabel.CENTER);
-        container.add(statusMessageLabel, 
+        container.add(statusMessageLabel,
             new GridBagConstraints(0, 0, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        
-        progressBar = skinsFactory.createSkinnedJProgressBar("ProgressDialogProgressBar", 0, 100); 
+
+        progressBar = skinsFactory.createSkinnedJProgressBar("ProgressDialogProgressBar", 0, 100);
         progressBar.setPreferredSize(new Dimension(550, 20));
-        
-        container.add(progressBar, 
+
+        container.add(progressBar,
             new GridBagConstraints(0, 1, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
 
-        detailsTextLabel = skinsFactory.createSkinnedJHtmlLabel("ProgressDialogDetailedMessageLabel"); 
+        detailsTextLabel = skinsFactory.createSkinnedJHtmlLabel("ProgressDialogDetailedMessageLabel");
         detailsTextLabel.setText(" ");
         detailsTextLabel.setHorizontalAlignment(JLabel.CENTER);
-        container.add(detailsTextLabel, 
+        container.add(detailsTextLabel,
             new GridBagConstraints(0, 2, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        
+
         // Display the cancel button if a cancel event listener is available.
         cancelButton = skinsFactory.createSkinnedJButton("ProgressDialogCancelButton");
         cancelButton.setText("Cancel");
         cancelButton.setActionCommand("Cancel");
         cancelButton.addActionListener(this);
         cancelButton.setDefaultCapable(true);
-                        
-        container.add(cancelButton, 
+
+        container.add(cancelButton,
             new GridBagConstraints(0, 3, 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsDefault, 0, 0));
-            
+
         // Set Cancel as the default operation when ESCAPE is pressed.
         this.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
             .put(KeyStroke.getKeyStroke("ESCAPE"), "ESCAPE");
@@ -134,29 +134,29 @@ public class ProgressDialog extends JDialog implements ActionListener {
             public void actionPerformed(ActionEvent actionEvent) {
                 cancelButton.doClick();
             }
-        });        
+        });
 
         this.getContentPane().add(container);
-        
+
         this.pack();
-        this.setLocationRelativeTo(this.getOwner());        
+        this.setLocationRelativeTo(this.getOwner());
     }
-        
+
     public void actionPerformed(ActionEvent e) {
         if ("Cancel".equals(e.getActionCommand())) {
             cancelButton.setText("Cancelling...");
             cancelButton.setEnabled(false);
-            
+
             if (cancelEventTrigger != null) {
                 (new Thread(new Runnable() {
                     public void run() {
-                        cancelEventTrigger.cancelTask(this);                    
+                        cancelEventTrigger.cancelTask(this);
                     }
                 })).start();
             }
         }
     }
-    
+
     public void dispose() {
         // Progress bar must be set to it's maximum value or it won't clean itself up properly.
         progressBar.setIndeterminate(false);
@@ -166,28 +166,28 @@ public class ProgressDialog extends JDialog implements ActionListener {
 
     /**
      * Displays the progress dialog.
-     * 
+     *
      * @param statusMessage
      *        describes the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
      * @param detailsText
      *        describes the status of a task in more detail, such as the current transfer rate and ETA.
-     * @param minTaskValue  
+     * @param minTaskValue
      *        the minimum progress value for a task, generally 0
-     * @param maxTaskValue  
+     * @param maxTaskValue
      *        the maximum progress value for a task, such as the total number of threads or 100 if
      *        using percentage-complete as a metric.
      * @param cancelEventListener
      *        listener that is responsible for cancelling a long-lived task when the user clicks
      *        the cancel button. If a task cannot be cancelled this must be null.
-     * @param cancelButtonText  
+     * @param cancelButtonText
      *        text displayed in the cancel button if a task can be cancelled
      */
-    public void startDialog(String statusMessage, String detailsText, 
-        int minTaskValue, int maxTaskValue, CancelEventTrigger cancelEventListener, 
-        String cancelButtonText) 
+    public void startDialog(String statusMessage, String detailsText,
+        int minTaskValue, int maxTaskValue, CancelEventTrigger cancelEventListener,
+        String cancelButtonText)
     {
         this.cancelEventTrigger = cancelEventListener;
-        
+
         if (maxTaskValue > minTaskValue) {
             progressBar.setStringPainted(true);
             progressBar.setMinimum(minTaskValue);
@@ -204,11 +204,11 @@ public class ProgressDialog extends JDialog implements ActionListener {
 
         statusMessageLabel.setText(statusMessage);
         if (detailsText == null) {
-            detailsTextLabel.setText("");            
+            detailsTextLabel.setText("");
         } else {
-            detailsTextLabel.setText(detailsText);            
+            detailsTextLabel.setText(detailsText);
         }
-        
+
         if (this.cancelEventTrigger != null) {
             cancelButton.setText(cancelButtonText);
             cancelButton.setEnabled(true);
@@ -218,25 +218,25 @@ public class ProgressDialog extends JDialog implements ActionListener {
 //            cancelButton.setText("Cannot Cancel");
 //            cancelButton.setEnabled(false);
         }
-                
+
         this.setVisible(true);
     }
-    
+
     public void stopDialog() {
         progressBar.setIndeterminate(false);
         progressBar.setValue(progressBar.getMaximum());
         this.setVisible(false);
     }
-    
+
     /**
      * Updates the dialog's information.
-     *  
+     *
      * @param statusMessage
      *        text describing the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
      * @param detailsText
      *        detailed description of the task's status, such as the current transfer rate and remaining time.
-     * @param progressValue 
-     *        value representing how far through the task we are, somewhere between 
+     * @param progressValue
+     *        value representing how far through the task we are, somewhere between
      *        minTaskValue and maxTaskValue as set in the constructor.
      */
     public void updateDialog(String statusMessage, String detailsText, int progressValue) {
@@ -245,6 +245,6 @@ public class ProgressDialog extends JDialog implements ActionListener {
         if (!progressBar.isIndeterminate()) {
             progressBar.setValue(progressValue);
         }
-    }    
-    
+    }
+
 }

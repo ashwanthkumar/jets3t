@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2008 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.service.io;
 
@@ -28,9 +28,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * A repeatable input stream for files. This input stream can be repeated an unlimited number of 
+ * A repeatable input stream for files. This input stream can be repeated an unlimited number of
  * times, without any limitation on when a repeat can occur.
- * 
+ *
  * @author James Murty
  */
 public class RepeatableFileInputStream extends InputStream implements InputStreamWrapper {
@@ -43,7 +43,7 @@ public class RepeatableFileInputStream extends InputStream implements InputStrea
 
     /**
      * Creates a repeatable input stream based on a file.
-     * 
+     *
      * @param file
      * @throws FileNotFoundException
      */
@@ -54,12 +54,12 @@ public class RepeatableFileInputStream extends InputStream implements InputStrea
         this.fis = new FileInputStream(file);
         this.file = file;
     }
-    
+
     /**
-     * Resets the input stream to the last mark point, or the beginning of the stream if 
-     * there is no mark point, by creating a new FileInputStream based on the 
-     * underlying file. 
-     * 
+     * Resets the input stream to the last mark point, or the beginning of the stream if
+     * there is no mark point, by creating a new FileInputStream based on the
+     * underlying file.
+     *
      * @throws UnrecoverableIOException
      * when the FileInputStream cannot be re-created.
      */
@@ -69,33 +69,33 @@ public class RepeatableFileInputStream extends InputStream implements InputStrea
             this.fis = new FileInputStream(file);
 
             long skipped = 0;
-			long toSkip = markPoint;
+    		long toSkip = markPoint;
             while (toSkip > 0) {
-				skipped = this.fis.skip(toSkip);
-				toSkip -= skipped;
-			}       
-            
+    			skipped = this.fis.skip(toSkip);
+    			toSkip -= skipped;
+    		}
+
             if (log.isDebugEnabled()) {
-            	log.debug("Reset to mark point " + markPoint + " after returning " + bytesReadPastMarkPoint + " bytes");
+                log.debug("Reset to mark point " + markPoint + " after returning " + bytesReadPastMarkPoint + " bytes");
             }
             this.bytesReadPastMarkPoint = 0;
         } catch (IOException e) {
             throw new UnrecoverableIOException("Input stream is not repeatable: " + e.getMessage());
         }
     }
-    
+
     public boolean markSupported() {
-    	return true;
+        return true;
     }
-    
+
     public void mark(int readlimit) {
-    	this.markPoint += bytesReadPastMarkPoint;
-    	this.bytesReadPastMarkPoint = 0;
-    	if (log.isDebugEnabled()) {
-    		log.debug("Input stream marked at " + this.markPoint + " bytes");
-    	}
+        this.markPoint += bytesReadPastMarkPoint;
+        this.bytesReadPastMarkPoint = 0;
+        if (log.isDebugEnabled()) {
+        	log.debug("Input stream marked at " + this.markPoint + " bytes");
+        }
     }
-    
+
     public int available() throws IOException {
         return fis.available();
     }

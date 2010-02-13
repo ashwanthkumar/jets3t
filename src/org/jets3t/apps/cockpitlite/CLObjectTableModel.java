@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2007 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.apps.cockpitlite;
 
@@ -31,7 +31,7 @@ import org.jets3t.service.model.S3Object;
 
 /**
  * A table model to store {@link S3Object}s.
- * 
+ *
  * @author James Murty
  */
 public class CLObjectTableModel extends DefaultTableModel {
@@ -45,56 +45,56 @@ public class CLObjectTableModel extends DefaultTableModel {
     public CLObjectTableModel() {
         super(new String[] {"File","Size","Last Modified","Public?"}, 0);
     }
-    
+
     public void setUsersPath(String usersPath) {
-        this.usersPath = usersPath;    	
+        this.usersPath = usersPath;
     }
-    
+
     private void sanitizeObjectKey(S3Object object) {
-    	if (object.getKey().startsWith(usersPath)) {
-    		object.setKey(object.getKey().substring(usersPath.length()));
-    	}
+        if (object.getKey().startsWith(usersPath)) {
+        	object.setKey(object.getKey().substring(usersPath.length()));
+        }
     }
-    
+
     public int addObject(S3Object object) {
-    	sanitizeObjectKey(object);
-    	
-        int insertRow = 
+        sanitizeObjectKey(object);
+
+        int insertRow =
             Collections.binarySearch(objectList, object, new Comparator() {
                 public int compare(Object o1, Object o2) {
                     return ((S3Object)o1).getKey().compareToIgnoreCase(((S3Object)o2).getKey());
                 }
             });
 
-        String aclStatus = null; 
+        String aclStatus = null;
         if (insertRow >= 0) {
             // Retain the object's ACL status if it's available.
             aclStatus = (String) this.getValueAt(insertRow, 3);
-            
+
             // We already have an item with this key, replace it.
             objectList.remove(insertRow);
             this.removeRow(insertRow);
         } else {
-            insertRow = (-insertRow) - 1;                
+            insertRow = (-insertRow) - 1;
         }
-        
+
         if (object.getAcl() != null || aclStatus == null) {
             aclStatus = CockpitLite.getAclDescription(object.getAcl());
         }
-        
+
         // New object to insert.
         objectList.add(insertRow, object);
-        this.insertRow(insertRow, new Object[] {object.getKey(), 
+        this.insertRow(insertRow, new Object[] {object.getKey(),
             new Long(object.getContentLength()), object.getLastModifiedDate(),
             aclStatus});
-        
+
         return insertRow;
     }
-    
+
     public int updateObjectAclStatus(S3Object objectWithAcl, String aclStatus) {
         sanitizeObjectKey(objectWithAcl);
-        
-        int updateRow = 
+
+        int updateRow =
             Collections.binarySearch(objectList, objectWithAcl, new Comparator() {
                 public int compare(Object o1, Object o2) {
                     return ((S3Object)o1).getKey().compareToIgnoreCase(((S3Object)o2).getKey());
@@ -106,12 +106,12 @@ public class CLObjectTableModel extends DefaultTableModel {
             // Object isn't in table!
             log.warn("Cannot find object named '" + objectWithAcl.getKey() + "' in objects table");
         }
-        return updateRow;        
+        return updateRow;
     }
-    
+
     public String getObjectAclStatus(S3Object objectWithAcl) {
         synchronized (objectList) {
-            int updateRow = 
+            int updateRow =
                 Collections.binarySearch(objectList, objectWithAcl, new Comparator() {
                     public int compare(Object o1, Object o2) {
                         return ((S3Object)o1).getKey().compareToIgnoreCase(((S3Object)o2).getKey());
@@ -130,22 +130,22 @@ public class CLObjectTableModel extends DefaultTableModel {
             addObject(objects[i]);
         }
     }
-    
-    public void removeObject(S3Object object) {
-    	sanitizeObjectKey(object);
 
-        int row = 
+    public void removeObject(S3Object object) {
+        sanitizeObjectKey(object);
+
+        int row =
             Collections.binarySearch(objectList, object, new Comparator() {
                 public int compare(Object o1, Object o2) {
                     return ((S3Object)o1).getKey().compareToIgnoreCase(((S3Object)o2).getKey());
                 }
             });
         if (row >= 0) {
-        	this.removeRow(row);
+            this.removeRow(row);
             objectList.remove(row);
-        } 
+        }
     }
-    
+
     public void removeAllObjects() {
         int rowCount = this.getRowCount();
         for (int i = 0; i < rowCount; i++) {
@@ -153,23 +153,23 @@ public class CLObjectTableModel extends DefaultTableModel {
         }
         objectList.clear();
     }
-    
+
     public S3Object getObject(int row) {
         synchronized (objectList) {
             return (S3Object) objectList.get(row);
         }
     }
-    
+
     public S3Object[] getObjects() {
         synchronized (objectList) {
             return (S3Object[]) objectList.toArray(new S3Object[objectList.size()]);
-        }            
+        }
     }
-    
+
     public boolean isCellEditable(int row, int column) {
         return false;
     }
-    
+
     public Class getColumnClass(int columnIndex) {
         if (columnIndex == 0) {
             return String.class;
@@ -181,5 +181,5 @@ public class CLObjectTableModel extends DefaultTableModel {
             return String.class;
         }
     }
-    
+
 }

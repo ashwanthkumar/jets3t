@@ -21,7 +21,7 @@ public class AmazonCustomerByEmail  extends org.jets3t.service.impl.soap.axis._2
 
     /**
      * Gets the emailAddress value for this AmazonCustomerByEmail.
-     * 
+     *
      * @return emailAddress
      */
     public java.lang.String getEmailAddress() {
@@ -31,7 +31,7 @@ public class AmazonCustomerByEmail  extends org.jets3t.service.impl.soap.axis._2
 
     /**
      * Sets the emailAddress value for this AmazonCustomerByEmail.
-     * 
+     *
      * @param emailAddress
      */
     public void setEmailAddress(java.lang.String emailAddress) {
@@ -49,8 +49,8 @@ public class AmazonCustomerByEmail  extends org.jets3t.service.impl.soap.axis._2
         }
         __equalsCalc = obj;
         boolean _equals;
-        _equals = super.equals(obj) && 
-            ((this.emailAddress==null && other.getEmailAddress()==null) || 
+        _equals = super.equals(obj) &&
+            ((this.emailAddress==null && other.getEmailAddress()==null) ||
              (this.emailAddress!=null &&
               this.emailAddress.equals(other.getEmailAddress())));
         __equalsCalc = null;
@@ -96,10 +96,10 @@ public class AmazonCustomerByEmail  extends org.jets3t.service.impl.soap.axis._2
      * Get Custom Serializer
      */
     public static org.apache.axis.encoding.Serializer getSerializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanSerializer(
             _javaType, _xmlType, typeDesc);
     }
@@ -108,10 +108,10 @@ public class AmazonCustomerByEmail  extends org.jets3t.service.impl.soap.axis._2
      * Get Custom Deserializer
      */
     public static org.apache.axis.encoding.Deserializer getDeserializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanDeserializer(
             _javaType, _xmlType, typeDesc);
     }

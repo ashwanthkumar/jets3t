@@ -1,27 +1,27 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2006 James Murty, 2008 Zmanda Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.service.security;
 
 /**
  * Class to contain the Amazon Web Services (AWS) credentials of a user,
  * with bits needed for DevPay.
- * 
+ *
  * @author Nikolas Coukouma
  */
 public class AWSDevPayCredentials extends AWSCredentials {
@@ -33,14 +33,14 @@ public class AWSDevPayCredentials extends AWSCredentials {
     protected AWSDevPayCredentials(String awsAccessKey, String awsSecretAccessKey) {
         super(awsAccessKey, awsSecretAccessKey);
     }
-    
+
     protected AWSDevPayCredentials(String awsAccessKey, String awsSecretAccessKey, String friendlyName) {
         super(awsAccessKey, awsSecretAccessKey, friendlyName);
     }
 
     /**
      * Construct credentials.
-     * 
+     *
      * @param awsAccessKey
      * AWS access key for an Amazon S3 account.
      * @param awsSecretAccessKey
@@ -58,7 +58,7 @@ public class AWSDevPayCredentials extends AWSCredentials {
 
     /**
      * Construct credentials.
-     * 
+     *
      * @param awsAccessKey
      * AWS access key for an Amazon S3 account.
      * @param awsSecretAccessKey
@@ -113,8 +113,8 @@ public class AWSDevPayCredentials extends AWSCredentials {
      * the string of data that needs to be encrypted (for serialization)
      */
     protected String getDataToEncrypt() {
-        return getAccessKey() + V3_KEYS_DELIMITER + 
-            getSecretKey() + V3_KEYS_DELIMITER + 
+        return getAccessKey() + V3_KEYS_DELIMITER +
+            getSecretKey() + V3_KEYS_DELIMITER +
             getUserToken() + V3_KEYS_DELIMITER + getProductToken();
     }
 }

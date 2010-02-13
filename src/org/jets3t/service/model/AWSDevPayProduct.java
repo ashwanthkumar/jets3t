@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2008 Zmanda Inc.
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.service.model;
 
@@ -29,12 +29,12 @@ import org.jets3t.service.Constants;
 
 /**
  * Class to contain information about an Amazon Web Services (AWS) S3 DevPay product.
- * 
+ *
  * @author Nikolas Coukouma
  */
 public class AWSDevPayProduct implements Serializable, Comparable {
     private static final long serialVersionUID = 7581378683354747125L;
-    
+
     private String productName = null;
     private String productToken = null;
 
@@ -77,10 +77,10 @@ public class AWSDevPayProduct implements Serializable, Comparable {
     public int compareTo(Object o) {
         return getProductName().compareTo(((AWSDevPayProduct) o).getProductName());
     }
-    
+
     /**
-     * Loads the products listed in 
-     * {@link Constants#DEVPAY_PRODUCTS_PROPERTIES_FILENAME} 
+     * Loads the products listed in
+     * {@link Constants#DEVPAY_PRODUCTS_PROPERTIES_FILENAME}
      *
      * @return the Vector of <code>AWSDevPayProduct</code>s
      */
@@ -96,9 +96,9 @@ public class AWSDevPayProduct implements Serializable, Comparable {
         }
         return ret;
     }
-    
+
     /**
-     * Loads the products listed in the {@link java.util.Properties} file 
+     * Loads the products listed in the {@link java.util.Properties} file
      * represented by the input stream.
      *
      * @param pin the input stream
@@ -114,12 +114,12 @@ public class AWSDevPayProduct implements Serializable, Comparable {
             return load(prodProps);
         }
     }
-    
+
     /**
      * Loads the products listed in the {@link java.util.Properties}.
-     * Specifically, any properties ending in {@link Constants#DEVPAY_PRODUCT_NAME_PROP_SUFFIX} 
+     * Specifically, any properties ending in {@link Constants#DEVPAY_PRODUCT_NAME_PROP_SUFFIX}
      * (the product's name)
-     * have that ending removed and replaced with {@link Constants#DEVPAY_PRODUCT_NAME_PROP_SUFFIX} 
+     * have that ending removed and replaced with {@link Constants#DEVPAY_PRODUCT_NAME_PROP_SUFFIX}
      * (to form name of the property for the product's token).
      * If the token exists, then a <code>AWSDevPayProduct</code> is constructed
      * with that name and token, and then is added to the Vector. For example,
@@ -138,7 +138,7 @@ public class AWSDevPayProduct implements Serializable, Comparable {
             String propName = (String) propEnum.nextElement();
             if (propName.endsWith(Constants.DEVPAY_PRODUCT_NAME_PROP_SUFFIX)) {
                 String tokenPropName = propName.substring(0,
-                    propName.length()-Constants.DEVPAY_PRODUCT_NAME_PROP_SUFFIX.length()) + 
+                    propName.length()-Constants.DEVPAY_PRODUCT_NAME_PROP_SUFFIX.length()) +
                     Constants.DEVPAY_PRODUCT_TOKEN_PROP_SUFFIX;
                 String prodName = prodProps.getProperty(propName);
                 String prodToken = prodProps.getProperty(tokenPropName);

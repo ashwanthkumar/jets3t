@@ -25,7 +25,7 @@ public class CanonicalUser  extends org.jets3t.service.impl.soap.axis._2006_03_0
 
     /**
      * Gets the ID value for this CanonicalUser.
-     * 
+     *
      * @return ID
      */
     public java.lang.String getID() {
@@ -35,7 +35,7 @@ public class CanonicalUser  extends org.jets3t.service.impl.soap.axis._2006_03_0
 
     /**
      * Sets the ID value for this CanonicalUser.
-     * 
+     *
      * @param ID
      */
     public void setID(java.lang.String ID) {
@@ -45,7 +45,7 @@ public class CanonicalUser  extends org.jets3t.service.impl.soap.axis._2006_03_0
 
     /**
      * Gets the displayName value for this CanonicalUser.
-     * 
+     *
      * @return displayName
      */
     public java.lang.String getDisplayName() {
@@ -55,7 +55,7 @@ public class CanonicalUser  extends org.jets3t.service.impl.soap.axis._2006_03_0
 
     /**
      * Sets the displayName value for this CanonicalUser.
-     * 
+     *
      * @param displayName
      */
     public void setDisplayName(java.lang.String displayName) {
@@ -73,11 +73,11 @@ public class CanonicalUser  extends org.jets3t.service.impl.soap.axis._2006_03_0
         }
         __equalsCalc = obj;
         boolean _equals;
-        _equals = super.equals(obj) && 
-            ((this.ID==null && other.getID()==null) || 
+        _equals = super.equals(obj) &&
+            ((this.ID==null && other.getID()==null) ||
              (this.ID!=null &&
               this.ID.equals(other.getID()))) &&
-            ((this.displayName==null && other.getDisplayName()==null) || 
+            ((this.displayName==null && other.getDisplayName()==null) ||
              (this.displayName!=null &&
               this.displayName.equals(other.getDisplayName())));
         __equalsCalc = null;
@@ -133,10 +133,10 @@ public class CanonicalUser  extends org.jets3t.service.impl.soap.axis._2006_03_0
      * Get Custom Serializer
      */
     public static org.apache.axis.encoding.Serializer getSerializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanSerializer(
             _javaType, _xmlType, typeDesc);
     }
@@ -145,10 +145,10 @@ public class CanonicalUser  extends org.jets3t.service.impl.soap.axis._2006_03_0
      * Get Custom Deserializer
      */
     public static org.apache.axis.encoding.Deserializer getDeserializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanDeserializer(
             _javaType, _xmlType, typeDesc);
     }

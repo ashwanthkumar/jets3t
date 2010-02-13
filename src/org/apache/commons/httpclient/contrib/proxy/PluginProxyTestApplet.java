@@ -57,21 +57,21 @@ import org.apache.commons.httpclient.ProxyHost;
 
 public class PluginProxyTestApplet extends JApplet {
 
-    
+
     private JTextField urlTextField = new JTextField();
     private JPanel grid = null;
     private JLabel hostLabel = null;
     private JLabel portLabel = null;
-    
-    
+
+
     public PluginProxyTestApplet() {
-        
+
     }
-    
+
     public void init() {
         Container content = getContentPane();
         content.setLayout(new BorderLayout());
-        
+
         // Proxy info table
         grid = getPanel(new GridLayout(2,3,2,2));
         grid.add(getHeaderLabel("URL"));
@@ -81,10 +81,10 @@ public class PluginProxyTestApplet extends JApplet {
         hostLabel = getLabel("");
         portLabel = getLabel("");
         grid.add(hostLabel);
-        grid.add(portLabel);        
+        grid.add(portLabel);
         grid.validate();
         content.add(grid, BorderLayout.CENTER);
-        
+
         // Button panel - SOUTH
         JPanel buttonPanel = getPanel(new FlowLayout());
         JButton button = new JButton("Detect Proxy");
@@ -99,7 +99,7 @@ public class PluginProxyTestApplet extends JApplet {
         });
         buttonPanel.add(button);
         content.add(buttonPanel, BorderLayout.SOUTH);
-        
+
         // version panel - NORTH
         JPanel versionPanel = getPanel(new FlowLayout());
         String javaVersion = System.getProperty("java.runtime.version");
@@ -107,34 +107,34 @@ public class PluginProxyTestApplet extends JApplet {
         versionPanel.add(versionLabel);
         content.add(versionPanel, BorderLayout.NORTH);
         validate();
-        
+
         super.setSize(400,100);
     }
-    
+
     private JPanel getPanel(LayoutManager layout) {
         JPanel result = new JPanel(layout);
         return result;
     }
-    
+
     private JLabel getHeaderLabel(String text) {
         JLabel result = new JLabel("<html><u><b>" + text + "</b></u></html>");
         result.setHorizontalAlignment(JLabel.CENTER);
         return result;
     }
-    
+
     private JLabel getLabel(String text) {
         JLabel result = new JLabel(text);
         result.setHorizontalAlignment(JLabel.CENTER);
         return result;
     }
-    
+
     private void detectProxy() {
         String urlString = urlTextField.getText();
         if (urlString == null || "".equals(urlString)) {
             JOptionPane.showMessageDialog(super.getRootPane(),
-                                          "URL can't be empty", 
-                                          "Missing URL", 
-                                          JOptionPane.ERROR_MESSAGE); 
+                                          "URL can't be empty",
+                                          "Missing URL",
+                                          JOptionPane.ERROR_MESSAGE);
             return;
         }
         if (!urlString.startsWith("http://")) {
@@ -151,21 +151,21 @@ public class PluginProxyTestApplet extends JApplet {
                 portLabel.setText("none");
             }
             grid.validate();
-        } catch (ProxyDetectionException e) { 
-            JOptionPane.showMessageDialog(getRootPane(), 
+        } catch (ProxyDetectionException e) {
+            JOptionPane.showMessageDialog(getRootPane(),
                                           e.getMessage() ,
-                                          "Proxy Detection Failed", 
+                                          "Proxy Detection Failed",
                                           JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(getRootPane(), 
+            JOptionPane.showMessageDialog(getRootPane(),
                     e.getMessage() ,
-                    "Unexpected Exception", 
-                    JOptionPane.ERROR_MESSAGE);            
+                    "Unexpected Exception",
+                    JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
-        }        
+        }
     }
-    
+
     public String getProxyHost(String urlString) {
         String result = urlString;
         try {
@@ -187,7 +187,7 @@ public class PluginProxyTestApplet extends JApplet {
             ProxyHost hostInfo = PluginProxyUtil.detectProxy(url);
             if (hostInfo != null) {
                 result = hostInfo.getPort();
-            } 
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -25,7 +25,7 @@ public class AccessControlPolicy  implements java.io.Serializable {
 
     /**
      * Gets the owner value for this AccessControlPolicy.
-     * 
+     *
      * @return owner
      */
     public org.jets3t.service.impl.soap.axis._2006_03_01.CanonicalUser getOwner() {
@@ -35,7 +35,7 @@ public class AccessControlPolicy  implements java.io.Serializable {
 
     /**
      * Sets the owner value for this AccessControlPolicy.
-     * 
+     *
      * @param owner
      */
     public void setOwner(org.jets3t.service.impl.soap.axis._2006_03_01.CanonicalUser owner) {
@@ -45,7 +45,7 @@ public class AccessControlPolicy  implements java.io.Serializable {
 
     /**
      * Gets the accessControlList value for this AccessControlPolicy.
-     * 
+     *
      * @return accessControlList
      */
     public org.jets3t.service.impl.soap.axis._2006_03_01.Grant[] getAccessControlList() {
@@ -55,7 +55,7 @@ public class AccessControlPolicy  implements java.io.Serializable {
 
     /**
      * Sets the accessControlList value for this AccessControlPolicy.
-     * 
+     *
      * @param accessControlList
      */
     public void setAccessControlList(org.jets3t.service.impl.soap.axis._2006_03_01.Grant[] accessControlList) {
@@ -73,11 +73,11 @@ public class AccessControlPolicy  implements java.io.Serializable {
         }
         __equalsCalc = obj;
         boolean _equals;
-        _equals = true && 
-            ((this.owner==null && other.getOwner()==null) || 
+        _equals = true &&
+            ((this.owner==null && other.getOwner()==null) ||
              (this.owner!=null &&
               this.owner.equals(other.getOwner()))) &&
-            ((this.accessControlList==null && other.getAccessControlList()==null) || 
+            ((this.accessControlList==null && other.getAccessControlList()==null) ||
              (this.accessControlList!=null &&
               java.util.Arrays.equals(this.accessControlList, other.getAccessControlList())));
         __equalsCalc = null;
@@ -141,10 +141,10 @@ public class AccessControlPolicy  implements java.io.Serializable {
      * Get Custom Serializer
      */
     public static org.apache.axis.encoding.Serializer getSerializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanSerializer(
             _javaType, _xmlType, typeDesc);
     }
@@ -153,10 +153,10 @@ public class AccessControlPolicy  implements java.io.Serializable {
      * Get Custom Deserializer
      */
     public static org.apache.axis.encoding.Deserializer getDeserializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanDeserializer(
             _javaType, _xmlType, typeDesc);
     }

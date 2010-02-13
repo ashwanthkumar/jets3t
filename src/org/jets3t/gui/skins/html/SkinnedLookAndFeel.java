@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2006 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.gui.skins.html;
 
@@ -41,17 +41,17 @@ import org.apache.commons.logging.LogFactory;
  * <li>the colour used for System, Control and User text</li>
  * <li>the font used for System, Control and User text</li>
  * </ul>
- * 
+ *
  * @author James Murty
  */
 public class SkinnedLookAndFeel extends MetalLookAndFeel {
     private static final long serialVersionUID = 4391824305469950437L;
-    
+
     private static final Log log = LogFactory.getLog(SkinnedLookAndFeel.class);
-            
+
     public SkinnedLookAndFeel(Properties skinProperties, String itemName) {
         super();
-        
+
         // Determine system defaults.
         JLabel defaultLabel = new JLabel();
         Color backgroundColor = defaultLabel.getBackground();
@@ -62,14 +62,14 @@ public class SkinnedLookAndFeel extends MetalLookAndFeel {
         String backgroundColorValue = skinProperties.getProperty("backgroundColor", null);
         String textColorValue = skinProperties.getProperty("textColor", null);
         String fontValue = skinProperties.getProperty("font", null);
-        
+
         // Apply skinning configurations.
         if (backgroundColorValue != null) {
             Color color = Color.decode(backgroundColorValue);
             if (color == null) {
                 log.error("Unable to set background color with value: " + backgroundColorValue);
             } else {
-                backgroundColor = color;                    
+                backgroundColor = color;
             }
         }
         if (textColorValue != null) {
@@ -77,7 +77,7 @@ public class SkinnedLookAndFeel extends MetalLookAndFeel {
             if (color == null) {
                 log.error("Unable to set text color with value: " + textColorValue);
             } else {
-                textColor = color;                    
+                textColor = color;
             }
         }
         if (fontValue != null) {
@@ -85,10 +85,10 @@ public class SkinnedLookAndFeel extends MetalLookAndFeel {
             if (myFont == null) {
                 log.error("Unable to set font with value: " + fontValue);
             } else {
-                font = myFont;                    
+                font = myFont;
             }
         }
-                
+
         // Update metal theme with configured display properties.
         SkinnedMetalTheme skinnedTheme = new SkinnedMetalTheme(new ColorUIResource(backgroundColor),
             new ColorUIResource(textColor), new FontUIResource(font));
@@ -99,35 +99,35 @@ public class SkinnedLookAndFeel extends MetalLookAndFeel {
         private ColorUIResource backgroundColorUIResource = null;
         private ColorUIResource textColorUIResource = null;
         private FontUIResource fontUIResource = null;
-        
-        public SkinnedMetalTheme(ColorUIResource backgroundColorUIResource, ColorUIResource 
-            textColorUIResource, FontUIResource fontUIResource) 
+
+        public SkinnedMetalTheme(ColorUIResource backgroundColorUIResource, ColorUIResource
+            textColorUIResource, FontUIResource fontUIResource)
         {
             this.backgroundColorUIResource = backgroundColorUIResource;
             this.textColorUIResource = textColorUIResource;
             this.fontUIResource = fontUIResource;
         }
-        
+
         public String getName() {
             return "Uploader HTML skinnable theme";
         }
-        
+
         public FontUIResource getSystemTextFont() {
             return fontUIResource;
         }
-            
+
         public FontUIResource getControlTextFont() {
             return fontUIResource;
         }
-            
+
         public FontUIResource getUserTextFont() {
             return fontUIResource;
         }
-            
+
         public ColorUIResource getSystemTextColor() {
             return textColorUIResource;
         }
-        
+
         public ColorUIResource getControlTextColor() {
             return textColorUIResource;
         }
@@ -142,7 +142,7 @@ public class SkinnedLookAndFeel extends MetalLookAndFeel {
 
         public ColorUIResource getControl() {
             return backgroundColorUIResource;
-        }        
+        }
     }
-        
+
 }

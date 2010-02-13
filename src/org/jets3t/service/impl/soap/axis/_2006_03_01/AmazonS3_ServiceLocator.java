@@ -122,11 +122,11 @@ public class AmazonS3_ServiceLocator extends org.apache.axis.client.Service impl
     * Set the endpoint address for the specified port name.
     */
     public void setEndpointAddress(java.lang.String portName, java.lang.String address) throws javax.xml.rpc.ServiceException {
-        
+
 if ("AmazonS3".equals(portName)) {
             setAmazonS3EndpointAddress(address);
         }
-        else 
+        else
 { // Unknown Port Name
             throw new javax.xml.rpc.ServiceException(" Cannot set Endpoint Address for Unknown Port" + portName);
         }

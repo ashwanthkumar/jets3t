@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2006 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.servlets.gatekeeper;
 
@@ -39,9 +39,9 @@ import org.jets3t.servlets.gatekeeper.impl.DefaultTransactionIdProvider;
 import org.jets3t.servlets.gatekeeper.impl.DefaultUrlSigner;
 
 /**
- * A servlet implementation of an S3 Gatekeeper, as described in the document 
+ * A servlet implementation of an S3 Gatekeeper, as described in the document
  * <a href="http://jets3t.s3.amazonaws.com/applications/gatekeeper-concepts.html">
- * Gatekeeper Concepts</a>. 
+ * Gatekeeper Concepts</a>.
  * <p>
  * This servlet offers an easily configurable and extensible approach, where key
  * steps in the authorization and signature generation process are performed by pluggable
@@ -52,7 +52,7 @@ import org.jets3t.servlets.gatekeeper.impl.DefaultUrlSigner;
  * <li>{@link Authorizer}: Allow or deny specific requested operations</li>
  * <li>{@link UrlSigner}: Generate signed URLs for each operation that has been allowed by the
  * Authorizer</li>
- * </ul> 
+ * </ul>
  * <p>
  * These pluggable interfaces are configured in the servlet's configuration file, or if left
  * unconfigured the default JetS3t implementations are used.
@@ -60,33 +60,33 @@ import org.jets3t.servlets.gatekeeper.impl.DefaultUrlSigner;
  * For more information about this servlet please refer to:
  * <a href="http://jets3t.s3.amazonaws.com/applications/gatekeeper.html">
  * JetS3t Gatekeeper</a>
- * 
+ *
  * @author James Murty
  */
 public class GatekeeperServlet extends HttpServlet {
     private static final long serialVersionUID = 2054765427620529238L;
 
     private static final Log log = LogFactory.getLog(GatekeeperServlet.class);
-    
+
     private ServletConfig servletConfig = null;
-    
+
     private TransactionIdProvider transactionIdProvider = null;
     private UrlSigner urlSigner = null;
     private Authorizer authorizer = null;
     private BucketLister bucketLister = null;
-    
+
     private boolean isInitCompleted = false;
 
 
     /**
      * Instantiates a class by locating and invoking the appropriate constructor.
-     * 
+     *
      * @param className
      * @param constructorParamClasses
      * @param constructorParams
      * @return
      */
-    private Object instantiateClass(String className, Class[] constructorParamClasses, 
+    private Object instantiateClass(String className, Class[] constructorParamClasses,
         Object[] constructorParams) throws ServletException
     {
         try {
@@ -99,13 +99,13 @@ public class GatekeeperServlet extends HttpServlet {
                 log.debug("Class does not exist for name: " + className);
             }
         } catch (Exception e) {
-        	throw new ServletException("Unable to instantiate class '" + className + "'", e);
+            throw new ServletException("Unable to instantiate class '" + className + "'", e);
         }
         return null;
     }
-    
+
     /**
-     * Initialises the pluggable implementation classes for {@link Authorizer}, 
+     * Initialises the pluggable implementation classes for {@link Authorizer},
      * {@link TransactionIdProvider}, and {@link UrlSigner}
      */
     public void init(ServletConfig servletConfig) throws ServletException {
@@ -113,7 +113,7 @@ public class GatekeeperServlet extends HttpServlet {
             log.info("Initialising GatekeeperServlet");
         }
         this.servletConfig = servletConfig;
-        
+
         // Initialise required classes.
         transactionIdProvider = initTransactionIdProvider();
         authorizer = initAuthorizer();
@@ -124,7 +124,7 @@ public class GatekeeperServlet extends HttpServlet {
 
     /**
      * Initialises the Authorizer implementation that will be used by the servlet.
-     * 
+     *
      * @return
      * @throws ServletException
      */
@@ -137,11 +137,11 @@ public class GatekeeperServlet extends HttpServlet {
             if (log.isInfoEnabled()) {
                 log.info("Loading Authorizer implementation class: " + authorizerClass);
             }
-            return (Authorizer) instantiateClass(authorizerClass, 
+            return (Authorizer) instantiateClass(authorizerClass,
                 new Class[] {ServletConfig.class}, new Object[] {servletConfig});
         }
         if (log.isInfoEnabled()) {
-            log.info("Loaded default Authorizer implementation class: " 
+            log.info("Loaded default Authorizer implementation class: "
                 + DefaultAuthorizer.class.getName());
         }
         return new DefaultAuthorizer(servletConfig);
@@ -149,7 +149,7 @@ public class GatekeeperServlet extends HttpServlet {
 
     /**
      * Initialises the UrlSigner implementation that will be used by the servlet.
-     * 
+     *
      * @return
      * @throws ServletException
      */
@@ -166,15 +166,15 @@ public class GatekeeperServlet extends HttpServlet {
                 new Class[] {ServletConfig.class}, new Object[] {servletConfig});
         }
         if (log.isInfoEnabled()) {
-            log.info("Loaded default UrlSigner implementation class: " 
+            log.info("Loaded default UrlSigner implementation class: "
                 + DefaultUrlSigner.class.getName());
         }
-        return new DefaultUrlSigner(servletConfig);            
+        return new DefaultUrlSigner(servletConfig);
     }
 
     /**
      * Initialises the TransactionIdProvider implementation that will be used by the servlet.
-     * 
+     *
      * @return
      * @throws ServletException
      */
@@ -191,15 +191,15 @@ public class GatekeeperServlet extends HttpServlet {
                 new Class[] {ServletConfig.class}, new Object[] {servletConfig});
         }
         if (log.isInfoEnabled()) {
-            log.info("Loaded default TransactionIdProvider implementation class: " 
+            log.info("Loaded default TransactionIdProvider implementation class: "
                 + TransactionIdProvider.class.getName());
         }
-        return new DefaultTransactionIdProvider(servletConfig);            
+        return new DefaultTransactionIdProvider(servletConfig);
     }
-    
+
     /**
      * Initialises the BucketLister implementation that will be used by the servlet.
-     * 
+     *
      * @return
      * @throws ServletException
      */
@@ -216,10 +216,10 @@ public class GatekeeperServlet extends HttpServlet {
                 new Class[] {ServletConfig.class}, new Object[] {servletConfig});
         }
         if (log.isInfoEnabled()) {
-            log.info("Loaded default BucketLister implementation class: " 
+            log.info("Loaded default BucketLister implementation class: "
                 + TransactionIdProvider.class.getName());
         }
-        return new DefaultBucketLister(servletConfig);            
+        return new DefaultBucketLister(servletConfig);
     }
 
     /**
@@ -232,15 +232,15 @@ public class GatekeeperServlet extends HttpServlet {
         response.setStatus(200);
         response.setContentType("text/html");
         response.getWriter().println("<html><head><title>JetS3t Gatekeeper</title><body>");
-        response.getWriter().println("<p>JetS3t Gatekeeper is running " + 
-    		(isInitCompleted? "and initialized successfully" : "but <b>initialization failed</b>")
-    		+ "</p></body></html>");
+        response.getWriter().println("<p>JetS3t Gatekeeper is running " +
+        	(isInitCompleted? "and initialized successfully" : "but <b>initialization failed</b>")
+        	+ "</p></body></html>");
     }
-    
+
     /**
-     * Handles POST requests that contain Gatekeeper messages encoded as POST form properties, and 
+     * Handles POST requests that contain Gatekeeper messages encoded as POST form properties, and
      * sends a plain text response document containing the Gatekeeper response message encoded as
-     * a properties file. 
+     * a properties file.
      */
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         if (log.isDebugEnabled()) {
@@ -248,86 +248,86 @@ public class GatekeeperServlet extends HttpServlet {
         }
         try {
             // Build Gatekeeper request from POST form parameters.
-            GatekeeperMessage gatekeeperMessage = 
+            GatekeeperMessage gatekeeperMessage =
                 GatekeeperMessage.decodeFromProperties(request.getParameterMap());
-                    
+
             // Obtain client information
             ClientInformation clientInformation = new ClientInformation(
                 request.getRemoteAddr(), request.getRemoteHost(), request.getRemoteUser(),
                 request.getRemotePort(), request.getSession(false), request.getUserPrincipal(),
                 request.getHeader("User-Agent"), request);
-                        
+
             // Generate Transaction ID, and store it in the message.
             String transactionId = transactionIdProvider.getTransactionId(gatekeeperMessage, clientInformation);
             if (transactionId != null) {
                 gatekeeperMessage.addMessageProperty(GatekeeperMessage.PROPERTY_TRANSACTION_ID, transactionId);
             }
-            
-        	if (!isInitCompleted) 
-        	{
+
+            if (!isInitCompleted)
+            {
                 if (log.isWarnEnabled()) {
                     log.warn("Cannot process POST request as Gatekeeper servlet did not initialize correctly");
                 }
-        		gatekeeperMessage.addApplicationProperty(
-                        GatekeeperMessage.APP_PROPERTY_GATEKEEPER_ERROR_CODE, "GatekeeperInitializationError");        		
-        	} else if (gatekeeperMessage.getApplicationProperties().containsKey(
-            		GatekeeperMessage.LIST_OBJECTS_IN_BUCKET_FLAG)) 
+            	gatekeeperMessage.addApplicationProperty(
+                        GatekeeperMessage.APP_PROPERTY_GATEKEEPER_ERROR_CODE, "GatekeeperInitializationError");
+            } else if (gatekeeperMessage.getApplicationProperties().containsKey(
+                	GatekeeperMessage.LIST_OBJECTS_IN_BUCKET_FLAG))
             {
                 // Handle "limited listing" requests.
                 if (log.isDebugEnabled()) {
                     log.debug("Listing objects");
                 }
-            	boolean allowed = authorizer.allowBucketListingRequest(gatekeeperMessage, clientInformation);
-            	if (allowed) {
-            		bucketLister.listObjects(gatekeeperMessage, clientInformation);
-            	}
+                boolean allowed = authorizer.allowBucketListingRequest(gatekeeperMessage, clientInformation);
+                if (allowed) {
+                	bucketLister.listObjects(gatekeeperMessage, clientInformation);
+                }
             } else {
                 if (log.isDebugEnabled()) {
-                	log.debug("Processing " + gatekeeperMessage.getSignatureRequests().length 
-                			+ " object signature requests");
+                    log.debug("Processing " + gatekeeperMessage.getSignatureRequests().length
+                    		+ " object signature requests");
                 }
-	            // Process each signature request.
-	            for (int i = 0; i < gatekeeperMessage.getSignatureRequests().length; i++) {
-	                SignatureRequest signatureRequest = (SignatureRequest) gatekeeperMessage.getSignatureRequests()[i];
-	                
-	                // Determine whether the request will be allowed. If the request is not allowed, the
-	                // reason will be made available in the signature request object (with signatureRequest.declineRequest())
-	                boolean allowed = authorizer.allowSignatureRequest(gatekeeperMessage, clientInformation, signatureRequest);
-	
-	                // Sign requests when they are allowed. When a request is signed, the signed URL is made available
-	                // in the SignatureRequest object.
-	                if (allowed) {
-	                    String signedUrl = null;
-	                    if (SignatureRequest.SIGNATURE_TYPE_GET.equals(signatureRequest.getSignatureType())) {
-	                        signedUrl = urlSigner.signGet(gatekeeperMessage, clientInformation, signatureRequest);                        
-	                    } else if (SignatureRequest.SIGNATURE_TYPE_HEAD.equals(signatureRequest.getSignatureType())) {
-	                        signedUrl = urlSigner.signHead(gatekeeperMessage, clientInformation, signatureRequest);
-	                    } else if (SignatureRequest.SIGNATURE_TYPE_PUT.equals(signatureRequest.getSignatureType())) {
-	                        signedUrl = urlSigner.signPut(gatekeeperMessage, clientInformation, signatureRequest);
-	                    } else if (SignatureRequest.SIGNATURE_TYPE_DELETE.equals(signatureRequest.getSignatureType())) {
-	                        signedUrl = urlSigner.signDelete(gatekeeperMessage, clientInformation, signatureRequest);                        
-	                    } else if (SignatureRequest.SIGNATURE_TYPE_ACL_LOOKUP.equals(signatureRequest.getSignatureType())) {
-	                        signedUrl = urlSigner.signGetAcl(gatekeeperMessage, clientInformation, signatureRequest);                        
-	                    } else if (SignatureRequest.SIGNATURE_TYPE_ACL_UPDATE.equals(signatureRequest.getSignatureType())) {
-	                        signedUrl = urlSigner.signPutAcl(gatekeeperMessage, clientInformation, signatureRequest);                        
-	                    }
-	                    signatureRequest.signRequest(signedUrl);
-	                }                 
-	            }
+                // Process each signature request.
+                for (int i = 0; i < gatekeeperMessage.getSignatureRequests().length; i++) {
+                    SignatureRequest signatureRequest = (SignatureRequest) gatekeeperMessage.getSignatureRequests()[i];
+
+                    // Determine whether the request will be allowed. If the request is not allowed, the
+                    // reason will be made available in the signature request object (with signatureRequest.declineRequest())
+                    boolean allowed = authorizer.allowSignatureRequest(gatekeeperMessage, clientInformation, signatureRequest);
+
+                    // Sign requests when they are allowed. When a request is signed, the signed URL is made available
+                    // in the SignatureRequest object.
+                    if (allowed) {
+                        String signedUrl = null;
+                        if (SignatureRequest.SIGNATURE_TYPE_GET.equals(signatureRequest.getSignatureType())) {
+                            signedUrl = urlSigner.signGet(gatekeeperMessage, clientInformation, signatureRequest);
+                        } else if (SignatureRequest.SIGNATURE_TYPE_HEAD.equals(signatureRequest.getSignatureType())) {
+                            signedUrl = urlSigner.signHead(gatekeeperMessage, clientInformation, signatureRequest);
+                        } else if (SignatureRequest.SIGNATURE_TYPE_PUT.equals(signatureRequest.getSignatureType())) {
+                            signedUrl = urlSigner.signPut(gatekeeperMessage, clientInformation, signatureRequest);
+                        } else if (SignatureRequest.SIGNATURE_TYPE_DELETE.equals(signatureRequest.getSignatureType())) {
+                            signedUrl = urlSigner.signDelete(gatekeeperMessage, clientInformation, signatureRequest);
+                        } else if (SignatureRequest.SIGNATURE_TYPE_ACL_LOOKUP.equals(signatureRequest.getSignatureType())) {
+                            signedUrl = urlSigner.signGetAcl(gatekeeperMessage, clientInformation, signatureRequest);
+                        } else if (SignatureRequest.SIGNATURE_TYPE_ACL_UPDATE.equals(signatureRequest.getSignatureType())) {
+                            signedUrl = urlSigner.signPutAcl(gatekeeperMessage, clientInformation, signatureRequest);
+                        }
+                        signatureRequest.signRequest(signedUrl);
+                    }
+                }
             }
-                        
+
             // Build response as a set of properties, and return this document.
             Properties responseProperties = gatekeeperMessage.encodeToProperties();
             if (log.isDebugEnabled()) {
                 log.debug("Sending response message as properties: " + responseProperties);
             }
-            
-            // Serialize properties to bytes. 
+
+            // Serialize properties to bytes.
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             responseProperties.store(baos, "");
-            
+
             // Send successful response.
-            response.setStatus(200);                
+            response.setStatus(200);
             response.setContentType("text/plain");
             response.getOutputStream().write(baos.toByteArray());
         } catch (Exception e) {
@@ -339,5 +339,5 @@ public class GatekeeperServlet extends HttpServlet {
             response.getWriter().println(e.toString());
         }
     }
-    
+
 }

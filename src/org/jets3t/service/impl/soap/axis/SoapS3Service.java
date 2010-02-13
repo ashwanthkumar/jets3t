@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2006 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.service.impl.soap.axis;
 
@@ -84,36 +84,36 @@ import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.ServiceUtils;
 
 /**
- * SOAP implementation of an S3Service based on the 
- * <a href="http://ws.apache.org/axis/">Apache Axis 1.4</a> library.  
+ * SOAP implementation of an S3Service based on the
+ * <a href="http://ws.apache.org/axis/">Apache Axis 1.4</a> library.
  * <p>
- * <b>Note</b>: This SOAP implementation does <b>not</b> support IO streaming uploads to S3. Any 
+ * <b>Note</b>: This SOAP implementation does <b>not</b> support IO streaming uploads to S3. Any
  * documents uploaded by this implementation must fit inside memory allocated to the Java program
- * running this class if OutOfMemory errors are to be avoided. 
+ * running this class if OutOfMemory errors are to be avoided.
  * </p>
  * <p>
  * <b>Note 2</b>: The SOAP implementation does not perform retries when communication with s3 fails.
- * </p> 
+ * </p>
  * <p>
- * The preferred S3Service implementation in JetS3t is 
- * {@link org.jets3t.service.impl.rest.httpclient.RestS3Service}. This SOAP 
+ * The preferred S3Service implementation in JetS3t is
+ * {@link org.jets3t.service.impl.rest.httpclient.RestS3Service}. This SOAP
  * implementation class is provided with JetS3t as a proof-of-concept, showing that alternative
  * service implementations are possible and what a SOAP service might look like. <b>We do not
  * recommend that this service be used to perform any real work.</b>
  * </p>
- * 
+ *
  * @author James Murty
  */
 public class SoapS3Service extends S3Service {
-	private static final long serialVersionUID = -7952919998435920809L;
-	
-	private static final Log log = LogFactory.getLog(SoapS3Service.class);
+    private static final long serialVersionUID = -7952919998435920809L;
+
+    private static final Log log = LogFactory.getLog(SoapS3Service.class);
     private AmazonS3_ServiceLocator locator = null;
 
     /**
      * Constructs the SOAP service implementation and, based on the value of {@link S3Service#isHttpsOnly}
      * sets the SOAP endpoint to use HTTP or HTTPS protocols.
-     * 
+     *
      * @param awsCredentials
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
@@ -121,35 +121,35 @@ public class SoapS3Service extends S3Service {
      * version number, for example: <code>Cockpit/0.7.3</code> or <code>My App Name/1.0</code>
      * @param jets3tProperties
      * JetS3t properties that will be applied within this service.
-     * 
+     *
      * @throws S3ServiceException
      */
     public SoapS3Service(AWSCredentials awsCredentials, String invokingApplicationDescription,
-        Jets3tProperties jets3tProperties) throws S3ServiceException 
+        Jets3tProperties jets3tProperties) throws S3ServiceException
     {
         super(awsCredentials, invokingApplicationDescription, jets3tProperties);
-        
+
         locator = new AmazonS3_ServiceLocator();
         if (super.isHttpsOnly()) {
             // Use an SSL connection, to further secure the signature.
-        	if (log.isDebugEnabled()) {
-        		log.debug("SOAP service will use HTTPS for all communication");
-        	}
+            if (log.isDebugEnabled()) {
+            	log.debug("SOAP service will use HTTPS for all communication");
+            }
             locator.setAmazonS3EndpointAddress("https://" + Constants.S3_HOSTNAME + "/soap");
         } else {
-        	if (log.isDebugEnabled()) {
-        		log.debug("SOAP service will use HTTP for all communication");
-        	}
-            locator.setAmazonS3EndpointAddress("http://" + Constants.S3_HOSTNAME + "/soap");            
+            if (log.isDebugEnabled()) {
+            	log.debug("SOAP service will use HTTP for all communication");
+            }
+            locator.setAmazonS3EndpointAddress("http://" + Constants.S3_HOSTNAME + "/soap");
         }
         // Ensure we can get the stub.
         getSoapBinding();
     }
-    
+
     /**
      * Constructs the SOAP service implementation and, based on the value of {@link S3Service#isHttpsOnly}
      * sets the SOAP endpoint to use HTTP or HTTPS protocols.
-     * 
+     *
      * @param awsCredentials
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
@@ -157,26 +157,26 @@ public class SoapS3Service extends S3Service {
      * version number, for example: <code>Cockpit/0.7.3</code> or <code>My App Name/1.0</code>
      * @throws S3ServiceException
      */
-    public SoapS3Service(AWSCredentials awsCredentials, String invokingApplicationDescription) 
-        throws S3ServiceException 
+    public SoapS3Service(AWSCredentials awsCredentials, String invokingApplicationDescription)
+        throws S3ServiceException
     {
-        this(awsCredentials, invokingApplicationDescription, 
+        this(awsCredentials, invokingApplicationDescription,
             Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME));
-    }    
-    
+    }
+
     /**
      * Constructs the SOAP service implementation and, based on the value of {@link S3Service#isHttpsOnly}
      * sets the SOAP endpoint to use HTTP or HTTPS protocols.
-     * 
+     *
      * @param awsCredentials
      * @throws S3ServiceException
      */
-    public SoapS3Service(AWSCredentials awsCredentials) throws S3ServiceException { 
+    public SoapS3Service(AWSCredentials awsCredentials) throws S3ServiceException {
         this(awsCredentials, null);
     }
 
     protected void shutdownImpl() throws S3ServiceException {
-    	locator = null;
+        locator = null;
     }
 
     private AmazonS3SoapBindingStub getSoapBinding() throws S3ServiceException {
@@ -186,7 +186,7 @@ public class SoapS3Service extends S3Service {
             throw new S3ServiceException("Unable to initialise SOAP binding", e);
         }
     }
-    
+
     private String getAWSAccessKey() {
         if (getAWSCredentials() == null) {
             return null;
@@ -194,7 +194,7 @@ public class SoapS3Service extends S3Service {
             return getAWSCredentials().getAccessKey();
         }
     }
-    
+
     private String getAWSSecretKey() {
         if (getAWSCredentials() == null) {
             return null;
@@ -220,44 +220,44 @@ public class SoapS3Service extends S3Service {
             return "";
         }
     }
-    
+
     private S3Owner convertOwner(CanonicalUser user) {
         S3Owner owner = new S3Owner(user.getID(), user.getDisplayName());
         return owner;
     }
-    
+
     /**
      * Converts a SOAP object AccessControlPolicy to a jets3t AccessControlList.
-     * 
+     *
      * @param policy
      * @return
      * @throws S3ServiceException
      */
-    private AccessControlList convertAccessControlTypes(AccessControlPolicy policy) 
-        throws S3ServiceException 
+    private AccessControlList convertAccessControlTypes(AccessControlPolicy policy)
+        throws S3ServiceException
     {
         AccessControlList acl = new AccessControlList();
         acl.setOwner(convertOwner(policy.getOwner()));
-        
+
         Grant[] grants = policy.getAccessControlList();
         for (int i = 0; i < grants.length; i++) {
             Grant grant = (Grant) grants[i];
             GrantAndPermission jets3tGrantAndPermission = convertGrant(grant);
-            acl.grantPermission(jets3tGrantAndPermission.getGrantee(), 
-        		jets3tGrantAndPermission.getPermission());                
+            acl.grantPermission(jets3tGrantAndPermission.getGrantee(),
+            	jets3tGrantAndPermission.getPermission());
         }
         return acl;
     }
-    
+
     private GrantAndPermission convertGrant(Grant grant) throws S3ServiceException {
         org.jets3t.service.acl.Permission permission =
             org.jets3t.service.acl.Permission.parsePermission(grant.getPermission().toString());
         org.jets3t.service.acl.GranteeInterface jets3tGrantee = null;
-        
+
         Grantee grantee = grant.getGrantee();
         if (grantee instanceof Group) {
             jets3tGrantee = new GroupGrantee();
-            jets3tGrantee.setIdentifier(((Group)grantee).getURI());                
+            jets3tGrantee.setIdentifier(((Group)grantee).getURI());
         } else if (grantee instanceof CanonicalUser) {
             CanonicalUser canonicalUser = (CanonicalUser) grantee;
             jets3tGrantee = new CanonicalGrantee();
@@ -272,10 +272,10 @@ public class SoapS3Service extends S3Service {
         }
         return new GrantAndPermission(jets3tGrantee, permission);
     }
-    
+
     /**
      * Converts a jets3t AccessControlList object to an array of SOAP Grant objects.
-     * 
+     *
      * @param acl
      * @return
      * @throws S3ServiceException
@@ -285,11 +285,11 @@ public class SoapS3Service extends S3Service {
             return null;
         }
         if (acl.isCannedRestACL()) {
-            throw new S3ServiceException("Cannot use canned REST ACLs with SOAP service");        
-        }        
-        
+            throw new S3ServiceException("Cannot use canned REST ACLs with SOAP service");
+        }
+
         Grant[] grants = new Grant[acl.getGrants().size()];
-            
+
         Iterator grantIter = acl.getGrants().iterator();
         int index = 0;
         while (grantIter.hasNext()) {
@@ -299,13 +299,13 @@ public class SoapS3Service extends S3Service {
         }
         return grants;
     }
-    
-    private Grant convertGrantAndPermissionToGrant(GrantAndPermission jets3tGaP) 
-    		throws S3ServiceException
-	{
+
+    private Grant convertGrantAndPermissionToGrant(GrantAndPermission jets3tGaP)
+        	throws S3ServiceException
+    {
         GranteeInterface jets3tGrantee = jets3tGaP.getGrantee();
         Grant grant = new Grant();
-        
+
         if (jets3tGrantee instanceof GroupGrantee) {
             GroupGrantee groupGrantee = (GroupGrantee) jets3tGrantee;
             Group group = new Group();
@@ -323,7 +323,7 @@ public class SoapS3Service extends S3Service {
             customerByEmail.setEmailAddress(emailGrantee.getIdentifier());
             grant.setGrantee(customerByEmail);
         } else {
-            throw new S3ServiceException("Unrecognised jets3t grantee type: " 
+            throw new S3ServiceException("Unrecognised jets3t grantee type: "
                 + jets3tGrantee.getClass());
         }
         Permission permission = Permission.fromString(jets3tGaP.getPermission().toString());
@@ -333,7 +333,7 @@ public class SoapS3Service extends S3Service {
 
     /**
      * Converts metadata information from a standard map to SOAP objects.
-     * 
+     *
      * @param metadataMap
      * @return
      */
@@ -346,7 +346,7 @@ public class SoapS3Service extends S3Service {
             Object metadataName = entry.getKey();
             Object metadataValue = entry.getValue();
             if (log.isDebugEnabled()) {
-            	log.debug("Setting metadata: " + metadataName + "=" + metadataValue);
+                log.debug("Setting metadata: " + metadataName + "=" + metadataValue);
             }
             MetadataEntry mdEntry = new MetadataEntry();
             mdEntry.setName(metadataName.toString());
@@ -355,26 +355,26 @@ public class SoapS3Service extends S3Service {
         }
         return metadata;
     }
-    
+
     ////////////////////////////////////////////////////////////////
     // Methods below this point implement S3Service abstract methods
-    ////////////////////////////////////////////////////////////////    
-    
+    ////////////////////////////////////////////////////////////////
+
     protected S3Bucket[] listAllBucketsImpl() throws S3ServiceException {
-    	if (log.isDebugEnabled()) {
-    		log.debug("Listing all buckets for AWS user: " + getAWSCredentials().getAccessKey());
-    	}
-        
+        if (log.isDebugEnabled()) {
+        	log.debug("Listing all buckets for AWS user: " + getAWSCredentials().getAccessKey());
+        }
+
         S3Bucket[] buckets = null;
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
-            Calendar timestamp = getTimeStamp( System.currentTimeMillis() );            
-            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+            Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(),
                 Constants.SOAP_SERVICE_NAME + "ListAllMyBuckets" + convertDateToString(timestamp));
             ListAllMyBucketsResult result = s3SoapBinding.listAllMyBuckets(
                 getAWSAccessKey(), timestamp, signature);
 
-            ListAllMyBucketsEntry[] entries = result.getBuckets();            
+            ListAllMyBucketsEntry[] entries = result.getBuckets();
             buckets = new S3Bucket[entries.length];
             int index = 0;
             for (int i = 0; i < entries.length; i++) {
@@ -394,19 +394,19 @@ public class SoapS3Service extends S3Service {
 
     protected S3Owner getAccountOwnerImpl() throws S3ServiceException {
         if (log.isDebugEnabled()) {
-            log.debug("Looking up owner of S3 account via the ListAllBuckets response: " 
+            log.debug("Looking up owner of S3 account via the ListAllBuckets response: "
                 + getAWSCredentials().getAccessKey());
         }
-        
+
         S3Owner owner = null;
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
-            Calendar timestamp = getTimeStamp( System.currentTimeMillis() );            
-            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+            Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(),
                 Constants.SOAP_SERVICE_NAME + "ListAllMyBuckets" + convertDateToString(timestamp));
             ListAllMyBucketsResult result = s3SoapBinding.listAllMyBuckets(
                 getAWSAccessKey(), timestamp, signature);
-            
+
             owner = new S3Owner(
                 result.getOwner().getID(),
                 result.getOwner().getDisplayName());
@@ -420,17 +420,17 @@ public class SoapS3Service extends S3Service {
 
     public boolean isBucketAccessible(String bucketName) throws S3ServiceException {
         if (log.isDebugEnabled()) {
-        	log.debug("Checking existence of bucket: " + bucketName);
+            log.debug("Checking existence of bucket: " + bucketName);
         }
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(),
                         Constants.SOAP_SERVICE_NAME + "ListBucket" + convertDateToString(timestamp));
             s3SoapBinding.listBucket(
-                bucketName, null, null, new Integer(0), 
+                bucketName, null, null, new Integer(0),
                 null, getAWSAccessKey(), timestamp, signature, null);
-            
+
             // If we get this far, the bucket exists.
             return true;
         } catch (RuntimeException e) {
@@ -439,49 +439,49 @@ public class SoapS3Service extends S3Service {
             return false;
         }
     }
-    
+
     public int checkBucketStatus(String bucketName) throws S3ServiceException {
         throw new S3ServiceException("The method checkBucketStatus(String bucketName) "
             + "is not implemented in " + this.getClass().getName());
-    }    
-    
+    }
+
     protected S3Object[] listObjectsImpl(String bucketName, String prefix, String delimiter, long maxListingLength)
         throws S3ServiceException
     {
         return listObjectsInternalImpl(bucketName, prefix, delimiter, maxListingLength, true, null)
-            .getObjects();            
+            .getObjects();
     }
-    
-    protected S3ObjectsChunk listObjectsChunkedImpl(String bucketName, String prefix, String delimiter, 
+
+    protected S3ObjectsChunk listObjectsChunkedImpl(String bucketName, String prefix, String delimiter,
         long maxListingLength, String priorLastKey, boolean completeListing) throws S3ServiceException {
         return listObjectsInternalImpl(bucketName, prefix, delimiter, maxListingLength, completeListing, priorLastKey);
-    }    
+    }
 
-    protected S3ObjectsChunk listObjectsInternalImpl(String bucketName, String prefix, 
+    protected S3ObjectsChunk listObjectsInternalImpl(String bucketName, String prefix,
         String delimiter, long maxListingLength, boolean automaticallyMergeChunks, String priorLastKey)
         throws S3ServiceException
     {
-        ArrayList objects = new ArrayList();        
+        ArrayList objects = new ArrayList();
         ArrayList commonPrefixes = new ArrayList();
 
-        boolean incompleteListing = true;            
+        boolean incompleteListing = true;
 
         try {
             while (incompleteListing) {
                 AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
                 Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-                String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(),
                     Constants.SOAP_SERVICE_NAME + "ListBucket" + convertDateToString(timestamp));
                 ListBucketResult result = s3SoapBinding.listBucket(
-                    bucketName, prefix, priorLastKey, new Integer((int)maxListingLength), 
+                    bucketName, prefix, priorLastKey, new Integer((int)maxListingLength),
                     delimiter, getAWSAccessKey(), timestamp, signature, null);
-                
+
                 ListEntry[] entries = result.getContents();
                 S3Object[] partialObjects = new S3Object[
                    (entries == null? 0 : entries.length)];
-                
+
                 if (log.isDebugEnabled()) {
-                	log.debug("Found " + partialObjects.length + " objects in one batch");
+                    log.debug("Found " + partialObjects.length + " objects in one batch");
                 }
                 for (int i = 0; entries != null && i < entries.length; i++) {
                     ListEntry entry = entries[i];
@@ -492,36 +492,36 @@ public class SoapS3Service extends S3Service {
                     object.setStorageClass(entry.getStorageClass().toString());
                     object.setOwner(convertOwner(entry.getOwner()));
                     partialObjects[i] = object;
-                    
+
                     // This shouldn't be necessary, but result.getNextMarker() doesn't work as expected.
                     priorLastKey = object.getKey();
                 }
-                
+
                 objects.addAll(Arrays.asList(partialObjects));
-                
+
                 PrefixEntry[] prefixEntries = result.getCommonPrefixes();
                 if (prefixEntries != null) {
-                	if (log.isDebugEnabled()) {
-                		log.debug("Found " + prefixEntries.length + " common prefixes in one batch");
-                	}
+                    if (log.isDebugEnabled()) {
+                    	log.debug("Found " + prefixEntries.length + " common prefixes in one batch");
+                    }
                 }
                 for (int i = 0; prefixEntries != null && i < prefixEntries.length; i++ ) {
                     PrefixEntry entry = prefixEntries[i];
                     commonPrefixes.add(entry.getPrefix());
                 }
-                
+
                 incompleteListing = result.isIsTruncated();
                 if (incompleteListing) {
-                	if (result.getNextMarker() != null) {
-                		// Use NextMarker as the marker for where subsequent listing should start
-	                    priorLastKey = result.getNextMarker();
-                	} else {
-                		// Use the prior last key instead of NextMarker if it isn't available.
-                	}
-                	if (log.isDebugEnabled()) {
-	                    log.debug("Yet to receive complete listing of bucket contents, "
-                    		+ "last key for prior chunk: " + priorLastKey);
-                	}
+                    if (result.getNextMarker() != null) {
+                    	// Use NextMarker as the marker for where subsequent listing should start
+                        priorLastKey = result.getNextMarker();
+                    } else {
+                    	// Use the prior last key instead of NextMarker if it isn't available.
+                    }
+                    if (log.isDebugEnabled()) {
+                        log.debug("Yet to receive complete listing of bucket contents, "
+                        	+ "last key for prior chunk: " + priorLastKey);
+                    }
                 } else {
                     priorLastKey = null;
                 }
@@ -531,83 +531,83 @@ public class SoapS3Service extends S3Service {
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new S3ServiceException("Unable to List Objects in bucket: " + bucketName, e);   
+            throw new S3ServiceException("Unable to List Objects in bucket: " + bucketName, e);
         }
         if (automaticallyMergeChunks) {
             if (log.isDebugEnabled()) {
-            	log.debug("Found " + objects.size() + " objects in total");
+                log.debug("Found " + objects.size() + " objects in total");
             }
             return new S3ObjectsChunk(
-                prefix, delimiter, 
-                (S3Object[]) objects.toArray(new S3Object[objects.size()]), 
+                prefix, delimiter,
+                (S3Object[]) objects.toArray(new S3Object[objects.size()]),
                 (String[]) commonPrefixes.toArray(new String[commonPrefixes.size()]),
                 null);
         } else {
             return new S3ObjectsChunk(
-                prefix, delimiter, 
-                (S3Object[]) objects.toArray(new S3Object[objects.size()]), 
+                prefix, delimiter,
+                (S3Object[]) objects.toArray(new S3Object[objects.size()]),
                 (String[]) commonPrefixes.toArray(new String[commonPrefixes.size()]),
-                priorLastKey);            
+                priorLastKey);
         }
     }
 
-    protected S3Bucket createBucketImpl(String bucketName, String location, 
-        AccessControlList acl) throws S3ServiceException 
+    protected S3Bucket createBucketImpl(String bucketName, String location,
+        AccessControlList acl) throws S3ServiceException
     {
         if (location != null && !"US".equalsIgnoreCase(location)) {
             throw new S3ServiceException("The SOAP API interface for S3 does " +
                 "not allow you to create buckets located anywhere other than " +
                 "the US");
         }
-        
+
         Grant[] grants = null;
         if (acl != null) {
-            grants = convertACLtoGrants(acl);        
+            grants = convertACLtoGrants(acl);
         }
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(),
                 Constants.SOAP_SERVICE_NAME + "CreateBucket" + convertDateToString(timestamp));
             s3SoapBinding.createBucket(
                 bucketName, grants, getAWSAccessKey(), timestamp, signature);
-            
+
             S3Bucket bucket = new S3Bucket(bucketName);
             bucket.setAcl(acl);
-            return bucket;            
+            return bucket;
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new S3ServiceException("Unable to Create Bucket: " + bucketName, e);   
+            throw new S3ServiceException("Unable to Create Bucket: " + bucketName, e);
         }
     }
-    
-    protected String getBucketLocationImpl(String bucketName) 
+
+    protected String getBucketLocationImpl(String bucketName)
         throws S3ServiceException
     {
         throw new S3ServiceException("The SOAP API interface for S3 does " +
-            "not allow you to retrieve location information for a bucket");    
+            "not allow you to retrieve location information for a bucket");
     }
 
-    
+
     protected void deleteBucketImpl(String bucketName) throws S3ServiceException {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(),
                 Constants.SOAP_SERVICE_NAME + "DeleteBucket" + convertDateToString(timestamp));
             s3SoapBinding.deleteBucket(
                 bucketName, getAWSAccessKey(), timestamp, signature, null);
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new S3ServiceException("Unable to Delete Bucket: " + bucketName, e);   
-        }            
+            throw new S3ServiceException("Unable to Delete Bucket: " + bucketName, e);
+        }
     }
 
     protected S3Object putObjectImpl(String bucketName, S3Object object) throws S3ServiceException {
         if (log.isDebugEnabled()) {
-        	log.debug("Creating Object with key " + object.getKey() + " in bucket " + bucketName);        
+            log.debug("Creating Object with key " + object.getKey() + " in bucket " + bucketName);
         }
 
         Grant[] grants = null;
@@ -615,7 +615,7 @@ public class SoapS3Service extends S3Service {
             grants = convertACLtoGrants(object.getAcl());
         }
         MetadataEntry[] metadata = convertMetadata(object.getMetadataMap());
-        
+
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             long contentLength = object.getContentLength();
@@ -624,20 +624,20 @@ public class SoapS3Service extends S3Service {
                 // Set default content type.
                 contentType = Mimetypes.MIMETYPE_OCTET_STREAM;
             }
-            
+
             if (object.getDataInputStream() != null) {
-            	if (log.isDebugEnabled()) {
-            		log.debug("Uploading data input stream for S3Object: " + object.getKey());
-            	}
-                
+                if (log.isDebugEnabled()) {
+                	log.debug("Uploading data input stream for S3Object: " + object.getKey());
+                }
+
                 if (contentLength == 0 && object.getDataInputStream().available() > 0) {
-                    
-                	if (log.isWarnEnabled()) {
-	                    log.warn("S3Object " + object.getKey() 
-	                        + " - Content-Length was set to 0 despite having a non-empty data"
-	                        + " input stream. The Content-length will be determined in memory.");
-                	}
-                    
+
+                    if (log.isWarnEnabled()) {
+                        log.warn("S3Object " + object.getKey()
+                            + " - Content-Length was set to 0 despite having a non-empty data"
+                            + " input stream. The Content-length will be determined in memory.");
+                    }
+
                     // Read all data into memory to determine it's length.
                     BufferedInputStream bis = new BufferedInputStream(object.getDataInputStream());
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -650,119 +650,119 @@ public class SoapS3Service extends S3Service {
                         }
                     } finally {
                         if (bis != null) {
-                            bis.close();                            
+                            bis.close();
                         }
                         if (bos != null) {
-                            bos.close();                        
+                            bos.close();
                         }
                     }
 
                     contentLength = baos.size();
                     object.setDataInputStream(new ByteArrayInputStream(baos.toByteArray()));
-                    
+
                     if (log.isDebugEnabled()) {
-                    	log.debug("Content-Length value has been reset to " + contentLength);
+                        log.debug("Content-Length value has been reset to " + contentLength);
                     }
-                }                
-                
+                }
+
                 DataHandler dataHandler = new DataHandler(
                     new SourceDataSource(
-                        null, contentType, new StreamSource(object.getDataInputStream())));           
-                s3SoapBinding.addAttachment(dataHandler);                
+                        null, contentType, new StreamSource(object.getDataInputStream())));
+                s3SoapBinding.addAttachment(dataHandler);
             } else {
                 DataHandler dataHandler = new DataHandler(
                     new SourceDataSource(
                         null, contentType, new StreamSource()));
-                s3SoapBinding.addAttachment(dataHandler);                
+                s3SoapBinding.addAttachment(dataHandler);
             }
-            
+
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(),
                 Constants.SOAP_SERVICE_NAME + "PutObject" + convertDateToString(timestamp));
-            PutObjectResult result = 
-                s3SoapBinding.putObject(bucketName, object.getKey(), metadata, 
-                    contentLength, grants, null, getAWSAccessKey(), 
+            PutObjectResult result =
+                s3SoapBinding.putObject(bucketName, object.getKey(), metadata,
+                    contentLength, grants, null, getAWSAccessKey(),
                     timestamp, signature, null);
-            
+
             // Ensure no data was corrupted, if we have the MD5 hash available to check.
             String eTag = result.getETag().substring(1, result.getETag().length() - 1);
             String eTagAsBase64 = ServiceUtils.toBase64(
                 ServiceUtils.fromHex(eTag));
-            String md5HashAsBase64 = object.getMd5HashAsBase64();            
+            String md5HashAsBase64 = object.getMd5HashAsBase64();
             if (md5HashAsBase64 != null && !eTagAsBase64.equals(md5HashAsBase64)) {
                 throw new S3ServiceException(
                     "Object created but ETag returned by S3 does not match MD5 hash value of object");
             }
-            
+
             object.setETag(result.getETag());
             object.setContentLength(contentLength);
             object.setContentType(contentType);
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new S3ServiceException("Unable to Create Object: " + object.getKey(), e);   
+            throw new S3ServiceException("Unable to Create Object: " + object.getKey(), e);
         }
         return object;
     }
 
-    protected void deleteObjectImpl(String bucketName, String objectKey, 
-		String versionId, String multiFactorSerialNumber, String multiFactorAuthCode)
-    	throws S3ServiceException 
-	{
-    	if (versionId != null || multiFactorSerialNumber != null || multiFactorAuthCode != null) 
-    	{
+    protected void deleteObjectImpl(String bucketName, String objectKey,
+    	String versionId, String multiFactorSerialNumber, String multiFactorAuthCode)
+        throws S3ServiceException
+    {
+        if (versionId != null || multiFactorSerialNumber != null || multiFactorAuthCode != null)
+        {
             throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
-    	}
+        }
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(),
                 Constants.SOAP_SERVICE_NAME + "DeleteObject" + convertDateToString(timestamp));
-            s3SoapBinding.deleteObject(bucketName, objectKey, 
+            s3SoapBinding.deleteObject(bucketName, objectKey,
                 getAWSAccessKey(), timestamp, signature, null);
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new S3ServiceException("Unable to Delete Object: " + objectKey, e);   
-        } 
+            throw new S3ServiceException("Unable to Delete Object: " + objectKey, e);
+        }
     }
-    
+
     protected Map copyObjectImpl(String sourceBucketName, String sourceObjectKey,
         String destinationBucketName, String destinationObjectKey,
-        AccessControlList acl, Map destinationMetadata, Calendar ifModifiedSince, 
+        AccessControlList acl, Map destinationMetadata, Calendar ifModifiedSince,
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags,
-        String versionId) throws S3ServiceException 
+        String versionId) throws S3ServiceException
     {
-    	if (versionId != null) {
+        if (versionId != null) {
             throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
-    	}
+        }
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(),
                 Constants.SOAP_SERVICE_NAME + "CopyObject" + convertDateToString(timestamp));
-            
+
             MetadataDirective metadataDirective = null;
             MetadataEntry[] metadata = null;
-            
+
             if (destinationMetadata != null) {
                 metadataDirective = MetadataDirective.REPLACE;
                 metadata = convertMetadata(destinationMetadata);
             } else {
                 metadataDirective = MetadataDirective.COPY;
-            }                        
-            
+            }
+
             Grant[] grants = null;
             if (acl != null) {
                 grants = convertACLtoGrants(acl);
             }
-            
+
             CopyObjectResult result = s3SoapBinding.copyObject(
-                sourceBucketName, sourceObjectKey, destinationBucketName, 
+                sourceBucketName, sourceObjectKey, destinationBucketName,
                 destinationObjectKey, metadataDirective, metadata, grants,
                 ifModifiedSince, ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags,
                 null, getAWSAccessKey(), timestamp, signature, null);
-            
+
             Map resultMap = new HashMap();
             resultMap.put("ETag", result.getETag());
             resultMap.put("Last-Modified", result.getLastModified().getTime());
@@ -770,71 +770,71 @@ public class SoapS3Service extends S3Service {
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new S3ServiceException("Unable to Copy Object from '" + 
+            throw new S3ServiceException("Unable to Copy Object from '" +
                 sourceBucketName + ":" + sourceObjectKey + "' to '" +
-                destinationBucketName + ":" + destinationObjectKey + "'", e);   
-        } 
+                destinationBucketName + ":" + destinationObjectKey + "'", e);
+        }
     }
 
-    protected S3Object getObjectDetailsImpl(String bucketName, String objectKey, Calendar ifModifiedSince, 
-        Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags, String versionId) 
+    protected S3Object getObjectDetailsImpl(String bucketName, String objectKey, Calendar ifModifiedSince,
+        Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags, String versionId)
         throws S3ServiceException
     {
-    	if (versionId != null) {
+        if (versionId != null) {
             throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
-    	}
+        }
         return getObjectImpl(false, bucketName, objectKey, ifModifiedSince, ifUnmodifiedSince,
             ifMatchTags, ifNoneMatchTags, null, null);
     }
-    
-    protected S3Object getObjectImpl(String bucketName, String objectKey, Calendar ifModifiedSince, 
-        Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags, 
+
+    protected S3Object getObjectImpl(String bucketName, String objectKey, Calendar ifModifiedSince,
+        Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags,
         Long byteRangeStart, Long byteRangeEnd, String versionId)
-        throws S3ServiceException 
+        throws S3ServiceException
     {
-    	if (versionId != null) {
+        if (versionId != null) {
             throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
-    	}
+        }
         return getObjectImpl(true, bucketName, objectKey, ifModifiedSince, ifUnmodifiedSince,
             ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd);
-    }    
+    }
 
-    private S3Object getObjectImpl(boolean withData, String bucketName, String objectKey, 
-        Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags, 
+    private S3Object getObjectImpl(boolean withData, String bucketName, String objectKey,
+        Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
         String[] ifNoneMatchTags, Long byteRangeStart, Long byteRangeEnd)
         throws S3ServiceException
     {
-        boolean useExtendedGet = 
+        boolean useExtendedGet =
             ifModifiedSince != null || ifUnmodifiedSince != null
-            || ifMatchTags != null || ifNoneMatchTags != null 
+            || ifMatchTags != null || ifNoneMatchTags != null
             || byteRangeStart != null || byteRangeEnd != null;
-        
+
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
             GetObjectResult result = null;
-            
+
             if (useExtendedGet) {
-            	if (log.isDebugEnabled()) {
-	                log.debug("Using Extended GET to apply constraints: "
-	                    + "ifModifiedSince=" + (ifModifiedSince != null? ifModifiedSince.getTime().toString() : "null")
-	                    + ", ifUnmodifiedSince=" + (ifUnmodifiedSince != null? ifUnmodifiedSince.getTime().toString() : "null")
-	                    + ", ifMatchTags=" + (ifMatchTags != null? Arrays.asList(ifMatchTags).toString() : "null") 
-	                    + ", ifNoneMatchTags=" + (ifNoneMatchTags != null? Arrays.asList(ifNoneMatchTags).toString() : "null")
-	                    + ", byteRangeStart=" + byteRangeStart + ", byteRangeEnd=" + byteRangeEnd);
-	            }
-            	
-                String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                if (log.isDebugEnabled()) {
+                    log.debug("Using Extended GET to apply constraints: "
+                        + "ifModifiedSince=" + (ifModifiedSince != null? ifModifiedSince.getTime().toString() : "null")
+                        + ", ifUnmodifiedSince=" + (ifUnmodifiedSince != null? ifUnmodifiedSince.getTime().toString() : "null")
+                        + ", ifMatchTags=" + (ifMatchTags != null? Arrays.asList(ifMatchTags).toString() : "null")
+                        + ", ifNoneMatchTags=" + (ifNoneMatchTags != null? Arrays.asList(ifNoneMatchTags).toString() : "null")
+                        + ", byteRangeStart=" + byteRangeStart + ", byteRangeEnd=" + byteRangeEnd);
+                }
+
+                String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(),
                     Constants.SOAP_SERVICE_NAME + "GetObjectExtended" + convertDateToString(timestamp));
                 result = s3SoapBinding.getObjectExtended(
                     bucketName, objectKey, true, withData, false, byteRangeStart, byteRangeEnd,
                     ifModifiedSince, ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags,
                     Boolean.FALSE, getAWSAccessKey(), timestamp, signature, null);
-                
+
                 // Throw an exception if the preconditions failed.
                 int expectedStatusCode = 200;
                 if (byteRangeStart != null || byteRangeEnd != null) {
-                    // Partial data responses have a status code of 206. 
+                    // Partial data responses have a status code of 206.
                     expectedStatusCode = 206;
                 }
                 if (result.getStatus().getCode() != expectedStatusCode) {
@@ -842,26 +842,26 @@ public class SoapS3Service extends S3Service {
                         + objectKey + ": " + result.getStatus().getDescription());
                 }
             } else {
-            	if (log.isDebugEnabled()) {
-            		log.debug("Using standard GET (no constraints to apply)");
-            	}
-                String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+                if (log.isDebugEnabled()) {
+                	log.debug("Using standard GET (no constraints to apply)");
+                }
+                String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(),
                     Constants.SOAP_SERVICE_NAME + "GetObject" + convertDateToString(timestamp));
                 result = s3SoapBinding.getObject(
-                    bucketName, objectKey, true, withData, false,                
-                    getAWSAccessKey(), timestamp, signature, null);                
+                    bucketName, objectKey, true, withData, false,
+                    getAWSAccessKey(), timestamp, signature, null);
             }
-            
+
             S3Object object = new S3Object(objectKey);
             object.setETag(result.getETag());
             object.setLastModifiedDate(result.getLastModified().getTime());
             object.setBucketName(bucketName);
-            
+
             // Get data details from the SOAP attachment.
             if (withData) {
                 Object[] attachments = s3SoapBinding.getAttachments();
                 if (log.isDebugEnabled()) {
-                	log.debug("SOAP attachment count for " + object.getKey() + ": " + attachments.length);
+                    log.debug("SOAP attachment count for " + object.getKey() + ": " + attachments.length);
                 }
                 for (int i = 0; i < attachments.length; i++) {
                     if (i > 0) {
@@ -874,7 +874,7 @@ public class SoapS3Service extends S3Service {
                     object.setDataInputStream(part.getDataHandler().getInputStream());
                 }
             }
-            
+
             // Populate object's metadata details.
             MetadataEntry[] metadata = result.getMetadata();
             for (int i = 0; i < metadata.length; i++) {
@@ -882,75 +882,75 @@ public class SoapS3Service extends S3Service {
                 object.addMetadata(entry.getName(), entry.getValue());
             }
             object.setMetadataComplete(true);
-            
+
             return object;
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new S3ServiceException("Unable to Get Object: " + objectKey, e);   
-        } 
-    }
-
-    protected void putObjectAclImpl(String bucketName, String objectKey, AccessControlList acl,
-		String versionId) throws S3ServiceException 
-    {
-    	if (versionId != null) {
-            throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
-    	}
-        try {
-            AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
-            Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            Grant[] grants = convertACLtoGrants(acl);
-                
-            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
-                Constants.SOAP_SERVICE_NAME + "SetObjectAccessControlPolicy" + convertDateToString(timestamp));
-            s3SoapBinding.setObjectAccessControlPolicy(bucketName, objectKey, grants, 
-                getAWSAccessKey(), timestamp, signature, null);
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new S3ServiceException("Unable to Put Object ACL", e);   
+            throw new S3ServiceException("Unable to Get Object: " + objectKey, e);
         }
     }
 
-    protected void putBucketAclImpl(String bucketName, AccessControlList acl) 
-        throws S3ServiceException 
+    protected void putObjectAclImpl(String bucketName, String objectKey, AccessControlList acl,
+    	String versionId) throws S3ServiceException
+    {
+        if (versionId != null) {
+            throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
+        }
+        try {
+            AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
+            Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
+            Grant[] grants = convertACLtoGrants(acl);
+
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(),
+                Constants.SOAP_SERVICE_NAME + "SetObjectAccessControlPolicy" + convertDateToString(timestamp));
+            s3SoapBinding.setObjectAccessControlPolicy(bucketName, objectKey, grants,
+                getAWSAccessKey(), timestamp, signature, null);
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new S3ServiceException("Unable to Put Object ACL", e);
+        }
+    }
+
+    protected void putBucketAclImpl(String bucketName, AccessControlList acl)
+        throws S3ServiceException
     {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
             Grant[] grants = convertACLtoGrants(acl);
-                
-            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(),
                 Constants.SOAP_SERVICE_NAME + "SetBucketAccessControlPolicy" + convertDateToString(timestamp));
-            s3SoapBinding.setBucketAccessControlPolicy(bucketName, grants, 
+            s3SoapBinding.setBucketAccessControlPolicy(bucketName, grants,
                 getAWSAccessKey(), timestamp, signature, null);
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new S3ServiceException("Unable to Put Bucket ACL", e);   
-        }        
+            throw new S3ServiceException("Unable to Put Bucket ACL", e);
+        }
     }
 
     protected AccessControlList getObjectAclImpl(String bucketName, String objectKey,
-		String versionId) throws S3ServiceException 
-	{
-    	if (versionId != null) {
+    	String versionId) throws S3ServiceException
+    {
+        if (versionId != null) {
             throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
-    	}
+        }
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(),
                 Constants.SOAP_SERVICE_NAME + "GetObjectAccessControlPolicy" + convertDateToString(timestamp));
             AccessControlPolicy result = s3SoapBinding.getObjectAccessControlPolicy(
-                bucketName, objectKey, getAWSAccessKey(), 
+                bucketName, objectKey, getAWSAccessKey(),
                 timestamp, signature, null);
             return convertAccessControlTypes(result);
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new S3ServiceException("Unable to Get ACL", e);   
+            throw new S3ServiceException("Unable to Get ACL", e);
         }
     }
 
@@ -958,15 +958,15 @@ public class SoapS3Service extends S3Service {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(),
                 Constants.SOAP_SERVICE_NAME + "GetBucketAccessControlPolicy" + convertDateToString(timestamp));
-            AccessControlPolicy result = s3SoapBinding.getBucketAccessControlPolicy(bucketName, 
+            AccessControlPolicy result = s3SoapBinding.getBucketAccessControlPolicy(bucketName,
                 getAWSAccessKey(), timestamp, signature, null);
             return convertAccessControlTypes(result);
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new S3ServiceException("Unable to Get ACL", e);   
+            throw new S3ServiceException("Unable to Get ACL", e);
         }
     }
 
@@ -974,108 +974,108 @@ public class SoapS3Service extends S3Service {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(),
                 Constants.SOAP_SERVICE_NAME + "GetBucketLoggingStatus" + convertDateToString(timestamp));
-            
-            BucketLoggingStatus loggingStatus = s3SoapBinding.getBucketLoggingStatus(                
-                bucketName, getAWSAccessKey(), timestamp, signature, null);            
+
+            BucketLoggingStatus loggingStatus = s3SoapBinding.getBucketLoggingStatus(
+                bucketName, getAWSAccessKey(), timestamp, signature, null);
             LoggingSettings loggingSettings = loggingStatus.getLoggingEnabled();
             S3BucketLoggingStatus s3BucketLoggingStatus = null;
             if (loggingSettings != null) {
-            	s3BucketLoggingStatus = new S3BucketLoggingStatus(
-        			loggingSettings.getTargetBucket(), loggingSettings.getTargetPrefix());                
-                Grant[] grants = loggingSettings.getTargetGrants(); 
+                s3BucketLoggingStatus = new S3BucketLoggingStatus(
+            		loggingSettings.getTargetBucket(), loggingSettings.getTargetPrefix());
+                Grant[] grants = loggingSettings.getTargetGrants();
                 if (grants != null) {
-                	for (int i = 0; i < grants.length; i++) {
-    	            	Grant grant = grants[i];
-    	        		s3BucketLoggingStatus.addTargetGrant(convertGrant(grant));
-                	}
-                }            
+                    for (int i = 0; i < grants.length; i++) {
+                    	Grant grant = grants[i];
+                		s3BucketLoggingStatus.addTargetGrant(convertGrant(grant));
+                    }
+                }
             } else {
-            	s3BucketLoggingStatus = new S3BucketLoggingStatus();
+                s3BucketLoggingStatus = new S3BucketLoggingStatus();
             }
             return s3BucketLoggingStatus;
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            throw new S3ServiceException("Unable to Get Bucket logging status for " + bucketName, e);   
-        }        
+            throw new S3ServiceException("Unable to Get Bucket logging status for " + bucketName, e);
+        }
     }
 
-    protected void setBucketLoggingStatusImpl(String bucketName, S3BucketLoggingStatus status) 
-    		throws S3ServiceException {
+    protected void setBucketLoggingStatusImpl(String bucketName, S3BucketLoggingStatus status)
+        	throws S3ServiceException {
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();
             Calendar timestamp = getTimeStamp( System.currentTimeMillis() );
-            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(), 
+            String signature = ServiceUtils.signWithHmacSha1(getAWSSecretKey(),
                 Constants.SOAP_SERVICE_NAME + "SetBucketLoggingStatus" + convertDateToString(timestamp));
-            
+
             LoggingSettings loggingSettings = null;
             if (status.isLoggingEnabled()) {
                 loggingSettings = new LoggingSettings(
-                    status.getTargetBucketName(), status.getLogfilePrefix(), new Grant[] {});                
+                    status.getTargetBucketName(), status.getLogfilePrefix(), new Grant[] {});
                 if (status.getTargetGrants() != null) {
-                	ArrayList grantsList = new ArrayList();
-                	for (int i = 0; i < status.getTargetGrants().length; i++) {
-                		GrantAndPermission grantAndPermission = status.getTargetGrants()[i];
-                		grantsList.add(convertGrantAndPermissionToGrant(grantAndPermission));
-                	}
-                	loggingSettings.setTargetGrants(
-            			(Grant[]) grantsList.toArray(new Grant[grantsList.size()]));
+                    ArrayList grantsList = new ArrayList();
+                    for (int i = 0; i < status.getTargetGrants().length; i++) {
+                    	GrantAndPermission grantAndPermission = status.getTargetGrants()[i];
+                    	grantsList.add(convertGrantAndPermissionToGrant(grantAndPermission));
+                    }
+                    loggingSettings.setTargetGrants(
+                		(Grant[]) grantsList.toArray(new Grant[grantsList.size()]));
                 }
             }
             s3SoapBinding.setBucketLoggingStatus(
-                bucketName, getAWSAccessKey(), timestamp, signature, null, 
-                new BucketLoggingStatus(loggingSettings)); 
+                bucketName, getAWSAccessKey(), timestamp, signature, null,
+                new BucketLoggingStatus(loggingSettings));
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
             throw new S3ServiceException("Unable to Set Bucket logging status for " + bucketName
-                + ": " + status, e);   
-        }        
+                + ": " + status, e);
+        }
     }
 
     protected boolean isRequesterPaysBucketImpl(String bucketName) throws S3ServiceException {
         throw new S3ServiceException("The SOAP API interface for S3 does not allow " +
             "you to retrieve request payment configuration settings for a bucket, " +
-            "please use the REST API client class RestS3Service instead");    
+            "please use the REST API client class RestS3Service instead");
     }
 
     protected void setRequesterPaysBucketImpl(String bucketName, boolean requesterPays) throws S3ServiceException {
         throw new S3ServiceException("The SOAP API interface for S3 does not allow " +
             "you to set a bucket's request payment configuration settings, " +
-            "please use the REST API client class RestS3Service instead");        
+            "please use the REST API client class RestS3Service instead");
     }
 
-	protected S3BucketVersioningStatus getBucketVersioningStatusImpl(String bucketName)
-			throws S3ServiceException 
-	{
+    protected S3BucketVersioningStatus getBucketVersioningStatusImpl(String bucketName)
+    		throws S3ServiceException
+    {
         throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
-	}
+    }
 
-	protected VersionOrDeleteMarkersChunk listVersionedObjectsChunkedImpl(
-			String bucketName, String prefix, String delimiter,
-			long maxListingLength, String priorLastKey,
-			String priorLastVersion, boolean completeListing)
-			throws S3ServiceException 
-	{
+    protected VersionOrDeleteMarkersChunk listVersionedObjectsChunkedImpl(
+    		String bucketName, String prefix, String delimiter,
+    		long maxListingLength, String priorLastKey,
+    		String priorLastVersion, boolean completeListing)
+    		throws S3ServiceException
+    {
         throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
-	}
+    }
 
-	protected BaseVersionOrDeleteMarker[] listVersionedObjectsImpl(
-			String bucketName, String prefix, String delimiter,
-			String keyMarker, String versionMarker, long maxListingLength)
-			throws S3ServiceException 
-	{
+    protected BaseVersionOrDeleteMarker[] listVersionedObjectsImpl(
+    		String bucketName, String prefix, String delimiter,
+    		String keyMarker, String versionMarker, long maxListingLength)
+    		throws S3ServiceException
+    {
         throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
-	}
+    }
 
-	protected void updateBucketVersioningStatusImpl(String bucketName,
-			boolean enabled, boolean multiFactorAuthDeleteEnabled,
-			String multiFactorSerialNumber, String multiFactorAuthCode)
-			throws S3ServiceException 
-	{
+    protected void updateBucketVersioningStatusImpl(String bucketName,
+    		boolean enabled, boolean multiFactorAuthDeleteEnabled,
+    		String multiFactorSerialNumber, String multiFactorAuthCode)
+    		throws S3ServiceException
+    {
         throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
-	}
+    }
 
 }

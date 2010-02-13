@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2006 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.apps.synchronize;
 
@@ -62,22 +62,22 @@ import org.jets3t.service.utils.FileComparer.PartialObjectListing;
 
 /**
  * Console application to synchronize the local file system with Amazon S3.
- * For more information and help please see the 
+ * For more information and help please see the
  * <a href="http://jets3t.s3.amazonaws.com/applications/synchronize.html">Synchronize Guide</a>.
- * 
+ *
  * @author James Murty
  */
 public class Synchronize {
     public static final String APPLICATION_DESCRIPTION = "Synchronize/0.7.3";
-    
+
     protected static final int REPORT_LEVEL_NONE = 0;
     protected static final int REPORT_LEVEL_ACTIONS = 1;
     protected static final int REPORT_LEVEL_DIFFERENCES = 2;
     protected static final int REPORT_LEVEL_ALL = 3;
-    
+
     private S3Service s3Service = null;
-    
-    private boolean doAction = false; // Files will only be transferred if true. 
+
+    private boolean doAction = false; // Files will only be transferred if true.
     private boolean isQuiet = false; // Report will only include summary of actions if true.
     private boolean isNoProgress = false; // Progress messages are not displayed if true.
     private boolean isForce = false; // Files will be overwritten when unchanged if true.
@@ -97,57 +97,57 @@ public class Synchronize {
     private FileComparer fileComparer = null;
     private int maxTemporaryStringLength = 0;
     private Map customMetadata = new HashMap();
-    
-    // Hacky variables to track progress of batched uploads for transformed files. 
+
+    // Hacky variables to track progress of batched uploads for transformed files.
     private long partialUploadObjectsTotal = -1;
     private long partialUploadObjectsProgressCount = 0;
 
-    
+
     /**
      * Constructs the application with a pre-initialised S3Service and the user-specified options.
-     * 
-     * @param s3Service     
+     *
+     * @param s3Service
      * a pre-initialised S3Service (including AWS Authorization credentials)
      * @param doAction
      * Files will only be transferred if true.
-     * @param isQuiet       
+     * @param isQuiet
      * Report will only include summary of actions if true.
-     * @param isForce       
+     * @param isForce
      * Files will be overwritten when unchanged if true.
-     * @param isKeepFiles     
+     * @param isKeepFiles
      * Files will not be replaced/deleted if true.
      * @param isMoveEnabled
-     * If true, items will be moved rather than just copied. Files will be 
+     * If true, items will be moved rather than just copied. Files will be
      * deleted after they have been uploaded, and S3 objects will be deleted
      * after they have been downloaded.
      * @param isBatchMode
      * If true, uploads or downloads will proceed in batches rather than all at
-     * once. This mode is useful for large buckets where listing all the 
+     * once. This mode is useful for large buckets where listing all the
      * objects and their details at once may consume a large amount of time
      * and memory.
      * @param isSkipMetadata
-     * If true, no metadata information about objects will be downloaded from 
+     * If true, no metadata information about objects will be downloaded from
      * S3. This will make the synchronize process faster, but it will also
      * reduce the amount of information Synchronize will have to make decisions.
-     * @param isNoDelete     
+     * @param isNoDelete
      * Files will not be deleted if true, but may be replaced.
-     * @param isGzipEnabled 
+     * @param isGzipEnabled
      * Files will be gzipped prior to upload if true.
-     * @param isEncryptionEnabled   
+     * @param isEncryptionEnabled
      * Files will be encrypted prior to upload if true.
      * @param reportLevel
      * The level or amount of reporting to perform. The default value is
      * {@link #REPORT_LEVEL_ALL}.
      * @param properties
-     * The configuration properties that will be used by this instance. 
+     * The configuration properties that will be used by this instance.
      */
-    public Synchronize(S3Service s3Service, boolean doAction, boolean isQuiet, 
-        boolean isNoProgress, boolean isForce, boolean isKeepFiles, 
+    public Synchronize(S3Service s3Service, boolean doAction, boolean isQuiet,
+        boolean isNoProgress, boolean isForce, boolean isKeepFiles,
         boolean isNoDelete, boolean isMoveEnabled, boolean isBatchMode,
-        boolean isSkipMetadata, boolean isGzipEnabled, boolean isEncryptionEnabled, 
-        int reportLevel, Jets3tProperties properties) 
+        boolean isSkipMetadata, boolean isGzipEnabled, boolean isEncryptionEnabled,
+        int reportLevel, Jets3tProperties properties)
     {
-        this.s3Service = s3Service;        
+        this.s3Service = s3Service;
         this.doAction = doAction;
         this.isQuiet = isQuiet;
         this.isNoProgress = isNoProgress;
@@ -162,32 +162,32 @@ public class Synchronize {
         this.reportLevel = reportLevel;
         this.properties = properties;
         this.fileComparer = FileComparer.getInstance(properties);
-        
+
         // Find any custom metadata items specified in property files
-        Iterator myPropertiesIter = 
-        	this.properties.getProperties().entrySet().iterator();
+        Iterator myPropertiesIter =
+            this.properties.getProperties().entrySet().iterator();
         while (myPropertiesIter.hasNext()) {
-        	Entry entry = (Entry) myPropertiesIter.next();
-        	String keyName = entry.getKey().toString().toLowerCase();        	
-        	if (entry.getKey() != null 
-    			&& keyName.startsWith("upload.metadata."))
-        	{
-        		String metadataName = entry.getKey().toString()
-        			.substring("upload.metadata.".length());
-        		String metadataValue = entry.getValue().toString();
-        		this.customMetadata.put(metadataName, metadataValue);
-        	}
-        }        
+            Entry entry = (Entry) myPropertiesIter.next();
+            String keyName = entry.getKey().toString().toLowerCase();
+            if (entry.getKey() != null
+        		&& keyName.startsWith("upload.metadata."))
+            {
+            	String metadataName = entry.getKey().toString()
+            		.substring("upload.metadata.".length());
+            	String metadataValue = entry.getValue().toString();
+            	this.customMetadata.put(metadataName, metadataValue);
+            }
+        }
     }
-    
+
 
     /**
-     * Prepares a file to be uploaded to S3, creating an S3Object with the 
+     * Prepares a file to be uploaded to S3, creating an S3Object with the
      * appropriate key and with some jets3t-specific metadata items set.
-     * 
+     *
      * @throws Exception
      */
-    
+
     class LazyPreparedUploadObject {
         private String targetKey;
         private File file;
@@ -195,7 +195,7 @@ public class Synchronize {
         private EncryptionUtil encryptionUtil;
 
         /**
-         * @param bucket    the bucket to create the object in 
+         * @param bucket    the bucket to create the object in
          * @param targetKey the key name for the object
          * @param file      the file to upload to S3
          * @param aclString the ACL to apply to the uploaded object
@@ -206,28 +206,28 @@ public class Synchronize {
             this.aclString = aclString;
             this.encryptionUtil = encryptionUtil;
         }
-        
-        public S3Object prepareUploadObject() throws Exception {        
+
+        public S3Object prepareUploadObject() throws Exception {
             S3Object newObject = ObjectUtils
                 .createObjectForUpload(targetKey, file, encryptionUtil, isGzipEnabled, null);
-    
+
             if ("PUBLIC_READ".equalsIgnoreCase(aclString)) {
-                newObject.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ);                        
+                newObject.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ);
             } else if ("PUBLIC_READ_WRITE".equalsIgnoreCase(aclString)) {
-                newObject.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ_WRITE);            
+                newObject.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ_WRITE);
             } else if ("PRIVATE".equalsIgnoreCase(aclString)) {
                 // Private is the default, no need to add an ACL
             } else {
                 throw new Exception("Invalid value for ACL string: " + aclString);
             }
-            
+
             // Apply custom metadata items to upload object.
             newObject.addAllMetadata(customMetadata);
-            
+
             return newObject;
         }
     }
-    
+
 
     private String formatTransferDetails(ThreadWatcher watcher) {
         String detailsText = "";
@@ -243,12 +243,12 @@ public class Synchronize {
         }
         return detailsText;
     }
-    
+
     private void printOutputLine(String line, int level) {
         if ((isQuiet && level > REPORT_LEVEL_NONE) || reportLevel < level) {
             return;
         }
-        
+
         String blanks = "";
         for (int i = line.length(); i < maxTemporaryStringLength; i++) {
             blanks += " ";
@@ -256,10 +256,10 @@ public class Synchronize {
         System.out.println(line + blanks);
         maxTemporaryStringLength = 0;
     }
-    
+
     /**
      * Prints text to StdOut provided the isQuiet flag is not set.
-     * 
+     *
      * @param line the text to print
      * @param isProgressMessage
      * if true, the line is printed followed by a carriage return such
@@ -269,8 +269,8 @@ public class Synchronize {
         if (isQuiet || isNoProgress) {
             return;
         }
-        
-        String temporaryLine = "  " + line;                
+
+        String temporaryLine = "  " + line;
         if (temporaryLine.length() > maxTemporaryStringLength) {
             maxTemporaryStringLength = temporaryLine.length();
         }
@@ -280,7 +280,7 @@ public class Synchronize {
         }
         System.out.print(temporaryLine + blanks + "\r");
     }
-    
+
     /**
      * Copies the contents of a local directory to S3, storing them in the given root path.
      * <p>
@@ -303,19 +303,19 @@ public class Synchronize {
      * <li>The local file's last-modified date, as {@link Constants#METADATA_JETS3T_LOCAL_FILE_DATE}</li>
      * <li>An MD5 hash of file data, as {@link S3Object#METADATA_HEADER_HASH_MD5}</li>
      * </ul>
-     * 
-     * @param filesMap      a map of the local <code>File</code>s with '/'-delimited file paths as keys 
+     *
+     * @param filesMap      a map of the local <code>File</code>s with '/'-delimited file paths as keys
      * @param bucket        the bucket to put the objects in (will be created if necessary)
      * @param rootObjectPath    the root path where objects are put (will be created if necessary)
      * @param aclString     the ACL to apply to the uploaded object
      * @param progressWatcher a class that reports on the progress of this method
-     * 
+     *
      * @throws Exception
      */
-    public void uploadLocalDirectoryToS3(Map filesMap, S3Bucket bucket, 
+    public void uploadLocalDirectoryToS3(Map filesMap, S3Bucket bucket,
         String rootObjectPath, String aclString,
-        BytesProgressWatcher progressWatcher) throws Exception 
-    {        
+        BytesProgressWatcher progressWatcher) throws Exception
+    {
         FileComparerResults mergedDiscrepancyResults = new FileComparerResults();
         String priorLastKey = null;
         String lastFileKeypathChecked = "";
@@ -327,19 +327,19 @@ public class Synchronize {
                 .getStringProperty("crypto.algorithm", "PBEWithMD5AndDES");
             encryptionUtil = new EncryptionUtil(cryptoPassword, algorithm, EncryptionUtil.DEFAULT_VERSION);
         }
-        
+
         // Repeat upload actions until all objects in bucket have been listed.
         do {
             // List objects in S3. Listing may be complete, or partial.
-            printProgressLine("Listing objects in S3" 
-                + (isBatchMode ? " (Batch mode. Objects listed so far: " 
-                    + totalObjectsListed + ")" : ""));        
-            
+            printProgressLine("Listing objects in S3"
+                + (isBatchMode ? " (Batch mode. Objects listed so far: "
+                    + totalObjectsListed + ")" : ""));
+
             PartialObjectListing partialListing = fileComparer.buildS3ObjectMapPartial(
                 s3Service, bucket, rootObjectPath, priorLastKey, !isBatchMode,
-                isSkipMetadata, serviceEventAdaptor);            
+                isSkipMetadata, serviceEventAdaptor);
             if (serviceEventAdaptor.wasErrorThrown()) {
-                throw new Exception("Unable to build map of S3 Objects", 
+                throw new Exception("Unable to build map of S3 Objects",
                     serviceEventAdaptor.getErrorThrown());
             }
 
@@ -347,35 +347,35 @@ public class Synchronize {
             priorLastKey = partialListing.getPriorLastKey();
             Map s3ObjectsMap = partialListing.getObjectsMap();
             totalObjectsListed += partialListing.getObjectsMap().size();
-            
+
             ArrayList sortedS3ObjectKeys = new ArrayList(s3ObjectsMap.keySet());
             Collections.sort(sortedS3ObjectKeys);
-    
+
             // Compare the listed objects with the local sytem.
-            printProgressLine("Comparing S3 contents with local system");        
+            printProgressLine("Comparing S3 contents with local system");
             FileComparerResults discrepancyResults = fileComparer.buildDiscrepancyLists(
                 filesMap, s3ObjectsMap, progressWatcher);
 
             // Merge S3 objects and discrepancies to track overall changes.
             mergedDiscrepancyResults.merge(discrepancyResults);
-                       
+
             // Sort upload file candidates by path.
             ArrayList sortedFilesKeys = new ArrayList(filesMap.keySet());
             Collections.sort(sortedFilesKeys);
-            
+
             List objectsToUpload = new ArrayList();
-            
+
             // Iterate through local files and perform the necessary action to synchronise them with S3.
             Iterator fileKeyIter = sortedFilesKeys.iterator();
             while (fileKeyIter.hasNext()) {
                 String relativeKeyPath = (String) fileKeyIter.next();
-                
+
                 String targetKey = relativeKeyPath;
                 if (rootObjectPath.length() > 0) {
                     if (rootObjectPath.endsWith(Constants.FILE_PATH_DELIM)) {
-                        targetKey = rootObjectPath + targetKey;                         
+                        targetKey = rootObjectPath + targetKey;
                     } else {
-                        targetKey = rootObjectPath + Constants.FILE_PATH_DELIM + targetKey;                         
+                        targetKey = rootObjectPath + Constants.FILE_PATH_DELIM + targetKey;
                     }
                 }
 
@@ -384,7 +384,7 @@ public class Synchronize {
                         // We do not yet have the S3 object listing to compare this file.
                         continue;
                     }
-                    
+
                     if (targetKey.compareTo(lastFileKeypathChecked) <= 0) {
                         // We have already handled this file in a prior batch.
                         continue;
@@ -392,9 +392,9 @@ public class Synchronize {
                         lastFileKeypathChecked = targetKey;
                     }
                 }
-                
+
                 File file = (File) filesMap.get(relativeKeyPath);
-                    
+
                 if (discrepancyResults.onlyOnClientKeys.contains(relativeKeyPath)) {
                     printOutputLine("N " + targetKey, REPORT_LEVEL_ACTIONS);
                     objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
@@ -411,24 +411,24 @@ public class Synchronize {
                 } else if (discrepancyResults.updatedOnServerKeys.contains(relativeKeyPath)) {
                     // This file has been updated on the server-side.
                     if (isKeepFiles) {
-                        printOutputLine("r " + targetKey, REPORT_LEVEL_DIFFERENCES);                    
+                        printOutputLine("r " + targetKey, REPORT_LEVEL_DIFFERENCES);
                     } else {
                         printOutputLine("R " + targetKey, REPORT_LEVEL_ACTIONS);
                         objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
                     }
                 } else {
                     // Uh oh, program error here. The safest thing to do is abort!
-                    throw new SynchronizeException("Invalid discrepancy comparison details for file " 
-                        + file.getPath() 
+                    throw new SynchronizeException("Invalid discrepancy comparison details for file "
+                        + file.getPath()
                         + ". Sorry, this is a program error - aborting to keep your data safe");
                 }
             }
 
-            int uploadBatchSize = objectsToUpload.size();            
-            if ((isEncryptionEnabled || isGzipEnabled) 
-                && properties.containsKey("upload.transformed-files-batch-size")) 
+            int uploadBatchSize = objectsToUpload.size();
+            if ((isEncryptionEnabled || isGzipEnabled)
+                && properties.containsKey("upload.transformed-files-batch-size"))
             {
-                // Limit uploads to small batches in batch mode -- based on the 
+                // Limit uploads to small batches in batch mode -- based on the
                 // number of upload threads that are available.
                 uploadBatchSize = properties.getIntProperty("upload.transformed-files-batch-size", 1000);
                 partialUploadObjectsTotal = objectsToUpload.size();
@@ -436,19 +436,19 @@ public class Synchronize {
             } else {
                 partialUploadObjectsTotal = -1;
             }
-            
+
             // Upload New/Updated/Forced/Replaced objects to S3.
             while (doAction && objectsToUpload.size() > 0) {
                 S3Object[] objects = null;
                 if (uploadBatchSize > objectsToUpload.size()) {
                     objects = new S3Object[objectsToUpload.size()];
                 } else {
-                    objects = new S3Object[uploadBatchSize];                    
+                    objects = new S3Object[uploadBatchSize];
                 }
 
                 // Invoke lazy upload object creator.
                 for (int i = 0; i < objects.length; i++) {
-                    LazyPreparedUploadObject lazyObj = 
+                    LazyPreparedUploadObject lazyObj =
                         (LazyPreparedUploadObject) objectsToUpload.remove(0);
                     objects[i] = lazyObj.prepareUploadObject();
                 }
@@ -465,7 +465,7 @@ public class Synchronize {
                 partialUploadObjectsProgressCount += objects.length;
             }
         } while (priorLastKey != null);
-        
+
         // Delete objects on S3 that don't correspond with local files.
         List objectsToDelete = new ArrayList();
         Iterator serverOnlyIter = mergedDiscrepancyResults.onlyOnServerKeys.iterator();
@@ -477,15 +477,15 @@ public class Synchronize {
             String targetKey = relativeKeyPath;
             if (rootObjectPath.length() > 0) {
                 if (rootObjectPath.endsWith(Constants.FILE_PATH_DELIM)) {
-                    targetKey = rootObjectPath + targetKey;                         
+                    targetKey = rootObjectPath + targetKey;
                 } else {
-                    targetKey = rootObjectPath + Constants.FILE_PATH_DELIM + targetKey;                         
+                    targetKey = rootObjectPath + Constants.FILE_PATH_DELIM + targetKey;
                 }
             }
             S3Object s3Object = new S3Object(targetKey);
-                        
+
             if (isKeepFiles || isNoDelete) {
-                printOutputLine("d " + relativeKeyPath, REPORT_LEVEL_DIFFERENCES);                
+                printOutputLine("d " + relativeKeyPath, REPORT_LEVEL_DIFFERENCES);
             } else {
                 printOutputLine("D " + relativeKeyPath, REPORT_LEVEL_ACTIONS);
                 if (doAction) {
@@ -505,7 +505,7 @@ public class Synchronize {
                 }
             }
         }
-        
+
         // Delete local files that have been moved to S3.
         List filesMoved = new ArrayList();
         if (isMoveEnabled) {
@@ -513,17 +513,17 @@ public class Synchronize {
             filesMoved.addAll(mergedDiscrepancyResults.updatedOnClientKeys);
             filesMoved.addAll(mergedDiscrepancyResults.updatedOnServerKeys);
             filesMoved.addAll(mergedDiscrepancyResults.alreadySynchronisedKeys);
-            
+
             ArrayList dirsToDelete = new ArrayList();
             Iterator filesMovedIter = filesMoved.iterator();
             while (filesMovedIter.hasNext()) {
                 String keyPath = (String) filesMovedIter.next();
                 File file = (File) filesMap.get(keyPath);
-                
+
                 printOutputLine("M " + keyPath, REPORT_LEVEL_ACTIONS);
                 if (doAction) {
                     if (file.isDirectory()) {
-                        // Delete directories later, as they may still contain 
+                        // Delete directories later, as they may still contain
                         // files until this loop completes.
                         dirsToDelete.add(file);
                     } else {
@@ -535,16 +535,16 @@ public class Synchronize {
             while (dirIter.hasNext()) {
                 File dir = (File) dirIter.next();
                 dir.delete();
-            }            
+            }
         }
-        
-        printOutputLine( 
+
+        printOutputLine(
             "New files: " + mergedDiscrepancyResults.onlyOnClientKeys.size() +
             ", Updated: " + mergedDiscrepancyResults.updatedOnClientKeys.size() +
             (isKeepFiles?
-                ", Kept: " + 
-                (mergedDiscrepancyResults.updatedOnServerKeys.size())                    
-                :                 
+                ", Kept: " +
+                (mergedDiscrepancyResults.updatedOnServerKeys.size())
+                :
                 ", Reverted: " + mergedDiscrepancyResults.updatedOnServerKeys.size()
                 ) +
             (isNoDelete || isKeepFiles?
@@ -562,7 +562,7 @@ public class Synchronize {
                 ), REPORT_LEVEL_NONE
             );
     }
-        
+
     /**
      * Copies the contents of a root path in S3 to the local file system.
      * <p>
@@ -570,26 +570,26 @@ public class Synchronize {
      * local target, and files are transferred based on these comparisons and options set by the user.
      * <p>
      * If an object is gzipped (according to its Content-Type) and the gzip option is set, the object
-     * is inflated. If an object is encrypted (according to the metadata item 
-     * {@link Constants#METADATA_JETS3T_CRYPTO_ALGORITHM}) and the crypt option is set, the object 
-     * is decrypted. If encrypted and/or gzipped objects are restored without the corresponding option 
+     * is inflated. If an object is encrypted (according to the metadata item
+     * {@link Constants#METADATA_JETS3T_CRYPTO_ALGORITHM}) and the crypt option is set, the object
+     * is decrypted. If encrypted and/or gzipped objects are restored without the corresponding option
      * being set, the user will be responsible for inflating or decrypting the data.
      * <p>
-     * <b>Note</b>: If a file was backed-up with both encryption and gzip options it cannot be 
+     * <b>Note</b>: If a file was backed-up with both encryption and gzip options it cannot be
      * restored with only the gzip option set, as files are gzipped prior to being encrypted and cannot
      * be inflated without first being decrypted.
-     * 
-     * @param filesMap      a map of the local <code>File</code>s with '/'-delimited file paths as keys 
+     *
+     * @param filesMap      a map of the local <code>File</code>s with '/'-delimited file paths as keys
      * @param rootObjectPath    the root path in S3 where backed-up objects were stored
      * @param localDirectory the directory to which the S3 objects will be restored
      * @param bucket        the bucket into which files were backed up
      * @param progressWatcher a class that reports on the progress of this method
-     * 
+     *
      * @throws Exception
      */
-    public void restoreFromS3ToLocalDirectory(Map filesMap, String rootObjectPath, 
+    public void restoreFromS3ToLocalDirectory(Map filesMap, String rootObjectPath,
         File localDirectory, S3Bucket bucket,
-        BytesProgressWatcher progressWatcher) throws Exception 
+        BytesProgressWatcher progressWatcher) throws Exception
     {
         FileComparerResults mergedDiscrepancyResults = new FileComparerResults();
         String priorLastKey = null;
@@ -598,36 +598,36 @@ public class Synchronize {
         // Repeat download actions until all objects in bucket have been listed.
         do {
             // List objects in S3. Listing may be complete, or partial.
-            printProgressLine("Listing objects in S3" 
-                + (isBatchMode ? " (Batch mode. Already listed: " 
-                    + totalObjectsListed + ")" : ""));        
-            
+            printProgressLine("Listing objects in S3"
+                + (isBatchMode ? " (Batch mode. Already listed: "
+                    + totalObjectsListed + ")" : ""));
+
             PartialObjectListing partialListing = fileComparer.buildS3ObjectMapPartial(
                 s3Service, bucket, rootObjectPath, priorLastKey, !isBatchMode,
-                isSkipMetadata, serviceEventAdaptor);        
+                isSkipMetadata, serviceEventAdaptor);
             if (serviceEventAdaptor.wasErrorThrown()) {
-                throw new Exception("Unable to build map of S3 Objects", 
+                throw new Exception("Unable to build map of S3 Objects",
                     serviceEventAdaptor.getErrorThrown());
             }
-            
+
             // Retrieve details from listing.
             priorLastKey = partialListing.getPriorLastKey();
             Map s3ObjectsMap = partialListing.getObjectsMap();
             totalObjectsListed += partialListing.getObjectsMap().size();
-            
+
             ArrayList sortedS3ObjectKeys = new ArrayList(s3ObjectsMap.keySet());
             Collections.sort(sortedS3ObjectKeys);
-    
+
             // Compare the listed objects with the local sytem.
-            printProgressLine("Comparing S3 contents with local system");        
+            printProgressLine("Comparing S3 contents with local system");
             FileComparerResults discrepancyResults = fileComparer.buildDiscrepancyLists(
                 filesMap, s3ObjectsMap, progressWatcher);
-            
+
             // Merge S3 objects and discrepancies to track overall changes.
             mergedDiscrepancyResults.merge(discrepancyResults);
-        
+
             // Download objects to local files/directories.
-            List downloadPackagesList = new ArrayList();            
+            List downloadPackagesList = new ArrayList();
             Iterator s3KeyIter = sortedS3ObjectKeys.iterator();
             while (s3KeyIter.hasNext()) {
                 String keyPath = (String) s3KeyIter.next();
@@ -639,16 +639,16 @@ public class Synchronize {
                 if (!s3Object.isMetadataComplete() && s3Object.getContentLength() == 0) {
                     continue;
                 }
-                
+
                 File fileTarget = new File(localDirectory, keyPath);
-                
+
                 // Create local directories corresponding to objects flagged as dirs.
                 if (Mimetypes.MIMETYPE_JETS3T_DIRECTORY.equals(s3Object.getContentType())) {
                     if (doAction) {
-                        fileTarget.mkdirs();                    
+                        fileTarget.mkdirs();
                     }
-                }           
-                                
+                }
+
                 if (discrepancyResults.onlyOnServerKeys.contains(keyPath)) {
                     printOutputLine("N " + keyPath, REPORT_LEVEL_ACTIONS);
                     DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
@@ -677,7 +677,7 @@ public class Synchronize {
                 } else if (discrepancyResults.updatedOnClientKeys.contains(keyPath)) {
                     // This file has been updated on the client-side.
                     if (isKeepFiles) {
-                        printOutputLine("r " + keyPath, REPORT_LEVEL_DIFFERENCES);                    
+                        printOutputLine("r " + keyPath, REPORT_LEVEL_DIFFERENCES);
                     } else {
                         printOutputLine("R " + keyPath, REPORT_LEVEL_ACTIONS);
                         DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
@@ -688,15 +688,15 @@ public class Synchronize {
                     }
                 } else {
                     // Uh oh, program error here. The safest thing to do is abort!
-                    throw new SynchronizeException("Invalid discrepancy comparison details for S3 object " 
+                    throw new SynchronizeException("Invalid discrepancy comparison details for S3 object "
                         + keyPath
                         + ". Sorry, this is a program error - aborting to keep your data safe");
                 }
             }
-            
+
             // Download New/Updated/Forced/Replaced objects from S3.
             if (doAction && downloadPackagesList.size() > 0) {
-                DownloadPackage[] downloadPackages = (DownloadPackage[]) 
+                DownloadPackage[] downloadPackages = (DownloadPackage[])
                     downloadPackagesList.toArray(new DownloadPackage[downloadPackagesList.size()]);
                 (new S3ServiceMulti(s3Service, serviceEventAdaptor)).downloadObjects(bucket, downloadPackages);
                 if (serviceEventAdaptor.wasErrorThrown()) {
@@ -708,7 +708,7 @@ public class Synchronize {
                     }
                 }
             }
-        } while (priorLastKey != null);                        
+        } while (priorLastKey != null);
 
         // Delete local files that don't correspond with S3 objects.
         ArrayList dirsToDelete = new ArrayList();
@@ -716,14 +716,14 @@ public class Synchronize {
         while (clientOnlyIter.hasNext()) {
             String keyPath = (String) clientOnlyIter.next();
             File file = (File) filesMap.get(keyPath);
-            
+
             if (isKeepFiles || isNoDelete) {
-                printOutputLine("d " + keyPath, REPORT_LEVEL_DIFFERENCES);                
+                printOutputLine("d " + keyPath, REPORT_LEVEL_DIFFERENCES);
             } else {
                 printOutputLine("D " + keyPath, REPORT_LEVEL_ACTIONS);
                 if (doAction) {
                     if (file.isDirectory()) {
-                        // Delete directories later, as they may still have files 
+                        // Delete directories later, as they may still have files
                         // inside until this loop completes.
                         dirsToDelete.add(file);
                     } else {
@@ -737,7 +737,7 @@ public class Synchronize {
             File dir = (File) dirIter.next();
             dir.delete();
         }
-        
+
         // Delete objects in S3 that have been moved to the local computer.
         List objectsMoved = new ArrayList();
         if (isMoveEnabled) {
@@ -746,20 +746,20 @@ public class Synchronize {
             objectsMoved.addAll(mergedDiscrepancyResults.updatedOnClientKeys);
             objectsMoved.addAll(mergedDiscrepancyResults.alreadySynchronisedKeys);
             Collections.sort(objectsMoved);
-            
+
             Iterator objectsMovedIter = objectsMoved.iterator();
-            
+
             List objectsToDelete = new ArrayList();
             while (objectsMovedIter.hasNext()) {
                 String keyPath = (String) objectsMovedIter.next();
-                S3Object s3Object = new S3Object(keyPath); 
+                S3Object s3Object = new S3Object(keyPath);
 
                 printOutputLine("M " + keyPath, REPORT_LEVEL_ACTIONS);
                 if (doAction) {
                     objectsToDelete.add(s3Object);
                 }
             }
-            
+
             if (objectsToDelete.size() > 0) {
                 S3Object[] objects = (S3Object[]) objectsToDelete.toArray(new S3Object[objectsToDelete.size()]);
                 (new S3ServiceMulti(s3Service, serviceEventAdaptor)).deleteObjects(bucket, objects);
@@ -772,15 +772,15 @@ public class Synchronize {
                     }
                 }
             }
-        }        
-        
-        printOutputLine( 
+        }
+
+        printOutputLine(
             "New files: " + mergedDiscrepancyResults.onlyOnServerKeys.size() +
             ", Updated: " + mergedDiscrepancyResults.updatedOnServerKeys.size() +
-            (isKeepFiles? 
-                ", Kept: " + 
-                (mergedDiscrepancyResults.updatedOnClientKeys.size())                    
-                : 
+            (isKeepFiles?
+                ", Kept: " +
+                (mergedDiscrepancyResults.updatedOnClientKeys.size())
+                :
                 ", Reverted: " + mergedDiscrepancyResults.updatedOnClientKeys.size()
                 ) +
             (isNoDelete || isKeepFiles?
@@ -798,46 +798,46 @@ public class Synchronize {
                 ), REPORT_LEVEL_NONE
             );
     }
-    
+
     /**
      * Runs the application, performing the action specified on the given S3 and local directory paths.
-     * 
-     * @param s3Path    
+     *
+     * @param s3Path
      * the path in S3 (including the bucket name) to which files are backed-up, or from which files are restored.
      * @param fileList
      * a list one or more of File objects for Uploads, or a single target directory for Downloads.
-     * @param actionCommand     
+     * @param actionCommand
      * the action to perform, UP(load) or DOWN(load)
-     * @param cryptoPassword      
+     * @param cryptoPassword
      * if non-null, an {@link EncryptionUtil} object is created with the provided password to encrypt or decrypt files.
-     * @param aclString 
+     * @param aclString
      * the ACL to apply to the uploaded object
-     * 
+     *
      * @throws Exception
      */
-    public void run(String s3Path, List fileList, String actionCommand, String cryptoPassword, 
-        String aclString) throws Exception 
+    public void run(String s3Path, List fileList, String actionCommand, String cryptoPassword,
+        String aclString) throws Exception
     {
         String bucketName = null;
-        String objectPath = "";        
+        String objectPath = "";
         int slashIndex = s3Path.indexOf(Constants.FILE_PATH_DELIM);
         if (slashIndex >= 0) {
-            // We have a bucket name and an object path. 
+            // We have a bucket name and an object path.
             bucketName = s3Path.substring(0, slashIndex);
             objectPath = s3Path.substring(slashIndex + 1, s3Path.length());
         } else {
             // We only have a bucket name.
             bucketName = s3Path;
         }
-        
+
         // Describe the action that will be performed.
         if ("UP".equals(actionCommand)) {
             String uploadPathSummary = null;
-            
-            if (fileList.size() > 3) {            
+
+            if (fileList.size() > 3) {
                 int dirsCount = 0;
                 int filesCount = 0;
-                
+
                 Iterator pathIter = fileList.iterator();
                 while (pathIter.hasNext()) {
                     File path = (File) pathIter.next();
@@ -847,17 +847,17 @@ public class Synchronize {
                         filesCount++;
                     }
                 }
-                uploadPathSummary =  
-                    "[" 
+                uploadPathSummary =
+                    "["
                     + dirsCount + (dirsCount == 1 ? " directory" : " directories")
                     + ", " + filesCount + (filesCount == 1 ? " file" : " files") + "]";
             } else {
                 uploadPathSummary = fileList.toString();
             }
-            
+
             printOutputLine("UP "
                 + (doAction ? "" : "[No Action] ")
-                + "Local " + uploadPathSummary + " => S3[" + s3Path + "]", REPORT_LEVEL_NONE);              
+                + "Local " + uploadPathSummary + " => S3[" + s3Path + "]", REPORT_LEVEL_NONE);
         } else if ("DOWN".equals(actionCommand)) {
             if (fileList.size() != 1) {
                 throw new SynchronizeException("Only one target directory is allowed for downloads");
@@ -867,16 +867,16 @@ public class Synchronize {
                 + "S3[" + s3Path + "] => Local" + fileList, REPORT_LEVEL_NONE);
         } else {
             throw new SynchronizeException("Action string must be 'UP' or 'DOWN'");
-        }        
-        
+        }
+
         this.cryptoPassword = cryptoPassword;
-                
+
         S3Bucket bucket = null;
         if (s3Service.getAWSCredentials() == null) {
             // Using an anonymous connection, don't check bucket ownership or attempt to create it.
             bucket = new S3Bucket(bucketName);
         } else {
-            // Using an authentication connection, so check for bucket ownership and create one if necessary. 
+            // Using an authentication connection, so check for bucket ownership and create one if necessary.
             bucket = s3Service.getBucket(bucketName);
             if (bucket == null) {
                 // Bucket does not exist in this user's account, try creating it.
@@ -885,16 +885,16 @@ public class Synchronize {
                 } catch (Exception e) {
                     throw new SynchronizeException("Unable to create/connect to S3 bucket: " + bucketName, e);
                 }
-            }            
+            }
         }
-        
-                            
+
+
         boolean storeEmptyDirectories = properties
             .getBoolProperty("uploads.storeEmptyDirectories", true);
 
         // Compare contents of local directory with contents of S3 path and identify any disrepancies.
         printProgressLine("Listing files in local file system");
-        Map filesMap = null;        
+        Map filesMap = null;
         if ("UP".equals(actionCommand)) {
             File[] files = (File[]) fileList.toArray(new File[fileList.size()]);
             for (int i = 0; i < files.length; i++) {
@@ -902,24 +902,24 @@ public class Synchronize {
                     throw new IOException("File '" + files[i].getPath() + "' does not exist");
                 }
             }
-            
+
             filesMap = fileComparer.buildFileMap(files, storeEmptyDirectories);
         } else if ("DOWN".equals(actionCommand)) {
             filesMap = fileComparer.buildFileMap((File) fileList.get(0), null, true);
         }
-        
+
         // Calculate total files size.
-        final long filesSizeTotal[] = new long[] { 0 }; 
+        final long filesSizeTotal[] = new long[] { 0 };
         File[] files = (File[]) filesMap.values().toArray(new File[filesMap.size()]);
         for (int i = 0; i < files.length; i++) {
             filesSizeTotal[0] += files[i].length();
         }
-        
+
         // Monitor generation of MD5 hashes, and provide feedback via progress messages.
         BytesProgressWatcher progressWatcher = new BytesProgressWatcher(filesSizeTotal[0]) {
             public void updateBytesTransferred(long byteCount) {
                 super.updateBytesTransferred(byteCount);
-                
+
                 int percentage = (int)((double)getBytesTransferred() * 100 / getBytesToTransfer());
                 printProgressLine("Comparing files: " + percentage + "% of " +
                     byteFormatter.formatByteSize(filesSizeTotal[0]));
@@ -927,94 +927,94 @@ public class Synchronize {
         };
 
         // Perform the requested action on the set of disrepancies.
-        if ("UP".equals(actionCommand)) {  
-            uploadLocalDirectoryToS3(filesMap, bucket, objectPath, 
+        if ("UP".equals(actionCommand)) {
+            uploadLocalDirectoryToS3(filesMap, bucket, objectPath,
                 aclString, progressWatcher);
         } else if ("DOWN".equals(actionCommand)) {
-            restoreFromS3ToLocalDirectory(filesMap, objectPath, 
+            restoreFromS3ToLocalDirectory(filesMap, objectPath,
                 (File) fileList.get(0), bucket, progressWatcher);
         }
     }
-    
+
     S3ServiceEventAdaptor serviceEventAdaptor = new S3ServiceEventAdaptor() {
         private void displayProgressStatus(String prefix, ThreadWatcher watcher) {
-            String progressMessage = prefix + watcher.getCompletedThreads() + "/" + watcher.getThreadCount();                    
-            
+            String progressMessage = prefix + watcher.getCompletedThreads() + "/" + watcher.getThreadCount();
+
             // Show percentage of bytes transferred, if this info is available.
             if (watcher.isBytesTransferredInfoAvailable()) {
                 String bytesTotalStr = byteFormatter.formatByteSize(watcher.getBytesTotal());
-                long percentage = (int) 
+                long percentage = (int)
                     (((double)watcher.getBytesTransferred() / watcher.getBytesTotal()) * 100);
-                
+
                 String detailsText = formatTransferDetails(watcher);
-                
-                progressMessage += " - " + percentage + "% of " + bytesTotalStr 
+
+                progressMessage += " - " + percentage + "% of " + bytesTotalStr
                     + (detailsText.length() > 0 ? " (" + detailsText + ")" : "");
             } else {
-                long percentage = (int) 
+                long percentage = (int)
                     (((double)watcher.getCompletedThreads() / watcher.getThreadCount()) * 100);
-                
-                progressMessage += " - " + percentage + "%";                
+
+                progressMessage += " - " + percentage + "%";
             }
-            printProgressLine(progressMessage);                
+            printProgressLine(progressMessage);
         }
-        
+
         private void displayIgnoredErrors(ServiceEvent event) {
             if (ServiceEvent.EVENT_IGNORED_ERRORS == event.getEventCode()) {
                 Throwable[] throwables = event.getIgnoredErrors();
                 for (int i = 0; i < throwables.length; i++) {
                     printOutputLine("Ignoring error: " + throwables[i].getMessage(), REPORT_LEVEL_ALL);
                 }
-            }            
+            }
         }
-        
+
         public void s3ServiceEventPerformed(CreateObjectsEvent event) {
             super.s3ServiceEventPerformed(event);
             displayIgnoredErrors(event);
             if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
                 if (partialUploadObjectsTotal > event.getThreadWatcher().getThreadCount()) {
                     long progressCount = partialUploadObjectsProgressCount + event.getThreadWatcher().getCompletedThreads();
-                    
-                    long percentage = (int) 
+
+                    long percentage = (int)
                         (((double)progressCount / partialUploadObjectsTotal) * 100);
 
-                    String progressMessage = "Batched Upload: " + 
+                    String progressMessage = "Batched Upload: " +
                         progressCount + "/" + partialUploadObjectsTotal +
-                        " - " + percentage + "%";                
-                    printProgressLine(progressMessage);                
+                        " - " + percentage + "%";
+                    printProgressLine(progressMessage);
                 } else {
-                    displayProgressStatus("Upload: ", event.getThreadWatcher());                    
-                }                
+                    displayProgressStatus("Upload: ", event.getThreadWatcher());
+                }
             }
         }
-        
+
         public void s3ServiceEventPerformed(DownloadObjectsEvent event) {
             super.s3ServiceEventPerformed(event);
             displayIgnoredErrors(event);
             if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
-                displayProgressStatus("Download: ", event.getThreadWatcher());                    
+                displayProgressStatus("Download: ", event.getThreadWatcher());
             }
         }
-        
+
         public void s3ServiceEventPerformed(GetObjectHeadsEvent event) {
             super.s3ServiceEventPerformed(event);
             displayIgnoredErrors(event);
-            if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {                
+            if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
                 displayProgressStatus("Retrieving object details from S3: ", event.getThreadWatcher());
             }
         }
-        
+
         public void s3ServiceEventPerformed(DeleteObjectsEvent event) {
             super.s3ServiceEventPerformed(event);
             displayIgnoredErrors(event);
-            if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {                
+            if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
                 displayProgressStatus("Deleting objects in S3: ", event.getThreadWatcher());
             }
         }
-    };        
-    
+    };
+
     /**
-     * Prints usage/help information and forces the application to exit with errorcode 1. 
+     * Prints usage/help information and forces the application to exit with errorcode 1.
      */
     private static void printHelpAndExit(boolean fullHelp) {
         System.out.println();
@@ -1142,9 +1142,9 @@ public class Synchronize {
         System.out.println("F: A file identical locally and in S3 was updated due to the Force option.");
         System.out.println("M: The file/object will be moved (deleted after it has been copied to/from S3).");
         System.out.println();
-        System.exit(1);        
+        System.exit(1);
     }
-    
+
     /**
      * Runs this application from the console, accepts and checks command-line parameters and runs an
      * upload or download operation when all the necessary parameters are provided.
@@ -1152,16 +1152,16 @@ public class Synchronize {
      */
     public static void main(String args[]) throws Exception {
         // Load default JetS3t properties
-        Jets3tProperties myProperties = 
-            Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME);        
+        Jets3tProperties myProperties =
+            Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME);
         String propertiesFileName = "synchronize.properties";
 
         // Read the Synchronize properties file from the classpath
-        Jets3tProperties synchronizeProperties = 
+        Jets3tProperties synchronizeProperties =
             Jets3tProperties.getInstance(propertiesFileName);
         if (synchronizeProperties.isLoaded()) {
-            myProperties.loadAndReplaceProperties(synchronizeProperties, 
-                propertiesFileName + " in classpath");                
+            myProperties.loadAndReplaceProperties(synchronizeProperties,
+                propertiesFileName + " in classpath");
         }
 
         // Required arguments
@@ -1169,7 +1169,7 @@ public class Synchronize {
         String s3Path = null;
         int reqArgCount = 0;
         List fileList = new ArrayList();
-        
+
         // Options
         boolean doAction = true;
         boolean isQuiet = false;
@@ -1185,7 +1185,7 @@ public class Synchronize {
         String aclString = null;
         int reportLevel = REPORT_LEVEL_ALL;
         AWSCredentials awsCredentials = null;
-                
+
         // Parse arguments.
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
@@ -1194,60 +1194,60 @@ public class Synchronize {
                 if (arg.equalsIgnoreCase("-h") || arg.equalsIgnoreCase("--help")) {
                     printHelpAndExit(true);
                 } else if (arg.equalsIgnoreCase("-n") || arg.equalsIgnoreCase("--noaction")) {
-                    doAction = false; 
+                    doAction = false;
                 } else if (arg.equalsIgnoreCase("-q") || arg.equalsIgnoreCase("--quiet")) {
-                    isQuiet = true; 
+                    isQuiet = true;
                 } else if (arg.equalsIgnoreCase("-p") || arg.equalsIgnoreCase("--noprogress")) {
-                    isNoProgress = true; 
+                    isNoProgress = true;
                 } else if (arg.equalsIgnoreCase("-f") || arg.equalsIgnoreCase("--force")) {
-                    isForce = true; 
+                    isForce = true;
                 } else if (arg.equalsIgnoreCase("-k") || arg.equalsIgnoreCase("--keepfiles")) {
-                    isKeepFiles = true; 
+                    isKeepFiles = true;
                 } else if (arg.equalsIgnoreCase("-d") || arg.equalsIgnoreCase("--nodelete")) {
-                    isNoDelete = true; 
+                    isNoDelete = true;
                 } else if (arg.equalsIgnoreCase("-g") || arg.equalsIgnoreCase("--gzip")) {
-                    isGzipEnabled = true; 
+                    isGzipEnabled = true;
                 } else if (arg.equalsIgnoreCase("-c") || arg.equalsIgnoreCase("--crypto")) {
-                    isEncryptionEnabled = true; 
+                    isEncryptionEnabled = true;
                 } else if (arg.equalsIgnoreCase("-m") || arg.equalsIgnoreCase("--move")) {
-                    isMoveEnabled = true; 
+                    isMoveEnabled = true;
                 } else if (arg.equalsIgnoreCase("-s") || arg.equalsIgnoreCase("--skipmetadata")) {
-                    isSkipMetadata = true; 
+                    isSkipMetadata = true;
                 } else if (arg.equalsIgnoreCase("-b") || arg.equalsIgnoreCase("--batch")) {
-                    isBatchMode = true; 
+                    isBatchMode = true;
                 } else if (arg.equalsIgnoreCase("--properties")) {
                     if (i + 1 < args.length) {
-                        // Read custom Synchronize properties file from the specified file            
+                        // Read custom Synchronize properties file from the specified file
                         i++;
                         propertiesFileName = args[i];
                         File propertiesFile = new File(propertiesFileName);
                         if (!propertiesFile.canRead()) {
                             System.err.println("ERROR: The properties file " + propertiesFileName + " could not be found");
-                            System.exit(2);                        
+                            System.exit(2);
                         }
                         myProperties.loadAndReplaceProperties(
                             new FileInputStream(propertiesFileName), propertiesFile.getName());
                     } else {
                         System.err.println("ERROR: --properties option must be followed by a file path");
-                        printHelpAndExit(false);                        
+                        printHelpAndExit(false);
                     }
                 } else if (arg.equalsIgnoreCase("--acl")) {
                     if (i + 1 < args.length) {
-                        // Read the acl setting string             
+                        // Read the acl setting string
                         i++;
                         aclString = args[i];
-                        
-                        if (!"PUBLIC_READ".equalsIgnoreCase(aclString) 
-                            && !"PUBLIC_READ_WRITE".equalsIgnoreCase(aclString) 
-                            && !"PRIVATE".equalsIgnoreCase(aclString)) 
+
+                        if (!"PUBLIC_READ".equalsIgnoreCase(aclString)
+                            && !"PUBLIC_READ_WRITE".equalsIgnoreCase(aclString)
+                            && !"PRIVATE".equalsIgnoreCase(aclString))
                         {
                             System.err.println("ERROR: Acess Control List setting \"acl\" must have one of the values "
                                 + "PRIVATE, PUBLIC_READ, PUBLIC_READ_WRITE");
-                            printHelpAndExit(false);                        
-                        }                        
+                            printHelpAndExit(false);
+                        }
                     } else {
                         System.err.println("ERROR: --acl option must be followed by an ACL string");
-                        printHelpAndExit(false);                        
+                        printHelpAndExit(false);
                     }
                 } else if (arg.equalsIgnoreCase("--reportlevel")) {
                     if (i + 1 < args.length) {
@@ -1255,15 +1255,15 @@ public class Synchronize {
                         i++;
                         try {
                             reportLevel = Integer.parseInt(args[i]);
-                            
-                            if (reportLevel < 0 || reportLevel > 3) { 
+
+                            if (reportLevel < 0 || reportLevel > 3) {
                                 System.err.println("ERROR: Report Level setting \"reportlevel\" must have one of the values "
                                     + "0 (no reporting), 1 (actions only), 2 (differences only), 3 (DEFAULT - all reporting)");
-                                printHelpAndExit(false);                        
-                            }                                                        
+                                printHelpAndExit(false);
+                            }
                         } catch (NumberFormatException e) {
                             System.err.println("ERROR: --reportlevel option must be followed by 0, 1, 2 or 3");
-                            printHelpAndExit(false);                                                        
+                            printHelpAndExit(false);
                         }
                     } else {
                         System.err.println("ERROR: --reportlevel option must be followed by 0, 1, 2 or 3");
@@ -1276,15 +1276,15 @@ public class Synchronize {
                         File credentialsFile = new File(args[i]);
                         if (!credentialsFile.canRead()) {
                             System.err.println("ERROR: Cannot read credentials file '" + credentialsFile + "'");
-                            printHelpAndExit(false);                            
-                        }                        
+                            printHelpAndExit(false);
+                        }
                         BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in));
                         while (awsCredentials == null) {
                             System.out.print("Password for credentials file '" + credentialsFile + "': ");
                             String credentialsPassword = inputReader.readLine();
                             try {
                                 awsCredentials = AWSCredentials.load(credentialsPassword, credentialsFile);
-                                // Set dummy accesskey and secretkey property values, to avoid prompting for these values later on. 
+                                // Set dummy accesskey and secretkey property values, to avoid prompting for these values later on.
                                 myProperties.setProperty("accesskey", "");
                                 myProperties.setProperty("secretkey", "");
                             } catch (S3ServiceException e) {
@@ -1304,25 +1304,25 @@ public class Synchronize {
                 if (reqArgCount == 0) {
                     actionCommand = arg.toUpperCase(Locale.getDefault());
                     if (!"UP".equals(actionCommand) && !"DOWN".equals(actionCommand)) {
-                        System.err.println("ERROR: Invalid action command " + actionCommand 
+                        System.err.println("ERROR: Invalid action command " + actionCommand
                             + ". Valid values are 'UP' or 'DOWN'");
                         printHelpAndExit(false);
-                    }                    
+                    }
                 } else if (reqArgCount == 1) {
                     s3Path = arg;
                 } else if (reqArgCount > 1) {
                     File file = new File(arg);
-                    
+
                     if ("DOWN".equals(actionCommand)) {
                         if (reqArgCount > 2) {
                             System.err.println("ERROR: Only one target directory may be specified"
-                                + " for " + actionCommand); 
+                                + " for " + actionCommand);
                             printHelpAndExit(false);
                         }
                         if (file.exists() && !file.isDirectory()) {
-                            System.err.println("ERROR: Target download location already exists but is not a directory: " 
-                                + file);                                
-                        }         
+                            System.err.println("ERROR: Target download location already exists but is not a directory: "
+                                + file);
+                        }
                     } else {
                         if (!file.canRead()) {
                             if (myProperties != null && myProperties.getBoolProperty("upload.ignoreMissingPaths", false)) {
@@ -1330,9 +1330,9 @@ public class Synchronize {
                                 continue;
                             } else {
                                 System.err.println(
-                            		"ERROR: Cannot read upload file/directory: " + file + "\n" +
+                                	"ERROR: Cannot read upload file/directory: " + file + "\n" +
                                     "       To ignore missing paths set the property upload.ignoreMissingPaths");
-                                printHelpAndExit(false);                            
+                                printHelpAndExit(false);
                             }
                         }
                     }
@@ -1341,38 +1341,38 @@ public class Synchronize {
                 reqArgCount++;
             }
         }
-        
+
         if (fileList.size() < 1
-        	&& !myProperties.getBoolProperty("upload.ignoreMissingPaths", false)) 
+            && !myProperties.getBoolProperty("upload.ignoreMissingPaths", false))
         {
             // Missing one or more required parameters.
             System.err.println("ERROR: Missing required file path(s)");
             printHelpAndExit(false);
         }
-        
+
         if (isKeepFiles && isNoDelete) {
             // Incompatible options.
             System.err.println("ERROR: Options --keepfiles and --nodelete cannot be used at the same time");
-            printHelpAndExit(false);            
+            printHelpAndExit(false);
         }
-        
+
         if (isKeepFiles && isMoveEnabled) {
             // Incompatible options.
             System.err.println("ERROR: Options --keepfiles and --move cannot be used at the same time");
-            printHelpAndExit(false);            
+            printHelpAndExit(false);
         }
-        
+
         if (isSkipMetadata && (isGzipEnabled || isEncryptionEnabled)) {
             // Incompatible options.
             System.err.println("ERROR: The --skipmetadata option cannot be used with the --gzip or --crypto options");
-            printHelpAndExit(false);                        
+            printHelpAndExit(false);
         }
-                        
+
         // Ensure the Synchronize properties file contains everything we need, and prompt
         // for any required information that is missing.
-        if (!myProperties.containsKey("accesskey") 
-            || !myProperties.containsKey("secretkey") 
-            || (isEncryptionEnabled && !myProperties.containsKey("password"))) 
+        if (!myProperties.containsKey("accesskey")
+            || !myProperties.containsKey("secretkey")
+            || (isEncryptionEnabled && !myProperties.containsKey("password")))
         {
             System.out.println("Please enter the required properties that have not been provided in a properties file:");
             BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in));
@@ -1385,7 +1385,7 @@ public class Synchronize {
                 myProperties.setProperty("secretkey", inputReader.readLine());
             }
             if (isEncryptionEnabled && !myProperties.containsKey("password")) {
-                String password1 = "password1";                
+                String password1 = "password1";
                 String password2 = "password2";
                 while (!password1.equals(password2)) {
                     System.out.print("Encryption password: ");
@@ -1395,48 +1395,48 @@ public class Synchronize {
                     if (!password1.equals(password2)) {
                         System.out.println("The original and confirmation passwords do not match, try again.");
                     }
-                }                
+                }
                 myProperties.setProperty("password", password1);
             }
         }
-        
+
         // Use property values for the AWS credentials, if we haven't already been
         // given the credentials through the --credentials argument.
         if (awsCredentials == null) {
             awsCredentials = new AWSCredentials(
-                myProperties.getStringProperty("accesskey", null), 
+                myProperties.getStringProperty("accesskey", null),
                 myProperties.getStringProperty("secretkey", null));
         }
-        
-        // Sanity-check AWS credentials -- if both are null or empty strings, 
+
+        // Sanity-check AWS credentials -- if both are null or empty strings,
         // then nullify the AWSCredentials object to get an anonymous connection.
         if (awsCredentials.getAccessKey() == null || awsCredentials.getAccessKey().length() == 0
             || awsCredentials.getSecretKey() == null || awsCredentials.getSecretKey().length() == 0)
         {
             awsCredentials = null;
         }
-        
+
         if (aclString == null) {
             aclString = myProperties.getStringProperty("acl", "PRIVATE");
         }
-        if (!"PUBLIC_READ".equalsIgnoreCase(aclString) 
-            && !"PUBLIC_READ_WRITE".equalsIgnoreCase(aclString) 
-            && !"PRIVATE".equalsIgnoreCase(aclString)) 
+        if (!"PUBLIC_READ".equalsIgnoreCase(aclString)
+            && !"PUBLIC_READ_WRITE".equalsIgnoreCase(aclString)
+            && !"PRIVATE".equalsIgnoreCase(aclString))
         {
             System.err.println("ERROR: Acess Control List setting \"acl\" must have one of the values "
                 + "PRIVATE, PUBLIC_READ, PUBLIC_READ_WRITE");
-            System.exit(2);                                    
+            System.exit(2);
         }
-         
+
         // Perform the UPload/DOWNload.
         Synchronize client = new Synchronize(
-            new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION, 
+            new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION,
                 new CommandLineCredentialsProvider(), myProperties),
-            doAction, isQuiet, isNoProgress, isForce, isKeepFiles, isNoDelete, 
-            isMoveEnabled, isBatchMode, isSkipMetadata, isGzipEnabled, 
+            doAction, isQuiet, isNoProgress, isForce, isKeepFiles, isNoDelete,
+            isMoveEnabled, isBatchMode, isSkipMetadata, isGzipEnabled,
             isEncryptionEnabled, reportLevel, myProperties);
-        client.run(s3Path, fileList, actionCommand, 
+        client.run(s3Path, fileList, actionCommand,
             myProperties.getStringProperty("password", null), aclString);
     }
-        
+
 }

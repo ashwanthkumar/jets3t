@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2006 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.tests;
 
@@ -42,7 +42,7 @@ import org.jets3t.service.security.AWSCredentials;
  * <li>Listing the contents of an empty bucket</li>
  * <li>Allowing for PUT uploads, with generation and comparison of an MD5 digest for data received</li>
  * </ul>
- * 
+ *
  * @author James Murty
  *
  */
@@ -53,35 +53,35 @@ public class FakeS3Server {
      */
     public static void main(String[] args) throws Exception {
         AWSCredentials fakeAwsCredentials = new AWSCredentials("fake-aws-access-key", "fake-aws-secret-key");
-        
+
         int port = 443;
         ServerSocketFactory ssocketFactory = SSLServerSocketFactory.getDefault();
         ServerSocket ssocket = ssocketFactory.createServerSocket(port);
         System.out.println("Accepting connections on port 443");
-    
+
         while (port == 443) {
             // Listen for connections
             Socket socket = ssocket.accept();
             System.out.println("Opened connection");
-        
+
             // Create streams to securely send and receive data to the client
             InputStream in = socket.getInputStream();
             OutputStream out = socket.getOutputStream();
-        
+
             byte[] buffer = new byte[1024];
             int read;
-        
+
             while ((read = in.read(buffer)) != -1) {
                 String receivedDataStr = new String(buffer, 0, read);
-                String requestActionAndHeaders = 
+                String requestActionAndHeaders =
                     receivedDataStr.substring(0, receivedDataStr.indexOf("\r\n\r\n") + 4);
-                
+
                 System.out.println(requestActionAndHeaders);
-                
+
                 if (requestActionAndHeaders.startsWith("GET")) {
-                    String path = requestActionAndHeaders.substring(4, 
+                    String path = requestActionAndHeaders.substring(4,
                         requestActionAndHeaders.indexOf(' ', 4));
-                    
+
                     if (path.startsWith("/jets3t-")) {
                         // Return fake AWS credentials.
                         String headers =
@@ -95,11 +95,11 @@ public class FakeS3Server {
                             "Content-Type: application/octet-stream\r\n" +
                             "Content-Length: 139\r\n" +
                             "Server: AmazonS3\r\n\r\n";
-                        
+
                         out.write(headers.getBytes("UTF-8"));
                         fakeAwsCredentials.save("please", out);
-                    } 
-                    
+                    }
+
                     else if (path.equals("/")) {
                         // Return fake bucket listing.
                         String headers =
@@ -111,7 +111,7 @@ public class FakeS3Server {
                             "Transfer-Encoding: chunked\r\n" +
                             "Server: AmazonS3\r\n\r\n";
 
-                        String bucketListing = 
+                        String bucketListing =
                             "17b\r\n" +
                             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
                             "<ListAllMyBucketsResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">" +
@@ -121,14 +121,14 @@ public class FakeS3Server {
                             "<CreationDate>2006-12-13T21:21:14.000Z</CreationDate>" +
                             "</Bucket></Buckets></ListAllMyBucketsResult>" +
                             "\r\n0\r\n\r\n";
-                        
+
                         out.write(headers.getBytes("UTF-8"));
                         out.write(bucketListing.getBytes("UTF-8"));
                     }
-                    
+
                     else if (path.startsWith("/TestUploadBucket")) {
                         // Return empty bucket contents
-                        
+
                         String headers =
                             "HTTP/1.1 200 OK\r\n" +
                             "x-amz-id-2: FakeBucketContents\r\n" +
@@ -146,90 +146,90 @@ public class FakeS3Server {
                             "<MaxKeys>1000</MaxKeys><IsTruncated>false</IsTruncated>" +
                             "</ListBucketResult>" +
                             "\r\n0\r\n\r\n";
-                        
+
                         out.write(headers.getBytes("UTF-8"));
                         out.write(bucketContents.getBytes("UTF-8"));
                     }
-                    
+
                     else {
                         System.out.println("ERROR: Unrecognised GET request");
                     }
-                    
-                } else if (requestActionAndHeaders.startsWith("PUT")) {                    
+
+                } else if (requestActionAndHeaders.startsWith("PUT")) {
                     long contentLength = 0;
                     String clientProvidedHash = "NONE";
-                    
+
                     // Determine content length.
                     int searchIndex = requestActionAndHeaders.indexOf("Content-Length: ") + "Content-Length: ".length();
                     contentLength = (new Long(requestActionAndHeaders.substring(searchIndex, requestActionAndHeaders.indexOf('\r', searchIndex)))).longValue();
-                    
+
                     // Determine content MD5 (hex encoded).
                     searchIndex = requestActionAndHeaders.indexOf("Content-MD5: ") + "Content-MD5: ".length();
                     if (searchIndex >= -1) {
                         clientProvidedHash = requestActionAndHeaders.substring(
                             searchIndex, requestActionAndHeaders.indexOf('\r', searchIndex));
                     }
-                    
+
                     // Read all PUT data provided by client, generating an MD5 hash as we go.
                     System.out.println("Receiving " + contentLength + " bytes from client");
                     MessageDigest digest = MessageDigest.getInstance("MD5");
-                    
+
                     long putdataAlreadyRead = read - requestActionAndHeaders.length(); // read - (requestActionAndHeaders.lastIndexOf("\r\n") + 2);
                     digest.update(buffer, (int)(read - putdataAlreadyRead), (int)putdataAlreadyRead);
-                    
+
                     byte[] putdata = new byte[8192];
                     int putdataRead = 0;
                     while ((putdataRead = in.read(putdata)) != -1) {
                         digest.update(putdata, 0, putdataRead);
                         putdataAlreadyRead += putdataRead;
-                        
+
                         if (putdataAlreadyRead == contentLength) {
                             System.out.println("PUT object upload is complete");
                             break;
                         }
                     }
-                    
+
                     if (putdataAlreadyRead != contentLength) {
                         System.err.println("ERROR: Expected " + contentLength + " bytes but received " + putdataAlreadyRead);
                         continue;
                     }
-                    
-                    String receivedDataHashAsHex = new String(Base64.encodeBase64(digest.digest()), "UTF-8");                    
-                    
+
+                    String receivedDataHashAsHex = new String(Base64.encodeBase64(digest.digest()), "UTF-8");
+
                     // Generate the headers appropriate for the PUT object.
-                    String headers = 
+                    String headers =
                         "HTTP/1.1 200 OK\r\n" +
                         "x-amz-id-2: FakePUT\r\n" +
-                        "x-amz-request-id: FakePUT\r\n" + 
+                        "x-amz-request-id: FakePUT\r\n" +
                         "Date: Thu, 24 May 2007 15:12:30 GMT\r\n" +
                         "ETag: \"" + receivedDataHashAsHex + "\"\r\n" +
                         "Content-Length: 0\r\n" +
                         "Server: AmazonS3\r\n\r\n";
                     out.write(headers.getBytes("UTF-8"));
                     out.flush();
-                    
+
                     // Compare expected hash (supplied by client) verses actual hash (for retrieved data)
                     if (!receivedDataHashAsHex.equals(clientProvidedHash)) {
-                        System.err.println("ERROR: Client-side hash " + clientProvidedHash 
-                            + " does not match hash of received data " + receivedDataHashAsHex);                        
+                        System.err.println("ERROR: Client-side hash " + clientProvidedHash
+                            + " does not match hash of received data " + receivedDataHashAsHex);
                     } else {
-                        System.out.println("SUCCESS: Client-side hash matches hash of received data: " + receivedDataHashAsHex);                                                
+                        System.out.println("SUCCESS: Client-side hash matches hash of received data: " + receivedDataHashAsHex);
                     }
-                    
+
                 } else {
-                    System.out.println("ERROR: Unrecognised input");                                        
+                    System.out.println("ERROR: Unrecognised input");
                 }
             }
             // Close the socket
             System.out.println("Closing connection");
             in.close();
             out.close();
-        }    
+        }
     }
-    
+
     public static void writeFileToOutputStream(File file, OutputStream out) throws Exception {
         byte[] buffer = new byte[1024];
-        int read;        
+        int read;
         FileInputStream in = null;
         try {
             in = new FileInputStream(file);
@@ -242,7 +242,7 @@ public class FakeS3Server {
             }
         }
     }
-    
+
     public static String toHex(byte[] data) {
         StringBuffer sb = new StringBuffer(data.length * 2);
         for (int i = 0; i < data.length; i++) {

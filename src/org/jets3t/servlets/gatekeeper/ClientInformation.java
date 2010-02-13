@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2008 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.servlets.gatekeeper;
 
@@ -31,9 +31,9 @@ import javax.servlet.http.HttpSession;
  * be assumed that much of the information stored in this class will have a null value in many
  * cases.
  * <p>
- * All information in this class is sourced from equivalent methods in 
+ * All information in this class is sourced from equivalent methods in
  * {@link javax.servlet.http.HttpServletRequest}.
- * 
+ *
  * @author James Murty
  */
 public class ClientInformation {
@@ -45,10 +45,10 @@ public class ClientInformation {
     private Principal userPrincipal = null;
     private String userAgent = null;
     private HttpServletRequest httpServletRequest = null;
-    
+
     public ClientInformation(String remoteAddress, String remoteHost, String remoteUser,
         int remotePort, HttpSession session, Principal userPrincipal, String userAgent,
-        HttpServletRequest httpServletRequest) 
+        HttpServletRequest httpServletRequest)
     {
         this.remoteAddress = remoteAddress;
         this.remoteHost = remoteHost;
@@ -87,7 +87,7 @@ public class ClientInformation {
     public String getUserAgent() {
         return userAgent;
     }
-    
+
     /**
      * @return
      * the original servlet request, in case the specific information captured in this

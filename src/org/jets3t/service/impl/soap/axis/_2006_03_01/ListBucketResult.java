@@ -57,7 +57,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Gets the metadata value for this ListBucketResult.
-     * 
+     *
      * @return metadata
      */
     public org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] getMetadata() {
@@ -67,7 +67,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Sets the metadata value for this ListBucketResult.
-     * 
+     *
      * @param metadata
      */
     public void setMetadata(org.jets3t.service.impl.soap.axis._2006_03_01.MetadataEntry[] metadata) {
@@ -85,7 +85,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Gets the name value for this ListBucketResult.
-     * 
+     *
      * @return name
      */
     public java.lang.String getName() {
@@ -95,7 +95,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Sets the name value for this ListBucketResult.
-     * 
+     *
      * @param name
      */
     public void setName(java.lang.String name) {
@@ -105,7 +105,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Gets the prefix value for this ListBucketResult.
-     * 
+     *
      * @return prefix
      */
     public java.lang.String getPrefix() {
@@ -115,7 +115,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Sets the prefix value for this ListBucketResult.
-     * 
+     *
      * @param prefix
      */
     public void setPrefix(java.lang.String prefix) {
@@ -125,7 +125,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Gets the marker value for this ListBucketResult.
-     * 
+     *
      * @return marker
      */
     public java.lang.String getMarker() {
@@ -135,7 +135,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Sets the marker value for this ListBucketResult.
-     * 
+     *
      * @param marker
      */
     public void setMarker(java.lang.String marker) {
@@ -145,7 +145,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Gets the nextMarker value for this ListBucketResult.
-     * 
+     *
      * @return nextMarker
      */
     public java.lang.String getNextMarker() {
@@ -155,7 +155,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Sets the nextMarker value for this ListBucketResult.
-     * 
+     *
      * @param nextMarker
      */
     public void setNextMarker(java.lang.String nextMarker) {
@@ -165,7 +165,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Gets the maxKeys value for this ListBucketResult.
-     * 
+     *
      * @return maxKeys
      */
     public int getMaxKeys() {
@@ -175,7 +175,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Sets the maxKeys value for this ListBucketResult.
-     * 
+     *
      * @param maxKeys
      */
     public void setMaxKeys(int maxKeys) {
@@ -185,7 +185,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Gets the delimiter value for this ListBucketResult.
-     * 
+     *
      * @return delimiter
      */
     public java.lang.String getDelimiter() {
@@ -195,7 +195,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Sets the delimiter value for this ListBucketResult.
-     * 
+     *
      * @param delimiter
      */
     public void setDelimiter(java.lang.String delimiter) {
@@ -205,7 +205,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Gets the isTruncated value for this ListBucketResult.
-     * 
+     *
      * @return isTruncated
      */
     public boolean isIsTruncated() {
@@ -215,7 +215,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Sets the isTruncated value for this ListBucketResult.
-     * 
+     *
      * @param isTruncated
      */
     public void setIsTruncated(boolean isTruncated) {
@@ -225,7 +225,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Gets the contents value for this ListBucketResult.
-     * 
+     *
      * @return contents
      */
     public org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry[] getContents() {
@@ -235,7 +235,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Sets the contents value for this ListBucketResult.
-     * 
+     *
      * @param contents
      */
     public void setContents(org.jets3t.service.impl.soap.axis._2006_03_01.ListEntry[] contents) {
@@ -253,7 +253,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Gets the commonPrefixes value for this ListBucketResult.
-     * 
+     *
      * @return commonPrefixes
      */
     public org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry[] getCommonPrefixes() {
@@ -263,7 +263,7 @@ public class ListBucketResult  implements java.io.Serializable {
 
     /**
      * Sets the commonPrefixes value for this ListBucketResult.
-     * 
+     *
      * @param commonPrefixes
      */
     public void setCommonPrefixes(org.jets3t.service.impl.soap.axis._2006_03_01.PrefixEntry[] commonPrefixes) {
@@ -289,31 +289,31 @@ public class ListBucketResult  implements java.io.Serializable {
         }
         __equalsCalc = obj;
         boolean _equals;
-        _equals = true && 
-            ((this.metadata==null && other.getMetadata()==null) || 
+        _equals = true &&
+            ((this.metadata==null && other.getMetadata()==null) ||
              (this.metadata!=null &&
               java.util.Arrays.equals(this.metadata, other.getMetadata()))) &&
-            ((this.name==null && other.getName()==null) || 
+            ((this.name==null && other.getName()==null) ||
              (this.name!=null &&
               this.name.equals(other.getName()))) &&
-            ((this.prefix==null && other.getPrefix()==null) || 
+            ((this.prefix==null && other.getPrefix()==null) ||
              (this.prefix!=null &&
               this.prefix.equals(other.getPrefix()))) &&
-            ((this.marker==null && other.getMarker()==null) || 
+            ((this.marker==null && other.getMarker()==null) ||
              (this.marker!=null &&
               this.marker.equals(other.getMarker()))) &&
-            ((this.nextMarker==null && other.getNextMarker()==null) || 
+            ((this.nextMarker==null && other.getNextMarker()==null) ||
              (this.nextMarker!=null &&
               this.nextMarker.equals(other.getNextMarker()))) &&
             this.maxKeys == other.getMaxKeys() &&
-            ((this.delimiter==null && other.getDelimiter()==null) || 
+            ((this.delimiter==null && other.getDelimiter()==null) ||
              (this.delimiter!=null &&
               this.delimiter.equals(other.getDelimiter()))) &&
             this.isTruncated == other.isIsTruncated() &&
-            ((this.contents==null && other.getContents()==null) || 
+            ((this.contents==null && other.getContents()==null) ||
              (this.contents!=null &&
               java.util.Arrays.equals(this.contents, other.getContents()))) &&
-            ((this.commonPrefixes==null && other.getCommonPrefixes()==null) || 
+            ((this.commonPrefixes==null && other.getCommonPrefixes()==null) ||
              (this.commonPrefixes!=null &&
               java.util.Arrays.equals(this.commonPrefixes, other.getCommonPrefixes())));
         __equalsCalc = null;
@@ -468,10 +468,10 @@ public class ListBucketResult  implements java.io.Serializable {
      * Get Custom Serializer
      */
     public static org.apache.axis.encoding.Serializer getSerializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanSerializer(
             _javaType, _xmlType, typeDesc);
     }
@@ -480,10 +480,10 @@ public class ListBucketResult  implements java.io.Serializable {
      * Get Custom Deserializer
      */
     public static org.apache.axis.encoding.Deserializer getDeserializer(
-           java.lang.String mechType, 
-           java.lang.Class _javaType,  
+           java.lang.String mechType,
+           java.lang.Class _javaType,
            javax.xml.namespace.QName _xmlType) {
-        return 
+        return
           new  org.apache.axis.encoding.ser.BeanDeserializer(
             _javaType, _xmlType, typeDesc);
     }

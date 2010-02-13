@@ -1,20 +1,20 @@
 /*
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
- * 
+ *
  * Copyright 2006 James Murty
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License. 
+ * limitations under the License.
  */
 package org.jets3t.service.multithread;
 
@@ -32,23 +32,23 @@ import org.jets3t.service.model.S3Object;
 
 /**
  * S3 service wrapper that performs multiple S3 requests at a time using multi-threading and an
- * underlying thread-safe {@link S3Service} implementation. 
+ * underlying thread-safe {@link S3Service} implementation.
  * <p>
- * This class provides a simplified interface to the {@link S3ServiceMulti} service. It will block while 
+ * This class provides a simplified interface to the {@link S3ServiceMulti} service. It will block while
  * doing its work, return the results of an operation when it is finished, and throw an exception if
- * anything goes wrong. 
+ * anything goes wrong.
  * <p>
- * For a non-blocking multi-threading service that is more powerful, but also more complicated, 
+ * For a non-blocking multi-threading service that is more powerful, but also more complicated,
  * see {@link S3ServiceMulti}.
- * 
+ *
  * @author James Murty
  */
-public class S3ServiceSimpleMulti {    
+public class S3ServiceSimpleMulti {
     private S3Service s3Service = null;
 
     /**
-     * Construct a multi-threaded service based on an S3Service. 
-     * 
+     * Construct a multi-threaded service based on an S3Service.
+     *
      * @param s3Service
      *        an S3Service implementation that will be used to perform S3 requests. This implementation
      *        <b>must</b> be thread-safe.
@@ -56,11 +56,11 @@ public class S3ServiceSimpleMulti {
     public S3ServiceSimpleMulti(S3Service s3Service) {
         this.s3Service = s3Service;
     }
-    
+
     /**
      * Utility method to check an {@link S3ServiceEventAdaptor} for the occurrence of an error, and if
      * one is present to throw it.
-     * 
+     *
      * @param adaptor
      * @throws S3ServiceException
      */
@@ -72,12 +72,12 @@ public class S3ServiceSimpleMulti {
             } else {
                 throw new S3ServiceException(thrown);
             }
-        }        
+        }
     }
-    
+
     /**
      * Creates multiple buckets.
-     * 
+     *
      * @param buckets
      * the buckets to create.
      * @return
@@ -98,10 +98,10 @@ public class S3ServiceSimpleMulti {
         throwError(adaptor);
         return (S3Bucket[]) bucketList.toArray(new S3Bucket[bucketList.size()]);
     }
-    
+
     /**
      * Creates/uploads multiple objects.
-     * 
+     *
      * @param bucket
      * the bucket to create the objects in.
      * @param objects
@@ -110,7 +110,7 @@ public class S3ServiceSimpleMulti {
      * the created/uploaded objects.
      * @throws S3ServiceException
      */
-    public S3Object[] putObjects(final S3Bucket bucket, final S3Object[] objects) throws S3ServiceException {    
+    public S3Object[] putObjects(final S3Bucket bucket, final S3Object[] objects) throws S3ServiceException {
         final List objectList = new ArrayList();
         S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor() {
             public void s3ServiceEventPerformed(CreateObjectsEvent event) {
@@ -127,30 +127,30 @@ public class S3ServiceSimpleMulti {
 
     /**
      * Copies multiple objects within or between buckets.
-     * 
+     *
      * @param sourceBucketName
      * the name of the bucket containing the objects that will be copied.
-     * @param destinationBucketName        
+     * @param destinationBucketName
      * the name of the bucket to which the objects will be copied. The destination
      * bucket may be the same as the source bucket.
      * @param sourceObjectKeys
      * the key names of the objects that will be copied.
      * @param destinationObjects
      * objects that will be created by the copy operation. The AccessControlList
-     * setting of each object will determine the access permissions of the 
-     * resultant object, and if the replaceMetadata flag is true the metadata 
-     * items in each object will also be applied to the resultant object. 
+     * setting of each object will determine the access permissions of the
+     * resultant object, and if the replaceMetadata flag is true the metadata
+     * items in each object will also be applied to the resultant object.
      * @param replaceMetadata
-     * if true, the metadata items in the destination objects will be stored 
+     * if true, the metadata items in the destination objects will be stored
      * in S3 by using the REPLACE metadata copying option. If false, the metadata
      * items will be copied unchanged from the original objects using the COPY
      * metadata copying option.s
      */
-    
+
     public Map[] copyObjects(final String sourceBucketName, final String destinationBucketName,
-        final String[] sourceObjectKeys, final S3Object[] destinationObjects, boolean replaceMetadata) 
-        throws S3ServiceException 
-    {    
+        final String[] sourceObjectKeys, final S3Object[] destinationObjects, boolean replaceMetadata)
+        throws S3ServiceException
+    {
         final List resultsList = new ArrayList();
         S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor() {
             public void s3ServiceEventPerformed(CopyObjectsEvent event) {
@@ -160,15 +160,15 @@ public class S3ServiceSimpleMulti {
                 }
             };
         };
-        (new S3ServiceMulti(s3Service, adaptor)).copyObjects(sourceBucketName, destinationBucketName, 
+        (new S3ServiceMulti(s3Service, adaptor)).copyObjects(sourceBucketName, destinationBucketName,
             sourceObjectKeys, destinationObjects, replaceMetadata);
         throwError(adaptor);
         return (Map[]) resultsList.toArray(new Map[resultsList.size()]);
     }
-    
+
     /**
      * Deletes multiple objects
-     * 
+     *
      * @param bucket
      * the bucket containing the objects to delete.
      * @param objects
@@ -188,12 +188,12 @@ public class S3ServiceSimpleMulti {
         (new S3ServiceMulti(s3Service, adaptor)).deleteObjects(bucket, objects);
         throwError(adaptor);
     }
-    
+
     /**
      * Retrieves multiple objects (including details and data).
      * The objects' data will be stored in temporary files, and can be retrieved using
-     * {@link S3Object#getDataInputStream()}. 
-     * 
+     * {@link S3Object#getDataInputStream()}.
+     *
      * @param bucket
      * the bucket containing the objects.
      * @param objects
@@ -209,13 +209,13 @@ public class S3ServiceSimpleMulti {
                 // Create a temporary file for data, file will auto-delete on JVM exit.
                 File tempFile = File.createTempFile("jets3t-", ".tmp");
                 tempFile.deleteOnExit();
-                
+
                 downloadPackages[i] = new DownloadPackage(objects[i], tempFile);
             }
         } catch (IOException e) {
             throw new S3ServiceException("Unable to create temporary file to store object data", e);
         }
-        
+
         final List objectList = new ArrayList();
         S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor() {
             public void s3ServiceEventPerformed(DownloadObjectsEvent event) {
@@ -225,28 +225,28 @@ public class S3ServiceSimpleMulti {
                 }
             };
         };
-        
+
         (new S3ServiceMulti(s3Service, adaptor)).downloadObjects(bucket, downloadPackages);
         throwError(adaptor);
         return (S3Object[]) objectList.toArray(new S3Object[objectList.size()]);
     }
-    
+
     /**
      * Retrieves multiple objects (including details and data).
      * The objects' data will be stored in temporary files, and can be retrieved using
-     * {@link S3Object#getDataInputStream()}. 
-     * 
+     * {@link S3Object#getDataInputStream()}.
+     *
      * @param bucket
      * the bucket containing the objects.
      * @param objectKeys
      * the key names of the objects to retrieve.
      * @return
      * the retrieved objects.
-     * 
+     *
      * @throws S3ServiceException
      */
     public S3Object[] getObjects(final S3Bucket bucket, final String[] objectKeys) throws S3ServiceException {
-        S3Object[] objects = new S3Object[objectKeys.length]; 
+        S3Object[] objects = new S3Object[objectKeys.length];
         for (int i = 0; i < objectKeys.length; i++) {
             objects[i] = new S3Object(objectKeys[i]);
         }
@@ -255,7 +255,7 @@ public class S3ServiceSimpleMulti {
 
     /**
      * Retrieves details of multiple objects (details only, no data)
-     * 
+     *
      * @param bucket
      * the bucket containing the objects.
      * @param objects
@@ -271,10 +271,10 @@ public class S3ServiceSimpleMulti {
         }
         return getObjectsHeads(bucket, objectKeys);
     }
-    
+
     /**
      * Retrieves details of multiple objects (details only, no data)
-     * 
+     *
      * @param bucket
      * the bucket containing the objects.
      * @param objectKeys
@@ -297,10 +297,10 @@ public class S3ServiceSimpleMulti {
         throwError(adaptor);
         return (S3Object[]) objectList.toArray(new S3Object[objectList.size()]);
     }
-    
+
     /**
-     * Retrieves Access Control List (ACL) settings for multiple objects. 
-     *  
+     * Retrieves Access Control List (ACL) settings for multiple objects.
+     *
      * @param bucket
      * the bucket containing the objects.
      * @param objects
@@ -325,8 +325,8 @@ public class S3ServiceSimpleMulti {
     }
 
     /**
-     * Updates/sets Access Control List (ACL) settings for multiple objects. 
-     *  
+     * Updates/sets Access Control List (ACL) settings for multiple objects.
+     *
      * @param bucket
      * the bucket containing the objects.
      * @param objects
@@ -349,16 +349,16 @@ public class S3ServiceSimpleMulti {
         throwError(adaptor);
         return (S3Object[]) objectList.toArray(new S3Object[objectList.size()]);
     }
-    
+
     /**
      * A convenience method to download multiple objects from S3 to pre-existing output streams, which
-     * is particularly useful for downloading objects to files. 
-     * 
+     * is particularly useful for downloading objects to files.
+     *
      * @param bucket
      * the bucket containing the objects
      * @param downloadPackages
      * an array of download package objects that manage the output of data for an S3Object.
-     * 
+     *
      * @throws S3ServiceException
      */
     public void downloadObjects(final S3Bucket bucket, final DownloadPackage[] downloadPackages) throws S3ServiceException {
@@ -366,6 +366,6 @@ public class S3ServiceSimpleMulti {
         (new S3ServiceMulti(s3Service, adaptor)).downloadObjects(bucket, downloadPackages);
         throwError(adaptor);
     }
-    
-    
+
+
 }

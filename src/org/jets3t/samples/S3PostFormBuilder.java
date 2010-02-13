@@ -9,11 +9,11 @@ public class S3PostFormBuilder {
     public static void main(String[] args) throws Exception {
         String aws_access_key = "YOUR AWS ACCESS KEY GOES HERE";
         String aws_secret_key = "YOUR AWS SECRET KEY GOES HERE";
-       
-        String policy_document = 
-          "{\"expiration\": \"2009-01-01T00:00:00Z\"," + 
-            "\"conditions\": [" +  
-              "{\"bucket\": \"s3-bucket\"}," + 
+
+        String policy_document =
+          "{\"expiration\": \"2009-01-01T00:00:00Z\"," +
+            "\"conditions\": [" +
+              "{\"bucket\": \"s3-bucket\"}," +
               "[\"starts-with\", \"$key\", \"uploads/\"]," +
               "{\"acl\": \"private\"}," +
               "{\"success_action_redirect\": \"http://localhost/\"}," +
@@ -33,34 +33,34 @@ public class S3PostFormBuilder {
             hmac.doFinal(policy.getBytes("UTF-8")))
             .replaceAll("\n", "");
 
-        // Build an S3 POST HTML document 
-        String html_document = 
+        // Build an S3 POST HTML document
+        String html_document =
             "<html>\n" +
                 "<head>\n" +
-                "  <title>S3 POST Form</title>\n" + 
+                "  <title>S3 POST Form</title>\n" +
                 "  <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" />\n" +
                 "</head>\n" +
 
-                "<body>\n" + 
+                "<body>\n" +
                 "  <form action=\"https://s3-bucket.s3.amazonaws.com/\" method=\"post\" enctype=\"multipart/form-data\">\n" +
                 "    <input type=\"hidden\" name=\"key\" value=\"uploads/${filename}\">\n" +
-                "    <input type=\"hidden\" name=\"AWSAccessKeyId\" value=\"" + aws_access_key + "\">\n" + 
+                "    <input type=\"hidden\" name=\"AWSAccessKeyId\" value=\"" + aws_access_key + "\">\n" +
                 "    <input type=\"hidden\" name=\"acl\" value=\"private\">\n" +
                 "    <input type=\"hidden\" name=\"success_action_redirect\" value=\"http://localhost/\">\n" +
                 "    <input type=\"hidden\" name=\"policy\" value=\"" + policy + "\">\n" +
                 "    <input type=\"hidden\" name=\"signature\" value=\"" + signature + "\">\n" +
                 "    <input type=\"hidden\" name=\"Content-Type\" value=\"image/jpeg\">\n" +
 
-                
-                "    File to upload to S3:\n" + 
-                "    <input name=\"file\" type=\"file\">\n" + 
-                "    <br>\n" + 
-                "    <input type=\"submit\" value=\"Upload File to S3\">\n" + 
+
+                "    File to upload to S3:\n" +
+                "    <input name=\"file\" type=\"file\">\n" +
+                "    <br>\n" +
+                "    <input type=\"submit\" value=\"Upload File to S3\">\n" +
                 "  </form>\n" +
                 "</body>\n" +
             "</html>";
 
         System.out.print(html_document);
     }
-    
+
 }
