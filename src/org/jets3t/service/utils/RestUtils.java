@@ -114,6 +114,8 @@ public class RestUtils {
             String encodedPath = URLEncoder.encode(path, Constants.DEFAULT_ENCODING);
             // Web browsers do not always handle '+' characters well, use the well-supported '%20' instead.
             encodedPath = encodedPath.replaceAll("\\+", "%20");
+            // '@' character need not be URL encoded and Google Chrome balks on signed URLs if it is.
+            encodedPath = encodedPath.replaceAll("%40", "@");
             return encodedPath;
         } catch (UnsupportedEncodingException uee) {
             throw new S3ServiceException("Unable to encode path: " + path, uee);
