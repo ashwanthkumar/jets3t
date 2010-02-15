@@ -1730,7 +1730,9 @@ public abstract class S3Service implements Serializable {
         		exactMatchCount++;
         	}
         }
-        return (BaseVersionOrDeleteMarker[]) Arrays.copyOf(matchesForNamePrefix, exactMatchCount);
+        BaseVersionOrDeleteMarker[] exactMatches = new BaseVersionOrDeleteMarker[exactMatchCount];
+        System.arraycopy(matchesForNamePrefix, 0, exactMatches, 0, exactMatchCount);
+        return exactMatches;
     }
 
     /**

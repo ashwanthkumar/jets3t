@@ -787,7 +787,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             // Fail early if user-supplied metadata cannot be represented as valid HTTP headers,
             // rather than waiting for a SignatureDoesNotMatch error.
             // NOTE: These checks are very much incomplete.
-            if (value.contains("\n") || value.contains("\r")) {
+            if (value.indexOf('\n') >= 0 || value.indexOf('\r') >= 0) {
                 throw new S3ServiceException("The value of metadata item " + key
             		+ " cannot be represented as an HTTP header for the REST S3 interface: "
             		+ value);

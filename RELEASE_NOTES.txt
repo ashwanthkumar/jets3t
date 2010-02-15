@@ -12,6 +12,7 @@ TOOLKIT
   S3. JetS3t's applications, and any third-party clients that use 
   this method, will therefore get automatic data verificaiton of
   downloads similar to that provided (in most cases) for uploads.
+- Removed methods incompatible with JDK version 1.4.
 
   * CloudFront Service
 
