@@ -539,6 +539,7 @@ public class Synchronize {
         }
 
         printOutputLine(
+            doAction ? "" : "[No Action] " +
             "New files: " + mergedDiscrepancyResults.onlyOnClientKeys.size() +
             ", Updated: " + mergedDiscrepancyResults.updatedOnClientKeys.size() +
             (isKeepFiles?
@@ -1278,10 +1279,9 @@ public class Synchronize {
                             System.err.println("ERROR: Cannot read credentials file '" + credentialsFile + "'");
                             printHelpAndExit(false);
                         }
-                        BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in));
                         while (awsCredentials == null) {
-                            System.out.print("Password for credentials file '" + credentialsFile + "': ");
-                            String credentialsPassword = inputReader.readLine();
+                            String credentialsPassword = PasswordInput.getPassword(
+                                "Password for credentials file '" + credentialsFile + "'");
                             try {
                                 awsCredentials = AWSCredentials.load(credentialsPassword, credentialsFile);
                                 // Set dummy accesskey and secretkey property values, to avoid prompting for these values later on.
@@ -1388,10 +1388,8 @@ public class Synchronize {
                 String password1 = "password1";
                 String password2 = "password2";
                 while (!password1.equals(password2)) {
-                    System.out.print("Encryption password: ");
-                    password1 = inputReader.readLine();
-                    System.out.print("Confirm password: ");
-                    password2 = inputReader.readLine();
+                    password1 = PasswordInput.getPassword("Encryption password");
+                    password2 = PasswordInput.getPassword("Confirm password");
                     if (!password1.equals(password2)) {
                         System.out.println("The original and confirmation passwords do not match, try again.");
                     }

@@ -23,6 +23,17 @@ COCKPIT
 - Fixed bug that caused Cockpit to create buckets in the US Standard 
   location regardless of the location selected by the user.
 
+SYNCHRONIZE
+
+- When an encryption password or credentials file password must be
+  entered by a user at the command prompt the characters are no
+  longer echoed to standard output when run on JDK 1.6 or greater.
+
+KUDOS TO:
+
+Bennett Hiles for echo-less password input for Synchronize and
+removal of methods incompatible with JDK 1.4.
+
 -------------
 Version 0.7.2
 -------------
