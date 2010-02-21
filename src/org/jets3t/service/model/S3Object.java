@@ -638,22 +638,29 @@ public class S3Object extends BaseS3Object implements Cloneable {
 
     /**
      * Add metadata information to the object. If date metadata items (as recognized by name)
-     * are added and the value is not a date, the value is parsed as an RFC 822 string.
+     * are added and the value is not a date the value is parsed as an RFC 822 or
+     * ISO 8601 string.
      * @param name
      * @param value
      */
     public void addMetadata(String name, Object value) {
-        try {
-        	if (METADATA_HEADER_LAST_MODIFIED_DATE.equals(name) && !(value instanceof Date)) {
-        		value = ServiceUtils.parseRfc822Date(value.toString());
-        	} else if (METADATA_HEADER_DATE.equals(name) && !(value instanceof Date)) {
-        		value = ServiceUtils.parseRfc822Date(value.toString());
-        	}
-        } catch (ParseException e) {
-        	if (log.isErrorEnabled()) {
-        		log.error("Unable to parse value we expect to be a valid date: "
-                    + name + "=" + value, e);
-        	}
+        if ((METADATA_HEADER_LAST_MODIFIED_DATE.equals(name)
+             || METADATA_HEADER_DATE.equals(name))
+            && !(value instanceof Date))
+        {
+            try {
+                // We shouldn't get ISO 8601 dates here but let's be paranoid...
+        	    if (value.toString().indexOf("-") >= 0) {
+                    value = ServiceUtils.parseIso8601Date(value.toString());
+        	    } else {
+                    value = ServiceUtils.parseRfc822Date(value.toString());
+        	    }
+            } catch (ParseException e) {
+            	if (log.isErrorEnabled()) {
+            		log.error("Unable to parse value we expect to be a valid date: "
+                        + name + "=" + value, e);
+            	}
+            }
         }
 
         super.addMetadata(name, value);
