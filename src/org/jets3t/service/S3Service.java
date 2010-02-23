@@ -1403,6 +1403,39 @@ public abstract class S3Service implements Serializable {
     }
 
     /**
+     * Convenience method to check whether an object exists in a bucket.
+     *
+     * @param bucketName
+     * the name of the bucket containing the object.
+     * @param objectKey
+     * the key identifying the object.
+     * @return
+     * false if the object is not found in the bucket, true if the object
+     * exists (although it may be inaccessible to you).
+     */
+    public boolean isObjectInBucket(String bucketName, String objectKey)
+        throws S3ServiceException
+    {
+        try {
+            getObject(bucketName, objectKey);
+        } catch (S3ServiceException e) {
+            if ("NoSuchKey".equals(e.getS3ErrorCode())
+                || "NoSuchBucket".equals(e.getS3ErrorCode()))
+            {
+                return false;
+            }
+            if ("AccessDenied".equals(e.getS3ErrorCode()))
+            {
+                // Object is inaccessible to current user, but does exist.
+                return true;
+            }
+            // Something else has gone wrong
+            throw e;
+        }
+        return true;
+    }
+
+    /**
      * Returns an object representing the details and data of an item in S3, without applying any
      * preconditions.
      * <p>
