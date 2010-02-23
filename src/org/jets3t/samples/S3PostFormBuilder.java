@@ -2,7 +2,8 @@ package org.jets3t.samples;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import sun.misc.BASE64Encoder;
+
+import org.apache.commons.codec.binary.Base64;
 
 public class S3PostFormBuilder {
 
@@ -23,15 +24,14 @@ public class S3PostFormBuilder {
           "}";
 
         // Calculate policy and signature values from the given policy document and AWS credentials.
-        String policy = (new BASE64Encoder()).encode(
-            policy_document.getBytes("UTF-8")).replaceAll("\n","").replaceAll("\r","");
+        String policy = new String(
+            Base64.encodeBase64(policy_document.getBytes("UTF-8")), "ASCII");
 
         Mac hmac = Mac.getInstance("HmacSHA1");
         hmac.init(new SecretKeySpec(
             aws_secret_key.getBytes("UTF-8"), "HmacSHA1"));
-        String signature = (new BASE64Encoder()).encode(
-            hmac.doFinal(policy.getBytes("UTF-8")))
-            .replaceAll("\n", "");
+        String signature = new String(
+            Base64.encodeBase64(hmac.doFinal(policy.getBytes("UTF-8"))), "ASCII");
 
         // Build an S3 POST HTML document
         String html_document =
