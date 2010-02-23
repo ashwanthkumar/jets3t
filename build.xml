@@ -330,7 +330,7 @@
             <fileset dir="${dir.configs}">
                 <include name="jets3t.properties"/>
                 <include name="mime.types"/>
-                <include name="cockpit-lite.properties"/>
+                <include name="cockpitlite.properties"/>
 			</fileset>
 		</copy>
         <copy todir="${dir.dist-applets}">
@@ -386,7 +386,6 @@
 				<include name="jets3t.properties"/>
 				<include name="mime.types"/>
                 <include name="uploader.properties"/>
-                <include name="cockpitlite.properties"/>
 			</fileset>
 		</copy>
 		<copy todir="${dir.dist-applets}">
