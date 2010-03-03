@@ -538,7 +538,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         objectsTable.setShowHorizontalLines(true);
         objectsTable.setShowVerticalLines(true);
         objectsTable.addMouseListener(new ContextMenuListener());
-        objectsTableSP = new JScrollPane(objectsTable);
+        objectsTableSP = skinsFactory.createSkinnedJScrollPane("ObjectsTableSP", objectsTable);
         objectsPanel.add(objectsTableSP,
                 new GridBagConstraints(0, ++row, 3, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
         objectsSummaryLabel = skinsFactory.createSkinnedJHtmlLabel("ObjectsSummary", this);

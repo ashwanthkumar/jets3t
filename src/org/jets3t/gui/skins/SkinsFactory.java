@@ -45,6 +45,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
+import java.awt.Component;
 
 /**
  * Manages the creation of skinned GUI elements.
@@ -263,6 +264,29 @@ public class SkinsFactory {
             return (JTable) instance;
         } else {
             return new JTable();
+        }
+    }
+
+    /**
+     * @param itemName
+     * the name of this specific item in the GUI, which may be used to determine how the skinned
+     * item should look or behave.
+     *
+     * @param view
+     * the client's viewport view to be used.
+     *
+     * @return
+     * a <code>SkinnedJScrollPane</code> class implementation for the current skin, or a default
+     * JScrollPane if no skin-specific implementation is available.
+     */
+    public JScrollPane createSkinnedJScrollPane(String itemName, Object view) {
+        Object instance = instantiateClass(buildSkinnedClassName("SkinnedJScrollPane"), itemName);
+        if (instance != null) {
+            JScrollPane scrollPane = (JScrollPane) instance;
+            scrollPane.setViewportView((Component) view);
+            return scrollPane;
+        } else {
+            return new JScrollPane((Component) view);
         }
     }
 
