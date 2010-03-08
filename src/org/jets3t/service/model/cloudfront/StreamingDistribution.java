@@ -31,9 +31,9 @@ public class StreamingDistribution extends Distribution {
     }
 
     public StreamingDistribution(String id, String status, Date lastModifiedDate,
-        String domainName, DistributionConfig config)
+        String domainName, Map activeTrustedSigners, DistributionConfig config)
     {
-        super(id, status, lastModifiedDate, domainName, null, config);
+        super(id, status, lastModifiedDate, domainName, activeTrustedSigners, config);
     }
 
 }

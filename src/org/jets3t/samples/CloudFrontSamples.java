@@ -19,8 +19,6 @@
 package org.jets3t.samples;
 
 import java.io.FileInputStream;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 
 import org.jets3t.service.CloudFrontService;
@@ -44,7 +42,6 @@ public class CloudFrontSamples {
         CloudFrontService cloudFrontService = new CloudFrontService(
             SamplesUtils.loadAWSCredentials());
 
-        /*
         // List the distributions applied to a given S3 bucket
         Distribution[] bucketDistributions = cloudFrontService.listDistributions("jets3t");
         for (int i = 0; i < bucketDistributions.length; i++) {
@@ -91,7 +88,7 @@ public class CloudFrontSamples {
         System.out.println("Disabled Distribution Config: " + disabledDistributionConfig);
 
         // Check whether a distribution is deployed
-        Distribution distribution = cloudFrontService.getDistributionInfo(testDistributionId);
+        distribution = cloudFrontService.getDistributionInfo(testDistributionId);
         System.out.println("Distribution is deployed? " + distribution.isDeployed());
 
         // Convenience method to disable a distribution prior to deletion
@@ -119,7 +116,7 @@ public class CloudFrontSamples {
         System.out.println("originAccessIdentityId: " + originAccessIdentityId);
 
         // Lookup information about a specific origin access identity
-        OriginAccessIdentity originAccessIdentity =
+        originAccessIdentity =
             cloudFrontService.getOriginAccessIdentity(originAccessIdentityId);
         System.out.println(originAccessIdentity);
 
@@ -142,8 +139,8 @@ public class CloudFrontSamples {
         // --------------------------------------------------------
 
         // Create a new private distribution for which signed URLs are *not* required
-        String originBucket = "jets3t.s3.amazonaws.com";
-        Distribution newDistribution = cloudFrontService.createDistribution(
+        originBucket = "jets3t.s3.amazonaws.com";
+        Distribution privateDistribution = cloudFrontService.createDistribution(
             originBucket,
             "" + System.currentTimeMillis(), // Caller reference - a unique string value
             new String[] {}, // CNAME aliases for distribution
@@ -154,10 +151,10 @@ public class CloudFrontSamples {
             false, // URLs self-signing disabled
             null   // No other AWS users can sign URLs
         );
-        System.out.println("New Private Distribution: " + newDistribution);
+        System.out.println("New Private Distribution: " + privateDistribution);
 
         // Update an existing distribution to make it private and require URL signing
-        DistributionConfig updatedDistributionConfig = cloudFrontService.updateDistributionConfig(
+        updatedDistributionConfig = cloudFrontService.updateDistributionConfig(
             testDistributionId,
             new String[] {}, // CNAME aliases for distribution
             "Now a private distribution -- URL Signing required", // Comment
@@ -171,12 +168,12 @@ public class CloudFrontSamples {
 
 
         // List active trusted signers for a private distribution
-        Distribution distribution = cloudFrontService.getDistributionInfo(testDistributionId);
+        distribution = cloudFrontService.getDistributionInfo(testDistributionId);
         System.out.println("Active trusted signers: " + distribution.getActiveTrustedSigners());
 
         // Obtain one of your own (Self) keypair ids that can sign URLs for the distribution
         List selfKeypairIds = (List) distribution.getActiveTrustedSigners().get("Self");
-        String keyPairId = selfKeypairIds.get(0);
+        String keyPairId = (String) selfKeypairIds.get(0);
         System.out.println("Keypair ID: " + keyPairId);
 
         // -------------------------------------------------------------------------
@@ -222,7 +219,6 @@ public class CloudFrontSamples {
             );
         System.out.println(signedUrl);
 
-
         // ------------------------------------------------------------
         // CloudFront Streaming Distributions
         //
@@ -230,9 +226,9 @@ public class CloudFrontSamples {
         // very similar to those for standard distributions
         // ------------------------------------------------------------
 
-        // List the streaming distributions applied to a given S3 bucket
+        // List your streaming distributions
         StreamingDistribution[] streamingDistributions =
-            cloudFrontService.listStreamingDistributions("jets3t-streaming");
+            cloudFrontService.listStreamingDistributions();
         for (int i = 0; i < streamingDistributions.length; i++) {
             System.out.println("Streaming distribution " + (i + 1) + ": " + streamingDistributions[i]);
         }
@@ -247,6 +243,22 @@ public class CloudFrontSamples {
             true  // Distribution is enabled?
             );
         System.out.println("New Streaming Distribution: " + newStreamingDistribution);
+
+        // Streaming distributions can be made private just like standard non-streaming
+        // distributions. Create a new private streaming distribution for which signed
+        // URLs are *not* required
+        StreamingDistribution newPrivateStreamingDistribution = cloudFrontService
+                .createStreamingDistribution(
+            streamingBucket,
+            "" + System.currentTimeMillis(), // Caller reference - a unique string value
+            new String[] {}, // CNAME aliases for distribution
+            "New private streaming distribution -- URL signing not required", // Comment
+            true,  // Distribution is enabled?
+            originAccessIdentityId, // Origin Access Identity to make distribution private
+            true, // URLs self-signing enabled
+            null   // No other AWS users can sign URLs
+        );
+        System.out.println("New Private Streaming Distribution: " + newPrivateStreamingDistribution);
 
         // The ID of the streaming distribution we will use for testing
         String testStreamingDistributionId = newStreamingDistribution.getId();
@@ -291,8 +303,6 @@ public class CloudFrontSamples {
 
         // Delete a streaming distribution (the distribution must be disabled and deployed first)
         cloudFrontService.deleteStreamingDistribution(testStreamingDistributionId);
-        */
-
     }
 
 }

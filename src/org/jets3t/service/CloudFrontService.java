@@ -77,7 +77,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     private static final Log log = LogFactory.getLog(CloudFrontService.class);
 
     public static final String ENDPOINT = "https://cloudfront.amazonaws.com/";
-    public static final String VERSION = "2009-12-01";
+    public static final String VERSION = "2010-03-01";
     public static final String XML_NAMESPACE = "http://cloudfront.amazonaws.com/doc/" + VERSION + "/";
     public static final String DEFAULT_BUCKET_SUFFIX = ".s3.amazonaws.com";
     public static final String ORIGIN_ACCESS_IDENTITY_URI_PATH = "/origin-access-identity/cloudfront";
@@ -763,7 +763,58 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     }
 
     /**
-     * Create a streaming CloudFront distribution for an S3 bucket.
+     * Create a public or private streaming CloudFront distribution for an S3 bucket.
+     *
+     * @param origin
+     * the Amazon S3 bucket to associate with the distribution, specified as a full
+     * S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
+     * @param callerReference
+     * A user-set unique reference value that ensures the request can't be replayed
+     * (max UTF-8 encoding size 128 bytes). This parameter may be null, in which
+     * case your computer's local epoch time in milliseconds will be used.
+     * @param cnames
+     * A list of up to 10 CNAME aliases to associate with the distribution. This
+     * parameter may be a null or empty array.
+     * @param comment
+     * An optional comment to describe the distribution in your own terms
+     * (max 128 characters). May be null.
+     * @param enabled
+     * Should the distribution should be enabled and publicly accessible upon creation?
+     * @param originAccessIdentityId
+     * Identifier of the origin access identity that can authorize access to
+     * S3 objects via a private distribution. If provided the distribution will be
+     * private, if null the distribution will be be public.
+     * @param trustedSignerSelf
+     * If true the owner of the distribution (you) will be be allowed to generate
+     * signed URLs for a private distribution. Note: If either trustedSignerSelf or
+     * trustedSignerAwsAccountNumbers parameters are provided the private distribution
+     * will require signed URLs to access content.
+     * @param trustedSignerAwsAccountNumbers
+     * Account Number identifiers for AWS account holders other than the
+     * distribution's owner who will be allowed to generate signed URLs for a private
+     * distribution. If null or empty, no additional AWS account holders may generate
+     * signed URLs. Note: If either trustedSignerSelf or
+     * trustedSignerAwsAccountNumbers parameters are provided the private distribution
+     * will require signed URLs to access content.
+     *
+     * @return
+     * an object that describes the newly-created distribution, in particular the
+     * distribution's identifier and domain name values.
+     *
+     * @throws CloudFrontServiceException
+     */
+    public StreamingDistribution createStreamingDistribution(String origin, String callerReference,
+            String[] cnames, String comment, boolean enabled,
+            String originAccessIdentityId, boolean trustedSignerSelf,
+            String[] trustedSignerAwsAccountNumbers) throws CloudFrontServiceException
+    {
+        return (StreamingDistribution) createDistributionImpl(true, origin, callerReference,
+    		cnames, comment, enabled, null, originAccessIdentityId,
+    		trustedSignerSelf, trustedSignerAwsAccountNumbers);
+    }
+
+    /**
+     * Create a public streaming CloudFront distribution for an S3 bucket.
      *
      * @param origin
      * the Amazon S3 bucket to associate with the distribution, specified as a full
@@ -791,7 +842,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             String[] cnames, String comment, boolean enabled) throws CloudFrontServiceException
     {
         return (StreamingDistribution) createDistributionImpl(true, origin, callerReference,
-    		cnames, comment, enabled, null, null, false, null);
+            cnames, comment, enabled, null, null, false, null);
     }
 
     /**

@@ -22,6 +22,14 @@ package org.jets3t.service.model.cloudfront;
 public class StreamingDistributionConfig extends DistributionConfig {
 
     public StreamingDistributionConfig(String origin, String callerReference,
+        String[] cnames, String comment, boolean enabled, String originAccessIdentity,
+        boolean trustedSignerSelf, String[] trustedSignerAwsAccountNumbers)
+    {
+        super(origin, callerReference, cnames, comment, enabled, null,
+            originAccessIdentity, trustedSignerSelf, trustedSignerAwsAccountNumbers);
+    }
+
+    public StreamingDistributionConfig(String origin, String callerReference,
         String[] cnames, String comment, boolean enabled)
     {
         super(origin, callerReference, cnames, comment, enabled, null, null, false, null);

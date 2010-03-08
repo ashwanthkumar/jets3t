@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  *
- * Copyright 2008 James Murty
+ * Copyright 2008-2010 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -333,7 +333,7 @@ public class CloudFrontXmlResponsesSaxParser {
                 ((DistributionConfigHandler) childHandler).getDistributionConfig();
             if (config instanceof StreamingDistributionConfig) {
                 this.distribution = new StreamingDistribution(id, status,
-                    lastModifiedTime, domainName, config);
+                    lastModifiedTime, domainName, activeTrustedSigners, config);
             } else {
                 this.distribution = new Distribution(id, status,
                     lastModifiedTime, domainName, activeTrustedSigners, config);
@@ -425,7 +425,10 @@ public class CloudFrontXmlResponsesSaxParser {
         public void endStreamingDistributionConfig(String text) {
             this.distributionConfig = new StreamingDistributionConfig(
                 origin, callerReference,
-                (String[]) cnamesList.toArray(new String[cnamesList.size()]), comment, enabled);
+                (String[]) cnamesList.toArray(new String[cnamesList.size()]), comment,
+                enabled, originAccessIdentity, trustedSignerSelf,
+                (String[]) trustedSignerAwsAccountNumberList.toArray(
+                    new String[trustedSignerAwsAccountNumberList.size()]));
             returnControlToParentHandler();
         }
     }

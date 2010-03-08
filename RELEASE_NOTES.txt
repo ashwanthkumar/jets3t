@@ -16,6 +16,8 @@ TOOLKIT
 
   * CloudFront Service
 
+- Updated service to support API version 2010-03-01 which allows
+  streaming distributions to be made private.
 - Fixed bug parsing that prevented AWS Account Numbers from 
   being parsed from XML responses into a DistributionConfig object.
 
