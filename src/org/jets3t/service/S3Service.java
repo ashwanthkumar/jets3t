@@ -3003,7 +3003,6 @@ public abstract class S3Service implements Serializable {
 
     /**
      * Applies access control settings to a versioned object.
-     * The ACL settings must be included with the object.
      *
      * This method can be performed by anonymous services, but can only succeed if the
      * object's existing ACL already allows write access by the anonymous user.
@@ -3023,11 +3022,41 @@ public abstract class S3Service implements Serializable {
     public void putVersionedObjectAcl(String versionId, String bucketName,
     	String objectKey, AccessControlList acl) throws S3ServiceException
     {
+        putObjectAclImpl(bucketName, objectKey, acl, versionId);
+    }
+
+    /**
+     * Applies access control settings to a versioned object.
+     * The ACL settings must be included with the object.
+     *
+     * This method can be performed by anonymous services, but can only succeed if the
+     * object's existing ACL already allows write access by the anonymous user.
+     * In general, you can only access the ACL of an object if the ACL already in place
+     * for that object (in S3) allows you to do so. See
+     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
+     * the S3 documentation on ACLs</a> for more details on access to ACLs.
+     *
+     * @param versionId
+     * the identifier of the object version whose ACL will be updated.
+     * @param bucket
+     * the bucket containing the object to modify.
+     * @param object
+     * the object with ACL settings that will be applied.
+     *
+     * @throws S3ServiceException
+     */
+    public void putVersionedObjectAcl(String versionId, S3Bucket bucket, S3Object object)
+        throws S3ServiceException
+    {
+        assertValidBucket(bucket, "Put Versioned Object Access Control List");
+        assertValidObject(object, "Put Versioned Object Access Control List");
+        String objectKey = object.getKey();
+        AccessControlList acl = object.getAcl();
         if (acl == null) {
             throw new S3ServiceException("The object '" + objectKey +
                 "' does not include ACL information");
         }
-        putObjectAclImpl(bucketName, objectKey, acl, versionId);
+        putObjectAclImpl(bucket.getName(), objectKey, acl, versionId);
     }
 
     /**
