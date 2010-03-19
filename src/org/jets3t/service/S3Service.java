@@ -1714,11 +1714,6 @@ public abstract class S3Service implements Serializable {
      * @param delimiter
      * only list objects with key names up to this delimiter, may be null.
      * See note above.
-     * @param maxListingLength
-     * the maximum number of objects to include in each result message sent by
-     * S3. This value has <strong>no effect</strong> on the number of objects
-     * that will be returned by this method, because it will always return all
-     * the objects in the bucket.
      * @return
      * the set of objects contained in a bucket whose keys start with the given prefix.
      * @throws S3ServiceException

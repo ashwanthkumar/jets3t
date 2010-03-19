@@ -22,7 +22,8 @@ import org.jets3t.service.model.S3Version;
 
 /**
  * Multi-threaded service event fired by
- * {@link S3ServiceMulti#deleteVersionsOfObjectWithMFA(String[], String, String, String, String))}.
+ * {@link S3ServiceMulti#deleteVersionsOfObject(String[], String, String)} or
+ * {@link S3ServiceMulti#deleteVersionsOfObjectWithMFA(String[], String, String, String, String)}.
  * <p>
  * EVENT_IN_PROGRESS events include an array of the {@link S3Version}s that have been deleted
  * since the last progress event was fired. These versions are available via
