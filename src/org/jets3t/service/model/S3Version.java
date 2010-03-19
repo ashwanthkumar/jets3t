@@ -45,6 +45,11 @@ public class S3Version extends BaseVersionOrDeleteMarker {
     	super(key, versionId, isLatest, lastModified, owner);
     }
 
+    public S3Version(String key, String versionId)
+    {
+        super(key, versionId, false, null, null);
+    }
+
     public boolean isDeleteMarker() {
     	return false;
     }

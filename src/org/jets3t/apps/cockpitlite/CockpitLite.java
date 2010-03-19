@@ -117,6 +117,7 @@ import org.jets3t.service.multithread.CopyObjectsEvent;
 import org.jets3t.service.multithread.CreateBucketsEvent;
 import org.jets3t.service.multithread.CreateObjectsEvent;
 import org.jets3t.service.multithread.DeleteObjectsEvent;
+import org.jets3t.service.multithread.DeleteVersionedObjectsEvent;
 import org.jets3t.service.multithread.DownloadObjectsEvent;
 import org.jets3t.service.multithread.DownloadPackage;
 import org.jets3t.service.multithread.GetObjectHeadsEvent;
@@ -1081,6 +1082,10 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      * @param event
      */
     public void s3ServiceEventPerformed(ListObjectsEvent event) {
+        // Not used.
+    }
+
+    public void s3ServiceEventPerformed(DeleteVersionedObjectsEvent event) {
         // Not used.
     }
 

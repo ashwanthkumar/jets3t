@@ -36,6 +36,8 @@ public interface S3ServiceEventListener {
 
     public void s3ServiceEventPerformed(DeleteObjectsEvent event);
 
+    public void s3ServiceEventPerformed(DeleteVersionedObjectsEvent event);
+
     public void s3ServiceEventPerformed(GetObjectsEvent event);
 
     public void s3ServiceEventPerformed(GetObjectHeadsEvent event);

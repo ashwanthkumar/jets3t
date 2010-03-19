@@ -115,6 +115,7 @@ import org.jets3t.service.multithread.CopyObjectsEvent;
 import org.jets3t.service.multithread.CreateBucketsEvent;
 import org.jets3t.service.multithread.CreateObjectsEvent;
 import org.jets3t.service.multithread.DeleteObjectsEvent;
+import org.jets3t.service.multithread.DeleteVersionedObjectsEvent;
 import org.jets3t.service.multithread.DownloadObjectsEvent;
 import org.jets3t.service.multithread.GetObjectHeadsEvent;
 import org.jets3t.service.multithread.GetObjectsEvent;
@@ -1680,6 +1681,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
     public void s3ServiceEventPerformed(UpdateACLEvent event) {}
     public void s3ServiceEventPerformed(DownloadObjectsEvent event) {}
     public void s3ServiceEventPerformed(CopyObjectsEvent event) {}
+    public void s3ServiceEventPerformed(DeleteVersionedObjectsEvent event) {}
     public void valueChanged(ListSelectionEvent arg0) {}
 
 

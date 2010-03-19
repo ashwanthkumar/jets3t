@@ -58,6 +58,10 @@ public class S3ServiceEventAdaptor implements S3ServiceEventListener {
         storeThrowable(event);
     }
 
+    public void s3ServiceEventPerformed(DeleteVersionedObjectsEvent event) {
+        storeThrowable(event);
+    }
+
     public void s3ServiceEventPerformed(GetObjectsEvent event) {
         storeThrowable(event);
     }
@@ -78,7 +82,7 @@ public class S3ServiceEventAdaptor implements S3ServiceEventListener {
         storeThrowable(event);
     }
 
-    private void storeThrowable(ServiceEvent event) {
+    protected void storeThrowable(ServiceEvent event) {
         if (t[0] == null && event.getEventCode() == ServiceEvent.EVENT_ERROR) {
             t[0] = event.getErrorCause();
         }

@@ -73,8 +73,6 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author Nikolas Coukouma
  */
 public abstract class S3Service implements Serializable {
-    private static final long serialVersionUID = -3021937315520850814L;
-
     private static final Log log = LogFactory.getLog(S3Service.class);
 
     /**
@@ -1499,6 +1497,8 @@ public abstract class S3Service implements Serializable {
      * may be held open until the streams are closed. Excessive unclosed streams can lead to
      * connection starvation.
      *
+     * @param versionId
+     * identifier matching an existing object version that will be retrieved.
      * @param bucketName
      * the name of the versioned bucket containing the object.
      * @param objectKey

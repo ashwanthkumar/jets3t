@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  * 
- * Copyright 2006 James Murty
+ * Copyright 2006-2010 James Murty
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +48,7 @@ import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.io.TempFile;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.S3Version;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.utils.signedurl.SignedUrlAndObject;
@@ -223,6 +224,8 @@ public class S3ServiceMulti implements Serializable {
                 listener.s3ServiceEventPerformed((ListObjectsEvent) event);
             } else if (event instanceof DeleteObjectsEvent) {
                 listener.s3ServiceEventPerformed((DeleteObjectsEvent) event);
+            } else if (event instanceof DeleteVersionedObjectsEvent) {
+                listener.s3ServiceEventPerformed((DeleteVersionedObjectsEvent) event);
             } else if (event instanceof GetObjectsEvent) {
                 listener.s3ServiceEventPerformed((GetObjectsEvent) event);
             } else if (event instanceof GetObjectHeadsEvent) {
@@ -295,9 +298,6 @@ public class S3ServiceMulti implements Serializable {
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
         final boolean[] success = new boolean[] {true};
                 
-        int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 20);
-        
         // Start all queries in the background.
         ListObjectsRunnable[] runnables = new ListObjectsRunnable[prefixes.length];
         for (int i = 0; i < runnables.length; i++) {
@@ -305,12 +305,9 @@ public class S3ServiceMulti implements Serializable {
                 delimiter, maxListingLength, null);
         }
         
-        boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
-            .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
-                                
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, adminMaxThreadCount, new ThreadWatcher(runnables.length), 
-            ignoreExceptions) 
+        (new ThreadGroupManager(runnables, new ThreadWatcher(runnables.length), 
+            this.s3Service.getJetS3tProperties(), true)
         {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(ListObjectsEvent.newStartedEvent(threadWatcher, uniqueOperationId));        
@@ -364,15 +361,9 @@ public class S3ServiceMulti implements Serializable {
             runnables[i] = new CreateBucketRunnable(buckets[i]);
         }
                 
-        int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 20);
-        
-        boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
-            .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
-                            
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, adminMaxThreadCount, new ThreadWatcher(runnables.length),
-            ignoreExceptions) 
+        (new ThreadGroupManager(runnables, new ThreadWatcher(runnables.length),
+            this.s3Service.getJetS3tProperties(), true) 
         {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(CreateBucketsEvent.newStartedEvent(threadWatcher, uniqueOperationId));        
@@ -447,16 +438,11 @@ public class S3ServiceMulti implements Serializable {
             runnables[i] = new CopyObjectRunnable(sourceBucketName, destinationBucketName, 
                 sourceObjectKeys[i], destinationObjects[i], replaceMetadata);
         }        
-        
-        int maxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 20);
-        
-        boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
-            .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
                             
         // Wait for threads to finish, or be cancelled.
-        ThreadWatcher threadWatcher = new ThreadWatcher(runnables.length);
-        (new ThreadGroupManager(runnables, maxThreadCount, threadWatcher, ignoreExceptions) {
+        (new ThreadGroupManager(runnables, new ThreadWatcher(runnables.length), 
+            this.s3Service.getJetS3tProperties(), true)
+        {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(CopyObjectsEvent.newStartedEvent(threadWatcher, uniqueOperationId));        
             }
@@ -519,16 +505,12 @@ public class S3ServiceMulti implements Serializable {
             progressWatchers.add(progressMonitor);
         }        
         
-        int maxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.max-thread-count", 2);
-        
-        boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
-            .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
-                            
         // Wait for threads to finish, or be cancelled.
         ThreadWatcher threadWatcher = new ThreadWatcher(
             (BytesProgressWatcher[]) progressWatchers.toArray(new BytesProgressWatcher[progressWatchers.size()]));
-        (new ThreadGroupManager(runnables, maxThreadCount, threadWatcher, ignoreExceptions) {
+        (new ThreadGroupManager(runnables, threadWatcher,
+            this.s3Service.getJetS3tProperties(), false)
+        {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(CreateObjectsEvent.newStartedEvent(threadWatcher, uniqueOperationId));        
             }
@@ -587,15 +569,9 @@ public class S3ServiceMulti implements Serializable {
             runnables[i] = new DeleteObjectRunnable(bucket, objects[i]);
         }
         
-        int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 20);
-        
-        boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
-            .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
-                            
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, adminMaxThreadCount, new ThreadWatcher(runnables.length),
-            ignoreExceptions) 
+        (new ThreadGroupManager(runnables, new ThreadWatcher(runnables.length),
+            this.s3Service.getJetS3tProperties(), true) 
         {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(DeleteObjectsEvent.newStartedEvent(threadWatcher, uniqueOperationId));        
@@ -626,6 +602,115 @@ public class S3ServiceMulti implements Serializable {
         }).run();
         
         return success[0];
+    }
+   
+    /**
+     * Delete multiple object versions from a bucket in S3, and sends 
+     * {@link DeleteVersionedObjectsEvent} notification events. This will delete only the specific
+     * version identified and will not affect any other Version or DeleteMarkers related to
+     * the object.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property 
+     * <tt>s3service.admin-max-thread-count</tt>.
+     * 
+     * @param versionIds
+     * the identifiers of the object versions that will be deleted.
+     * @param multiFactorSerialNumber
+     * the serial number for a multi-factor authentication device.
+     * @param multiFactorAuthCode
+     * a multi-factor authentication code generated by a device.
+     * @param bucketName
+     * the name of the versioned bucket containing the object to be deleted.
+     * @param objectKey
+     * the key representing the object in S3.
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
+     */
+    public boolean deleteVersionsOfObjectWithMFA(final String[] versionIds, 
+        String multiFactorSerialNumber, String multiFactorAuthCode,
+        String bucketName, String objectKey)
+    {
+        final List versionsToDeleteList = new ArrayList();
+        final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final boolean[] success = new boolean[] {true};
+
+        // Start all queries in the background.
+        DeleteVersionedObjectRunnable[] runnables =
+            new DeleteVersionedObjectRunnable[versionIds.length];
+        for (int i = 0; i < runnables.length; i++) {
+            versionsToDeleteList.add(new S3Version(objectKey, versionIds[i]));
+            runnables[i] = new DeleteVersionedObjectRunnable(
+                versionIds[i], multiFactorSerialNumber, multiFactorAuthCode,
+                bucketName, objectKey);
+        }
+        
+        // Wait for threads to finish, or be cancelled.        
+        (new ThreadGroupManager(runnables, new ThreadWatcher(runnables.length),
+            this.s3Service.getJetS3tProperties(), true) 
+        {
+            public void fireStartEvent(ThreadWatcher threadWatcher) {
+                fireServiceEvent(DeleteVersionedObjectsEvent.newStartedEvent(
+                    threadWatcher, uniqueOperationId));        
+            }
+            public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
+                versionsToDeleteList.removeAll(completedResults);
+                S3Version[] deletedVersions = (S3Version[]) completedResults
+                    .toArray(new S3Version[completedResults.size()]);                    
+                fireServiceEvent(DeleteVersionedObjectsEvent.newInProgressEvent(
+                    threadWatcher, deletedVersions, uniqueOperationId));
+            }
+            public void fireCancelEvent() {
+                S3Version[] remainingVersions = (S3Version[]) versionsToDeleteList
+                    .toArray(new S3Version[versionsToDeleteList.size()]);                    
+                success[0] = false;
+                fireServiceEvent(DeleteVersionedObjectsEvent.newCancelledEvent(
+                    remainingVersions, uniqueOperationId));
+            }
+            public void fireCompletedEvent() {
+                fireServiceEvent(DeleteVersionedObjectsEvent.newCompletedEvent(
+                    uniqueOperationId));                    
+            }
+            public void fireErrorEvent(Throwable throwable) {
+                success[0] = false;
+                fireServiceEvent(DeleteVersionedObjectsEvent.newErrorEvent(
+                    throwable, uniqueOperationId));
+            }
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher,
+                Throwable[] ignoredErrors)
+            {
+                success[0] = false;
+                fireServiceEvent(DeleteVersionedObjectsEvent.newIgnoredErrorsEvent(
+                    threadWatcher, ignoredErrors, uniqueOperationId));
+            }
+        }).run();
+        
+        return success[0];
+    }
+    
+    /**
+     * Delete multiple object versions from a bucket in S3, and sends 
+     * {@link DeleteVersionedObjectsEvent} notification events. This will delete only the specific
+     * version identified and will not affect any other Version or DeleteMarkers related to
+     * the object.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property 
+     * <tt>s3service.admin-max-thread-count</tt>.
+     * 
+     * @param versionIds
+     * the identifiers of the object versions that will be deleted.
+     * @param bucketName
+     * the name of the versioned bucket containing the object to be deleted.
+     * @param objectKey
+     * the key representing the object in S3.
+     * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
+     */
+    public boolean deleteVersionsOfObject(final String[] versionIds, 
+        String bucketName, String objectKey)
+    {
+        return deleteVersionsOfObjectWithMFA(versionIds, null, null, bucketName, objectKey);
     }
     
     /**
@@ -675,15 +760,9 @@ public class S3ServiceMulti implements Serializable {
             runnables[i] = new GetObjectRunnable(bucket, objectKeys[i], false);
         }
         
-        int maxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.max-thread-count", 2);
-        
-        boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
-            .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
-                            
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, maxThreadCount, new ThreadWatcher(runnables.length),
-            ignoreExceptions) 
+        (new ThreadGroupManager(runnables, new ThreadWatcher(runnables.length),
+            this.s3Service.getJetS3tProperties(), false) 
         {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(GetObjectsEvent.newStartedEvent(threadWatcher, uniqueOperationId));        
@@ -723,7 +802,7 @@ public class S3ServiceMulti implements Serializable {
         
         return success[0];
     }
-    
+
     /**
      * Retrieves details (but no data) about multiple objects from a bucket, and sends 
      * {@link GetObjectHeadsEvent} notification events.
@@ -771,15 +850,9 @@ public class S3ServiceMulti implements Serializable {
             runnables[i] = new GetObjectRunnable(bucket, objectKeys[i], true);
         }
 
-        int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 20);
-        
-        boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
-            .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
-                            
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, adminMaxThreadCount, new ThreadWatcher(runnables.length),
-            ignoreExceptions) 
+        (new ThreadGroupManager(runnables, new ThreadWatcher(runnables.length),
+            this.s3Service.getJetS3tProperties(), true) 
         {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(GetObjectHeadsEvent.newStartedEvent(threadWatcher, uniqueOperationId));        
@@ -847,15 +920,9 @@ public class S3ServiceMulti implements Serializable {
             runnables[i] = new GetACLRunnable(bucket, objects[i]);
         }
         
-        int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 20);
-        
-        boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
-            .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
-                            
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, adminMaxThreadCount, new ThreadWatcher(runnables.length),
-            ignoreExceptions) 
+        (new ThreadGroupManager(runnables, new ThreadWatcher(runnables.length),
+            this.s3Service.getJetS3tProperties(), true) 
         {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(LookupACLEvent.newStartedEvent(threadWatcher, uniqueOperationId));        
@@ -915,15 +982,9 @@ public class S3ServiceMulti implements Serializable {
             runnables[i] = new PutACLRunnable(bucket, objects[i]);
         }
         
-        int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 20);
-        
-        boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
-            .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
-                            
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, adminMaxThreadCount, new ThreadWatcher(runnables.length),
-            ignoreExceptions) 
+        (new ThreadGroupManager(runnables, new ThreadWatcher(runnables.length),
+            this.s3Service.getJetS3tProperties(), true) 
         {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(UpdateACLEvent.newStartedEvent(threadWatcher, uniqueOperationId));        
@@ -1027,16 +1088,12 @@ public class S3ServiceMulti implements Serializable {
             }
         }
 
-        int maxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.max-thread-count", 2);
-        
-        boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
-            .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
-                            
         // Wait for threads to finish, or be cancelled.        
         ThreadWatcher threadWatcher = new ThreadWatcher(
             (BytesProgressWatcher[]) progressWatchers.toArray(new BytesProgressWatcher[progressWatchers.size()]));
-        (new ThreadGroupManager(runnables, maxThreadCount, threadWatcher, ignoreExceptions) {
+        (new ThreadGroupManager(runnables, threadWatcher, 
+            this.s3Service.getJetS3tProperties(), false)
+        {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(DownloadObjectsEvent.newStartedEvent(threadWatcher, uniqueOperationId));
             }
@@ -1151,15 +1208,9 @@ public class S3ServiceMulti implements Serializable {
             runnables[i] = new GetObjectRunnable(signedGetURLs[i], false);
         }
         
-        int maxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.max-thread-count", 2);
-
-        boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
-            .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
-                            
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, maxThreadCount, new ThreadWatcher(runnables.length),
-            ignoreExceptions) 
+        (new ThreadGroupManager(runnables, new ThreadWatcher(runnables.length),
+            this.s3Service.getJetS3tProperties(), false) 
         {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(GetObjectsEvent.newStartedEvent(threadWatcher, uniqueOperationId));        
@@ -1242,15 +1293,9 @@ public class S3ServiceMulti implements Serializable {
             runnables[i] = new GetObjectRunnable(signedHeadURLs[i], true);
         }
         
-        int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 20);
-        
-        boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
-            .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
-                            
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, adminMaxThreadCount, new ThreadWatcher(runnables.length),
-            ignoreExceptions) 
+        (new ThreadGroupManager(runnables, new ThreadWatcher(runnables.length),
+            this.s3Service.getJetS3tProperties(), true) 
         {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(GetObjectHeadsEvent.newStartedEvent(threadWatcher, uniqueOperationId));        
@@ -1324,15 +1369,9 @@ public class S3ServiceMulti implements Serializable {
             runnables[i] = new PutACLRunnable(signedURLs[i], acl);
         }
         
-        int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 20);
-        
-        boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
-            .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
-                            
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, adminMaxThreadCount, new ThreadWatcher(runnables.length),
-            ignoreExceptions) 
+        (new ThreadGroupManager(runnables, new ThreadWatcher(runnables.length),
+            this.s3Service.getJetS3tProperties(), true) 
         {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(UpdateACLEvent.newStartedEvent(threadWatcher, uniqueOperationId));        
@@ -1406,15 +1445,9 @@ public class S3ServiceMulti implements Serializable {
             runnables[i] = new DeleteObjectRunnable(signedDeleteUrls[i]);
         }
         
-        int adminMaxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 20);
-        
-        boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
-            .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
-                            
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, adminMaxThreadCount, new ThreadWatcher(runnables.length),
-            ignoreExceptions) 
+        (new ThreadGroupManager(runnables, new ThreadWatcher(runnables.length),
+            this.s3Service.getJetS3tProperties(), true) 
         {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(DeleteObjectsEvent.newStartedEvent(threadWatcher, uniqueOperationId));        
@@ -1494,16 +1527,12 @@ public class S3ServiceMulti implements Serializable {
             runnables[i] = new SignedPutRunnable(signedPutUrlAndObjects[i], progressMonitor);
         }        
         
-        int maxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.max-thread-count", 2);
-        
-        boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
-            .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
-                            
         // Wait for threads to finish, or be cancelled.        
         ThreadWatcher threadWatcher = new ThreadWatcher(
             (BytesProgressWatcher[]) progressWatchers.toArray(new BytesProgressWatcher[progressWatchers.size()]));
-        (new ThreadGroupManager(runnables, maxThreadCount, threadWatcher, ignoreExceptions) {
+        (new ThreadGroupManager(runnables, threadWatcher,
+            this.s3Service.getJetS3tProperties(), false)
+        {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(CreateObjectsEvent.newStartedEvent(threadWatcher, uniqueOperationId));        
             }
@@ -1578,15 +1607,9 @@ public class S3ServiceMulti implements Serializable {
             runnables[i] = new GetACLRunnable(signedAclURLs[i]);
         }
         
-        int maxThreadCount = this.s3Service.getJetS3tProperties()
-            .getIntProperty("s3service.max-thread-count", 2);
-
-        boolean ignoreExceptions = this.s3Service.getJetS3tProperties()
-            .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
-                            
         // Wait for threads to finish, or be cancelled.        
-        (new ThreadGroupManager(runnables, maxThreadCount, new ThreadWatcher(runnables.length),
-            ignoreExceptions) 
+        (new ThreadGroupManager(runnables, new ThreadWatcher(runnables.length),
+            this.s3Service.getJetS3tProperties(), false) 
         {
             public void fireStartEvent(ThreadWatcher threadWatcher) {
                 fireServiceEvent(LookupACLEvent.newStartedEvent(threadWatcher, uniqueOperationId));        
@@ -1802,6 +1825,50 @@ public class S3ServiceMulti implements Serializable {
         }
     }
 
+    /**
+     * Thread for deleting a versioned object.
+     */
+    private class DeleteVersionedObjectRunnable extends AbstractRunnable {
+        private String versionId = null; 
+        private String multiFactorSerialNumber = null;
+        private String multiFactorAuthCode = null;
+        private String bucketName = null;
+        private String objectKey = null;
+        private Object result = null;
+        
+        public DeleteVersionedObjectRunnable(String versionId, 
+            String multiFactorSerialNumber, String multiFactorAuthCode,
+            String bucketName, String objectKey)
+        {
+            this.versionId = versionId;
+            this.multiFactorSerialNumber = multiFactorSerialNumber;
+            this.multiFactorAuthCode = multiFactorAuthCode;
+            this.bucketName = bucketName;
+            this.objectKey = objectKey;
+        }
+
+        public void run() {
+            try {
+                s3Service.deleteVersionedObjectWithMFA(versionId, 
+                    multiFactorSerialNumber, multiFactorAuthCode,
+                    bucketName, objectKey);                    
+                result = new S3Version(objectKey, versionId);
+            } catch (RuntimeException e) {
+                result = e;
+                throw e;
+            } catch (Exception e) {
+                result = e;
+            }            
+        }
+        
+        public Object getResult() {
+            return result;
+        }        
+        
+        public void forceInterruptCalled() {            
+            // This is an atomic operation, cannot interrupt. Ignore.
+        }
+    }
     /**
      * Thread for creating a bucket.
      */
@@ -2301,13 +2368,21 @@ public class S3ServiceMulti implements Serializable {
         private long lastProgressEventFiredTime = 0;
         
         
-        public ThreadGroupManager(AbstractRunnable[] runnables, int maxThreadCount, 
-            ThreadWatcher threadWatcher, boolean ignoreExceptions) 
+        public ThreadGroupManager(AbstractRunnable[] runnables, 
+            ThreadWatcher threadWatcher, Jets3tProperties jets3tProperties,
+            boolean isAdminTask) 
         {            
             this.runnables = runnables;
-            this.maxThreadCount = maxThreadCount;
             this.threadWatcher = threadWatcher;
-            this.ignoreExceptions = ignoreExceptions;
+            if (isAdminTask) {
+                this.maxThreadCount = jets3tProperties
+                    .getIntProperty("s3service.admin-max-thread-count", 20);
+            } else {
+                this.maxThreadCount = jets3tProperties
+                    .getIntProperty("s3service.max-thread-count", 2);            
+            }
+            this.ignoreExceptions = jets3tProperties
+                .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
             
             this.threads = new Thread[runnables.length];
             started = new boolean[runnables.length]; // All values initialized to false.

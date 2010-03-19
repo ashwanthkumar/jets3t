@@ -567,6 +567,15 @@ public class CodeSamples {
         // if you are the owner of the bucket containing the version.
         s3Service.deleteVersionedObject(finalVersionId,
             vBucketName, "versioned-object");
+        
+        // You can easily delete all the versions of an object using
+        // one of JetS3t's multi-threaded services. 
+        versions = s3Service.getObjectVersions(vBucketName, "versioned-object");
+        // Convert version and delete marker objects into versionId strings.
+        String[] versionIds = BaseVersionOrDeleteMarker.toVersionIds(versions);
+        (new S3ServiceSimpleMulti(s3Service)).deleteVersionsOfObject(
+            versionIds, vBucketName, "versioned-object");
+
 
         //////////////////////////////////////////////////////////////
         // For additional data protection you can require multi-factor

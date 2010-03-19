@@ -18,7 +18,9 @@
  */
 package org.jets3t.service.model;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 /**
  * @author James Murty
@@ -60,6 +62,14 @@ public abstract class BaseVersionOrDeleteMarker {
 
     public S3Owner getOwner() {
     	return owner;
+    }
+    
+    public static String[] toVersionIds(BaseVersionOrDeleteMarker[] items) {
+        List versionsList = new ArrayList();
+        for (int i = 0; i < items.length; i++) {
+            versionsList.add(items[i].getVersionId());                
+        }
+        return (String[]) versionsList.toArray(new String[versionsList.size()]);
     }
 
 }
