@@ -73,6 +73,8 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author Nikolas Coukouma
  */
 public abstract class S3Service implements Serializable {
+    private static final long serialVersionUID = -5488173253180265796L;
+
     private static final Log log = LogFactory.getLog(S3Service.class);
 
     /**
