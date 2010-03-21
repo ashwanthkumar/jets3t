@@ -461,6 +461,14 @@ public class CodeSamples {
         /* *****************
          * Bucket Versioning
          * *****************
+         * S3 Buckets have a versioning feature which allows you to keep prior versions of
+         * your objects when they are updated or deleted. This feature means you can be much
+         * more confident that vital data will not be lost even if it is accidentally
+         * overwritten or deleted.
+         * 
+         * Versioning is not enabled for a bucket by default, you must explicitly enable
+         * it. Once it is enabled you access and mange object versions using unique version
+         * identifiers.
          */
         // Create a bucket to test versioning
         S3Bucket versioningBucket = s3Service.getOrCreateBucket(
