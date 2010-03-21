@@ -458,12 +458,9 @@ public class CodeSamples {
         s3Service.deleteBucket(bucket);
         System.out.println("Deleted bucket: " + bucket);
 
-        /* ************************
-         * Bucket Versioning (Beta)
-         * ************************
-         * NOTE: Some S3 locations may not support versioning. During
-         * the initial beta phase it is only available in the
-         * "us-west-1" (S3Bucket.LOCATION_US_WEST) location.
+        /* *****************
+         * Bucket Versioning
+         * *****************
          */
         // Create a bucket to test versioning
         S3Bucket versioningBucket = s3Service.getOrCreateBucket(
