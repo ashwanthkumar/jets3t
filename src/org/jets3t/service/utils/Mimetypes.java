@@ -89,7 +89,7 @@ public class Mimetypes {
     /**
      * Loads mime type settings from the file 'mime.types' in the classpath, if it's available.
      */
-    public static Mimetypes getInstance() {
+    public static synchronized Mimetypes getInstance() {
         if (mimetypes != null) {
             return mimetypes;
         }
