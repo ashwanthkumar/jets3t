@@ -1417,7 +1417,7 @@ public abstract class S3Service implements Serializable {
         throws S3ServiceException
     {
         try {
-            getObject(bucketName, objectKey);
+            getObjectDetails(bucketName, objectKey);
         } catch (S3ServiceException e) {
             if ("NoSuchKey".equals(e.getS3ErrorCode())
                 || "NoSuchBucket".equals(e.getS3ErrorCode()))
