@@ -1,4 +1,22 @@
 -------------
+Version 0.7.4
+-------------
+
+TOOLKIT
+
+  * General
+
+- Eucalyptus-friendly generated URLs (#16). JetS3t configuration
+  properties 's3service.s3-endpoint-virtual-path',
+  's3service.s3-endpoint-http-port' and
+  's3service.s3-endpoint-https-port' are no longer ignored when
+  generating signed or torrent URLs.
+
+KUDOS TO:
+
+- Alexey I. Froloff for Eucalyptus-friendly generated URLs patch.
+
+-------------
 Version 0.7.3
 -------------
 

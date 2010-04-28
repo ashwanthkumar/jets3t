@@ -544,7 +544,17 @@ public abstract class S3Service implements Serializable {
             headersMap.put(requesterPaysHeaderAndValue[0], requesterPaysHeaderAndValue[1]);
         }
 
-        String canonicalString = RestUtils.makeS3CanonicalString(method, "/" + virtualBucketPath + uriPath,
+        Jets3tProperties jets3tProperties = Jets3tProperties.getInstance(
+            Constants.JETS3T_PROPERTIES_FILENAME);
+        String serviceEndpointVirtualPath = jets3tProperties.getStringProperty(
+            "s3service.s3-endpoint-virtual-path", "");
+        int httpPort = jets3tProperties.getIntProperty(
+            "s3service.s3-endpoint-http-port", 80);
+        int httpsPort = jets3tProperties.getIntProperty(
+            "s3service.s3-endpoint-https-port", 443);
+
+        String canonicalString = RestUtils.makeS3CanonicalString(method,
+            serviceEndpointVirtualPath + "/" + virtualBucketPath + uriPath,
             RestUtils.renameMetadataKeys(headersMap), String.valueOf(secondsSinceEpoch));
         if (log.isDebugEnabled()) {
             log.debug("Signing canonical string:\n" + canonicalString);
@@ -556,9 +566,15 @@ public abstract class S3Service implements Serializable {
         uriPath += "&Signature=" + encodedCanonical;
 
         if (isHttps) {
-            return "https://" + hostname + "/" + uriPath;
+            return "https://" + hostname
+                + (httpsPort != 443 ? ":" + httpsPort : "")
+                + serviceEndpointVirtualPath
+                + "/" + uriPath;
         } else {
-            return "http://" + hostname + "/" + uriPath;
+            return "http://" + hostname
+            + (httpPort != 80 ? ":" + httpPort : "")
+            + serviceEndpointVirtualPath
+            + "/" + uriPath;
         }
     }
 
@@ -884,8 +900,18 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public static String createTorrentUrl(String bucketName, String objectKey) {
-        return "http://" + generateS3HostnameForBucket(bucketName, false) + "/" +
-            (isBucketNameValidDNSName(bucketName) ? "" : bucketName + "/") + objectKey + "?torrent";
+        Jets3tProperties jets3tProperties = Jets3tProperties.getInstance(
+            Constants.JETS3T_PROPERTIES_FILENAME);
+        String serviceEndpointVirtualPath = jets3tProperties.getStringProperty(
+            "s3service.s3-endpoint-virtual-path", "");
+        int httpPort = jets3tProperties.getIntProperty(
+            "s3service.s3-endpoint-http-port", 80);
+
+        return "http://" + generateS3HostnameForBucket(bucketName, false)
+            + (httpPort != 80 ? ":" + httpPort : "")
+            + serviceEndpointVirtualPath + "/"
+            + (isBucketNameValidDNSName(bucketName) ? "" : bucketName + "/")
+            + objectKey + "?torrent";
     }
 
 
