@@ -42,13 +42,10 @@ else
   EXEC=$JAVA_HOME/bin/java
 fi
 
-# echo "JetS3t path: $JETS3T_HOME"
-# echo "Java path: $EXEC"
-
 # -------------------------------------------------------------------
 
 # Include configurations directory in classpath
-CP=$JETS3T_HOME/configs
+CP=$CLASSPATH:$JETS3T_HOME/configs
 
 # Include resources directory in classpath
 CP=$CP:$JETS3T_HOME/resources
@@ -61,6 +58,17 @@ CP=$CP:$JETS3T_HOME/libs/commons-codec/commons-codec-1.3.jar
 CP=$CP:$JETS3T_HOME/libs/commons-httpclient/commons-httpclient-3.1.jar
 CP=$CP:$JETS3T_HOME/libs/logging-log4j/log4j-1.2.15.jar
 CP=$CP:$JETS3T_HOME/libs/bouncycastle/bcprov-jdk14-138.jar
+
+# Convert classpath for cygwin bash
+case "`uname -o`" in
+    Cygwin*)
+        CYGWIN_CP=""
+        for cp_path in $(echo $CP | tr ':' '\n'); do
+            CWIN_PATH=$(cygpath -w -a "$cp_path")
+            CYGWIN_CP="$CYGWIN_CP;$CWIN_PATH"
+        done
+        CP=$CYGWIN_CP
+esac
 
 # OutOfMemory errors? Increase the memory available by changing -Xmx256M
 
