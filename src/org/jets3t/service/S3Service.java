@@ -1388,8 +1388,10 @@ public abstract class S3Service implements Serializable {
      * the name of the bucket to create.
      * @param location
      * the location of the S3 data centre in which the bucket will be created. Valid values
-     * include {@link S3Bucket#LOCATION_EUROPE}, {@link S3Bucket#LOCATION_US_WEST}, and
-     * the equivalent {@link S3Bucket#LOCATION_US_STANDARD} and {@link S3Bucket#LOCATION_US}.
+     * include {@link S3Bucket#LOCATION_EUROPE}, {@link S3Bucket#LOCATION_US_WEST},
+     * {@link S3Bucket#LOCATION_ASIA_PACIFIC}, and the default US location that can be
+     * expressed in two ways:
+     * {@link S3Bucket#LOCATION_US_STANDARD} or {@link S3Bucket#LOCATION_US}.
      * @return
      * the created bucket object. <b>Note:</b> the object returned has minimal information about
      * the bucket that was created, including only the bucket's name.
@@ -1979,8 +1981,10 @@ public abstract class S3Service implements Serializable {
      * the name of the bucket to retrieve or create.
      * @param location
      * the location of the S3 data centre in which the bucket will be created. Valid values
-     * include {@link S3Bucket#LOCATION_EUROPE}, {@link S3Bucket#LOCATION_US_WEST}, and
-     * the equivalent {@link S3Bucket#LOCATION_US_STANDARD} and {@link S3Bucket#LOCATION_US}.
+     * include {@link S3Bucket#LOCATION_EUROPE}, {@link S3Bucket#LOCATION_US_WEST},
+     * {@link S3Bucket#LOCATION_ASIA_PACIFIC}, and the default US location that can be
+     * expressed in two ways:
+     * {@link S3Bucket#LOCATION_US_STANDARD} or {@link S3Bucket#LOCATION_US}.
      * @return
      * the bucket in your account.
      *

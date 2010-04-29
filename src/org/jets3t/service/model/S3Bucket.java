@@ -37,6 +37,7 @@ public class S3Bucket extends BaseS3Object {
     public static final String LOCATION_US_STANDARD = null;
     public static final String LOCATION_US_WEST = "us-west-1";
     public static final String LOCATION_EUROPE = "EU";
+    public static final String LOCATION_ASIA_PACIFIC = "ap-southeast-1";
 
     private String name = null;
     private AccessControlList acl = null;

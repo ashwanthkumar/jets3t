@@ -99,10 +99,13 @@ public class CodeSamples {
         // To create a bucket in an S3 data center located somewhere other than
         // the United States, you can specify a location for your bucket as a
         // second parameter to the createBucket() method. Currently, the alternative
-        // S3 locations are Europe (EU) and US West - Northern California (us-west-1).
+        // S3 locations are Europe (EU), US West - Northern California (us-west-1),
+        // and Asia Pacific (Singapore)
 
         S3Bucket euBucket = s3Service.createBucket("eu-bucket", S3Bucket.LOCATION_EUROPE);
         S3Bucket usWestBucket = s3Service.createBucket("us-west-bucket", S3Bucket.LOCATION_US_WEST);
+        S3Bucket asiaPacificBucket = s3Service.createBucket(
+            "asia-pacific-bucket", S3Bucket.LOCATION_ASIA_PACIFIC);
 
 
         /*

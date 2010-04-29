@@ -6,6 +6,8 @@ TOOLKIT
 
   * General
 
+- Added support for buckets located in the Asia Pacific
+  (Singapore) location "ap-southeast-1".
 - Eucalyptus-friendly generated URLs (#14). JetS3t configuration
   properties 's3service.s3-endpoint-virtual-path',
   's3service.s3-endpoint-http-port' and
@@ -13,6 +15,11 @@ TOOLKIT
   generating signed or torrent URLs.
 - Bash shell scripts now support cygwin by automatically
   converting classpaths to Windows format.
+
+COCKPIT
+
+- Added support for buckets located in the Asia Pacific
+  (Singapore) location.
 
 KUDOS TO:
 
