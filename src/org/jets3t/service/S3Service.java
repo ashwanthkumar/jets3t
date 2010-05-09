@@ -906,11 +906,17 @@ public abstract class S3Service implements Serializable {
             "s3service.s3-endpoint-virtual-path", "");
         int httpPort = jets3tProperties.getIntProperty(
             "s3service.s3-endpoint-http-port", 80);
+        boolean disableDnsBuckets = jets3tProperties
+            .getBoolProperty("s3service.disable-dns-buckets", false);
 
-        return "http://" + generateS3HostnameForBucket(bucketName, false)
+        String bucketNameInPath =
+            !disableDnsBuckets && isBucketNameValidDNSName(bucketName)
+            ? ""
+            : bucketName + "/";
+        return "http://" + generateS3HostnameForBucket(bucketName, disableDnsBuckets)
             + (httpPort != 80 ? ":" + httpPort : "")
             + serviceEndpointVirtualPath + "/"
-            + (isBucketNameValidDNSName(bucketName) ? "" : bucketName + "/")
+            + bucketNameInPath
             + objectKey + "?torrent";
     }
 

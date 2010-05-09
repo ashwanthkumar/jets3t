@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  *
- * Copyright 2006-2009 James Murty
+ * Copyright 2006-2010 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -218,12 +218,13 @@ public class SignedGetUrlDialog extends JDialog implements ActionListener, Docum
                 specialParamName = Constants.REQUESTER_PAYS_BUCKET_FLAG;
             }
 
+            boolean disableDnsBuckets = s3Service.getJetS3tProperties()
+                .getBoolProperty("s3service.disable-dns-buckets", false);
+
             // Generate URLs
             StringBuffer signedUrlsBuffer = new StringBuffer();
             for (int i = 0; i < objects.length; i++) {
                 S3Object currentObject = objects[i];
-
-                boolean disableDnsBuckets = false;
 
                 String signedUrl = S3Service.createSignedUrl("GET",
                     currentObject.getBucketName(), currentObject.getKey(), specialParamName,
