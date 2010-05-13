@@ -371,6 +371,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
 
                 if (responseCode == 307) {
                     // Retry on Temporary Redirects, using new URI from location header
+                    authorizeHttpRequest(httpMethod); // Re-authorize *before* we change the URI
                     Header locationHeader = httpMethod.getResponseHeader("location");
                     httpMethod.setURI(new URI(locationHeader.getValue(), true));
 
