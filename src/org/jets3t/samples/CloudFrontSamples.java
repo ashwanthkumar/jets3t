@@ -240,7 +240,8 @@ public class CloudFrontSamples {
             "" + System.currentTimeMillis(), // Caller reference - a unique string value
             null, // CNAME aliases for distribution
             "Test streaming distribution", // Comment
-            true  // Distribution is enabled?
+            true,  // Distribution is enabled?
+            null   // Logging status
             );
         System.out.println("New Streaming Distribution: " + newStreamingDistribution);
 
@@ -254,6 +255,7 @@ public class CloudFrontSamples {
             new String[] {}, // CNAME aliases for distribution
             "New private streaming distribution -- URL signing not required", // Comment
             true,  // Distribution is enabled?
+            null,  // Logging status
             originAccessIdentityId, // Origin Access Identity to make distribution private
             true, // URLs self-signing enabled
             null   // No other AWS users can sign URLs
@@ -274,12 +276,14 @@ public class CloudFrontSamples {
         System.out.println("Streaming Distribution Config: " + streamingDistributionConfig);
 
         // Update a streaming distribution's configuration to add an extra CNAME alias
+        // and to enable access logging -- logs will be written to '
         StreamingDistributionConfig updatedStreamingDistributionConfig =
             cloudFrontService.updateStreamingDistributionConfig(
                 testStreamingDistributionId,
                 new String[] {"cname.jets3t-streaming.com"}, // CNAME aliases for distribution
                 "Updated this streaming distribution", // Comment
-                true // Distribution enabled?
+                true, // Distribution enabled?
+                new LoggingStatus("jets3t-streaming-logs.s3.amazonaws.com", "sdlog-") // Logging
                 );
         System.out.println("Updated Streaming Distribution Config: "
             + updatedStreamingDistributionConfig);
@@ -288,7 +292,10 @@ public class CloudFrontSamples {
         // The CloudFront service may take some time to disable and deploy the distribution.
         StreamingDistributionConfig disabledStreamingDistributionConfig =
             cloudFrontService.updateStreamingDistributionConfig(
-                testStreamingDistributionId, new String[] {}, "Deleting distribution", false);
+                testStreamingDistributionId, new String[] {}, "Deleting distribution",
+                false, // Distribution enabled?
+                null   // Logging status
+                );
         System.out.println("Disabled Streaming Distribution Config: "
             + disabledStreamingDistributionConfig);
 

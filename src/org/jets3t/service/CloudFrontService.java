@@ -77,7 +77,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     private static final Log log = LogFactory.getLog(CloudFrontService.class);
 
     public static final String ENDPOINT = "https://cloudfront.amazonaws.com/";
-    public static final String VERSION = "2010-03-01";
+    public static final String VERSION = "2010-05-01";
     public static final String XML_NAMESPACE = "http://cloudfront.amazonaws.com/doc/" + VERSION + "/";
     public static final String DEFAULT_BUCKET_SUFFIX = ".s3.amazonaws.com";
     public static final String ORIGIN_ACCESS_IDENTITY_URI_PATH = "/origin-access-identity/cloudfront";
@@ -780,6 +780,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * (max 128 characters). May be null.
      * @param enabled
      * Should the distribution should be enabled and publicly accessible upon creation?
+     * @param loggingStatus
+     * Logging status settings (bucket, prefix) for the distribution. If this value
+     * is null, logging will be disabled for the distribution.
      * @param originAccessIdentityId
      * Identifier of the origin access identity that can authorize access to
      * S3 objects via a private distribution. If provided the distribution will be
@@ -804,12 +807,12 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public StreamingDistribution createStreamingDistribution(String origin, String callerReference,
-            String[] cnames, String comment, boolean enabled,
+            String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus,
             String originAccessIdentityId, boolean trustedSignerSelf,
             String[] trustedSignerAwsAccountNumbers) throws CloudFrontServiceException
     {
         return (StreamingDistribution) createDistributionImpl(true, origin, callerReference,
-    		cnames, comment, enabled, null, originAccessIdentityId,
+    		cnames, comment, enabled, loggingStatus, originAccessIdentityId,
     		trustedSignerSelf, trustedSignerAwsAccountNumbers);
     }
 
@@ -831,6 +834,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * (max 128 characters). May be null.
      * @param enabled
      * Should the distribution should be enabled and publicly accessible upon creation?
+     * @param loggingStatus
+     * Logging status settings (bucket, prefix) for the distribution. If this value
+     * is null, logging will be disabled for the distribution.
      *
      * @return
      * an object that describes the newly-created distribution, in particular the
@@ -839,10 +845,11 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public StreamingDistribution createStreamingDistribution(String origin, String callerReference,
-            String[] cnames, String comment, boolean enabled) throws CloudFrontServiceException
+            String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus)
+        throws CloudFrontServiceException
     {
         return (StreamingDistribution) createDistributionImpl(true, origin, callerReference,
-            cnames, comment, enabled, null, null, false, null);
+            cnames, comment, enabled, loggingStatus, null, false, null);
     }
 
     /**
@@ -1144,6 +1151,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @param enabled
      * Should the distribution should be enabled and publicly accessible after the
      * configuration update?
+     * @param loggingStatus
+     * Logging status settings (bucket, prefix) for the distribution. If this value
+     * is null, logging will be disabled for the distribution.
      *
      * @return
      * an object that describes the distribution's updated configuration, including its
@@ -1152,11 +1162,12 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public StreamingDistributionConfig updateStreamingDistributionConfig(
-    	String id, String[] cnames, String comment, boolean enabled)
+    	String id, String[] cnames, String comment, boolean enabled,
+    	LoggingStatus loggingStatus)
         throws CloudFrontServiceException
     {
         return (StreamingDistributionConfig) updateDistributionConfigImpl(
-    		true, id, cnames, comment, enabled, null, null, false, null);
+    		true, id, cnames, comment, enabled, loggingStatus, null, false, null);
     }
 
     /**
@@ -1269,7 +1280,10 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     public void disableStreamingDistributionForDeletion(String id)
     	throws CloudFrontServiceException
     {
-    	updateStreamingDistributionConfig(id, new String[] {}, "Disabled prior to deletion", false);
+    	updateStreamingDistributionConfig(id, new String[] {}, "Disabled prior to deletion",
+    	    false, // enabled?
+    	    null // LoggingStatus
+    	    );
     }
 
     /**

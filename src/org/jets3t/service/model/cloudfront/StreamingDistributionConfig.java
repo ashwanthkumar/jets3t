@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  *
- * Copyright 2008 James Murty
+ * Copyright 2010 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,17 +22,19 @@ package org.jets3t.service.model.cloudfront;
 public class StreamingDistributionConfig extends DistributionConfig {
 
     public StreamingDistributionConfig(String origin, String callerReference,
-        String[] cnames, String comment, boolean enabled, String originAccessIdentity,
+        String[] cnames, String comment, boolean enabled,
+        LoggingStatus loggingStatus, String originAccessIdentity,
         boolean trustedSignerSelf, String[] trustedSignerAwsAccountNumbers)
     {
-        super(origin, callerReference, cnames, comment, enabled, null,
+        super(origin, callerReference, cnames, comment, enabled, loggingStatus,
             originAccessIdentity, trustedSignerSelf, trustedSignerAwsAccountNumbers);
     }
 
     public StreamingDistributionConfig(String origin, String callerReference,
-        String[] cnames, String comment, boolean enabled)
+        String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus)
     {
-        super(origin, callerReference, cnames, comment, enabled, null, null, false, null);
+        super(origin, callerReference, cnames, comment, enabled, loggingStatus,
+            null, false, null);
     }
 
 }

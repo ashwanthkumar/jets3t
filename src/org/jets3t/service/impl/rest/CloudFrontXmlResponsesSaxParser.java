@@ -426,7 +426,7 @@ public class CloudFrontXmlResponsesSaxParser {
             this.distributionConfig = new StreamingDistributionConfig(
                 origin, callerReference,
                 (String[]) cnamesList.toArray(new String[cnamesList.size()]), comment,
-                enabled, originAccessIdentity, trustedSignerSelf,
+                enabled, loggingStatus, originAccessIdentity, trustedSignerSelf,
                 (String[]) trustedSignerAwsAccountNumberList.toArray(
                     new String[trustedSignerAwsAccountNumberList.size()]));
             returnControlToParentHandler();

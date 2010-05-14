@@ -16,6 +16,12 @@ TOOLKIT
 - Bash shell scripts now support cygwin by automatically
   converting classpaths to Windows format.
 
+  * CloudFront Service
+
+- Updated service to support API version 2010-05-01 which adds
+  logging support for streaming distributions.
+  NOTE: This change breaks backward-compatibility of the API.
+
 COCKPIT
 
 - Added support for buckets located in the Asia Pacific
