@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  *
- * Copyright 2008 James Murty
+ * Copyright 2008-2010 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,8 +43,6 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableModel;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jets3t.gui.skins.SkinsFactory;
 import org.jets3t.service.model.S3Object;
 
@@ -55,9 +53,8 @@ import org.jets3t.service.model.S3Object;
  * @author James Murty
  */
 public class ObjectsAttributesDialog extends JDialog implements ActionListener {
-    private static final long serialVersionUID = -485232904708469815L;
 
-    private static final Log log = LogFactory.getLog(ObjectsAttributesDialog.class);
+    private static final long serialVersionUID = 7306510092130196820L;
 
     private GuiUtils guiUtils = new GuiUtils();
     private SkinsFactory skinsFactory = null;
@@ -76,6 +73,7 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
     private JTextField objectLastModifiedTextField = null;
     private JTextField objectETagTextField = null;
     private JTextField bucketLocationTextField = null;
+    private JTextField storageClassTextField = null;
     private DefaultTableModel objectMetadataTableModel = null;
     private TableSorter metadataTableSorter = null;
     private JLabel ownerNameLabel = null;
@@ -198,6 +196,10 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
         bucketNameLabel.setText("Bucket:");
         bucketLocationTextField = skinsFactory.createSkinnedJTextField("BucketLocationTextField");
         bucketLocationTextField.setEditable(false);
+        JLabel storageClassLabel = skinsFactory.createSkinnedJHtmlLabel("StorageClassLabel");
+        storageClassLabel.setText("Storage Class:");
+        storageClassTextField = skinsFactory.createSkinnedJTextField("StorageClassTextField");
+        storageClassTextField.setEditable(false);
         ownerNameLabel = skinsFactory.createSkinnedJHtmlLabel("OwnerNameLabel");
         ownerNameLabel.setText("Owner name:");
         ownerNameTextField = skinsFactory.createSkinnedJTextField("OwnerNameTextField");
@@ -207,43 +209,49 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
         ownerIdTextField = skinsFactory.createSkinnedJTextField("OwnerIdTextField");
         ownerIdTextField.setEditable(false);
 
+        Insets textFieldInsets = new Insets(2, 4, 2, 4);
         int row = 0;
 
         unmodifiableAttributesPanel.add(objectKeyLabel, new GridBagConstraints(0, row,
-            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, textFieldInsets, 0, 0));
         unmodifiableAttributesPanel.add(objectKeyTextField, new GridBagConstraints(1, row, 1, 1, 1, 0,
-            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, textFieldInsets, 0, 0));
         row++;
         unmodifiableAttributesPanel.add(objectContentLengthLabel, new GridBagConstraints(0, row, 1, 1,
-            0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+            0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, textFieldInsets, 0, 0));
         unmodifiableAttributesPanel.add(objectContentLengthTextField, new GridBagConstraints(1, row, 1, 1, 1, 0,
-            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, textFieldInsets, 0, 0));
         row++;
         unmodifiableAttributesPanel.add(objectLastModifiedLabel, new GridBagConstraints(0, row,
-            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, textFieldInsets, 0, 0));
         unmodifiableAttributesPanel.add(objectLastModifiedTextField, new GridBagConstraints(1, row, 1, 1, 1, 0,
-            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, textFieldInsets, 0, 0));
         row++;
         unmodifiableAttributesPanel.add(objectETagLabel, new GridBagConstraints(0, row, 1, 1,
-            0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+            0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, textFieldInsets, 0, 0));
         unmodifiableAttributesPanel.add(objectETagTextField, new GridBagConstraints(1, row, 1, 1, 1, 0,
-            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, textFieldInsets, 0, 0));
         row++;
         unmodifiableAttributesPanel.add(ownerNameLabel, new GridBagConstraints(0, row,
-            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, textFieldInsets, 0, 0));
         unmodifiableAttributesPanel.add(ownerNameTextField, new GridBagConstraints(1, row, 1, 1, 1, 0,
-            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, textFieldInsets, 0, 0));
         row++;
         unmodifiableAttributesPanel.add(ownerIdLabel, new GridBagConstraints(0, row,
-            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0,
+            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, textFieldInsets, 0,
             0));
         unmodifiableAttributesPanel.add(ownerIdTextField, new GridBagConstraints(1, row, 1, 1, 1, 0,
-            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, textFieldInsets, 0, 0));
         row++;
         unmodifiableAttributesPanel.add(bucketNameLabel, new GridBagConstraints(0, row, 1, 1,
-            0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+            0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, textFieldInsets, 0, 0));
         unmodifiableAttributesPanel.add(bucketLocationTextField, new GridBagConstraints(1, row, 1, 1, 1, 0,
-            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, textFieldInsets, 0, 0));
+        row++;
+        unmodifiableAttributesPanel.add(storageClassLabel, new GridBagConstraints(0, row, 1, 1,
+            0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, textFieldInsets, 0, 0));
+        unmodifiableAttributesPanel.add(storageClassTextField, new GridBagConstraints(1, row, 1, 1, 1, 0,
+            GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, textFieldInsets, 0, 0));
 
         // Build metadata table.
         objectMetadataTableModel = new DefaultTableModel(new Object[] {"Name", "Value" }, 0) {
@@ -417,6 +425,10 @@ public class ObjectsAttributesDialog extends JDialog implements ActionListener {
         objectLastModifiedTextField.setText(String.valueOf(currentObject.getLastModifiedDate()));
         objectETagTextField.setText(currentObject.getETag());
         bucketLocationTextField.setText(currentObject.getBucketName());
+        String storageClass = (currentObject.getStorageClass() != null
+            ? currentObject.getStorageClass()
+            : S3Object.STORAGE_CLASS_STANDARD);
+        storageClassTextField.setText(storageClass);
 
         if (currentObject.getOwner() != null) {
             ownerNameLabel.setVisible(true);

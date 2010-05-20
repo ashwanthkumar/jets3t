@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  *
- * Copyright 2008 James Murty
+ * Copyright 2008-2010 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,7 +63,8 @@ import org.jets3t.service.model.S3Object;
  * @author James Murty
  */
 public class CopyObjectsDialog extends JDialog implements ActionListener {
-    private static final long serialVersionUID = 418587825849022120L;
+
+    private static final long serialVersionUID = -1131752874387139972L;
 
     private SkinsFactory skinsFactory = null;
 
@@ -83,6 +84,7 @@ public class CopyObjectsDialog extends JDialog implements ActionListener {
     private JTable previewTable = null;
     private JComboBox destinationBucketComboBox = null;
     private JComboBox destinationAclComboBox = null;
+    private JComboBox destinationStorageClassComboBox = null;
     private JCheckBox moveObjectsCheckBox = null;
 
     private boolean copyActionApproved = false;
@@ -159,6 +161,22 @@ public class CopyObjectsDialog extends JDialog implements ActionListener {
         aclPanel.add(destinationAclLabel, new GridBagConstraints(0, 1,
             1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsZero, 0, 0));
         aclPanel.add(destinationAclComboBox, new GridBagConstraints(1, 1,
+            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsZero, 0, 0));
+
+        // Destination Storage Class setting.
+        destinationStorageClassComboBox = skinsFactory.createSkinnedJComboBox(
+            "DestinationStorageClassComboBox");
+        destinationStorageClassComboBox.addItem(S3Object.STORAGE_CLASS_STANDARD);
+        destinationStorageClassComboBox.addItem(S3Object.STORAGE_CLASS_REDUCED_REDUNDANCY);
+        JLabel destinationStorageClassLabel = skinsFactory.createSkinnedJHtmlLabel(
+            "DestinationStorageClassLabel");
+        destinationStorageClassLabel.setText("Storage Class for copied objects: ");
+        JPanel storageClassPanel = skinsFactory.createSkinnedJPanel(
+            "CopyObjectsDialogStorageClassPanel");
+        storageClassPanel.setLayout(new GridBagLayout());
+        storageClassPanel.add(destinationStorageClassLabel, new GridBagConstraints(0, 1,
+            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsZero, 0, 0));
+        storageClassPanel.add(destinationStorageClassComboBox, new GridBagConstraints(1, 1,
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsZero, 0, 0));
 
         // Move objects checkbox
@@ -279,21 +297,24 @@ public class CopyObjectsDialog extends JDialog implements ActionListener {
             GridBagConstraints.WEST, GridBagConstraints.NONE, insetsHorizontalSpace, 0, 0));
 
         // Put all dialog panels and fragments together.
-        optionsPanel.add(bucketPanel, new GridBagConstraints(0, 0,
+        int row = 0;
+        optionsPanel.add(bucketPanel, new GridBagConstraints(0, row++,
             1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        optionsPanel.add(aclPanel, new GridBagConstraints(0, 1,
+        optionsPanel.add(aclPanel, new GridBagConstraints(0, row++,
             1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        optionsPanel.add(moveObjectsCheckBox, new GridBagConstraints(0, 2,
+        optionsPanel.add(storageClassPanel, new GridBagConstraints(0, row++,
+            1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        optionsPanel.add(moveObjectsCheckBox, new GridBagConstraints(0, row++,
             1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsHorizontalSpace, 0, 0));
-        optionsPanel.add(renamePanel, new GridBagConstraints(0, 3,
+        optionsPanel.add(renamePanel, new GridBagConstraints(0, row++,
             1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        optionsPanel.add(copyPreviewTableLabel, new GridBagConstraints(0, 4,
+        optionsPanel.add(copyPreviewTableLabel, new GridBagConstraints(0, row++,
             2, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        optionsPanel.add(new JScrollPane(previewTable), new GridBagConstraints(0, 5,
+        optionsPanel.add(new JScrollPane(previewTable), new GridBagConstraints(0, row++,
             2, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsHorizontalSpace, 0, 0));
-        optionsPanel.add(warningPanel, new GridBagConstraints(0, 6,
+        optionsPanel.add(warningPanel, new GridBagConstraints(0, row++,
             2, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        optionsPanel.add(actionButtonsPanel, new GridBagConstraints(0, 7,
+        optionsPanel.add(actionButtonsPanel, new GridBagConstraints(0, row++,
             2, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
 
         // Recognize and handle ENTER and ESCAPE.
@@ -437,6 +458,9 @@ public class CopyObjectsDialog extends JDialog implements ActionListener {
                 } else if ("Unchanged".equals(destinationAclComboBox.getSelectedItem())) {
                     copyOriginalAccessControlLists = true;
                 }
+                // Apply storage class
+                destinationObjects[i].setStorageClass(
+                    (String) destinationStorageClassComboBox.getSelectedItem());
             }
 
             this.setVisible(false);

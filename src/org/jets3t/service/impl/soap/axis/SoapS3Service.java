@@ -731,10 +731,17 @@ public class SoapS3Service extends S3Service {
         String destinationBucketName, String destinationObjectKey,
         AccessControlList acl, Map destinationMetadata, Calendar ifModifiedSince,
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags,
-        String versionId) throws S3ServiceException
+        String versionId, String destinationObjectStorageClass)
+        throws S3ServiceException
     {
         if (versionId != null) {
             throw new S3ServiceException("The SOAP API interface for S3 does not support versioning");
+        }
+        if (destinationObjectStorageClass != null
+            && !destinationObjectStorageClass.equals(S3Object.STORAGE_CLASS_STANDARD))
+        {
+            throw new S3ServiceException("The SOAP API interface for S3 does not support "
+                + "non-standard storage classes");
         }
         try {
             AmazonS3SoapBindingStub s3SoapBinding = getSoapBinding();

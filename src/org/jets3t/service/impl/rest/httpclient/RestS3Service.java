@@ -103,6 +103,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
     protected HttpConnectionManager connectionManager = null;
     protected CredentialsProvider credentialsProvider = null;
 
+    protected String defaultStorageClass = null;
+
     /**
      * Constructs the service and initialises the properties.
      *
@@ -198,6 +200,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
 
         this.setRequesterPaysEnabled(
             this.jets3tProperties.getBoolProperty("httpclient.requester-pays-buckets-enabled", false));
+
+        this.defaultStorageClass = this.jets3tProperties.getStringProperty(
+            "s3service.defaultStorageClass", null);
 
         // Retrieve Proxy settings.
         if (this.jets3tProperties.getBoolProperty("httpclient.proxy-autodetect", true)) {
@@ -1595,7 +1600,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             }
         }
 
-        Map map = createObjectImpl(bucketName, null, null, requestEntity, metadata, acl);
+        Map map = createObjectImpl(bucketName, null, null, requestEntity, metadata, acl, null);
 
         S3Bucket bucket = new S3Bucket(bucketName, location);
         bucket.setAcl(acl);
@@ -1684,7 +1689,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         }
 
         Map map = createObjectImpl(bucketName, object.getKey(), object.getContentType(),
-            requestEntity, object.getMetadataMap(), object.getAcl());
+            requestEntity, object.getMetadataMap(), object.getAcl(), object.getStorageClass());
 
         try {
             object.closeDataInputStream();
@@ -1714,7 +1719,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
     }
 
     protected Map createObjectImpl(String bucketName, String objectKey, String contentType,
-        RequestEntity requestEntity, Map metadata, AccessControlList acl)
+        RequestEntity requestEntity, Map metadata, AccessControlList acl, String storageClass)
         throws S3ServiceException
     {
         if (metadata == null) {
@@ -1728,6 +1733,18 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         } else {
             metadata.put("Content-Type", Mimetypes.MIMETYPE_OCTET_STREAM);
         }
+
+        // Apply per-object or default storage class when uploading object
+        if (storageClass == null && this.defaultStorageClass != null) {
+            // Apply default storage class
+            storageClass = this.defaultStorageClass;
+            log.debug("Applied default storage class '" + storageClass
+                + "' to object '" + objectKey + "'");
+        }
+        if (storageClass != null) {
+            metadata.put("x-amz-storage-class", storageClass);
+        }
+
         boolean putNonStandardAcl = false;
         if (acl != null) {
             if (AccessControlList.REST_CANNED_PRIVATE.equals(acl)) {
@@ -1744,7 +1761,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         }
 
         if (log.isDebugEnabled()) {
-            log.debug("Creating object bucketName=" + bucketName + ", objectKey=" + objectKey + "." +
+            log.debug("Creating object bucketName=" + bucketName +
+                ", objectKey=" + objectKey +
+                ", storageClass=" + storageClass + "." +
                 " Content-Type=" + metadata.get("Content-Type") +
                 " Including data? " + (requestEntity != null) +
                 " Metadata: " + metadata +
@@ -1778,7 +1797,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         String destinationBucketName, String destinationObjectKey,
         AccessControlList acl, Map destinationMetadata, Calendar ifModifiedSince,
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags,
-        String versionId)
+        String versionId, String destinationObjectStorageClass)
         throws S3ServiceException
     {
         if (log.isDebugEnabled()) {
@@ -1794,6 +1813,10 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         }
 
         metadata.put("x-amz-copy-source", sourceKey);
+
+        if (destinationObjectStorageClass != null) {
+            metadata.put("x-amz-storage-class", destinationObjectStorageClass);
+        }
 
         if (destinationMetadata != null) {
             metadata.put("x-amz-metadata-directive", "REPLACE");

@@ -1343,6 +1343,27 @@ public abstract class S3Service implements Serializable {
     }
 
     /**
+     * Lists the objects in a bucket.
+     * <p>
+     * The objects returned by this method contain only minimal information
+     * such as the object's size, ETag, and LastModified timestamp. To retrieve
+     * the objects' metadata you must perform follow-up <code>getObject</code>
+     * or <code>getObjectDetails</code> operations.
+     * <p>
+     * This method can be performed by anonymous services. Anonymous services
+     * can only list the objects in a publicly-readable bucket.
+     *
+     * @param bucket
+     * the name of the bucket whose contents will be listed.
+     * @return
+     * the set of objects contained in a bucket.
+     * @throws S3ServiceException
+     */
+    public S3Object[] listObjects(String bucketName) throws S3ServiceException {
+        return listObjects(bucketName, null, null, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE);
+    }
+
+    /**
      * Lists the objects in a bucket matching a prefix and delimiter.
      * <p>
      * The objects returned by this method contain only minimal information
@@ -2240,7 +2261,8 @@ public abstract class S3Service implements Serializable {
         return copyObjectImpl(sourceBucketName, sourceObjectKey,
             destinationBucketName, destinationObject.getKey(),
             destinationObject.getAcl(), destinationMetadata,
-            ifModifiedSince, ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, null);
+            ifModifiedSince, ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, null,
+            destinationObject.getStorageClass());
     }
 
     /**
@@ -2305,7 +2327,8 @@ public abstract class S3Service implements Serializable {
         return copyObjectImpl(sourceBucketName, sourceObjectKey,
             destinationBucketName, destinationObject.getKey(),
             destinationObject.getAcl(), destinationMetadata,
-            ifModifiedSince, ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, versionId);
+            ifModifiedSince, ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, versionId,
+            destinationObject.getStorageClass());
     }
 
 
@@ -3663,7 +3686,8 @@ public abstract class S3Service implements Serializable {
         String destinationBucketName, String destinationObjectKey,
         AccessControlList acl, Map destinationMetadata,
         Calendar ifModifiedSince, Calendar ifUnmodifiedSince,
-        String[] ifMatchTags, String[] ifNoneMatchTags, String versionId)
+        String[] ifMatchTags, String[] ifNoneMatchTags, String versionId,
+        String destinationObjectStorageClass)
         throws S3ServiceException;
 
     protected abstract void deleteObjectImpl(String bucketName, String objectKey,

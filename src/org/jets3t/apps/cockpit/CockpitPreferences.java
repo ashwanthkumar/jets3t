@@ -23,6 +23,7 @@ import java.util.Properties;
 
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
+import org.jets3t.service.model.S3Object;
 
 /**
  * <p>
@@ -54,6 +55,10 @@ public class CockpitPreferences implements Serializable {
     private String uploadACLPermission = UPLOAD_ACL_PERMISSION_PRIVATE;
     private boolean uploadCompressionActive = false;
     private boolean uploadEncryptionActive = false;
+    private String uploadStorageClass = 
+        Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getStringProperty("s3service.defaultStorageClass",
+                S3Object.STORAGE_CLASS_STANDARD);
     private String encryptionPassword = null;
     private String encryptionAlgorithm =
         Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
@@ -123,6 +128,14 @@ public class CockpitPreferences implements Serializable {
     public void setUploadEncryptionActive(boolean uploadEncryptionActive) {
         this.uploadEncryptionActive = uploadEncryptionActive;
     }
+    
+    public String getUploadStorageClass() {
+        return this.uploadStorageClass;
+    }
+    
+    public void setUploadStorageClass(String storageClass) {
+        this.uploadStorageClass = storageClass;
+    }
 
     public void setRememberPreferences(boolean rememberPreferences) {
         this.rememberPreferences = rememberPreferences;
@@ -139,6 +152,7 @@ public class CockpitPreferences implements Serializable {
             isUploadCompressionActive() ? "true" : "false");
         properties.setProperty("upload-encryption-active",
             isUploadEncryptionActive() ? "true" : "false");
+        properties.setProperty("upload-storage-class", getUploadStorageClass());
         properties.setProperty("upload-encryption-algorithm", getEncryptionAlgorithm());
         return properties;
     }
@@ -151,6 +165,8 @@ public class CockpitPreferences implements Serializable {
             "true".equalsIgnoreCase(properties.getProperty("upload-compression-active")));
         setUploadEncryptionActive(
             "true".equalsIgnoreCase(properties.getProperty("upload-encryption-active")));
+        setUploadStorageClass(
+            properties.getProperty("upload-storage-class", getUploadStorageClass()));
         setEncryptionAlgorithm(
             properties.getProperty("upload-encryption-algorithm", getEncryptionAlgorithm()));
     }

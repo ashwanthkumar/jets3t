@@ -2495,6 +2495,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             } else {
                 log.warn("Ignoring unrecognised upload ACL permission setting: " + aclPreferenceString);
             }
+            
+            newObject.setStorageClass(cockpitPreferences.getUploadStorageClass());
 
             statusText[0] = "Prepared " + (objectIndex + 1)
                 + " of " + fileKeysForUpload.size() + " files for upload";

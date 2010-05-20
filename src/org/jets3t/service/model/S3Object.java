@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  *
- * Copyright 2006 James Murty
+ * Copyright 2006-2010 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,14 +64,17 @@ public class S3Object extends BaseS3Object implements Cloneable {
     public static final String METADATA_HEADER_CONTENT_LENGTH = "Content-Length";
     public static final String METADATA_HEADER_CONTENT_TYPE = "Content-Type";
     public static final String METADATA_HEADER_CONTENT_ENCODING = "Content-Encoding";
-    public static final String METADATA_HEADER_STORAGE_CLASS = "Storage-Class";
     public static final String METADATA_HEADER_CONTENT_DISPOSITION = "Content-Disposition";
     public static final String METADATA_HEADER_CONTENT_LANGUAGE = "Content-Language";
+
+    public static final String STORAGE_CLASS_STANDARD = "STANDARD";
+    public static final String STORAGE_CLASS_REDUCED_REDUNDANCY = "REDUCED_REDUNDANCY";
 
     private String key = null;
     private String bucketName = null;
     private transient InputStream dataInputStream = null;
     private AccessControlList acl = null;
+    private String storageClass = null;
     private boolean isMetadataComplete = false;
 
     /**
@@ -235,6 +238,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
     public String toString() {
     	return "S3Object [key=" + getKey() + ", bucket=" + (bucketName == null ? "<Unknown>" : bucketName)
     		+ ", lastModified=" + getLastModifiedDate() + ", dataInputStream=" + dataInputStream
+    		+ (getStorageClass() != null ? ", storageClass=" + getStorageClass() : "")
     		+ ", Metadata=" + getMetadataMap() + "]";
     }
 
@@ -470,17 +474,16 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * the storage class of the object.
      */
     public String getStorageClass() {
-    	return (String) getMetadata(METADATA_HEADER_STORAGE_CLASS);
+    	return this.storageClass;
     }
 
     /**
-     * Set the storage class based on information returned from S3.
-     * This method should only by used by code that reads S3 responses.
+     * Set the storage class for this object.
      *
      * @param storageClass
      */
     public void setStorageClass(String storageClass) {
-        addMetadata(METADATA_HEADER_STORAGE_CLASS, storageClass);
+        this.storageClass = storageClass;
     }
 
     /**
@@ -711,6 +714,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
         clone.acl = acl;
         clone.isMetadataComplete = isMetadataComplete;
         clone.dataInputFile = dataInputFile;
+        clone.storageClass = storageClass;
         clone.addAllMetadata(getMetadataMap());
         return clone;
     }

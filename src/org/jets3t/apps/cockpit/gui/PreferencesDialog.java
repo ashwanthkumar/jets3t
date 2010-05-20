@@ -47,6 +47,7 @@ import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
+import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.EncryptionUtil;
 
 /**
@@ -70,6 +71,7 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
     private JPasswordField encryptPasswordField = null;
     private JPasswordField confirmPasswordField = null;
     private JComboBox encryptAlgorithmComboBox = null;
+    private JComboBox storageClassComboBox = null;
     private JButton okButton = null;
     private JButton cancelButton = null;
     private JCheckBox rememberPreferencesCheckBox = null;
@@ -133,6 +135,23 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
         // Uploads preferences pane.
         JPanel uploadPrefsPanel = new JPanel(new GridBagLayout());
         int row = 0;
+        
+        JHtmlLabel storageClassLabel = new JHtmlLabel(
+            "<html>Storage Class<br><font size=\"-2\">Choose a storage class " +
+            "to balance cost and redundancy</html>", hyperlinkListener);
+        uploadPrefsPanel.add(storageClassLabel, new GridBagConstraints(0, row++,
+            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+
+        String[] storageClasses = new String[] {
+            S3Object.STORAGE_CLASS_STANDARD,
+            S3Object.STORAGE_CLASS_REDUCED_REDUNDANCY
+        };
+
+        storageClassComboBox = new JComboBox(storageClasses);
+        storageClassComboBox.addActionListener(this);
+        uploadPrefsPanel.add(storageClassComboBox, new GridBagConstraints(0, row++,
+            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+
         JHtmlLabel aclPrefsLabel = new JHtmlLabel(
             "ACL Permissions", hyperlinkListener);
         uploadPrefsPanel.add(aclPrefsLabel, new GridBagConstraints(0, row++,
@@ -200,6 +219,7 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsDefault, 0, 0));
         uploadPrefsPanel.add(encryptPrefsRadioPanel, new GridBagConstraints(0, row++,
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+
 
         // Determine the default crypto algorithm from jets3t.properties.
         String encryptAlgorithm = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
@@ -291,6 +311,7 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
             encryptNoButton.setSelected(true);
         }
         encryptAlgorithmComboBox.setSelectedItem(cockpitPreferences.getEncryptionAlgorithm());
+        storageClassComboBox.setSelectedItem(cockpitPreferences.getUploadStorageClass());
 
         this.pack();
         this.setLocationRelativeTo(this.getOwner());
@@ -329,6 +350,8 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
                 "ACTIVE".equals(compressButtonGroup.getSelection().getActionCommand()));
             cockpitPreferences.setUploadEncryptionActive(
                 "ACTIVE".equals(encryptButtonGroup.getSelection().getActionCommand()));
+            cockpitPreferences.setUploadStorageClass(
+                (String) storageClassComboBox.getSelectedItem());
             cockpitPreferences.setEncryptionPassword(
                 new String(encryptPasswordField.getPassword()));
             cockpitPreferences.setEncryptionAlgorithm(

@@ -158,7 +158,8 @@ public class CodeSamples {
         ByteArrayInputStream greetingIS = new ByteArrayInputStream(
             greeting.getBytes(Constants.DEFAULT_ENCODING));
         helloWorldObject.setDataInputStream(greetingIS);
-        helloWorldObject.setContentLength(greetingIS.available());
+        helloWorldObject.setContentLength(
+            greeting.getBytes(Constants.DEFAULT_ENCODING).length);
         helloWorldObject.setContentType("text/plain");
 
         // Upload the data objects.
@@ -168,6 +169,17 @@ public class CodeSamples {
 
         // Print details about the uploaded object.
         System.out.println("S3Object with data: " + helloWorldObject);
+
+        // You may want to store your objects using a non-standard
+        // "storage class" in some cases, such as if you are prepared to
+        // accept a reduced level of redundancy in exchange for cheaper
+        // storage. Here is how you store an object using the
+        // Reduced Redundancy Storage (RRS) feature.
+        S3Object rrsObject = new S3Object("reduced-redundancy-object");
+        // Apply the RRS storage class instead of the default STANDARD one.
+        rrsObject.setStorageClass(S3Object.STORAGE_CLASS_REDUCED_REDUNDANCY);
+        // Upload the object as usual.
+        s3Service.putObject(testBucket, rrsObject);
 
         /*
          * Verifying Uploads

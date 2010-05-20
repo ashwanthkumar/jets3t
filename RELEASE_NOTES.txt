@@ -6,6 +6,11 @@ TOOLKIT
 
   * General
 
+- Added support for the new Reduced Redundancy Storage (RRS) class
+  for objects. This discounted storage class can be applied when an
+  object is created, overwritten or copied. The storage class can be
+  set per-object, or a default value can be set with the property
+  's3service.defaultStorageClass'
 - Added support for buckets located in the Asia Pacific
   (Singapore) location "ap-southeast-1".
 - Eucalyptus-friendly generated URLs (#14). JetS3t configuration
@@ -24,6 +29,11 @@ TOOLKIT
 
 COCKPIT
 
+- Added support for the REDUCED_REDUNDANCY storage class to the
+  Preferences dialog (set default storage class for uploads),
+  the Copy or Move dialog (set the storage class for destination
+  objects), and the Object Attributes dialog (see the current
+  storage class property of objects)
 - Added support for buckets located in the Asia Pacific
   (Singapore) location.
 
