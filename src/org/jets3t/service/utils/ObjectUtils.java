@@ -304,8 +304,7 @@ public class ObjectUtils {
                 isZipped = true;
             }
             if (automaticDecrypt
-                && (object.containsMetadata(Constants.METADATA_JETS3T_ENCRYPTED_OBSOLETE)
-                    || object.containsMetadata(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM)))
+                && object.containsMetadata(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM))
             {
                 // Object is encrypted.
                 if (encryptionPassword == null) {
@@ -314,20 +313,14 @@ public class ObjectUtils {
                         + " the encyption password is provided");
                 }
 
-                if (object.containsMetadata(Constants.METADATA_JETS3T_ENCRYPTED_OBSOLETE)) {
-                    // Item is encrypted with obsolete crypto.
-                    encryptionUtil = EncryptionUtil.getObsoleteEncryptionUtil(
-                        encryptionPassword);
-                } else {
-                    String algorithm = (String) object.getMetadata(
-                        Constants.METADATA_JETS3T_CRYPTO_ALGORITHM);
-                    String version = (String) object.getMetadata(
-                        Constants.METADATA_JETS3T_CRYPTO_VERSION);
-                    if (version == null) {
-                        version = EncryptionUtil.DEFAULT_VERSION;
-                    }
-                    encryptionUtil = new EncryptionUtil(encryptionPassword, algorithm, version);
+                String algorithm = (String) object.getMetadata(
+                    Constants.METADATA_JETS3T_CRYPTO_ALGORITHM);
+                String version = (String) object.getMetadata(
+                    Constants.METADATA_JETS3T_CRYPTO_VERSION);
+                if (version == null) {
+                    version = EncryptionUtil.DEFAULT_VERSION;
                 }
+                encryptionUtil = new EncryptionUtil(encryptionPassword, algorithm, version);
             }
 
             return new DownloadPackage(object, fileTarget, isZipped, encryptionUtil);

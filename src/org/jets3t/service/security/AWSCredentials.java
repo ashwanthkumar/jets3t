@@ -359,29 +359,19 @@ public class AWSCredentials implements Serializable {
             // Read version information from AWS credentials file.
             version = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);
 
-            if (!version.startsWith(VERSION_PREFIX)) {
-                // Either this is not a valid AWS Credentials file, or it's an obsolete version.
-                // Try decrypting using the obsolete approach.
-                friendlyName = version;
+            // Extract the version number
+            versionNum = Integer.parseInt(version.substring(VERSION_PREFIX.length()));
+            // Read algorithm and friendly name from file.
+            algorithm = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);
+            friendlyName = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);
 
-                if (!partialReadOnly) {
-                    encryptionUtil = EncryptionUtil.getObsoleteEncryptionUtil(password);
-                }
-            } else {
-                // Extract the version number
-                versionNum = Integer.parseInt(version.substring(VERSION_PREFIX.length()));
-                // Read algorithm and friendly name from file.
-                algorithm = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);
-                friendlyName = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);
+            if (!partialReadOnly) {
+                encryptionUtil = new EncryptionUtil(password, algorithm, EncryptionUtil.DEFAULT_VERSION);
+            }
 
-                if (!partialReadOnly) {
-                    encryptionUtil = new EncryptionUtil(password, algorithm, EncryptionUtil.DEFAULT_VERSION);
-                }
-
-                if (3 <= versionNum) {
-                    String credentialsType = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);
-                    usingDevPay = (DEVPAY_TYPE_NAME.equals(credentialsType));
-                }
+            if (3 <= versionNum) {
+                String credentialsType = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);
+                usingDevPay = (DEVPAY_TYPE_NAME.equals(credentialsType));
             }
 
             if (partialReadOnly) {

@@ -2212,12 +2212,6 @@ public class S3ServiceMulti implements Serializable {
                     String metadataLocalFileDate = (String) object.getMetadata(
                         Constants.METADATA_JETS3T_LOCAL_FILE_DATE);
                     
-                    // Try to retrieve the original date using the deprecated metadata name.
-                    if (metadataLocalFileDate == null) {
-                        metadataLocalFileDate = (String) object.getMetadata(
-                            Constants.METADATA_JETS3T_LOCAL_FILE_DATE_DEPRECATED);
-                    }
-                    
                     if (metadataLocalFileDate != null) {
                         if (log.isDebugEnabled()) {
                             log.debug("Restoring original Last Modified date for object '"
