@@ -599,8 +599,8 @@ public abstract class BaseS3ServiceTest extends TestCase {
         Date expiryDate = cal.getTime();
 
         // Create a signed HTTP PUT URL.
-        String signedPutUrl = S3Service.createSignedPutUrl(bucket.getName(), object.getKey(),
-            object.getMetadataMap(), awsCredentials, expiryDate, false);
+        String signedPutUrl = s3Service.createSignedPutUrl(bucket.getName(), object.getKey(),
+            object.getMetadataMap(), expiryDate, false);
 
         // Put the object in S3 using the signed URL (no AWS credentials required)
         RestS3Service restS3Service = new RestS3Service(null);
@@ -639,9 +639,9 @@ public abstract class BaseS3ServiceTest extends TestCase {
         // Test last-resort MD5 sanity-check for uploaded object when ETag is missing.
         S3Object objectWithoutETag = new S3Object("Object Without ETag");
         objectWithoutETag.setContentType("text/html");
-        String objectWithoutETagSignedPutURL = S3Service.createSignedPutUrl(
+        String objectWithoutETagSignedPutURL = s3Service.createSignedPutUrl(
         	bucket.getName(), objectWithoutETag.getKey(), objectWithoutETag.getMetadataMap(),
-        	awsCredentials, expiryDate, false);
+        	expiryDate, false);
         objectWithoutETag.setDataInputStream(new ByteArrayInputStream(dataString.getBytes()));
         objectWithoutETag.setContentLength(dataString.getBytes().length);
         restS3Service.putObjectWithSignedUrl(objectWithoutETagSignedPutURL, objectWithoutETag);
@@ -654,8 +654,8 @@ public abstract class BaseS3ServiceTest extends TestCase {
             .openConnection()).getResponseCode());
 
         // Create a signed HTTP GET URL.
-        String signedGetUrl = S3Service.createSignedGetUrl(bucket.getName(), object.getKey(),
-            awsCredentials, expiryDate, false);
+        String signedGetUrl = s3Service.createSignedGetUrl(bucket.getName(), object.getKey(),
+            expiryDate, false);
 
         // Ensure the signed URL can retrieve the object.
         url = new URL(signedGetUrl);

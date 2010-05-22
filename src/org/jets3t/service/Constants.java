@@ -28,7 +28,7 @@ import java.io.File;
  */
 public class Constants {
 
-    public static String S3_HOSTNAME = "s3.amazonaws.com";
+    public static String S3_DEFAULT_HOSTNAME = "s3.amazonaws.com";
 
     ////////////////////////////////////
     // Default file names and locations.

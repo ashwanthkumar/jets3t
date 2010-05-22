@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.SimpleTimeZone;
+import java.util.regex.Pattern;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -557,13 +558,13 @@ public class ServiceUtils {
      * @return
      * The S3 bucket name represented by the DNS host name, or null if none.
      */
-    public static String findBucketNameInHostname(String host) {
+    public static String findBucketNameInHostname(String host, String s3Endpoint) {
         String bucketName = null;
         // Bucket name is available in URL's host name.
-        if (host.endsWith(Constants.S3_HOSTNAME)) {
+        if (host.endsWith(s3Endpoint)) {
             // Bucket name is available as S3 subdomain
             bucketName = host.substring(0,
-                host.length() - Constants.S3_HOSTNAME.length() - 1);
+                host.length() - s3Endpoint.length() - 1);
         } else {
             // URL refers to a virtual host name
             bucketName = host;
@@ -585,7 +586,9 @@ public class ServiceUtils {
      * @return
      * the object referred to by the URL components.
      */
-    public static S3Object buildObjectFromUrl(String host, String urlPath) throws UnsupportedEncodingException {
+    public static S3Object buildObjectFromUrl(String host, String urlPath, String s3Endpoint)
+        throws UnsupportedEncodingException
+    {
         if (urlPath.startsWith("/")) {
             urlPath = urlPath.substring(1); // Ignore first '/' character in url path.
         }
@@ -593,8 +596,8 @@ public class ServiceUtils {
         String bucketName = null;
         String objectKey = null;
 
-        if (!Constants.S3_HOSTNAME.equals(host)) {
-            bucketName = findBucketNameInHostname(host);
+        if (!s3Endpoint.equals(host)) {
+            bucketName = findBucketNameInHostname(host, s3Endpoint);
         } else {
             // Bucket name must be first component of URL path
             int slashIndex = urlPath.indexOf("/");
@@ -611,6 +614,57 @@ public class ServiceUtils {
         S3Object object = new S3Object(objectKey);
         object.setBucketName(bucketName);
         return object;
+    }
+
+    /**
+     * Returns true if the given bucket name can be used as a component of a valid
+     * DNS name. If so, the bucket can be accessed using requests with the bucket name
+     * as part of an S3 sub-domain. If not, the old-style bucket reference URLs must be
+     * used, in which case the bucket name must be the first component of the resource
+     * path.
+     *
+     * @param bucketName
+     * the name of the bucket to test for DNS compatibility.
+     */
+    public static boolean isBucketNameValidDNSName(String bucketName) {
+        if (bucketName == null || bucketName.length() > 63 || bucketName.length() < 3) {
+            return false;
+        }
+
+        // Only lower-case letters, numbers, '.' or '-' characters allowed
+        if (!Pattern.matches("^[a-z0-9][a-z0-9.-]+$", bucketName)) {
+            return false;
+        }
+
+        // Cannot be an IP address, i.e. must not contain four '.'-delimited
+        // sections with 1 to 3 digits each.
+        if (Pattern.matches("([0-9]{1,3}\\.){3}[0-9]{1,3}", bucketName)) {
+            return false;
+        }
+
+        // Components of name between '.' characters cannot start or end with '-',
+        // and cannot be empty
+        String[] fragments = bucketName.split("\\.");
+        for (int i = 0; i < fragments.length; i++) {
+            if (Pattern.matches("^-.*", fragments[i])
+                || Pattern.matches(".*-$", fragments[i])
+                || Pattern.matches("^$", fragments[i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    
+    public static String generateS3HostnameForBucket(String bucketName,
+        boolean isDnsBucketNamingDisabled, String s3Endpoint)
+    {
+        if (isBucketNameValidDNSName(bucketName) && !isDnsBucketNamingDisabled) {
+            return bucketName + "." + s3Endpoint;
+        } else {
+            return s3Endpoint;
+        }
     }
 
     /**

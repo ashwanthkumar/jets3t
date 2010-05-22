@@ -62,22 +62,23 @@ public class UrlSigningExample {
          * AWS Credentials in the samples.properties file.
          */
         AWSCredentials awsCredentials = SamplesUtils.loadAWSCredentials();
+        S3Service s3Service = new RestS3Service(awsCredentials);
 
         // Create a signed HTTP PUT URL valid for 5 minutes.
-        String putUrl = S3Service.createSignedPutUrl(bucket.getName(), object.getKey(),
-            object.getMetadataMap(), awsCredentials, expiryDate, false);
+        String putUrl = s3Service.createSignedPutUrl(bucket.getName(), object.getKey(),
+            object.getMetadataMap(), expiryDate, false);
 
         // Create a signed HTTP GET URL valid for 5 minutes.
-        String getUrl = S3Service.createSignedGetUrl(bucket.getName(), object.getKey(),
-            awsCredentials, expiryDate, false);
+        String getUrl = s3Service.createSignedGetUrl(bucket.getName(), object.getKey(),
+            expiryDate, false);
 
         // Create a signed HTTP HEAD URL valid for 5 minutes.
-        String headUrl = S3Service.createSignedHeadUrl(bucket.getName(), object.getKey(),
-            awsCredentials, expiryDate, false);
+        String headUrl = s3Service.createSignedHeadUrl(bucket.getName(), object.getKey(),
+            expiryDate, false);
 
         // Create a signed HTTP DELETE URL valid for 5 minutes.
-        String deleteUrl = S3Service.createSignedDeleteUrl(bucket.getName(), object.getKey(),
-            awsCredentials, expiryDate, false);
+        String deleteUrl = s3Service.createSignedDeleteUrl(bucket.getName(), object.getKey(),
+            expiryDate, false);
 
         System.out.println("Signed PUT URL: " + putUrl);
         System.out.println("Signed GET URL: " + getUrl);

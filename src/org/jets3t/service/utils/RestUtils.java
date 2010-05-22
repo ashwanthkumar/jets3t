@@ -419,8 +419,8 @@ public class RestUtils {
     /**
      * Initialises this service's HTTP proxy by auto-detecting the proxy settings.
      */
-    public static void initHttpProxy(HttpClient httpClient) {
-        initHttpProxy(httpClient, true, null, -1, null, null, null);
+    public static void initHttpProxy(HttpClient httpClient, Jets3tProperties jets3tProperties) {
+        initHttpProxy(httpClient, jets3tProperties, true, null, -1, null, null, null);
     }
 
     /**
@@ -429,8 +429,10 @@ public class RestUtils {
      * @param proxyHostAddress
      * @param proxyPort
      */
-    public static void initHttpProxy(HttpClient httpClient, String proxyHostAddress, int proxyPort) {
-        initHttpProxy(httpClient, false, proxyHostAddress, proxyPort, null, null, null);
+    public static void initHttpProxy(HttpClient httpClient, String proxyHostAddress,
+        int proxyPort, Jets3tProperties jets3tProperties) {
+        initHttpProxy(httpClient, jets3tProperties, false,
+            proxyHostAddress, proxyPort, null, null, null);
     }
 
     /**
@@ -446,11 +448,12 @@ public class RestUtils {
      * will be used. If the proxy domain is null, a
      * {@link UsernamePasswordCredentials} credentials provider will be used.
      */
-    public static void initHttpProxy(HttpClient httpClient, String proxyHostAddress,
-        int proxyPort, String proxyUser, String proxyPassword, String proxyDomain)
+    public static void initHttpProxy(HttpClient httpClient, Jets3tProperties jets3tProperties,
+        String proxyHostAddress, int proxyPort, String proxyUser,
+        String proxyPassword, String proxyDomain)
     {
-        initHttpProxy(httpClient, false, proxyHostAddress, proxyPort,
-            proxyUser, proxyPassword, proxyDomain);
+        initHttpProxy(httpClient, jets3tProperties, false,
+            proxyHostAddress, proxyPort, proxyUser, proxyPassword, proxyDomain);
     }
 
     /**
@@ -462,7 +465,8 @@ public class RestUtils {
      * @param proxyPassword
      * @param proxyDomain
      */
-    protected static void initHttpProxy(HttpClient httpClient, boolean proxyAutodetect,
+    protected static void initHttpProxy(HttpClient httpClient, 
+        Jets3tProperties jets3tProperties, boolean proxyAutodetect,
         String proxyHostAddress, int proxyPort, String proxyUser,
         String proxyPassword, String proxyDomain)
     {
@@ -490,10 +494,12 @@ public class RestUtils {
         }
         // If no explicit settings are available, try autodetecting proxies (unless autodetect is disabled)
         else if (proxyAutodetect) {
+            String s3Endpoint = jets3tProperties.getStringProperty(
+                "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);        
             // Try to detect any proxy settings from applet.
             ProxyHost proxyHost = null;
             try {
-                proxyHost = PluginProxyUtil.detectProxy(new URL("http://" + Constants.S3_HOSTNAME));
+                proxyHost = PluginProxyUtil.detectProxy(new URL("http://" + s3Endpoint));
                 if (proxyHost != null) {
                     if (log.isInfoEnabled()) {
                         log.info("Using Proxy: " + proxyHost.getHostName() + ":" + proxyHost.getPort());

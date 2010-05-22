@@ -104,7 +104,6 @@ import org.jets3t.gui.JHtmlLabel;
 import org.jets3t.gui.UserInputFields;
 import org.jets3t.gui.skins.SkinsFactory;
 import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.io.BytesProgressWatcher;
@@ -151,7 +150,7 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
  * @author James Murty
  */
 public class Uploader extends JApplet implements S3ServiceEventListener, ActionListener, ListSelectionListener, HyperlinkActivatedListener, CredentialsProvider {
-    private static final long serialVersionUID = -1648566055636164308L;
+    private static final long serialVersionUID = 2759324769352022783L;
 
     private static final Log log = LogFactory.getLog(Uploader.class);
 
@@ -796,6 +795,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         Date expiryDate = cal.getTime();
 
         AWSCredentials awsCredentials = new AWSCredentials(awsAccessKey, awsSecretKey);
+        RestS3Service s3Service = new RestS3Service(awsCredentials);
 
         try {
             /*
@@ -806,8 +806,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
             gatekeeperMessage.addApplicationProperties(parametersMap); // Add any Applet/Application parameters as application properties.
 
             for (int i = 0; i < objects.length; i++) {
-                String signedPutUrl = S3Service.createSignedPutUrl(s3BucketName, objects[i].getKey(),
-                    objects[i].getMetadataMap(), awsCredentials, expiryDate, false);
+                String signedPutUrl = s3Service.createSignedPutUrl(
+                    s3BucketName, objects[i].getKey(), objects[i].getMetadataMap(),
+                    expiryDate, false);
 
                 SignatureRequest signatureRequest = new SignatureRequest(
                     SignatureRequest.SIGNATURE_TYPE_PUT, objects[i].getKey());

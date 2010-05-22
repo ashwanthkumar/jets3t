@@ -226,11 +226,10 @@ public class SignedGetUrlDialog extends JDialog implements ActionListener, Docum
             for (int i = 0; i < objects.length; i++) {
                 S3Object currentObject = objects[i];
 
-                String signedUrl = S3Service.createSignedUrl("GET",
+                String signedUrl = this.s3Service.createSignedUrl("GET",
                     currentObject.getBucketName(), currentObject.getKey(), specialParamName,
-                    null, this.s3Service.getAWSCredentials(), secondsSinceEpoch,
-                    virtualHostCheckBox.isSelected(), httpsUrlsCheckBox.isSelected(),
-                    disableDnsBuckets);
+                    null, secondsSinceEpoch, virtualHostCheckBox.isSelected(),
+                    httpsUrlsCheckBox.isSelected(), disableDnsBuckets);
 
                 signedUrlsBuffer.append(signedUrl + "\n");
             }

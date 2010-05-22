@@ -154,14 +154,15 @@ public class CloudFrontService implements AWSRequestAuthorizer {
 
         // Retrieve Proxy settings.
         if (this.jets3tProperties.getBoolProperty("httpclient.proxy-autodetect", true)) {
-            RestUtils.initHttpProxy(this.httpClient);
+            RestUtils.initHttpProxy(this.httpClient, this.jets3tProperties);
         } else {
             String proxyHostAddress = this.jets3tProperties.getStringProperty("httpclient.proxy-host", null);
             int proxyPort = this.jets3tProperties.getIntProperty("httpclient.proxy-port", -1);
             String proxyUser = this.jets3tProperties.getStringProperty("httpclient.proxy-user", null);
             String proxyPassword = this.jets3tProperties.getStringProperty("httpclient.proxy-password", null);
             String proxyDomain = this.jets3tProperties.getStringProperty("httpclient.proxy-domain", null);
-            RestUtils.initHttpProxy(this.httpClient, proxyHostAddress, proxyPort, proxyUser, proxyPassword, proxyDomain);
+            RestUtils.initHttpProxy(this.httpClient, this.jets3tProperties,
+                proxyHostAddress, proxyPort, proxyUser, proxyPassword, proxyDomain);
         }
 
         /* TODO: CloudFront service does not seem to support 100-continue protocol for 2009-04-02
@@ -440,6 +441,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     public List listDistributionsByBucketName(boolean isStreaming, String bucketName)
         throws CloudFrontServiceException
     {
+        String s3Endpoint = this.jets3tProperties.getStringProperty(
+            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);        
         if (log.isDebugEnabled()) {
             log.debug("Listing "
             	+ (isStreaming ? "streaming" : "")
@@ -452,7 +455,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         for (int i = 0; i < allDistributions.length; i++) {
             String distributionOrigin = allDistributions[i].getOrigin();
             if (distributionOrigin.equals(bucketName)
-                || bucketName.equals(ServiceUtils.findBucketNameInHostname(distributionOrigin)))
+                || bucketName.equals(ServiceUtils.findBucketNameInHostname(
+                    distributionOrigin, s3Endpoint)))
             {
                 bucketDistributions.add(allDistributions[i]);
             }

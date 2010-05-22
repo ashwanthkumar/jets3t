@@ -206,14 +206,15 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
 
         // Retrieve Proxy settings.
         if (this.jets3tProperties.getBoolProperty("httpclient.proxy-autodetect", true)) {
-            RestUtils.initHttpProxy(httpClient);
+            RestUtils.initHttpProxy(httpClient, this.jets3tProperties);
         } else {
             String proxyHostAddress = this.jets3tProperties.getStringProperty("httpclient.proxy-host", null);
             int proxyPort = this.jets3tProperties.getIntProperty("httpclient.proxy-port", -1);
             String proxyUser = this.jets3tProperties.getStringProperty("httpclient.proxy-user", null);
             String proxyPassword = this.jets3tProperties.getStringProperty("httpclient.proxy-password", null);
             String proxyDomain = this.jets3tProperties.getStringProperty("httpclient.proxy-domain", null);
-            RestUtils.initHttpProxy(httpClient, proxyHostAddress, proxyPort, proxyUser, proxyPassword, proxyDomain);
+            RestUtils.initHttpProxy(httpClient, this.jets3tProperties,
+                proxyHostAddress, proxyPort, proxyUser, proxyPassword, proxyDomain);
         }
     }
 
@@ -622,8 +623,10 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         String fullUrl = httpMethod.getPath();
 
         // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
-        if (!Constants.S3_HOSTNAME.equals(hostname)) {
-            int subdomainOffset = hostname.lastIndexOf("." + Constants.S3_HOSTNAME);
+        String s3Endpoint = this.jets3tProperties.getStringProperty(
+            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);        
+        if (!s3Endpoint.equals(hostname)) {
+            int subdomainOffset = hostname.lastIndexOf("." + s3Endpoint);
             if (subdomainOffset > 0) {
                 // Hostname represents an S3 sub-domain, so the bucket's name is the CNAME portion
                 fullUrl = "/" + hostname.substring(0, subdomainOffset) + httpMethod.getPath();
@@ -1039,7 +1042,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
 
         boolean disableDnsBuckets = jets3tProperties
             .getBoolProperty("s3service.disable-dns-buckets", false);
-        String hostname = generateS3HostnameForBucket(bucketName, disableDnsBuckets);
+        String s3Endpoint = this.jets3tProperties.getStringProperty(
+            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);        
+        String hostname = ServiceUtils.generateS3HostnameForBucket(bucketName, disableDnsBuckets, s3Endpoint);
 
         // Allow for non-standard virtual directory paths on the server-side
         String virtualPath = this.jets3tProperties.getStringProperty(
@@ -1047,7 +1052,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
 
     	// Determine the resource string (ie the item's path in S3, including the bucket name)
         String resourceString = "/";
-        if (hostname.equals(Constants.S3_HOSTNAME) && bucketName != null && bucketName.length() > 0) {
+        if (hostname.equals(s3Endpoint) && bucketName != null && bucketName.length() > 0) {
             resourceString += bucketName + "/";
         }
         resourceString += (objectKey != null? RestUtils.encodeUrlString(objectKey) : "");
@@ -2153,6 +2158,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         // expected hash value was provided as the object's Content-MD5 header.
         boolean isLiveMD5HashingRequired =
             (object.getMetadata(S3Object.METADATA_HEADER_CONTENT_MD5) == null);
+        String s3Endpoint = this.jets3tProperties.getStringProperty(
+            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);        
 
         if (object.getDataInputStream() != null) {
             repeatableRequestEntity = new RepeatableRequestEntity(object.getKey(),
@@ -2175,7 +2182,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         }
 
         try {
-            S3Object uploadedObject = ServiceUtils.buildObjectFromUrl(putMethod.getURI().getHost(), putMethod.getPath());
+            S3Object uploadedObject = ServiceUtils.buildObjectFromUrl(
+                putMethod.getURI().getHost(), putMethod.getPath(), s3Endpoint);
             uploadedObject.setBucketName(uploadedObject.getBucketName());
 
             // Add all metadata returned by S3 to uploaded object.
@@ -2334,6 +2342,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
     private S3Object getObjectWithSignedUrlImpl(String signedGetOrHeadUrl, boolean headOnly)
         throws S3ServiceException
     {
+        String s3Endpoint = this.jets3tProperties.getStringProperty(
+            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);        
+
         HttpMethodBase httpMethod = null;
         if (headOnly) {
             httpMethod = new HeadMethod(signedGetOrHeadUrl);
@@ -2350,7 +2361,8 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         try {
             responseObject = ServiceUtils.buildObjectFromUrl(
                 httpMethod.getURI().getHost(),
-                httpMethod.getPath().substring(1));
+                httpMethod.getPath().substring(1),
+                s3Endpoint);
         } catch (URIException e) {
             throw new S3ServiceException("Unable to lookup URI for object created with signed PUT", e);
         } catch (UnsupportedEncodingException e) {

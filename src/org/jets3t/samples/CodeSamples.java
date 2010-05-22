@@ -762,8 +762,8 @@ public class CodeSamples {
         // If you use the generated URL in a web browser within 5 minutes, you will be able to view
         // the object's contents. After 5 minutes, the URL will no longer work and you will only
         // see an Access Denied message.
-        String signedUrl = S3Service.createSignedGetUrl(privateBucket.getName(), privateObject.getKey(),
-            awsCredentials, expiryDate, false);
+        String signedUrl = s3Service.createSignedGetUrl(
+            privateBucket.getName(), privateObject.getKey(), expiryDate, false);
         System.out.println("Signed URL: " + signedUrl);
 
 
@@ -891,10 +891,9 @@ public class CodeSamples {
         boolean isDnsBucketNamingDisabled = false;
 
         String requesterPaysSignedGetUrl =
-            S3Service.createSignedUrl("GET", bucketName, "object-name",
+            s3Service.createSignedUrl("GET", bucketName, "object-name",
                 Constants.REQUESTER_PAYS_BUCKET_FLAG, // Include Requester Pays flag
-                httpHeaders,
-                awsCredentials, expirySecsAfterEpoch,
+                httpHeaders, expirySecsAfterEpoch,
                 isVirtualHost, isHttpsUrl,
                 isDnsBucketNamingDisabled);
 
@@ -923,9 +922,8 @@ public class CodeSamples {
         cal = Calendar.getInstance();
         cal.add(Calendar.MINUTE, 5);
 
-        String signedDevPayUrl = S3Service.createSignedGetUrl(
-            "devpay-bucket-name", "devpay-object-name",
-            devPayCredentials, cal.getTime());
+        String signedDevPayUrl = devPayService.createSignedGetUrl(
+            "devpay-bucket-name", "devpay-object-name", cal.getTime());
 
     }
 

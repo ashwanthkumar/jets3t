@@ -102,7 +102,6 @@ import org.jets3t.gui.UserInputFields;
 import org.jets3t.gui.skins.SkinsFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.GrantAndPermission;
@@ -134,6 +133,7 @@ import org.jets3t.service.utils.FileComparer;
 import org.jets3t.service.utils.FileComparerResults;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.ObjectUtils;
+import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.utils.TimeFormatter;
 import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
 import org.jets3t.service.utils.gatekeeper.SignatureRequest;
@@ -160,7 +160,7 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
 public class CockpitLite extends JApplet implements S3ServiceEventListener, ActionListener,
     ListSelectionListener, HyperlinkActivatedListener, CredentialsProvider {
 
-    private static final long serialVersionUID = 1809061443801912000L;
+    private static final long serialVersionUID = 4969295009540293079L;
 
     private static final Log log = LogFactory.getLog(CockpitLite.class);
 
@@ -2021,10 +2021,13 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                 hostAndBucket = userVanityHost;
             } else {
                 boolean disableDnsBuckets = false;
+                
+                String s3Endpoint = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+                    .getStringProperty("s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);        
+                hostAndBucket = ServiceUtils.generateS3HostnameForBucket(
+                    userBucketName, disableDnsBuckets, s3Endpoint);
 
-                hostAndBucket = S3Service.generateS3HostnameForBucket(userBucketName, disableDnsBuckets);
-
-                if (!S3Service.isBucketNameValidDNSName(userBucketName)) {
+                if (!ServiceUtils.isBucketNameValidDNSName(userBucketName)) {
                     // If bucket name isn't DNS compatible, we must include the bucket
                     // name as a URL path item.
                     hostAndBucket += "/" + userBucketName;

@@ -129,18 +129,21 @@ public class SoapS3Service extends S3Service {
     {
         super(awsCredentials, invokingApplicationDescription, jets3tProperties);
 
+        String s3Endpoint = this.jets3tProperties.getStringProperty(
+            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
+        
         locator = new AmazonS3_ServiceLocator();
         if (super.isHttpsOnly()) {
             // Use an SSL connection, to further secure the signature.
             if (log.isDebugEnabled()) {
             	log.debug("SOAP service will use HTTPS for all communication");
             }
-            locator.setAmazonS3EndpointAddress("https://" + Constants.S3_HOSTNAME + "/soap");
+            locator.setAmazonS3EndpointAddress("https://" + s3Endpoint + "/soap");
         } else {
             if (log.isDebugEnabled()) {
             	log.debug("SOAP service will use HTTP for all communication");
             }
-            locator.setAmazonS3EndpointAddress("http://" + Constants.S3_HOSTNAME + "/soap");
+            locator.setAmazonS3EndpointAddress("http://" + s3Endpoint + "/soap");
         }
         // Ensure we can get the stub.
         getSoapBinding();

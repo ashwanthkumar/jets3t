@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -36,6 +35,7 @@ import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.GrantAndPermission;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
+import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.BaseVersionOrDeleteMarker;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
@@ -73,7 +73,8 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author Nikolas Coukouma
  */
 public abstract class S3Service implements Serializable {
-    private static final long serialVersionUID = -5488173253180265796L;
+
+    private static final long serialVersionUID = -4501528341689760431L;
 
     private static final Log log = LogFactory.getLog(S3Service.class);
 
@@ -149,13 +150,6 @@ public abstract class S3Service implements Serializable {
         // timeout after 5 minutes, while failed DNS lookups will be retried after 1 second.
         System.setProperty("networkaddress.cache.ttl", "300");
         System.setProperty("networkaddress.cache.negative.ttl", "1");
-
-        // Override the default S3 Hostname constant if an alternative value is set.
-        String customS3Hostname = this.jets3tProperties.getStringProperty(
-            "s3service.s3-endpoint", Constants.S3_HOSTNAME);
-        if (!Constants.S3_HOSTNAME.equals(customS3Hostname)) {
-            Constants.S3_HOSTNAME = customS3Hostname;
-        }
 
         // (Re)initialize the JetS3t JMX delegate, in case system properties have changed.
         MxDelegate.getInstance().init();
@@ -334,57 +328,6 @@ public abstract class S3Service implements Serializable {
     }
 
     /**
-     * Returns true if the given bucket name can be used as a component of a valid
-     * DNS name. If so, the bucket can be accessed using requests with the bucket name
-     * as part of an S3 sub-domain. If not, the old-style bucket reference URLs must be
-     * used, in which case the bucket name must be the first component of the resource
-     * path.
-     *
-     * @param bucketName
-     * the name of the bucket to test for DNS compatibility.
-     */
-    public static boolean isBucketNameValidDNSName(String bucketName) {
-        if (bucketName == null || bucketName.length() > 63 || bucketName.length() < 3) {
-            return false;
-        }
-
-        // Only lower-case letters, numbers, '.' or '-' characters allowed
-        if (!Pattern.matches("^[a-z0-9][a-z0-9.-]+$", bucketName)) {
-            return false;
-        }
-
-        // Cannot be an IP address, i.e. must not contain four '.'-delimited
-        // sections with 1 to 3 digits each.
-        if (Pattern.matches("([0-9]{1,3}\\.){3}[0-9]{1,3}", bucketName)) {
-            return false;
-        }
-
-        // Components of name between '.' characters cannot start or end with '-',
-        // and cannot be empty
-        String[] fragments = bucketName.split("\\.");
-        for (int i = 0; i < fragments.length; i++) {
-            if (Pattern.matches("^-.*", fragments[i])
-                || Pattern.matches(".*-$", fragments[i])
-                || Pattern.matches("^$", fragments[i]))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    public static String generateS3HostnameForBucket(String bucketName,
-        boolean isDnsBucketNamingDisabled)
-    {
-        if (isBucketNameValidDNSName(bucketName) && !isDnsBucketNamingDisabled) {
-            return bucketName + "." + Constants.S3_HOSTNAME;
-        } else {
-            return Constants.S3_HOSTNAME;
-        }
-    }
-
-    /**
      * Sleeps for a period of time based on the number of S3 Internal Server errors a request has
      * encountered, provided the number of errors does not exceed the value set with the
      * property <code>s3service.internal-error-retry-max</code>. If the maximum error count is
@@ -460,8 +403,6 @@ public abstract class S3Service implements Serializable {
      * headers to add to the signed URL, may be null.
      * Headers that <b>must</b> match between the signed URL and the actual request include:
      * content-md5, content-type, and any header starting with 'x-amz-'.
-     * @param awsCredentials
-     * the credentials of someone with sufficient privileges to grant access to the bucket/object
      * @param secondsSinceEpoch
      * the time after which URL's signature will no longer be valid. This time cannot be null.
      *  <b>Note:</b> This time is specified in seconds since the epoch, not milliseconds.
@@ -481,16 +422,19 @@ public abstract class S3Service implements Serializable {
      *
      * @throws S3ServiceException
      */
-    public static String createSignedUrl(String method, String bucketName, String objectKey,
-        String specialParamName, Map headersMap, AWSCredentials awsCredentials,
-        long secondsSinceEpoch, boolean isVirtualHost, boolean isHttps,
-        boolean isDnsBucketNamingDisabled) throws S3ServiceException
+    public String createSignedUrl(String method, String bucketName, String objectKey,
+        String specialParamName, Map headersMap, long secondsSinceEpoch,
+        boolean isVirtualHost, boolean isHttps, boolean isDnsBucketNamingDisabled)
+        throws S3ServiceException
     {
+        String s3Endpoint = this.jets3tProperties.getStringProperty(
+            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
         String uriPath = "";
 
         String hostname = (isVirtualHost
             ? bucketName
-            : generateS3HostnameForBucket(bucketName, isDnsBucketNamingDisabled));
+            : ServiceUtils.generateS3HostnameForBucket(
+                bucketName, isDnsBucketNamingDisabled, s3Endpoint));
 
         if (headersMap == null) {
             headersMap = new HashMap();
@@ -498,8 +442,8 @@ public abstract class S3Service implements Serializable {
 
         // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
         String virtualBucketPath = "";
-        if (!Constants.S3_HOSTNAME.equals(hostname)) {
-            int subdomainOffset = hostname.lastIndexOf("." + Constants.S3_HOSTNAME);
+        if (!s3Endpoint.equals(hostname)) {
+            int subdomainOffset = hostname.lastIndexOf("." + s3Endpoint);
             if (subdomainOffset > 0) {
                 // Hostname represents an S3 sub-domain, so the bucket's name is the CNAME portion
                 virtualBucketPath = hostname.substring(0, subdomainOffset) + "/";
@@ -544,13 +488,11 @@ public abstract class S3Service implements Serializable {
             headersMap.put(requesterPaysHeaderAndValue[0], requesterPaysHeaderAndValue[1]);
         }
 
-        Jets3tProperties jets3tProperties = Jets3tProperties.getInstance(
-            Constants.JETS3T_PROPERTIES_FILENAME);
-        String serviceEndpointVirtualPath = jets3tProperties.getStringProperty(
+        String serviceEndpointVirtualPath = this.jets3tProperties.getStringProperty(
             "s3service.s3-endpoint-virtual-path", "");
-        int httpPort = jets3tProperties.getIntProperty(
+        int httpPort = this.jets3tProperties.getIntProperty(
             "s3service.s3-endpoint-http-port", 80);
-        int httpsPort = jets3tProperties.getIntProperty(
+        int httpsPort = this.jets3tProperties.getIntProperty(
             "s3service.s3-endpoint-https-port", 443);
 
         String canonicalString = RestUtils.makeS3CanonicalString(method,
@@ -584,6 +526,337 @@ public abstract class S3Service implements Serializable {
      * JetS3t property settings in the <tt>jets3t.properties</tt> file to determine whether
      * to generate HTTP or HTTPS links (<tt>s3service.https-only</tt>), and whether to disable
      * DNS bucket naming (<tt>s3service.disable-dns-buckets</tt>).
+     *
+     * @param method
+     * the HTTP method to sign, such as GET or PUT (note that S3 does not support POST requests).
+     * @param bucketName
+     * the name of the bucket to include in the URL, must be a valid bucket name.
+     * @param objectKey
+     * the name of the object to include in the URL, if null only the bucket name is used.
+     * @param specialParamName
+     * the name of a request parameter to add to the URL generated by this method. 'Special'
+     * parameters may include parameters that specify the kind of S3 resource that the URL
+     * will refer to, such as 'acl', 'torrent', 'logging' or 'location'.
+     * @param headersMap
+     * headers to add to the signed URL, may be null.
+     * Headers that <b>must</b> match between the signed URL and the actual request include:
+     * content-md5, content-type, and any header starting with 'x-amz-'.
+     * @param secondsSinceEpoch
+     * the time after which URL's signature will no longer be valid. This time cannot be null.
+     *  <b>Note:</b> This time is specified in seconds since the epoch, not milliseconds.
+     * @param isVirtualHost
+     * if this parameter is true, the bucket name is treated as a virtual host name. To use
+     * this option, the bucket name must be a valid DNS name that is an alias to an S3 bucket.
+     *
+     * @return
+     * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
+     *
+     * @throws S3ServiceException
+     */
+    public String createSignedUrl(String method, String bucketName, String objectKey,
+        String specialParamName, Map headersMap, long secondsSinceEpoch, boolean isVirtualHost)
+        throws S3ServiceException
+    {
+        boolean isHttps = this.jets3tProperties
+            .getBoolProperty("s3service.https-only", true);
+        boolean disableDnsBuckets = this.jets3tProperties
+            .getBoolProperty("s3service.disable-dns-buckets", false);
+
+        return createSignedUrl(method, bucketName, objectKey, specialParamName,
+            headersMap, secondsSinceEpoch, isVirtualHost, isHttps, disableDnsBuckets);
+    }
+
+    /**
+     * Generates a signed URL string that will grant access to an S3 resource (bucket or object)
+     * to whoever uses the URL up until the time specified.
+     *
+     * @param method
+     * the HTTP method to sign, such as GET or PUT (note that S3 does not support POST requests).
+     * @param bucketName
+     * the name of the bucket to include in the URL, must be a valid bucket name.
+     * @param objectKey
+     * the name of the object to include in the URL, if null only the bucket name is used.
+     * @param specialParamName
+     * the name of a request parameter to add to the URL generated by this method. 'Special'
+     * parameters may include parameters that specify the kind of S3 resource that the URL
+     * will refer to, such as 'acl', 'torrent', 'logging' or 'location'.
+     * @param headersMap
+     * headers to add to the signed URL, may be null.
+     * Headers that <b>must</b> match between the signed URL and the actual request include:
+     * content-md5, content-type, and any header starting with 'x-amz-'.
+     * @param secondsSinceEpoch
+     * the time after which URL's signature will no longer be valid. This time cannot be null.
+     *  <b>Note:</b> This time is specified in seconds since the epoch, not milliseconds.
+     *
+     * @return
+     * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
+     *
+     * @throws S3ServiceException
+     */
+    public String createSignedUrl(String method, String bucketName, String objectKey,
+        String specialParamName, Map headersMap, long secondsSinceEpoch)
+        throws S3ServiceException
+    {
+        return createSignedUrl(method, bucketName, objectKey, specialParamName, headersMap,
+            secondsSinceEpoch, false);
+    }
+
+
+    /**
+     * Generates a signed GET URL.
+     *
+     * @param bucketName
+     * the name of the bucket to include in the URL, must be a valid bucket name.
+     * @param objectKey
+     * the name of the object to include in the URL, if null only the bucket name is used.
+     * @param expiryTime
+     * the time after which URL's signature will no longer be valid. This time cannot be null.
+     * @param isVirtualHost
+     * if this parameter is true, the bucket name is treated as a virtual host name. To use
+     * this option, the bucket name must be a valid DNS name that is an alias to an S3 bucket.
+     *
+     * @return
+     * a URL signed in such a way as to grant GET access to an S3 resource to whoever uses it.
+     * @throws S3ServiceException
+     */
+    public String createSignedGetUrl(String bucketName, String objectKey,
+        Date expiryTime, boolean isVirtualHost) throws S3ServiceException
+    {
+        long secondsSinceEpoch = expiryTime.getTime() / 1000;
+        return createSignedUrl("GET", bucketName, objectKey, null, null,
+            secondsSinceEpoch, isVirtualHost);
+    }
+
+
+    /**
+     * Generates a signed GET URL.
+     *
+     * @param bucketName
+     * the name of the bucket to include in the URL, must be a valid bucket name.
+     * @param objectKey
+     * the name of the object to include in the URL, if null only the bucket name is used.
+     * @param expiryTime
+     * the time after which URL's signature will no longer be valid. This time cannot be null.
+     *
+     * @return
+     * a URL signed in such a way as to grant GET access to an S3 resource to whoever uses it.
+     * @throws S3ServiceException
+     */
+    public String createSignedGetUrl(String bucketName, String objectKey,
+        Date expiryTime) throws S3ServiceException
+    {
+        return createSignedGetUrl(bucketName, objectKey, expiryTime, false);
+    }
+
+
+    /**
+     * Generates a signed PUT URL.
+     *
+     * @param bucketName
+     * the name of the bucket to include in the URL, must be a valid bucket name.
+     * @param objectKey
+     * the name of the object to include in the URL, if null only the bucket name is used.
+     * @param headersMap
+     * headers to add to the signed URL, may be null.
+     * Headers that <b>must</b> match between the signed URL and the actual request include:
+     * content-md5, content-type, and any header starting with 'x-amz-'.
+     * @param expiryTime
+     * the time after which URL's signature will no longer be valid. This time cannot be null.
+     * @param isVirtualHost
+     * if this parameter is true, the bucket name is treated as a virtual host name. To use
+     * this option, the bucket name must be a valid DNS name that is an alias to an S3 bucket.
+     *
+     * @return
+     * a URL signed in such a way as to allow anyone to PUT an object into S3.
+     * @throws S3ServiceException
+     */
+    public String createSignedPutUrl(String bucketName, String objectKey,
+        Map headersMap, Date expiryTime, boolean isVirtualHost) throws S3ServiceException
+    {
+        long secondsSinceEpoch = expiryTime.getTime() / 1000;
+        return createSignedUrl("PUT", bucketName, objectKey, null, headersMap,
+            secondsSinceEpoch, isVirtualHost);
+    }
+
+
+    /**
+     * Generates a signed PUT URL.
+     *
+     * @param bucketName
+     * the name of the bucket to include in the URL, must be a valid bucket name.
+     * @param objectKey
+     * the name of the object to include in the URL, if null only the bucket name is used.
+     * @param headersMap
+     * headers to add to the signed URL, may be null.
+     * Headers that <b>must</b> match between the signed URL and the actual request include:
+     * content-md5, content-type, and any header starting with 'x-amz-'.
+     * @param expiryTime
+     * the time after which URL's signature will no longer be valid. This time cannot be null.
+     *
+     * @return
+     * a URL signed in such a way as to allow anyone to PUT an object into S3.
+     * @throws S3ServiceException
+     */
+    public String createSignedPutUrl(String bucketName, String objectKey,
+        Map headersMap, Date expiryTime) throws S3ServiceException
+    {
+        return createSignedPutUrl(bucketName, objectKey, headersMap, expiryTime, false);
+    }
+
+
+    /**
+     * Generates a signed DELETE URL.
+     *
+     * @param bucketName
+     * the name of the bucket to include in the URL, must be a valid bucket name.
+     * @param objectKey
+     * the name of the object to include in the URL, if null only the bucket name is used.
+     * @param expiryTime
+     * the time after which URL's signature will no longer be valid. This time cannot be null.
+     * @param isVirtualHost
+     * if this parameter is true, the bucket name is treated as a virtual host name. To use
+     * this option, the bucket name must be a valid DNS name that is an alias to an S3 bucket.
+     *
+     * @return
+     * a URL signed in such a way as to allow anyone do DELETE an object in S3.
+     * @throws S3ServiceException
+     */
+    public String createSignedDeleteUrl(String bucketName, String objectKey,
+        Date expiryTime, boolean isVirtualHost) throws S3ServiceException
+    {
+        long secondsSinceEpoch = expiryTime.getTime() / 1000;
+        return createSignedUrl("DELETE", bucketName, objectKey, null, null,
+            secondsSinceEpoch, isVirtualHost);
+    }
+
+
+    /**
+     * Generates a signed DELETE URL.
+     *
+     * @param bucketName
+     * the name of the bucket to include in the URL, must be a valid bucket name.
+     * @param objectKey
+     * the name of the object to include in the URL, if null only the bucket name is used.
+     * @param expiryTime
+     * the time after which URL's signature will no longer be valid. This time cannot be null.
+     *
+     * @return
+     * a URL signed in such a way as to allow anyone do DELETE an object in S3.
+     * @throws S3ServiceException
+     */
+    public String createSignedDeleteUrl(String bucketName, String objectKey,
+        Date expiryTime) throws S3ServiceException
+    {
+        return createSignedDeleteUrl(bucketName, objectKey, expiryTime, false);
+    }
+
+
+    /**
+     * Generates a signed HEAD URL.
+     *
+     * @param bucketName
+     * the name of the bucket to include in the URL, must be a valid bucket name.
+     * @param objectKey
+     * the name of the object to include in the URL, if null only the bucket name is used.
+     * @param expiryTime
+     * the time after which URL's signature will no longer be valid. This time cannot be null.
+     * @param isVirtualHost
+     * if this parameter is true, the bucket name is treated as a virtual host name. To use
+     * this option, the bucket name must be a valid DNS name that is an alias to an S3 bucket.
+     *
+     * @return
+     * a URL signed in such a way as to grant HEAD access to an S3 resource to whoever uses it.
+     * @throws S3ServiceException
+     */
+    public String createSignedHeadUrl(String bucketName, String objectKey,
+        Date expiryTime, boolean isVirtualHost) throws S3ServiceException
+    {
+        long secondsSinceEpoch = expiryTime.getTime() / 1000;
+        return createSignedUrl("HEAD", bucketName, objectKey, null, null,
+            secondsSinceEpoch, isVirtualHost);
+    }
+
+
+    /**
+     * Generates a signed HEAD URL.
+     *
+     * @param bucketName
+     * the name of the bucket to include in the URL, must be a valid bucket name.
+     * @param objectKey
+     * the name of the object to include in the URL, if null only the bucket name is used.
+     * @param expiryTime
+     * the time after which URL's signature will no longer be valid. This time cannot be null.
+     *
+     * @return
+     * a URL signed in such a way as to grant HEAD access to an S3 resource to whoever uses it.
+     * @throws S3ServiceException
+     */
+    public String createSignedHeadUrl(String bucketName, String objectKey,
+        Date expiryTime) throws S3ServiceException
+    {
+        return createSignedHeadUrl(bucketName, objectKey, expiryTime, false);
+    }
+
+    /**
+     * Generates a signed URL string that will grant access to an S3 resource (bucket or object)
+     * to whoever uses the URL up until the time specified.
+     *
+     * @deprecated 0.7.4
+     *
+     * @param method
+     * the HTTP method to sign, such as GET or PUT (note that S3 does not support POST requests).
+     * @param bucketName
+     * the name of the bucket to include in the URL, must be a valid bucket name.
+     * @param objectKey
+     * the name of the object to include in the URL, if null only the bucket name is used.
+     * @param specialParamName
+     * the name of a request parameter to add to the URL generated by this method. 'Special'
+     * parameters may include parameters that specify the kind of S3 resource that the URL
+     * will refer to, such as 'acl', 'torrent', 'logging', or 'location'.
+     * @param headersMap
+     * headers to add to the signed URL, may be null.
+     * Headers that <b>must</b> match between the signed URL and the actual request include:
+     * content-md5, content-type, and any header starting with 'x-amz-'.
+     * @param awsCredentials
+     * the credentials of someone with sufficient privileges to grant access to the bucket/object
+     * @param secondsSinceEpoch
+     * the time after which URL's signature will no longer be valid. This time cannot be null.
+     *  <b>Note:</b> This time is specified in seconds since the epoch, not milliseconds.
+     * @param isVirtualHost
+     * if this parameter is true, the bucket name is treated as a virtual host name. To use
+     * this option, the bucket name must be a valid DNS name that is an alias to an S3 bucket.
+     * @param isHttps
+     * if true, the signed URL will use the HTTPS protocol. If false, the signed URL will
+     * use the HTTP protocol.
+     * @param isDnsBucketNamingDisabled
+     * if true, the signed URL will not use the DNS-name format for buckets eg.
+     * <tt>jets3t.s3.amazonaws.com</tt>. Unless you have a specific reason to disable
+     * DNS bucket naming, leave this value false.
+     *
+     * @return
+     * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
+     *
+     * @throws S3ServiceException
+     */
+    public static String createSignedUrl(String method, String bucketName, String objectKey,
+        String specialParamName, Map headersMap, AWSCredentials awsCredentials,
+        long secondsSinceEpoch, boolean isVirtualHost, boolean isHttps,
+        boolean isDnsBucketNamingDisabled) throws S3ServiceException
+    {
+        S3Service s3Service = new RestS3Service(awsCredentials);
+        return s3Service.createSignedUrl(method, bucketName, objectKey,
+            specialParamName, headersMap, secondsSinceEpoch,
+            isVirtualHost, isHttps, isDnsBucketNamingDisabled);
+    }
+
+    /**
+     * Generates a signed URL string that will grant access to an S3 resource (bucket or object)
+     * to whoever uses the URL up until the time specified. The URL will use the default
+     * JetS3t property settings in the <tt>jets3t.properties</tt> file to determine whether
+     * to generate HTTP or HTTPS links (<tt>s3service.https-only</tt>), and whether to disable
+     * DNS bucket naming (<tt>s3service.disable-dns-buckets</tt>).
+     *
+     * @deprecated 0.7.4
      *
      * @param method
      * the HTTP method to sign, such as GET or PUT (note that S3 does not support POST requests).
@@ -633,6 +906,8 @@ public abstract class S3Service implements Serializable {
      * Generates a signed URL string that will grant access to an S3 resource (bucket or object)
      * to whoever uses the URL up until the time specified.
      *
+     * @deprecated 0.7.4
+     *
      * @param method
      * the HTTP method to sign, such as GET or PUT (note that S3 does not support POST requests).
      * @param bucketName
@@ -670,6 +945,8 @@ public abstract class S3Service implements Serializable {
     /**
      * Generates a signed GET URL.
      *
+     * @deprecated 0.7.4
+     *
      * @param bucketName
      * the name of the bucket to include in the URL, must be a valid bucket name.
      * @param objectKey
@@ -699,6 +976,8 @@ public abstract class S3Service implements Serializable {
     /**
      * Generates a signed GET URL.
      *
+     * @deprecated 0.7.4
+     *
      * @param bucketName
      * the name of the bucket to include in the URL, must be a valid bucket name.
      * @param objectKey
@@ -722,6 +1001,8 @@ public abstract class S3Service implements Serializable {
 
     /**
      * Generates a signed PUT URL.
+     *
+     * @deprecated 0.7.4
      *
      * @param bucketName
      * the name of the bucket to include in the URL, must be a valid bucket name.
@@ -756,6 +1037,8 @@ public abstract class S3Service implements Serializable {
     /**
      * Generates a signed PUT URL.
      *
+     * @deprecated 0.7.4
+     *
      * @param bucketName
      * the name of the bucket to include in the URL, must be a valid bucket name.
      * @param objectKey
@@ -783,6 +1066,8 @@ public abstract class S3Service implements Serializable {
 
     /**
      * Generates a signed DELETE URL.
+     *
+     * @deprecated 0.7.4
      *
      * @param bucketName
      * the name of the bucket to include in the URL, must be a valid bucket name.
@@ -813,6 +1098,8 @@ public abstract class S3Service implements Serializable {
     /**
      * Generates a signed DELETE URL.
      *
+     * @deprecated 0.7.4
+     *
      * @param bucketName
      * the name of the bucket to include in the URL, must be a valid bucket name.
      * @param objectKey
@@ -836,6 +1123,8 @@ public abstract class S3Service implements Serializable {
 
     /**
      * Generates a signed HEAD URL.
+     *
+     * @deprecated 0.7.4
      *
      * @param bucketName
      * the name of the bucket to include in the URL, must be a valid bucket name.
@@ -866,6 +1155,8 @@ public abstract class S3Service implements Serializable {
     /**
      * Generates a signed HEAD URL.
      *
+     * @deprecated 0.7.4
+     *
      * @param bucketName
      * the name of the bucket to include in the URL, must be a valid bucket name.
      * @param objectKey
@@ -886,6 +1177,25 @@ public abstract class S3Service implements Serializable {
         return createSignedHeadUrl(bucketName, objectKey, awsCredentials, expiryTime, false);
     }
 
+    /**
+     * Generates a URL string that will return a Torrent file for an object in S3,
+     * which file can be downloaded and run in a BitTorrent client.
+     *
+     * @deprecated 0.7.4
+     *
+     * @param bucketName
+     * the name of the bucket containing the object.
+     * @param objectKey
+     * the name of the object.
+     * @return
+     * a URL to a Torrent file representing the object.
+     * @throws S3ServiceException
+     */
+    public static String createTorrentUrl(String bucketName, String objectKey) {
+        Jets3tProperties jets3tProperties = Jets3tProperties.getInstance(
+            Constants.JETS3T_PROPERTIES_FILENAME);
+        return createTorrentUrl(bucketName, objectKey, jets3tProperties);
+    }
 
     /**
      * Generates a URL string that will return a Torrent file for an object in S3,
@@ -899,9 +1209,11 @@ public abstract class S3Service implements Serializable {
      * a URL to a Torrent file representing the object.
      * @throws S3ServiceException
      */
-    public static String createTorrentUrl(String bucketName, String objectKey) {
-        Jets3tProperties jets3tProperties = Jets3tProperties.getInstance(
-            Constants.JETS3T_PROPERTIES_FILENAME);
+    public static String createTorrentUrl(String bucketName, String objectKey,
+        Jets3tProperties jets3tProperties)
+    {
+        String s3Endpoint = jets3tProperties.getStringProperty(
+            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
         String serviceEndpointVirtualPath = jets3tProperties.getStringProperty(
             "s3service.s3-endpoint-virtual-path", "");
         int httpPort = jets3tProperties.getIntProperty(
@@ -910,10 +1222,11 @@ public abstract class S3Service implements Serializable {
             .getBoolProperty("s3service.disable-dns-buckets", false);
 
         String bucketNameInPath =
-            !disableDnsBuckets && isBucketNameValidDNSName(bucketName)
+            !disableDnsBuckets && ServiceUtils.isBucketNameValidDNSName(bucketName)
             ? ""
             : bucketName + "/";
-        return "http://" + generateS3HostnameForBucket(bucketName, disableDnsBuckets)
+        return "http://" + ServiceUtils.generateS3HostnameForBucket(
+                                        bucketName, disableDnsBuckets, s3Endpoint)
             + (httpPort != 80 ? ":" + httpPort : "")
             + serviceEndpointVirtualPath + "/"
             + bucketNameInPath

@@ -45,8 +45,8 @@ import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.S3Service;
 import org.jets3t.service.model.S3Bucket;
+import org.jets3t.service.utils.ServiceUtils;
 
 /**
  * Dialog box to prompt for the name and location of an S3 bucket. This dialog
@@ -153,7 +153,7 @@ public class CreateBucketDialog extends JDialog implements ActionListener {
                     bucketName = doc.getText(0, doc.getLength());
                 } catch (BadLocationException e) {
                 }
-                if (S3Service.isBucketNameValidDNSName(bucketName)) {
+                if (ServiceUtils.isBucketNameValidDNSName(bucketName)) {
                     bucketNameIsValidDNSResultLabel.setText("Yes");
                     okButton.setEnabled(true);
                 } else {
