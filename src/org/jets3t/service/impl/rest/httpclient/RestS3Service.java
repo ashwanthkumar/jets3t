@@ -1675,7 +1675,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
 
         RequestEntity requestEntity = null;
         if (object.getDataInputStream() != null) {
-            if (object.containsMetadata("Content-Length")) {
+            if (object.containsMetadata(S3Object.METADATA_HEADER_CONTENT_LENGTH)) {
                 if (log.isDebugEnabled()) {
                     log.debug("Uploading object data with Content-Length: " + object.getContentLength());
                 }
@@ -1692,6 +1692,19 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                     object.getDataInputStream(), InputStreamRequestEntity.CONTENT_LENGTH_AUTO);
             }
         }
+
+        this.pubObjectWithRequestEntityImpl(bucketName, object, requestEntity);
+
+        return object;
+    }
+
+    protected void pubObjectWithRequestEntityImpl(String bucketName, S3Object object,
+        RequestEntity requestEntity) throws S3ServiceException
+    {
+        // We do not need to calculate the data MD5 hash during upload if the
+        // expected hash value was provided as the object's Content-MD5 header.
+        boolean isLiveMD5HashingRequired =
+            (object.getMetadata(S3Object.METADATA_HEADER_CONTENT_MD5) == null);
 
         Map map = createObjectImpl(bucketName, object.getKey(), object.getContentType(),
             requestEntity, object.getMetadataMap(), object.getAcl(), object.getStorageClass());
@@ -1719,8 +1732,6 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                 ((RepeatableRequestEntity)requestEntity).getMD5DigestOfData());
             verifyExpectedAndActualETagValues(hexMD5OfUploadedData, object);
         }
-
-        return object;
     }
 
     protected Map createObjectImpl(String bucketName, String objectKey, String contentType,
