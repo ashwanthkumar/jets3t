@@ -10,7 +10,9 @@ TOOLKIT
   for objects. This discounted storage class can be applied when an
   object is created, overwritten or copied. The storage class can be
   set per-object, or a default value can be set with the property
-  's3service.defaultStorageClass'
+  's3service.defaultStorageClass'. Storage classes can be disabled
+  altogether for services that don't support them using the
+  's3service.enable-storage-classes' property.
 - Added support for buckets located in the Asia Pacific
   (Singapore) location "ap-southeast-1".
 - Eucalyptus-friendly generated URLs (#14). JetS3t configuration

@@ -1751,14 +1751,16 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         }
 
         // Apply per-object or default storage class when uploading object
-        if (storageClass == null && this.defaultStorageClass != null) {
-            // Apply default storage class
-            storageClass = this.defaultStorageClass;
-            log.debug("Applied default storage class '" + storageClass
-                + "' to object '" + objectKey + "'");
-        }
-        if (storageClass != null) {
-            metadata.put("x-amz-storage-class", storageClass);
+        if (this.jets3tProperties.getBoolProperty("s3service.enable-storage-classes", true)) {
+            if (storageClass == null && this.defaultStorageClass != null) {
+                // Apply default storage class
+                storageClass = this.defaultStorageClass;
+                log.debug("Applied default storage class '" + storageClass
+                    + "' to object '" + objectKey + "'");
+            }
+            if (storageClass != null) {
+                metadata.put("x-amz-storage-class", storageClass);
+            }
         }
 
         boolean putNonStandardAcl = false;
@@ -1830,7 +1832,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
 
         metadata.put("x-amz-copy-source", sourceKey);
 
-        if (destinationObjectStorageClass != null) {
+        boolean enableStorageClasses = this.jets3tProperties.getBoolProperty(
+            "s3service.enable-storage-classes", true);
+        if (enableStorageClasses && destinationObjectStorageClass != null) {
             metadata.put("x-amz-storage-class", destinationObjectStorageClass);
         }
 
