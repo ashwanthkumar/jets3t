@@ -174,7 +174,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     public static final String AMAZON_S3_PAGE = "http://www.amazon.com/s3";
     public static final String OS_NAME_MAC = "Mac OS X";
 
-    public static final String APPLICATION_DESCRIPTION = "Cockpit/0.7.3";
+    public static final String APPLICATION_DESCRIPTION = "Cockpit/0.7.4-dev";
 
     public static final String APPLICATION_TITLE = "JetS3t Cockpit";
     private static final int BUCKET_LIST_CHUNKING_SIZE = 1000;
