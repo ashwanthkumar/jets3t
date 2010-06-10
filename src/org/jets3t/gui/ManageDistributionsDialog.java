@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  *
- * Copyright 2008 James Murty
+ * Copyright 2008-2010 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,7 +75,7 @@ import org.jets3t.service.model.cloudfront.LoggingStatus;
 public class ManageDistributionsDialog extends JDialog
     implements ActionListener, ListSelectionListener, HyperlinkActivatedListener
 {
-    private static final long serialVersionUID = -6023438299751644436L;
+    private static final long serialVersionUID = 8754669642320546085L;
 
     private CloudFrontService cloudFrontService = null;
 
@@ -87,6 +87,7 @@ public class ManageDistributionsDialog extends JDialog
     private TableSorter distributionListTableModelSorter = null;
     private JComboBox bucketComboBox = null;
     private JCheckBox enabledCheckbox = null;
+    private JCheckBox httpsOnlyCheckbox = null;
     private JComboBox loggingBucketComboBox = null;
     private JTextField loggingPrefixTextField = null;
     private JTable cnamesTable = null;
@@ -118,8 +119,10 @@ public class ManageDistributionsDialog extends JDialog
 
         JLabel bucketLabel = new JLabel("Bucket:");
         bucketComboBox = new JComboBox(bucketNames);
-        JLabel enabledLabel = new JLabel("Enabled:");
+        JLabel enabledLabel = new JLabel("Enabled?");
         enabledCheckbox = new JCheckBox();
+        JLabel httpsOnlyLabel = new JLabel("HTTPS Only?");
+        httpsOnlyCheckbox = new JCheckBox();
 
         JLabel loggingBucketLabel = new JLabel("Logging bucket:");
         loggingBucketComboBox = new JComboBox(bucketNames);
@@ -217,6 +220,10 @@ public class ManageDistributionsDialog extends JDialog
         detailPanel.add(enabledLabel, new GridBagConstraints(0, row,
             1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
         detailPanel.add(enabledCheckbox, new GridBagConstraints(1, row++,
+            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        detailPanel.add(httpsOnlyLabel, new GridBagConstraints(0, row,
+            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+        detailPanel.add(httpsOnlyCheckbox, new GridBagConstraints(1, row++,
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
 
         detailPanel.add(loggingBucketLabel, new GridBagConstraints(0, row,
@@ -334,6 +341,7 @@ public class ManageDistributionsDialog extends JDialog
 
                 bucketComboBox.setEnabled(true);
                 enabledCheckbox.setSelected(false);
+                httpsOnlyCheckbox.setEnabled(false);
 
                 loggingBucketComboBox.setSelectedIndex(0);
                 loggingPrefixTextField.setText("");
@@ -353,13 +361,15 @@ public class ManageDistributionsDialog extends JDialog
                     String message = "Unable to retrieve configuration information "
                     	+ "for distribution: " + distribution.getId();
                     ErrorDialog.showDialog(ownerFrame, this, message, ex);
+                    return;
                 }
 
                 bucketComboBox.setSelectedItem(distribution.getOriginAsBucketName());
                 bucketComboBox.setEnabled(false);
                 enabledCheckbox.setSelected(distribution.isEnabled());
+                httpsOnlyCheckbox.setSelected(distributionConfig.isHttpsProtocolRequired());
 
-                if (distributionConfig != null && distributionConfig.getLoggingStatus() != null) {
+                if (distributionConfig.getLoggingStatus() != null) {
                     loggingBucketComboBox.setSelectedItem(
                     	distributionConfig.getLoggingStatus().getShortBucketName());
                     loggingPrefixTextField.setText(
@@ -473,9 +483,20 @@ public class ManageDistributionsDialog extends JDialog
                         			loggingPrefixTextField.getText());
                         }
 
+                        String[] requiredProtocols = null;
+                        if (httpsOnlyCheckbox.isSelected()) {
+                            requiredProtocols = new String[] {"https"};
+                        } else {
+                            requiredProtocols = new String[0];
+                        }
+
                         cloudFrontService.createDistribution(origin, null,
                             cnamesTableModel.getCnames(), commentTextArea.getText(),
-                            enabledCheckbox.isSelected(), loggingStatus);
+                            enabledCheckbox.isSelected(), loggingStatus,
+                            null,  // originAccessIdentityId
+                            false, // trustedSignerSelf
+                            null,  // trustedSignerAwsAccountNumbers
+                            requiredProtocols);
                         refreshDistributions();
                     } catch (Exception e) {
                         SwingUtilities.invokeLater(new Runnable() {
@@ -524,9 +545,20 @@ public class ManageDistributionsDialog extends JDialog
                         			loggingPrefixTextField.getText());
                         }
 
+                        String[] requiredProtocols = null;
+                        if (httpsOnlyCheckbox.isSelected()) {
+                            requiredProtocols = new String[] {"https"};
+                        } else {
+                            requiredProtocols = new String[0];
+                        }
+
                         cloudFrontService.updateDistributionConfig(distribution.getId(),
                             cnamesTableModel.getCnames(), commentTextArea.getText(),
-                            enabledCheckbox.isSelected(), loggingStatus);
+                            enabledCheckbox.isSelected(), loggingStatus,
+                            null,  // originAccessIdentityId
+                            false, // trustedSignerSelf
+                            null,  // trustedSignerAwsAccountNumbers
+                            requiredProtocols);
                         refreshDistributions();
                     } catch (Exception e) {
                         SwingUtilities.invokeLater(new Runnable() {

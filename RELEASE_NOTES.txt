@@ -28,9 +28,12 @@ TOOLKIT
 
   * CloudFront Service
 
+- NOTE: These changes break backward-compatibility for some of the
+  CloudFrontService and related class interfaces.
+- Updated service to support API version 2010-06-01 which adds
+  support for HTTPS-only distributions (a.k.a. RequiredProtocols)
 - Updated service to support API version 2010-05-01 which adds
   logging support for streaming distributions.
-  NOTE: This change breaks backward-compatibility of the API.
 
   * API Changes
 
@@ -49,6 +52,7 @@ COCKPIT
   storage class property of objects)
 - Added support for buckets located in the Asia Pacific
   (Singapore) location.
+- Added support for HTTPS creating HTTPS-only CloudFront distributions.
 
 KUDOS TO:
 

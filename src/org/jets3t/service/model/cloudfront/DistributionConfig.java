@@ -36,11 +36,13 @@ public class DistributionConfig {
     private String originAccessIdentity = null;
     private boolean trustedSignerSelf = false;
     private String[] trustedSignerAwsAccountNumbers = new String[0];
+    private String[] requiredProtocols = new String[0];
 
     public DistributionConfig(String origin, String callerReference,
         String[] cnames, String comment, boolean enabled,
         LoggingStatus loggingStatus, String originAccessIdentity,
-        boolean trustedSignerSelf, String[] trustedSignerAwsAccountNumbers)
+        boolean trustedSignerSelf, String[] trustedSignerAwsAccountNumbers,
+        String[] requiredProtocols)
     {
         this.origin = origin;
         this.callerReference = callerReference;
@@ -57,6 +59,7 @@ public class DistributionConfig {
         this.originAccessIdentity = originAccessIdentity;
         this.trustedSignerSelf = trustedSignerSelf;
         this.trustedSignerAwsAccountNumbers = trustedSignerAwsAccountNumbers;
+        this.requiredProtocols = requiredProtocols;
     }
 
     public DistributionConfig(String origin, String callerReference,
@@ -64,7 +67,7 @@ public class DistributionConfig {
             LoggingStatus loggingStatus)
     {
         this(origin, callerReference, cnames, comment, enabled,
-        		loggingStatus, null, false, null);
+        		loggingStatus, null, false, null, null);
     }
 
     public String getOrigin() {
@@ -132,6 +135,29 @@ public class DistributionConfig {
         return (this instanceof StreamingDistributionConfig);
     }
 
+    public void setRequiredProtocols(String[] protocols) {
+        this.requiredProtocols = protocols;
+    }
+
+    public String[] getRequiredProtocols() {
+        return this.requiredProtocols;
+    }
+
+    public boolean isHttpsProtocolRequired() {
+        return
+            this.requiredProtocols != null
+            && this.requiredProtocols.length > 0
+            && "https".equals(this.requiredProtocols[0]);
+    }
+
+    public void setHttpsProtocolRequired(boolean value) {
+        if (value) {
+            this.requiredProtocols = new String[] {"https"};
+        } else {
+            this.requiredProtocols = new String[0];
+        }
+    }
+
     public String toString() {
         return
             (isStreamingDistributionConfig()
@@ -155,6 +181,9 @@ public class DistributionConfig {
             	? 	""
                 : 	", LoggingStatus: bucket=" + loggingStatus.getBucket() +
                 	", prefix=" + loggingStatus.getPrefix()) +
+            (getRequiredProtocols() == null || getRequiredProtocols().length == 0
+                ? ""
+                : ", RequiredProtocols=" + Arrays.asList(getRequiredProtocols())) +
             ", CNAMEs=" + Arrays.asList(cnames);
     }
 

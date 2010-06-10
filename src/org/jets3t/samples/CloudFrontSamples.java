@@ -149,7 +149,8 @@ public class CloudFrontSamples {
             null,  // Logging status of distribution (null means disabled)
             originAccessIdentityId, // Origin Access Identity to make distribution private
             false, // URLs self-signing disabled
-            null   // No other AWS users can sign URLs
+            null,  // No other AWS users can sign URLs
+            null   // No required protocols
         );
         System.out.println("New Private Distribution: " + privateDistribution);
 
@@ -159,10 +160,11 @@ public class CloudFrontSamples {
             new String[] {}, // CNAME aliases for distribution
             "Now a private distribution -- URL Signing required", // Comment
             true, // Distribution enabled?
-            null,  // No distribution logging
+            null, // No distribution logging
             originAccessIdentityId, // Origin Access Identity ID
             true, // URLs can be self-signed
-            null  // No other AWS users can sign URLs
+            null, // No other AWS users can sign URLs
+            null  // No required protocols
             );
         System.out.println("Made distribution private: " + updatedDistributionConfig);
 
@@ -254,11 +256,12 @@ public class CloudFrontSamples {
             "" + System.currentTimeMillis(), // Caller reference - a unique string value
             new String[] {}, // CNAME aliases for distribution
             "New private streaming distribution -- URL signing not required", // Comment
-            true,  // Distribution is enabled?
-            null,  // Logging status
+            true, // Distribution is enabled?
+            null, // Logging status
             originAccessIdentityId, // Origin Access Identity to make distribution private
             true, // URLs self-signing enabled
-            null   // No other AWS users can sign URLs
+            null, // No other AWS users can sign URLs
+            null  // No required protocols
         );
         System.out.println("New Private Streaming Distribution: " + newPrivateStreamingDistribution);
 

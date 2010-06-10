@@ -363,6 +363,7 @@ public class CloudFrontXmlResponsesSaxParser {
         private String originAccessIdentity = null;
         private boolean trustedSignerSelf = false;
         private List trustedSignerAwsAccountNumberList = new ArrayList();
+        private List requiredProtocols = new ArrayList();
 
         public DistributionConfig getDistributionConfig() {
             return distributionConfig;
@@ -412,13 +413,20 @@ public class CloudFrontXmlResponsesSaxParser {
             this.trustedSignerAwsAccountNumberList.add(text);
         }
 
+        public void endProtocol(String text) {
+            this.requiredProtocols.add(text);
+        }
+
         public void endDistributionConfig(String text) {
             this.distributionConfig = new DistributionConfig(
                 origin, callerReference,
                 (String[]) cnamesList.toArray(new String[cnamesList.size()]),
                 comment, enabled, loggingStatus, originAccessIdentity, trustedSignerSelf,
                 (String[]) trustedSignerAwsAccountNumberList.toArray(
-                	new String[trustedSignerAwsAccountNumberList.size()]));
+                	new String[trustedSignerAwsAccountNumberList.size()]),
+                (String[]) requiredProtocols.toArray(
+                    new String[requiredProtocols.size()])
+                );
             returnControlToParentHandler();
         }
 
@@ -428,7 +436,10 @@ public class CloudFrontXmlResponsesSaxParser {
                 (String[]) cnamesList.toArray(new String[cnamesList.size()]), comment,
                 enabled, loggingStatus, originAccessIdentity, trustedSignerSelf,
                 (String[]) trustedSignerAwsAccountNumberList.toArray(
-                    new String[trustedSignerAwsAccountNumberList.size()]));
+                    new String[trustedSignerAwsAccountNumberList.size()]),
+                (String[]) requiredProtocols.toArray(
+                    new String[requiredProtocols.size()])
+                );
             returnControlToParentHandler();
         }
     }
