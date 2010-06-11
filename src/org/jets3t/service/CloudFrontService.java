@@ -682,6 +682,10 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * signed URLs. Note: If either trustedSignerSelf or
      * trustedSignerAwsAccountNumbers parameters are provided the private distribution
      * will require signed URLs to access content.
+     * @param requiredProtocols
+     * List of protocols that must be used by clients to retrieve content from the
+     * distribution. If this value is null or is an empty array, all protocols will be
+     * supported.
      *
      * @return
      * an object that describes the newly-created distribution, in particular the
@@ -826,12 +830,12 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     public StreamingDistribution createStreamingDistribution(String origin, String callerReference,
             String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus,
             String originAccessIdentityId, boolean trustedSignerSelf,
-            String[] trustedSignerAwsAccountNumbers, String[] requiredProtocols)
+            String[] trustedSignerAwsAccountNumbers)
         throws CloudFrontServiceException
     {
         return (StreamingDistribution) createDistributionImpl(true, origin, callerReference,
     		cnames, comment, enabled, loggingStatus, originAccessIdentityId,
-    		trustedSignerSelf, trustedSignerAwsAccountNumbers, requiredProtocols);
+    		trustedSignerSelf, trustedSignerAwsAccountNumbers, null);
     }
 
     /**
@@ -1029,6 +1033,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @param originAccessIdentityId
      * @param trustedSignerSelf
      * @param trustedSignerAwsAccountNumbers
+     * @param requiredProtocols
+
      * @return
      * Information about the updated distribution configuration.
      * @throws CloudFrontServiceException
@@ -1132,6 +1138,10 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * signed URLs. Note: If either trustedSignerSelf or
      * trustedSignerAwsAccountNumbers parameters are provided the private distribution
      * will require signed URLs to access content.
+     * @param requiredProtocols
+     * List of protocols that must be used by clients to retrieve content from the
+     * distribution. If this value is null or is an empty array all protocols will be
+     * permitted.
      *
      * @return
      * an object that describes the distribution's updated configuration, including its
@@ -1191,6 +1201,64 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     }
 
     /**
+     * Update the configuration of an existing streaming distribution to change its
+     * properties. The new configuration properties provided <strong>replace</strong>
+     * any existing configuration, and may take some time to be fully applied.
+     * <p>
+     * This method performs all the steps necessary to update the configuration. It
+     * first performs lookup on the distribution  using
+     * {@link #getDistributionConfig(String)} to find its origin and caller reference
+     * values, then uses this information to apply your configuration changes.
+     *
+     * @param id
+     * the distribution's unique identifier.
+     * @param cnames
+     * A list of up to 10 CNAME aliases to associate with the distribution. This
+     * parameter may be null, in which case the original CNAME aliases are retained.
+     * @param comment
+     * An optional comment to describe the distribution in your own terms
+     * (max 128 characters). May be null, in which case the original comment is retained.
+     * @param enabled
+     * Should the distribution should be enabled and publicly accessible after the
+     * configuration update?
+     * @param loggingStatus
+     * Logging status settings (bucket, prefix) for the distribution. If this value
+     * is null, logging will be disabled for the distribution.
+     * @param originAccessIdentityId
+     * Identifier of the origin access identity that can authorize access to
+     * S3 objects via a private distribution. If provided the distribution will be
+     * private, if null the distribution will be be public.
+     * @param trustedSignerSelf
+     * If true the owner of the distribution (you) will be be allowed to generate
+     * signed URLs for a private distribution. Note: If either trustedSignerSelf or
+     * trustedSignerAwsAccountNumbers parameters are provided the private distribution
+     * will require signed URLs to access content.
+     * @param trustedSignerAwsAccountNumbers
+     * Account Number identifiers for AWS account holders other than the
+     * distribution's owner who will be allowed to generate signed URLs for a private
+     * distribution. If null or empty, no additional AWS account holders may generate
+     * signed URLs. Note: If either trustedSignerSelf or
+     * trustedSignerAwsAccountNumbers parameters are provided the private distribution
+     * will require signed URLs to access content.
+     *
+     * @return
+     * an object that describes the distribution's updated configuration, including its
+     * origin bucket and CNAME aliases.
+     *
+     * @throws CloudFrontServiceException
+     */
+    public StreamingDistributionConfig updateStreamingDistributionConfig(
+        String id, String[] cnames, String comment, boolean enabled,
+        LoggingStatus loggingStatus, String originAccessIdentityId,
+        boolean trustedSignerSelf, String[] trustedSignerAwsAccountNumbers)
+        throws CloudFrontServiceException
+    {
+        return (StreamingDistributionConfig) updateDistributionConfigImpl(
+            true, id, cnames, comment, enabled, loggingStatus, originAccessIdentityId,
+            trustedSignerSelf, trustedSignerAwsAccountNumbers, null);
+    }
+    
+    /**
      * Update the configuration of an existing distribution to change its properties.
      * If the original distribution is private this method will make it public instead.
      * The new configuration properties provided <strong>replace</strong> any existing
@@ -1221,7 +1289,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * origin bucket and CNAME aliases.
      *
      * @throws CloudFrontServiceException
-     */    public DistributionConfig updateDistributionConfig(String id, String[] cnames,
+     */
+    public DistributionConfig updateDistributionConfig(String id, String[] cnames,
         String comment, boolean enabled, LoggingStatus loggingStatus)
         throws CloudFrontServiceException
     {
