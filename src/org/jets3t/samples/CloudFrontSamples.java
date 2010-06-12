@@ -260,8 +260,7 @@ public class CloudFrontSamples {
             null, // Logging status
             originAccessIdentityId, // Origin Access Identity to make distribution private
             true, // URLs self-signing enabled
-            null, // No other AWS users can sign URLs
-            null  // No required protocols
+            null // No other AWS users can sign URLs
         );
         System.out.println("New Private Streaming Distribution: " + newPrivateStreamingDistribution);
 
