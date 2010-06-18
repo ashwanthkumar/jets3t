@@ -227,27 +227,19 @@ public class LoginCredentialsPanel extends JPanel implements ItemListener {
     public String[] checkForInputErrors() {
         ArrayList errors = new ArrayList();
 
-        if (getAWSAccessKey().length() == 20) {
-            // Correct length for AWS Access Key
-        } else if (getAWSAccessKey().length() == 22) {
-            // Correct length for Eucalyptus ID
-        } else {
-            errors.add("Access Key must have 20 or 22 characters");
+        if (getAWSAccessKey().trim().length() == 0) {
+            errors.add("Access Key must be provided");
         }
 
-        if (getAWSSecretKey().length() == 40) {
-            // Correct length for AWS Access Key
-        } else if (getAWSSecretKey().length() == 38) {
-            // Correct length for Eucalyptus Secret Key
-        } else {
-            errors.add("Secret Key must have 40 or 38 characters");
+        if (getAWSSecretKey().trim().length() == 0) {
+            errors.add("Secret Key must be provided");
         }
 
         if (getUsingDevPay()) {
-            if (getAWSUserToken().length() == 0) {
+            if (getAWSUserToken().trim().length() == 0) {
                 errors.add("DevPay User Token must be provided");
             }
-            if (getAWSProductToken().length() == 0) {
+            if (getAWSProductToken().trim().length() == 0) {
                 errors.add("DevPay Product Token must be provided");
             }
         }
