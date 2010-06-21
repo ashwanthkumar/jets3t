@@ -63,8 +63,8 @@ CP=$CP:$JETS3T_HOME/libs/bouncycastle/bcprov-jdk14-138.jar
 CP=$CP:$JETS3T_HOME/libs/java-xmlbuilder/java-xmlbuilder-1.jar
 
 # Convert classpath for cygwin bash
-case "`uname -o`" in
-    Cygwin*)
+case "`uname -s`" in
+    CYGWIN*)
         CYGWIN_CP=""
         for cp_path in $(echo $CP | tr ':' '\n'); do
             CWIN_PATH=$(cygpath -w -a "$cp_path")

@@ -60,8 +60,8 @@ CP=$CP:$JETS3T_HOME/libs/logging-log4j/log4j-1.2.15.jar
 CP=$CP:$JETS3T_HOME/libs/bouncycastle/bcprov-jdk14-138.jar
 
 # Convert classpath for cygwin bash
-case "`uname -o`" in
-    Cygwin*)
+case "`uname -s`" in
+    CYGWIN*)
         CYGWIN_CP=""
         for cp_path in $(echo $CP | tr ':' '\n'); do
             CWIN_PATH=$(cygpath -w -a "$cp_path")
