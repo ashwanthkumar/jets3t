@@ -20,6 +20,7 @@ package org.jets3t.service.model;
 
 import java.io.Serializable;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -73,8 +74,32 @@ public abstract class BaseS3Object implements Serializable {
      * @param value
      * the metadata item value.
      */
-    public void addMetadata(String name, Object value) {
+    public void addMetadata(String name, String value) {
     	this.metadata.put(name, value);
+    }
+
+    /**
+     * Adds a Date metadata item to the object.
+     *
+     * @param name
+     * the metadata item name.
+     * @param value
+     * the metadata item's date value.
+     */
+    public void addMetadata(String name, Date value) {
+        this.metadata.put(name, value);
+    }
+
+    /**
+     * Adds an S3Owner metadata item to the object.
+     *
+     * @param name
+     * the metadata item name.
+     * @param value
+     * the metadata item's owner value.
+     */
+    public void addMetadata(String name, S3Owner value) {
+        this.metadata.put(name, value);
     }
 
     /**

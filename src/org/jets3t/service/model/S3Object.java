@@ -646,18 +646,20 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * @param name
      * @param value
      */
-    public void addMetadata(String name, Object value) {
-        if ((METADATA_HEADER_LAST_MODIFIED_DATE.equals(name)
-             || METADATA_HEADER_DATE.equals(name))
-            && !(value instanceof Date))
+    public void addMetadata(String name, String value) {
+        if (METADATA_HEADER_LAST_MODIFIED_DATE.equals(name)
+            || METADATA_HEADER_DATE.equals(name))
         {
             try {
+                Date parsedDate = null;
                 // We shouldn't get ISO 8601 dates here but let's be paranoid...
         	    if (value.toString().indexOf("-") >= 0) {
-                    value = ServiceUtils.parseIso8601Date(value.toString());
+        	        parsedDate = ServiceUtils.parseIso8601Date(value);
         	    } else {
-                    value = ServiceUtils.parseRfc822Date(value.toString());
+        	        parsedDate = ServiceUtils.parseRfc822Date(value);
         	    }
+                super.addMetadata(name, parsedDate);
+                return;
             } catch (ParseException e) {
             	if (log.isErrorEnabled()) {
             		log.error("Unable to parse value we expect to be a valid date: "
@@ -678,7 +680,14 @@ public class S3Object extends BaseS3Object implements Cloneable {
         Iterator iter = metadata.entrySet().iterator();
         while (iter.hasNext()) {
         	Map.Entry entry = (Map.Entry) iter.next();
-        	addMetadata(entry.getKey().toString(), entry.getValue());
+        	Object value = entry.getValue();
+        	if (value instanceof String) {
+                addMetadata(entry.getKey().toString(), (String) value);
+        	} else if (value instanceof Date) {
+                addMetadata(entry.getKey().toString(), (Date) value);
+        	} else if (value instanceof S3Owner) {
+                addMetadata(entry.getKey().toString(), (S3Owner) value);
+        	}
         }
     }
 
