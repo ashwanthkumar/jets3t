@@ -38,7 +38,7 @@ public class UrlSigningExample {
     /*
      * Change the name of this bucket to a bucket of your own.
      */
-    private static final String myBucketName = "Test";
+    private static final String myBucketName = "test";
 
     public static void main(String[] args) throws Exception {
         // Initialise a SignedUrlHandler, which is an interface implemented by classes able to
@@ -64,6 +64,10 @@ public class UrlSigningExample {
         AWSCredentials awsCredentials = SamplesUtils.loadAWSCredentials();
         S3Service s3Service = new RestS3Service(awsCredentials);
 
+        // Create an unsigned HTTP GET URL -- useful only for publicly-accessible objects.
+        String unsignedGetUrl = s3Service.createUnsignedObjectUrl(
+            bucket.getName(), object.getKey(), false, false, false);
+
         // Create a signed HTTP PUT URL valid for 5 minutes.
         String putUrl = s3Service.createSignedPutUrl(bucket.getName(), object.getKey(),
             object.getMetadataMap(), expiryDate, false);
@@ -80,6 +84,7 @@ public class UrlSigningExample {
         String deleteUrl = s3Service.createSignedDeleteUrl(bucket.getName(), object.getKey(),
             expiryDate, false);
 
+        System.out.println("Unsigned URL: " + unsignedGetUrl);
         System.out.println("Signed PUT URL: " + putUrl);
         System.out.println("Signed GET URL: " + getUrl);
         System.out.println("Signed HEAD URL: " + headUrl);

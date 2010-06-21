@@ -386,6 +386,40 @@ public abstract class S3Service implements Serializable {
     }
 
     /**
+     * Returns the URL representing an object in S3 without a signature. This URL
+     * can only be used to download publicly-accessible objects.
+     *
+     * @param bucketName
+     * the name of the bucket that contains the object.
+     * @param objectKey
+     * the key name of the object.
+     * @param isVirtualHost
+     * if this parameter is true, the bucket name is treated as a virtual host name. To use
+     * this option, the bucket name must be a valid DNS name that is an alias to an S3 bucket.
+     * @param isHttps
+     * if true, the signed URL will use the HTTPS protocol. If false, the signed URL will
+     * use the HTTP protocol.
+     * @param isDnsBucketNamingDisabled
+     * if true, the signed URL will not use the DNS-name format for buckets eg.
+     * <tt>jets3t.s3.amazonaws.com</tt>. Unless you have a specific reason to disable
+     * DNS bucket naming, leave this value false.
+     *
+     * @return
+     * the object's URL.
+     * 
+     * @throws S3ServiceException
+     */
+    public String createUnsignedObjectUrl(String bucketName, String objectKey,
+        boolean isVirtualHost, boolean isHttps, boolean isDnsBucketNamingDisabled)
+        throws S3ServiceException
+    {
+        // Create a signed GET URL then strip away the signature query components.
+        String signedGETUrl = createSignedUrl("GET", bucketName, objectKey,
+            null, null, 0, isVirtualHost, isHttps, isDnsBucketNamingDisabled);
+        return signedGETUrl.split("\\?")[0];
+    }
+
+    /**
      * Generates a signed URL string that will grant access to an S3 resource (bucket or object)
      * to whoever uses the URL up until the time specified.
      *
