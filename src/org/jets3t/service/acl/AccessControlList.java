@@ -99,14 +99,31 @@ public class AccessControlList implements Serializable {
      * Adds a set of grantee/permission pairs to the ACL, where each item in the set is a
      * {@link GrantAndPermission} object.
      *
+     * @deprecated Version 0.7.4, use type-safe
+     * {@link #grantAllPermissions(GrantAndPermission[])} instead.
+     *
      * @param grants
-     *        a set of {@link GrantAndPermission} objects
+     * a set of {@link GrantAndPermission} objects
      */
     public void grantAllPermissions(Set grants) {
     	for (Iterator iter = grants.iterator(); iter.hasNext();) {
     		GrantAndPermission gap = (GrantAndPermission) iter.next();
     		grantPermission(gap.getGrantee(), gap.getPermission());
     	}
+    }
+
+    /**
+     * Adds a set of grantee/permission pairs to the ACL, where each item in the set is a
+     * {@link GrantAndPermission} object.
+     *
+     * @param grantAndPermissions
+     * the grant and permission combinations to add.
+     */
+    public void grantAllPermissions(GrantAndPermission[] grantAndPermissions) {
+        for (int i = 0; i < grantAndPermissions.length; i++) {
+            GrantAndPermission gap = grantAndPermissions[i];
+            grantPermission(gap.getGrantee(), gap.getPermission());
+        }
     }
 
     /**
@@ -127,11 +144,23 @@ public class AccessControlList implements Serializable {
     }
 
     /**
+     * @deprecated Version 0.7.4, use type-safe
+     * {@link #getGrantAndPermissions()} instead
+     *
      * @return
      * the set of {@link GrantAndPermission} objects in this ACL.
      */
     public Set getGrants() {
     	return grants;
+    }
+
+    /**
+     * @return
+     * the grant and permission collections in this ACL.
+     */
+    public GrantAndPermission[] getGrantAndPermissions() {
+        return (GrantAndPermission[]) grants.toArray(
+            new GrantAndPermission[grants.size()]);
     }
 
     /**
