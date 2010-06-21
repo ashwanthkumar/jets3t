@@ -552,7 +552,29 @@ public class S3ServiceMulti implements Serializable {
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property 
      * <tt>s3service.admin-max-thread-count</tt>.
+     *
+     * @param bucket
+     * the bucket containing the objects to be deleted
+     * @param objectKeys
+     * key names of objects to delete
      * 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
+     */
+    public boolean deleteObjects(final S3Bucket bucket, String[] objectKeys) {
+        S3Object objects[] = new S3Object[objectKeys.length];
+        for (int i = 0; i < objects.length; i++) {
+            objects[i] = new S3Object(objectKeys[i]);
+        }
+        return this.deleteObjects(bucket, objects);
+    }
+
+    /**
+     * Deletes multiple objects from a bucket, and sends {@link DeleteObjectsEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property
+     * <tt>s3service.admin-max-thread-count</tt>.
+     *
      * @param bucket
      * the bucket containing the objects to be deleted
      * @param objects
