@@ -603,7 +603,7 @@ public class CodeSamples {
         //////////////////////////////////////////////////////////////
 
         // Require multi-factor authentication to delete versions.
-        s3Service.enableBucketVersioningWithMFA(vBucketName);
+        s3Service.enableBucketVersioningAndMFA(vBucketName);
 
         // Check MFA status for the bucket
         versioningStatus = s3Service.getBucketVersioningStatus(vBucketName);
