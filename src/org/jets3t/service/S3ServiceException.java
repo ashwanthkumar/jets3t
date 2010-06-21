@@ -124,6 +124,13 @@ public class S3ServiceException extends Exception {
         this.s3ErrorMessage = findXmlElementText(xmlMessage, "Message");
         this.s3ErrorRequestId = findXmlElementText(xmlMessage, "RequestId");
         this.s3ErrorHostId = findXmlElementText(xmlMessage, "HostId");
+
+        // Add Details element present in some Google Storage error
+        // messages to Message field.
+        String errorDetails = findXmlElementText(xmlMessage, "Details");
+        if (errorDetails != null && errorDetails.length() > 0) {
+            this.s3ErrorMessage += " " + errorDetails;
+        }
     }
 
     /**
