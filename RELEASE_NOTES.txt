@@ -55,6 +55,11 @@ COCKPIT
 - Added support for HTTPS creating HTTPS-only CloudFront distributions.
 - Removed overly fussy string-length checks in credentials dialog.
 
+SYNCHRONIZE
+
+- Allow synchronization with third-party buckets that are not owned by
+  the user, provided the user has the necessary access to that bucket.
+
 KUDOS TO:
 
 - Alexey I. Froloff for Eucalyptus-friendly generated URLs patch.

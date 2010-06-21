@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  *
- * Copyright 2006 James Murty
+ * Copyright 2006-2010 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -883,12 +883,22 @@ public class Synchronize {
                 // Bucket does not exist in this user's account, try creating it.
                 try {
                     bucket = s3Service.createBucket(new S3Bucket(bucketName));
-                } catch (Exception e) {
-                    throw new SynchronizeException("Unable to create/connect to S3 bucket: " + bucketName, e);
+                } catch (S3ServiceException e) {
+                    // Bucket could not be created, someone else must own it.
+                    try {
+                        // Let's see if we can at least access the bucket...
+                        s3Service.listObjectsChunked(bucketName, null, null, 1, null, false);
+                        // ... if we get this far we're dealing with a third-party
+                        // bucket we can read. That's fine, let's proceed.
+                        bucket = new S3Bucket(bucketName);
+                    } catch (S3ServiceException e2) {
+                        // We can't create or access this bucket, time to give up.
+                        throw new SynchronizeException(
+                            "Unable to create or access S3 bucket: " + bucketName, e);
+                    }
                 }
             }
         }
-
 
         boolean storeEmptyDirectories = properties
             .getBoolProperty("uploads.storeEmptyDirectories", true);
