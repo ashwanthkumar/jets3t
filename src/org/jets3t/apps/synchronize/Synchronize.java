@@ -258,12 +258,9 @@ public class Synchronize {
     }
 
     /**
-     * Prints text to StdOut provided the isQuiet flag is not set.
+     * Prints text to StdOut provided the isQuiet and isNoProgress flags are not set.
      *
      * @param line the text to print
-     * @param isProgressMessage
-     * if true, the line is printed followed by a carriage return such
-     * that the next line output to the console will overwrite it.
      */
     private void printProgressLine(String line) {
         if (isQuiet || isNoProgress) {
@@ -539,7 +536,7 @@ public class Synchronize {
         }
 
         printOutputLine(
-            doAction ? "" : "[No Action] " +
+            (doAction ? "" : "[No Action] ") +
             "New files: " + mergedDiscrepancyResults.onlyOnClientKeys.size() +
             ", Updated: " + mergedDiscrepancyResults.updatedOnClientKeys.size() +
             (isKeepFiles?
@@ -776,6 +773,7 @@ public class Synchronize {
         }
 
         printOutputLine(
+            (doAction ? "" : "[No Action] ") +
             "New files: " + mergedDiscrepancyResults.onlyOnServerKeys.size() +
             ", Updated: " + mergedDiscrepancyResults.updatedOnServerKeys.size() +
             (isKeepFiles?
