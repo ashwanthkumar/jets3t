@@ -89,8 +89,17 @@ public class S3ObjectsChunk {
         return delimiter;
     }
 
+    /**
+     * A convenience method to check whether a listing of objects is complete
+     * (true) or there are more objects available (false). Just a synonym for
+     * <code>{@link #getPriorLastKey()} == null</code>.
+     *
+     * @return
+     * true if the listing is complete and there are no more unlisted
+     * objects in S3, false if follow-up requests will return more objects.
+     */
     public boolean isListingComplete() {
-        return (priorLastKey != null);
+        return (priorLastKey == null);
     }
 
 }
