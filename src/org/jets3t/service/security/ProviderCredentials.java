@@ -18,8 +18,6 @@
  */
 package org.jets3t.service.security;
 
-import java.io.Serializable;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -30,7 +28,7 @@ import org.apache.commons.logging.LogFactory;
  * @author Nikolas Coukouma
  * @author Claudio Cherubino
  */
-public abstract class ProviderCredentials implements Serializable {
+public abstract class ProviderCredentials {
     protected static final Log log = LogFactory.getLog(ProviderCredentials.class);
     
     protected static final String V2_KEYS_DELIMITER = "AWSKEYS";
@@ -116,4 +114,5 @@ public abstract class ProviderCredentials implements Serializable {
     protected String getDataToEncrypt() {
         return getAccessKey() + V3_KEYS_DELIMITER + getSecretKey();
     }
+
 }

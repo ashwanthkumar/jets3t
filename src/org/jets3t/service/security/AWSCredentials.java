@@ -2,7 +2,7 @@
  * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
  * This is a java.net project, see https://jets3t.dev.java.net/
  *
- * Copyright 2006 James Murty
+ * Copyright 2006-2010 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,8 +49,6 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author Nikolas Coukouma
  */
 public class AWSCredentials extends ProviderCredentials {
-    private static final long serialVersionUID = 4856782158657135551L;
-
     public static final int CREDENTIALS_STORAGE_VERSION = 3;
 
     protected static final String VERSION_PREFIX = "jets3t AWS Credentials, version: ";
