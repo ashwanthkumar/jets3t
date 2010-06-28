@@ -1,4 +1,16 @@
 -------------
+Version 0.8.0
+-------------
+
+TOOLKIT
+
+  * General
+
+- Removed antiquated and unsupported SOAP S3 service implementation
+  from toolkit.
+
+
+-------------
 Version 0.7.4
 -------------
 
