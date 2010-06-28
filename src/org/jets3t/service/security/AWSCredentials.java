@@ -27,7 +27,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.Serializable;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -37,8 +36,6 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.utils.ServiceUtils;
@@ -51,22 +48,14 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author James Murty
  * @author Nikolas Coukouma
  */
-public class AWSCredentials implements Serializable {
+public class AWSCredentials extends ProviderCredentials {
     private static final long serialVersionUID = 4856782158657135551L;
-
-    protected static final Log log = LogFactory.getLog(AWSCredentials.class);
 
     public static final int CREDENTIALS_STORAGE_VERSION = 3;
 
-    protected static final String V2_KEYS_DELIMITER = "AWSKEYS";
-    protected static final String V3_KEYS_DELIMITER = "\n";
     protected static final String VERSION_PREFIX = "jets3t AWS Credentials, version: ";
     protected static final String REGULAR_TYPE_NAME = "regular";
     protected static final String DEVPAY_TYPE_NAME = "devpay";
-
-    protected String awsAccessKey = null;
-    protected String awsSecretAccessKey = null;
-    protected String friendlyName = null;
 
     /**
      * Construct credentials.
@@ -74,11 +63,10 @@ public class AWSCredentials implements Serializable {
      * @param awsAccessKey
      * AWS access key for an Amazon S3 account.
      * @param awsSecretAccessKey
-     * AWS secret key for an Amazon S3 acount.
+     * AWS secret key for an Amazon S3 account.
      */
     public AWSCredentials(String awsAccessKey, String awsSecretAccessKey) {
-        this.awsAccessKey = awsAccessKey;
-        this.awsSecretAccessKey = awsSecretAccessKey;
+        super(awsAccessKey, awsSecretAccessKey);
     }
 
     /**
@@ -87,54 +75,12 @@ public class AWSCredentials implements Serializable {
      * @param awsAccessKey
      * AWS access key for an Amazon S3 account.
      * @param awsSecretAccessKey
-     * AWS secret key for an Amazon S3 acount.
+     * AWS secret key for an Amazon S3 account.
      * @param friendlyName
      * a name identifying the owner of the credentials, such as 'James'.
      */
     public AWSCredentials(String awsAccessKey, String awsSecretAccessKey, String friendlyName) {
-        this(awsAccessKey, awsSecretAccessKey);
-        this.friendlyName = friendlyName;
-    }
-
-    /**
-     * @return
-     * the AWS Access Key.
-     */
-    public String getAccessKey() {
-        return awsAccessKey;
-    }
-
-    /**
-     * @return
-     * the AWS Secret Key.
-     */
-    public String getSecretKey() {
-        return awsSecretAccessKey;
-    }
-
-    /**
-     * @return
-     * the friendly name associated with an AWS account, if available.
-     */
-    public String getFriendlyName() {
-        return friendlyName;
-    }
-
-    /**
-     * @return
-     * true if there is a non-null and non-empty friendly name associated
-     * with this account.
-     */
-    public boolean hasFriendlyName() {
-        return (friendlyName != null && friendlyName.trim().length() > 0);
-    }
-
-    /**
-     * @return
-     * a string summarizing these credentials
-     */
-    public String getLogString() {
-        return getAccessKey() + " : " + getSecretKey();
+        super(awsAccessKey, awsSecretAccessKey, friendlyName);
     }
 
     /**
@@ -143,14 +89,6 @@ public class AWSCredentials implements Serializable {
      */
     protected String getTypeName() {
         return REGULAR_TYPE_NAME;
-    }
-
-    /**
-     * @return
-     * the string of data that needs to be encrypted (for serialization)
-     */
-    protected String getDataToEncrypt() {
-        return getAccessKey() + V3_KEYS_DELIMITER + getSecretKey();
     }
 
     /**

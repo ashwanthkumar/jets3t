@@ -73,6 +73,7 @@ import org.jets3t.service.model.S3Owner;
 import org.jets3t.service.model.BaseVersionOrDeleteMarker;
 import org.jets3t.service.mx.MxDelegate;
 import org.jets3t.service.security.AWSCredentials;
+import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
@@ -108,20 +109,20 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
     /**
      * Constructs the service and initialises the properties.
      *
-     * @param awsCredentials
-     * the S3 user credentials to use when communicating with S3, may be null in which case the
+     * @param credentials
+     * the user credentials to use when communicating with S3, may be null in which case the
      * communication is done as an anonymous user.
      *
      * @throws S3ServiceException
      */
-    public RestS3Service(AWSCredentials awsCredentials) throws S3ServiceException {
-        this(awsCredentials, null, null);
+    public RestS3Service(ProviderCredentials credentials) throws S3ServiceException {
+        this(credentials, null, null);
     }
 
     /**
      * Constructs the service and initialises the properties.
      *
-     * @param awsCredentials
+     * @param credentials
      * the S3 user credentials to use when communicating with S3, may be null in which case the
      * communication is done as an anonymous user.
      * @param invokingApplicationDescription
@@ -134,10 +135,10 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      *
      * @throws S3ServiceException
      */
-    public RestS3Service(AWSCredentials awsCredentials, String invokingApplicationDescription,
+    public RestS3Service(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider) throws S3ServiceException
     {
-        this(awsCredentials, invokingApplicationDescription, credentialsProvider,
+        this(credentials, invokingApplicationDescription, credentialsProvider,
             Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME));
     }
 
@@ -159,11 +160,11 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      *
      * @throws S3ServiceException
      */
-    public RestS3Service(AWSCredentials awsCredentials, String invokingApplicationDescription,
+    public RestS3Service(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties)
         throws S3ServiceException
     {
-        this(awsCredentials, invokingApplicationDescription, credentialsProvider,
+        this(credentials, invokingApplicationDescription, credentialsProvider,
             jets3tProperties, new HostConfiguration());
     }
 
@@ -187,11 +188,11 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      *
      * @throws S3ServiceException
      */
-    public RestS3Service(AWSCredentials awsCredentials, String invokingApplicationDescription,
+    public RestS3Service(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties,
         HostConfiguration hostConfig) throws S3ServiceException
     {
-        super(awsCredentials, invokingApplicationDescription, jets3tProperties);
+        super(credentials, invokingApplicationDescription, jets3tProperties);
         this.credentialsProvider = credentialsProvider;
 
         HttpClientAndConnectionManager initHttpResult = initHttpConnection(hostConfig);
@@ -623,8 +624,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         String fullUrl = httpMethod.getPath();
 
         // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
-        String s3Endpoint = this.jets3tProperties.getStringProperty(
-            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);        
+        String s3Endpoint = this.getEndpoint();      
         if (!s3Endpoint.equals(hostname)) {
             int subdomainOffset = hostname.lastIndexOf("." + s3Endpoint);
             if (subdomainOffset > 0) {
@@ -1042,8 +1042,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
 
         boolean disableDnsBuckets = jets3tProperties
             .getBoolProperty("s3service.disable-dns-buckets", false);
-        String s3Endpoint = this.jets3tProperties.getStringProperty(
-            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);        
+        String s3Endpoint = this.getEndpoint();      
         String hostname = ServiceUtils.generateS3HostnameForBucket(bucketName, disableDnsBuckets, s3Endpoint);
 
         // Allow for non-standard virtual directory paths on the server-side
@@ -2145,7 +2144,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      *
      * @param signedPutUrl
      * a signed PUT URL generated with
-     * {@link S3Service#createSignedPutUrl(String, String, Map, AWSCredentials, Date)}.
+     * {@link S3Service#createSignedPutUrl(String, String, Map, ProviderCredentials, Date)}.
      * @param object
      * the object to upload, which must correspond to the object for which the URL was signed.
      * The object <b>must</b> have the correct content length set, and to apply a non-standard
@@ -2256,7 +2255,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      *
      * @param signedGetUrl
      * a signed GET URL generated with
-     * {@link S3Service#createSignedGetUrl(String, String, AWSCredentials, Date)}.
+     * {@link S3Service#createSignedGetUrl(String, String, ProviderCredentials, Date)}.
      *
      * @return
      * the S3Object in S3 including all metadata and the object's data input stream.
@@ -2276,7 +2275,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      *
      * @param signedHeadUrl
      * a signed HEAD URL generated with
-     * {@link S3Service#createSignedHeadUrl(String, String, AWSCredentials, Date)}.
+     * {@link S3Service#createSignedHeadUrl(String, String, ProviderCredentials, Date)}.
      *
      * @return
      * the S3Object in S3 including all metadata, but without the object's data input stream.
@@ -2292,7 +2291,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      * This method is an implementation of the interface {@link SignedUrlHandler}.
      *
      * @param signedAclUrl
-     * a signed URL generated with {@link S3Service#createSignedUrl(String, String, String, String, Map, AWSCredentials, long, boolean)}.
+     * a signed URL generated with {@link S3Service#createSignedUrl(String, String, String, String, Map, ProviderCredentials, long, boolean)}.
      *
      * @return
      * the AccessControlList settings of the object in S3.
@@ -2318,7 +2317,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      * This method is an implementation of the interface {@link SignedUrlHandler}.
      *
      * @param signedAclUrl
-     * a signed URL generated with {@link S3Service#createSignedUrl(String, String, String, String, Map, AWSCredentials, long, boolean)}.
+     * a signed URL generated with {@link S3Service#createSignedUrl(String, String, String, String, Map, ProviderCredentials, long, boolean)}.
      * @param acl
      * the ACL settings to apply to the object represented by the signed URL.
      *

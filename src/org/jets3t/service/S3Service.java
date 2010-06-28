@@ -47,6 +47,7 @@ import org.jets3t.service.model.S3Version;
 import org.jets3t.service.mx.MxDelegate;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.AWSDevPayCredentials;
+import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 
@@ -89,7 +90,7 @@ public abstract class S3Service implements Serializable {
 
     protected Jets3tProperties jets3tProperties = null;
 
-    private AWSCredentials awsCredentials = null;
+    private ProviderCredentials credentials = null;
 
     private String awsDevPayUserToken = null;
     private String awsDevPayProductToken = null;
@@ -116,7 +117,7 @@ public abstract class S3Service implements Serializable {
     /**
      * Construct an <code>S3Service</code> identified by the given user credentials.
      *
-     * @param awsCredentials
+     * @param credentials
      * the S3 user credentials to use when communicating with S3, may be null in which case the
      * communication is done as an anonymous user.
      * @param invokingApplicationDescription
@@ -127,18 +128,18 @@ public abstract class S3Service implements Serializable {
      * JetS3t properties that will be applied within this service.
      * @throws S3ServiceException
      */
-    protected S3Service(AWSCredentials awsCredentials, String invokingApplicationDescription,
+    protected S3Service(ProviderCredentials credentials, String invokingApplicationDescription,
         Jets3tProperties jets3tProperties) throws S3ServiceException
     {
-        this.awsCredentials = awsCredentials;
+        this.credentials = credentials;
         this.invokingApplicationDescription = invokingApplicationDescription;
 
         this.jets3tProperties = jets3tProperties;
         this.isHttpsOnly = jets3tProperties.getBoolProperty("s3service.https-only", true);
         this.internalErrorRetryMax = jets3tProperties.getIntProperty("s3service.internal-error-retry-max", 5);
 
-        if (awsCredentials instanceof AWSDevPayCredentials) {
-            AWSDevPayCredentials awsDevPayCredentials = (AWSDevPayCredentials) awsCredentials;
+        if (credentials instanceof AWSDevPayCredentials) {
+            AWSDevPayCredentials awsDevPayCredentials = (AWSDevPayCredentials) credentials;
             this.awsDevPayUserToken = awsDevPayCredentials.getUserToken();
             this.awsDevPayProductToken = awsDevPayCredentials.getProductToken();
         } else {
@@ -161,7 +162,7 @@ public abstract class S3Service implements Serializable {
     /**
      * Construct an <code>S3Service</code> identified by the given user credentials.
      *
-     * @param awsCredentials
+     * @param credentials
      * the S3 user credentials to use when communicating with S3, may be null in which case the
      * communication is done as an anonymous user.
      * @param invokingApplicationDescription
@@ -170,23 +171,23 @@ public abstract class S3Service implements Serializable {
      * version number, for example: <code>Cockpit/0.7.3</code> or <code>My App Name/1.0</code>
      * @throws S3ServiceException
      */
-    protected S3Service(AWSCredentials awsCredentials, String invokingApplicationDescription)
+    protected S3Service(ProviderCredentials credentials, String invokingApplicationDescription)
         throws S3ServiceException
     {
-        this(awsCredentials, invokingApplicationDescription,
+        this(credentials, invokingApplicationDescription,
             Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME));
     }
 
     /**
      * Construct an <code>S3Service</code> identified by the given user credentials.
      *
-     * @param awsCredentials
+     * @param credentials
      * the S3 user credentials to use when communicating with S3, may be null in which case the
      * communication is done as an anonymous user.
      * @throws S3ServiceException
      */
-    protected S3Service(AWSCredentials awsCredentials) throws S3ServiceException {
-        this(awsCredentials, null);
+    protected S3Service(ProviderCredentials credentials) throws S3ServiceException {
+        this(credentials, null);
     }
 
     /**
@@ -291,11 +292,11 @@ public abstract class S3Service implements Serializable {
 
     /**
      * @return
-     * true if this service has <code>AWSCredentials</code> identifying an S3 user, false
+     * true if this service has <code>ProviderCredentials</code> identifying an S3 user, false
      * if the service is acting as an anonymous user.
      */
     public boolean isAuthenticatedConnection() {
-        return awsCredentials != null;
+        return credentials != null;
     }
 
     /**
@@ -373,8 +374,8 @@ public abstract class S3Service implements Serializable {
      * @return the AWS Credentials identifying the S3 user, may be null if the service is acting
      * anonymously.
      */
-    public AWSCredentials getAWSCredentials() {
-        return awsCredentials;
+    public ProviderCredentials getAWSCredentials() {
+        return credentials;
     }
 
     /**
@@ -461,8 +462,8 @@ public abstract class S3Service implements Serializable {
         boolean isVirtualHost, boolean isHttps, boolean isDnsBucketNamingDisabled)
         throws S3ServiceException
     {
-        String s3Endpoint = this.jets3tProperties.getStringProperty(
-            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
+        String s3Endpoint = this.getEndpoint();
+        System.out.println(s3Endpoint);
         String uriPath = "";
 
         String hostname = (isVirtualHost
@@ -497,8 +498,8 @@ public abstract class S3Service implements Serializable {
         }
 
         // Include any DevPay tokens in signed request
-        if (awsCredentials instanceof AWSDevPayCredentials) {
-            AWSDevPayCredentials devPayCredentials = (AWSDevPayCredentials) awsCredentials;
+        if (credentials instanceof AWSDevPayCredentials) {
+            AWSDevPayCredentials devPayCredentials = (AWSDevPayCredentials) credentials;
             if (devPayCredentials.getProductToken() != null) {
                 String securityToken = devPayCredentials.getUserToken()
                     + "," + devPayCredentials.getProductToken();
@@ -511,7 +512,7 @@ public abstract class S3Service implements Serializable {
                 RestUtils.encodeUrlString((String) headersMap.get(Constants.AMZ_SECURITY_TOKEN)) + "&";
         }
 
-        uriPath += "AWSAccessKeyId=" + awsCredentials.getAccessKey();
+        uriPath += "AWSAccessKeyId=" + credentials.getAccessKey();
         uriPath += "&Expires=" + secondsSinceEpoch;
 
         // Include Requester Pays header flag, if the flag is included as a request parameter.
@@ -536,7 +537,7 @@ public abstract class S3Service implements Serializable {
             log.debug("Signing canonical string:\n" + canonicalString);
         }
 
-        String signedCanonical = ServiceUtils.signWithHmacSha1(awsCredentials.getSecretKey(),
+        String signedCanonical = ServiceUtils.signWithHmacSha1(credentials.getSecretKey(),
             canonicalString);
         String encodedCanonical = RestUtils.encodeUrlString(signedCanonical);
         uriPath += "&Signature=" + encodedCanonical;
@@ -552,6 +553,11 @@ public abstract class S3Service implements Serializable {
             + serviceEndpointVirtualPath
             + "/" + uriPath;
         }
+    }
+    
+    protected String getEndpoint() {
+    	return this.jets3tProperties.getStringProperty(
+                "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
     }
 
     /**
@@ -851,7 +857,7 @@ public abstract class S3Service implements Serializable {
      * headers to add to the signed URL, may be null.
      * Headers that <b>must</b> match between the signed URL and the actual request include:
      * content-md5, content-type, and any header starting with 'x-amz-'.
-     * @param awsCredentials
+     * @param credentials
      * the credentials of someone with sufficient privileges to grant access to the bucket/object
      * @param secondsSinceEpoch
      * the time after which URL's signature will no longer be valid. This time cannot be null.
@@ -873,11 +879,11 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public static String createSignedUrl(String method, String bucketName, String objectKey,
-        String specialParamName, Map headersMap, AWSCredentials awsCredentials,
+        String specialParamName, Map headersMap, ProviderCredentials credentials,
         long secondsSinceEpoch, boolean isVirtualHost, boolean isHttps,
         boolean isDnsBucketNamingDisabled) throws S3ServiceException
     {
-        S3Service s3Service = new RestS3Service(awsCredentials);
+        S3Service s3Service = new RestS3Service(credentials);
         return s3Service.createSignedUrl(method, bucketName, objectKey,
             specialParamName, headersMap, secondsSinceEpoch,
             isVirtualHost, isHttps, isDnsBucketNamingDisabled);
@@ -906,7 +912,7 @@ public abstract class S3Service implements Serializable {
      * headers to add to the signed URL, may be null.
      * Headers that <b>must</b> match between the signed URL and the actual request include:
      * content-md5, content-type, and any header starting with 'x-amz-'.
-     * @param awsCredentials
+     * @param credentials
      * the credentials of someone with sufficient privileges to grant access to the bucket/object
      * @param secondsSinceEpoch
      * the time after which URL's signature will no longer be valid. This time cannot be null.
@@ -921,7 +927,7 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public static String createSignedUrl(String method, String bucketName, String objectKey,
-        String specialParamName, Map headersMap, AWSCredentials awsCredentials,
+        String specialParamName, Map headersMap, ProviderCredentials credentials,
         long secondsSinceEpoch, boolean isVirtualHost) throws S3ServiceException
     {
         Jets3tProperties jets3tProperties =
@@ -932,7 +938,7 @@ public abstract class S3Service implements Serializable {
             .getBoolProperty("s3service.disable-dns-buckets", false);
 
         return createSignedUrl(method, bucketName, objectKey, specialParamName,
-            headersMap, awsCredentials, secondsSinceEpoch, isVirtualHost, isHttps,
+            headersMap, credentials, secondsSinceEpoch, isVirtualHost, isHttps,
             disableDnsBuckets);
     }
 
@@ -956,7 +962,7 @@ public abstract class S3Service implements Serializable {
      * headers to add to the signed URL, may be null.
      * Headers that <b>must</b> match between the signed URL and the actual request include:
      * content-md5, content-type, and any header starting with 'x-amz-'.
-     * @param awsCredentials
+     * @param credentials
      * the credentials of someone with sufficient privileges to grant access to the bucket/object
      * @param secondsSinceEpoch
      * the time after which URL's signature will no longer be valid. This time cannot be null.
@@ -968,11 +974,11 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public static String createSignedUrl(String method, String bucketName, String objectKey,
-        String specialParamName, Map headersMap, AWSCredentials awsCredentials, long secondsSinceEpoch)
+        String specialParamName, Map headersMap, ProviderCredentials credentials, long secondsSinceEpoch)
         throws S3ServiceException
     {
         return createSignedUrl(method, bucketName, objectKey, specialParamName, headersMap,
-            awsCredentials, secondsSinceEpoch, false);
+            credentials, secondsSinceEpoch, false);
     }
 
 
@@ -985,7 +991,7 @@ public abstract class S3Service implements Serializable {
      * the name of the bucket to include in the URL, must be a valid bucket name.
      * @param objectKey
      * the name of the object to include in the URL, if null only the bucket name is used.
-     * @param awsCredentials
+     * @param credentials
      * the credentials of someone with sufficient privileges to grant access to the bucket/object
      * @param expiryTime
      * the time after which URL's signature will no longer be valid. This time cannot be null.
@@ -998,12 +1004,12 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public static String createSignedGetUrl(String bucketName, String objectKey,
-        AWSCredentials awsCredentials, Date expiryTime, boolean isVirtualHost)
+        ProviderCredentials credentials, Date expiryTime, boolean isVirtualHost)
         throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("GET", bucketName, objectKey, null, null,
-            awsCredentials, secondsSinceEpoch, isVirtualHost);
+            credentials, secondsSinceEpoch, isVirtualHost);
     }
 
 
@@ -1016,7 +1022,7 @@ public abstract class S3Service implements Serializable {
      * the name of the bucket to include in the URL, must be a valid bucket name.
      * @param objectKey
      * the name of the object to include in the URL, if null only the bucket name is used.
-     * @param awsCredentials
+     * @param credentials
      * the credentials of someone with sufficient privileges to grant access to the bucket/object
      * @param expiryTime
      * the time after which URL's signature will no longer be valid. This time cannot be null.
@@ -1026,10 +1032,10 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public static String createSignedGetUrl(String bucketName, String objectKey,
-        AWSCredentials awsCredentials, Date expiryTime)
+        ProviderCredentials credentials, Date expiryTime)
         throws S3ServiceException
     {
-        return createSignedGetUrl(bucketName, objectKey, awsCredentials, expiryTime, false);
+        return createSignedGetUrl(bucketName, objectKey, credentials, expiryTime, false);
     }
 
 
@@ -1046,7 +1052,7 @@ public abstract class S3Service implements Serializable {
      * headers to add to the signed URL, may be null.
      * Headers that <b>must</b> match between the signed URL and the actual request include:
      * content-md5, content-type, and any header starting with 'x-amz-'.
-     * @param awsCredentials
+     * @param credentials
      * the credentials of someone with sufficient privileges to grant access to the bucket/object
      * @param expiryTime
      * the time after which URL's signature will no longer be valid. This time cannot be null.
@@ -1059,12 +1065,12 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public static String createSignedPutUrl(String bucketName, String objectKey,
-        Map headersMap, AWSCredentials awsCredentials, Date expiryTime, boolean isVirtualHost)
+        Map headersMap, ProviderCredentials credentials, Date expiryTime, boolean isVirtualHost)
         throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("PUT", bucketName, objectKey, null, headersMap,
-            awsCredentials, secondsSinceEpoch, isVirtualHost);
+            credentials, secondsSinceEpoch, isVirtualHost);
     }
 
 
@@ -1081,7 +1087,7 @@ public abstract class S3Service implements Serializable {
      * headers to add to the signed URL, may be null.
      * Headers that <b>must</b> match between the signed URL and the actual request include:
      * content-md5, content-type, and any header starting with 'x-amz-'.
-     * @param awsCredentials
+     * @param credentials
      * the credentials of someone with sufficient privileges to grant access to the bucket/object
      * @param expiryTime
      * the time after which URL's signature will no longer be valid. This time cannot be null.
@@ -1091,10 +1097,10 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public static String createSignedPutUrl(String bucketName, String objectKey,
-        Map headersMap, AWSCredentials awsCredentials, Date expiryTime)
+        Map headersMap, ProviderCredentials credentials, Date expiryTime)
         throws S3ServiceException
     {
-        return createSignedPutUrl(bucketName, objectKey, headersMap, awsCredentials, expiryTime, false);
+        return createSignedPutUrl(bucketName, objectKey, headersMap, credentials, expiryTime, false);
     }
 
 
@@ -1107,7 +1113,7 @@ public abstract class S3Service implements Serializable {
      * the name of the bucket to include in the URL, must be a valid bucket name.
      * @param objectKey
      * the name of the object to include in the URL, if null only the bucket name is used.
-     * @param awsCredentials
+     * @param credentials
      * the credentials of someone with sufficient privileges to grant access to the bucket/object
      * @param expiryTime
      * the time after which URL's signature will no longer be valid. This time cannot be null.
@@ -1120,12 +1126,12 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public static String createSignedDeleteUrl(String bucketName, String objectKey,
-        AWSCredentials awsCredentials, Date expiryTime, boolean isVirtualHost)
+        ProviderCredentials credentials, Date expiryTime, boolean isVirtualHost)
         throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("DELETE", bucketName, objectKey, null, null,
-            awsCredentials, secondsSinceEpoch, isVirtualHost);
+            credentials, secondsSinceEpoch, isVirtualHost);
     }
 
 
@@ -1138,7 +1144,7 @@ public abstract class S3Service implements Serializable {
      * the name of the bucket to include in the URL, must be a valid bucket name.
      * @param objectKey
      * the name of the object to include in the URL, if null only the bucket name is used.
-     * @param awsCredentials
+     * @param credentials
      * the credentials of someone with sufficient privileges to grant access to the bucket/object
      * @param expiryTime
      * the time after which URL's signature will no longer be valid. This time cannot be null.
@@ -1148,10 +1154,10 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public static String createSignedDeleteUrl(String bucketName, String objectKey,
-        AWSCredentials awsCredentials, Date expiryTime)
+        ProviderCredentials credentials, Date expiryTime)
         throws S3ServiceException
     {
-        return createSignedDeleteUrl(bucketName, objectKey, awsCredentials, expiryTime, false);
+        return createSignedDeleteUrl(bucketName, objectKey, credentials, expiryTime, false);
     }
 
 
@@ -1164,7 +1170,7 @@ public abstract class S3Service implements Serializable {
      * the name of the bucket to include in the URL, must be a valid bucket name.
      * @param objectKey
      * the name of the object to include in the URL, if null only the bucket name is used.
-     * @param awsCredentials
+     * @param credentials
      * the credentials of someone with sufficient privileges to grant access to the bucket/object
      * @param expiryTime
      * the time after which URL's signature will no longer be valid. This time cannot be null.
@@ -1177,12 +1183,12 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public static String createSignedHeadUrl(String bucketName, String objectKey,
-        AWSCredentials awsCredentials, Date expiryTime, boolean isVirtualHost)
+        ProviderCredentials credentials, Date expiryTime, boolean isVirtualHost)
         throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("HEAD", bucketName, objectKey, null, null,
-            awsCredentials, secondsSinceEpoch, isVirtualHost);
+            credentials, secondsSinceEpoch, isVirtualHost);
     }
 
 
@@ -1195,7 +1201,7 @@ public abstract class S3Service implements Serializable {
      * the name of the bucket to include in the URL, must be a valid bucket name.
      * @param objectKey
      * the name of the object to include in the URL, if null only the bucket name is used.
-     * @param awsCredentials
+     * @param credentials
      * the credentials of someone with sufficient privileges to grant access to the bucket/object
      * @param expiryTime
      * the time after which URL's signature will no longer be valid. This time cannot be null.
@@ -1205,10 +1211,10 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public static String createSignedHeadUrl(String bucketName, String objectKey,
-        AWSCredentials awsCredentials, Date expiryTime)
+        ProviderCredentials credentials, Date expiryTime)
         throws S3ServiceException
     {
-        return createSignedHeadUrl(bucketName, objectKey, awsCredentials, expiryTime, false);
+        return createSignedHeadUrl(bucketName, objectKey, credentials, expiryTime, false);
     }
 
     /**
@@ -1415,9 +1421,9 @@ public abstract class S3Service implements Serializable {
      * the key name for the object that will store the data. The key name can
      * include the special variable <tt>${filename}</tt> which expands to the
      * name of the file the user uploaded in the form.
-     * @param awsCredentials
-     * your AWS credentials. Credentials are only required if the form includes
-     * policy document conditions, otherwise this can be null.
+     * @param credentials
+     * your Storage Provideer credentials. Credentials are only required if the form 
+     * includes policy document conditions, otherwise this can be null.
      * @param expiration
      * the expiration date beyond which the form will cease to work. If this
      * parameter is null, the generated form will not include a policy document
@@ -1450,11 +1456,11 @@ public abstract class S3Service implements Serializable {
      * @throws UnsupportedEncodingException
      */
     public static String buildPostForm(String bucketName, String key,
-        AWSCredentials awsCredentials, Date expiration, String[] conditions,
+        ProviderCredentials credentials, Date expiration, String[] conditions,
         String[] inputFields, String textInput, boolean isSecureHttp)
         throws S3ServiceException, UnsupportedEncodingException
     {
-        return buildPostForm(bucketName, key, awsCredentials, expiration,
+        return buildPostForm(bucketName, key, credentials, expiration,
         		conditions, inputFields, textInput, isSecureHttp,
         		false, "Upload to Amazon S3");
     }
@@ -1479,9 +1485,9 @@ public abstract class S3Service implements Serializable {
      * the key name for the object that will store the data. The key name can
      * include the special variable <tt>${filename}</tt> which expands to the
      * name of the file the user uploaded in the form.
-     * @param awsCredentials
-     * your AWS credentials. Credentials are only required if the form includes
-     * policy document conditions, otherwise this can be null.
+     * @param credentials
+     * your Storage Provider credentials. Credentials are only required if the form 
+     * includes policy document conditions, otherwise this can be null.
      * @param expiration
      * the expiration date beyond which the form will cease to work. If this
      * parameter is null, the generated form will not include a policy document
@@ -1524,7 +1530,7 @@ public abstract class S3Service implements Serializable {
      * @throws UnsupportedEncodingException
      */
     public static String buildPostForm(String bucketName, String key,
-        AWSCredentials awsCredentials, Date expiration, String[] conditions,
+        ProviderCredentials credentials, Date expiration, String[] conditions,
         String[] inputFields, String textInput, boolean isSecureHttp,
         boolean usePathStyleUrl, String submitButtonName)
         throws S3ServiceException, UnsupportedEncodingException
@@ -1549,11 +1555,11 @@ public abstract class S3Service implements Serializable {
 
             // Add the AWS access key as the 'AWSAccessKeyId' field
             myInputFields.add("<input type=\"hidden\" name=\"AWSAccessKeyId\" " +
-                "value=\"" + awsCredentials.getAccessKey() + "\">");
+                "value=\"" + credentials.getAccessKey() + "\">");
 
             // Add signature for encoded policy document as the 'AWSAccessKeyId' field
             String signature = ServiceUtils.signWithHmacSha1(
-                awsCredentials.getSecretKey(), policyB64);
+                credentials.getSecretKey(), policyB64);
             myInputFields.add("<input type=\"hidden\" name=\"signature\" " +
                 "value=\"" + signature + "\">");
         }
@@ -1606,7 +1612,7 @@ public abstract class S3Service implements Serializable {
 
     /**
      * Throws an exception if this service is anonymous (that is, it was created without
-     * an <code>AWSCredentials</code> object representing an S3 user account.
+     * an <code>ProviderCredentials</code> object representing an S3 user account.
      * @param action
      * the action being attempted which this assertion is applied, for debugging purposes.
      * @throws S3ServiceException

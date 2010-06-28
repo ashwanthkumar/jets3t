@@ -44,11 +44,11 @@ public class AWSDevPayCredentials extends AWSCredentials {
      * @param awsAccessKey
      * AWS access key for an Amazon S3 account.
      * @param awsSecretAccessKey
-     * AWS secret key for an Amazon S3 acount.
+     * AWS secret key for an Amazon S3 account.
      * @param awsUserToken
-     * DevPay user token for an Amazon S3 acount.
+     * DevPay user token for an Amazon S3 account.
      * @param awsProductToken
-     * DevPay product token for an Amazon S3 acount.
+     * DevPay product token for an Amazon S3 account.
      */
     public AWSDevPayCredentials(String awsAccessKey, String awsSecretAccessKey, String awsUserToken, String awsProductToken) {
         super(awsAccessKey, awsSecretAccessKey);
@@ -62,11 +62,11 @@ public class AWSDevPayCredentials extends AWSCredentials {
      * @param awsAccessKey
      * AWS access key for an Amazon S3 account.
      * @param awsSecretAccessKey
-     * AWS secret key for an Amazon S3 acount.
+     * AWS secret key for an Amazon S3 account.
      * @param awsUserToken
-     * DevPay user token for an Amazon S3 acount.
+     * DevPay user token for an Amazon S3 account.
      * @param awsProductToken
-     * DevPay product token for an Amazon S3 acount.
+     * DevPay product token for an Amazon S3 account.
      * @param friendlyName
      * a name identifying the owner of the credentials, such as 'James'.
      */

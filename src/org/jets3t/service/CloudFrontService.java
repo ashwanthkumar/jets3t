@@ -57,6 +57,7 @@ import org.jets3t.service.model.cloudfront.StreamingDistribution;
 import org.jets3t.service.model.cloudfront.StreamingDistributionConfig;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.EncryptionUtil;
+import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 
@@ -86,7 +87,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     private HttpClient httpClient = null;
     private CredentialsProvider credentialsProvider = null;
 
-    private AWSCredentials awsCredentials = null;
+    private ProviderCredentials credentials = null;
     protected Jets3tProperties jets3tProperties = null;
     private String invokingApplicationDescription = null;
     protected int internalErrorRetryMax = 5;
@@ -106,8 +107,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     /**
      * Constructs the service and initialises its properties.
      *
-     * @param awsCredentials
-     * the AWS user credentials to use when communicating with CloudFront
+     * @param credentials
+     * the Storage Provider user credentials to use when communicating with CloudFront
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
@@ -124,11 +125,11 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      *
      * @throws CloudFrontServiceException
      */
-    public CloudFrontService(AWSCredentials awsCredentials, String invokingApplicationDescription,
+    public CloudFrontService(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties,
         HostConfiguration hostConfig) throws CloudFrontServiceException
     {
-        this.awsCredentials = awsCredentials;
+        this.credentials = credentials;
         this.invokingApplicationDescription = invokingApplicationDescription;
         this.credentialsProvider = credentialsProvider;
         if (jets3tProperties == null) {
@@ -175,21 +176,21 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     /**
      * Constructs the service with default properties.
      *
-     * @param awsCredentials
-     * the AWS user credentials to use when communicating with CloudFront
+     * @param credentials
+     * the Storage Provider user credentials to use when communicating with CloudFront
      *
      * @throws CloudFrontServiceException
      */
-    public CloudFrontService(AWSCredentials awsCredentials) throws CloudFrontServiceException
+    public CloudFrontService(ProviderCredentials credentials) throws CloudFrontServiceException
     {
-        this(awsCredentials, null, null, null, null);
+        this(credentials, null, null, null, null);
     }
 
     /**
-     * @return the AWS Credentials identifying the AWS user.
+     * @return the Storage Provider Credentials identifying the AWS user.
      */
-    public AWSCredentials getAWSCredentials() {
-        return awsCredentials;
+    public ProviderCredentials getAWSCredentials() {
+        return credentials;
     }
 
     /**

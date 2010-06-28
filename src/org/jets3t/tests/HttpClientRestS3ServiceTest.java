@@ -29,6 +29,7 @@ import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
+import org.jets3t.service.security.ProviderCredentials;
 
 /**
  * Test cases specific to the HttpClient REST/HTTP S3Service implementation {@link RestS3Service}.
@@ -41,15 +42,15 @@ public class HttpClientRestS3ServiceTest extends BaseS3ServiceTest {
         super();
     }
 
-    protected S3Service getS3Service(AWSCredentials awsCredentials) throws S3ServiceException {
-        return new RestS3Service(awsCredentials);
+    protected S3Service getS3Service(ProviderCredentials credentials) throws S3ServiceException {
+        return new RestS3Service(credentials);
     }
 
     public void testRestCannedACL() throws Exception {
-        S3Service s3Service = getS3Service(awsCredentials);
+        S3Service s3Service = getS3Service(credentials);
 
         // Create test bucket.
-        String bucketName = awsCredentials.getAccessKey() + ".jets3t_TestCases";
+        String bucketName = credentials.getAccessKey() + ".jets3t_TestCases";
         S3Bucket bucket = s3Service.createBucket(bucketName);
 
         // Try to create REST canned public object.

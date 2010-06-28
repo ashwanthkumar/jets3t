@@ -50,6 +50,7 @@ import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Version;
 import org.jets3t.service.security.AWSCredentials;
+import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.utils.signedurl.SignedUrlAndObject;
 import org.jets3t.service.utils.signedurl.SignedUrlHandler;
@@ -259,7 +260,7 @@ public class S3ServiceMulti implements Serializable {
      * @return
      * the AWS credentials in the underlying S3Service.
      */
-    public AWSCredentials getAWSCredentials() {
+    public ProviderCredentials getAWSCredentials() {
         return s3Service.getAWSCredentials();
     }
     

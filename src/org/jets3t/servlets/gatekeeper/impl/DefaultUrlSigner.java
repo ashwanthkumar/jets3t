@@ -29,6 +29,7 @@ import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.security.AWSCredentials;
+import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
 import org.jets3t.service.utils.gatekeeper.SignatureRequest;
 import org.jets3t.servlets.gatekeeper.ClientInformation;
@@ -45,7 +46,7 @@ import org.jets3t.servlets.gatekeeper.UrlSigner;
  * @author James Murty
  */
 public class DefaultUrlSigner extends UrlSigner {
-    protected AWSCredentials awsCredentials = null;
+    protected ProviderCredentials credentials = null;
     protected S3Service s3Service = null;
     protected String s3BucketName = null;
     protected int secondsUntilExpiry = 0;
@@ -93,9 +94,9 @@ public class DefaultUrlSigner extends UrlSigner {
             throw new ServletException(errorMessage);
         }
 
-        this.awsCredentials = new AWSCredentials(awsAccessKey, awsSecretKey);
+        this.credentials = new AWSCredentials(awsAccessKey, awsSecretKey);
         try {
-            this.s3Service = new RestS3Service(awsCredentials);
+            this.s3Service = new RestS3Service(credentials);
         } catch (S3ServiceException e) {
             throw new ServletException("Unable to initialize S3Service", e);
         }

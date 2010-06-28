@@ -80,6 +80,7 @@ import org.jets3t.service.model.S3BucketVersioningStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Owner;
 import org.jets3t.service.security.AWSCredentials;
+import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.ServiceUtils;
 
@@ -114,7 +115,7 @@ public class SoapS3Service extends S3Service {
      * Constructs the SOAP service implementation and, based on the value of {@link S3Service#isHttpsOnly}
      * sets the SOAP endpoint to use HTTP or HTTPS protocols.
      *
-     * @param awsCredentials
+     * @param credentials
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
@@ -124,10 +125,10 @@ public class SoapS3Service extends S3Service {
      *
      * @throws S3ServiceException
      */
-    public SoapS3Service(AWSCredentials awsCredentials, String invokingApplicationDescription,
+    public SoapS3Service(ProviderCredentials credentials, String invokingApplicationDescription,
         Jets3tProperties jets3tProperties) throws S3ServiceException
     {
-        super(awsCredentials, invokingApplicationDescription, jets3tProperties);
+        super(credentials, invokingApplicationDescription, jets3tProperties);
 
         String s3Endpoint = this.jets3tProperties.getStringProperty(
             "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
@@ -153,17 +154,17 @@ public class SoapS3Service extends S3Service {
      * Constructs the SOAP service implementation and, based on the value of {@link S3Service#isHttpsOnly}
      * sets the SOAP endpoint to use HTTP or HTTPS protocols.
      *
-     * @param awsCredentials
+     * @param credentials
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
      * version number, for example: <code>Cockpit/0.7.3</code> or <code>My App Name/1.0</code>
      * @throws S3ServiceException
      */
-    public SoapS3Service(AWSCredentials awsCredentials, String invokingApplicationDescription)
+    public SoapS3Service(ProviderCredentials credentials, String invokingApplicationDescription)
         throws S3ServiceException
     {
-        this(awsCredentials, invokingApplicationDescription,
+        this(credentials, invokingApplicationDescription,
             Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME));
     }
 
@@ -171,11 +172,11 @@ public class SoapS3Service extends S3Service {
      * Constructs the SOAP service implementation and, based on the value of {@link S3Service#isHttpsOnly}
      * sets the SOAP endpoint to use HTTP or HTTPS protocols.
      *
-     * @param awsCredentials
+     * @param credentials
      * @throws S3ServiceException
      */
-    public SoapS3Service(AWSCredentials awsCredentials) throws S3ServiceException {
-        this(awsCredentials, null);
+    public SoapS3Service(ProviderCredentials credentials) throws S3ServiceException {
+        this(credentials, null);
     }
 
     protected void shutdownImpl() throws S3ServiceException {

@@ -145,6 +145,7 @@ import org.jets3t.service.multithread.ThreadWatcher;
 import org.jets3t.service.multithread.UpdateACLEvent;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.EncryptionUtil;
+import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.ByteFormatter;
 import org.jets3t.service.utils.FileComparer;
 import org.jets3t.service.utils.FileComparerResults;
@@ -966,8 +967,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             logoutEvent();
         } else if (event.getActionCommand() != null && event.getActionCommand().startsWith("LoginSwitch")) {
             String loginName = event.getActionCommand().substring("LoginSwitch:".length());
-            AWSCredentials awsCredentials = (AWSCredentials) loginAwsCredentialsMap.get(loginName);
-            loginEvent(awsCredentials);
+            ProviderCredentials credentials = (ProviderCredentials) loginAwsCredentialsMap.get(loginName);
+            loginEvent(credentials);
         } else if ("QuitEvent".equals(event.getActionCommand())) {
             System.exit(0);
         }
@@ -1120,22 +1121,22 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      *
      * This method should always be run within the event dispatcher thread.
      */
-    private void loginEvent(AWSCredentials awsCredentials) {
+    private void loginEvent(ProviderCredentials credentials) {
         try {
-            if (awsCredentials == null) {
+            if (credentials == null) {
                 StartupDialog startupDialog = new StartupDialog(ownerFrame, cockpitProperties, this);
                 startupDialog.setVisible(true);
-                awsCredentials = startupDialog.getAWSCredentials();
+                credentials = startupDialog.getAWSCredentials();
                 startupDialog.dispose();
 
-                if (awsCredentials == null) {
+                if (credentials == null) {
                     log.debug("Log in cancelled by user");
                     return;
                 }
             }
 
             s3ServiceMulti = new S3ServiceMulti(
-                new RestS3Service(awsCredentials, APPLICATION_DESCRIPTION, this), this);
+                new RestS3Service(credentials, APPLICATION_DESCRIPTION, this), this);
 
             cloudFrontMembershipChecked = false;
             listAllBuckets();
@@ -1148,11 +1149,11 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             createBucketMenuItem.setEnabled(true);
             bucketLoggingMenuItem.setEnabled(true);
 
-            String loginName = (awsCredentials.hasFriendlyName()
-            	? awsCredentials.getFriendlyName()
-    			: awsCredentials.getAccessKey());
+            String loginName = (credentials.hasFriendlyName()
+            	? credentials.getFriendlyName()
+    			: credentials.getAccessKey());
             if (!loginAwsCredentialsMap.containsKey(loginName)) {
-                loginAwsCredentialsMap.put(loginName, awsCredentials);
+                loginAwsCredentialsMap.put(loginName, credentials);
                 JMenuItem menuItem = new JMenuItem(loginName);
                 menuItem.setActionCommand("LoginSwitch:" + loginName);
                 menuItem.addActionListener(this);
@@ -1177,10 +1178,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     private void logoutEvent() {
         log.debug("Logging out");
         try {
-            AWSCredentials awsCredentials = s3ServiceMulti.getAWSCredentials();
-            String loginName = (awsCredentials.hasFriendlyName()
-            	? awsCredentials.getFriendlyName()
-    			: awsCredentials.getAccessKey());
+            ProviderCredentials credentials = s3ServiceMulti.getAWSCredentials();
+            String loginName = (credentials.hasFriendlyName()
+            	? credentials.getFriendlyName()
+    			: credentials.getAccessKey());
             if (loginAwsCredentialsMap.containsKey(loginName)) {
                 Component[] components = loginSwitchMenu.getMenuComponents();
                 for (int i = 0; i < components.length; i++) {

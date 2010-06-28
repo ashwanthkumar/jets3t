@@ -25,6 +25,7 @@ import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
+import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
 import org.jets3t.service.utils.gatekeeper.SignatureRequest;
@@ -38,7 +39,7 @@ import org.jets3t.servlets.gatekeeper.ClientInformation;
  */
 public class DefaultBucketLister extends BucketLister {
 
-    protected AWSCredentials awsCredentials = null;
+    protected ProviderCredentials credentials = null;
     private String s3BucketName = null;
 
     /**
@@ -76,7 +77,7 @@ public class DefaultBucketLister extends BucketLister {
             throw new ServletException(errorMessage);
         }
 
-        this.awsCredentials = new AWSCredentials(awsAccessKey, awsSecretKey);
+        this.credentials = new AWSCredentials(awsAccessKey, awsSecretKey);
 
         s3BucketName = servletConfig.getInitParameter("S3BucketName");
         if (s3BucketName == null || s3BucketName.length() == 0) {
@@ -95,7 +96,7 @@ public class DefaultBucketLister extends BucketLister {
         }
 
         // Construct an authorized service.
-        RestS3Service service = new RestS3Service(awsCredentials);
+        RestS3Service service = new RestS3Service(credentials);
 
         // List objects in the configured bucket.
         S3Object[] objects = service.listObjects(s3BucketName, prefix, null, 1000);
