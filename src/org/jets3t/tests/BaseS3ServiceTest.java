@@ -255,8 +255,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
         assertEquals("Missing purpose metadata", "For testing purposes",
             dataObject.getMetadata("purpose"));
         assertNull("Expected data input stream to be unavailable", dataObject.getDataInputStream());
-        // Object's content length is only available from REST detail requests, not SOAP ones.
-        // assertEquals("Unexpected size for object", objectData.length(), dataObject.getContentLength());
+        assertEquals("Unexpected size for object", objectData.length(), dataObject.getContentLength());
 
         // Test object GET constraints.
         Calendar objectCreationTimeCal = Calendar.getInstance(TimeZone.getTimeZone("GMT"), Locale.US);
@@ -697,8 +696,8 @@ public abstract class BaseS3ServiceTest extends TestCase {
             s3Service.putObject(bucket, object);
             fail("Should have failed due to invalid hash value");
         } catch (S3ServiceException e) {
-            // This error check would be nice to have, but it only works for the REST interface, not SOAP.
-            // assertEquals("Expected error code indicating invalid md5 hash", "InvalidDigest", e.getErrorCode());
+            assertEquals("Expected error code indicating invalid md5 hash", "InvalidDigest",
+                e.getS3ErrorCode());
         }
         object = new S3Object(bucket, "Testing MD5 Hashing", dataString);
 
@@ -711,8 +710,7 @@ public abstract class BaseS3ServiceTest extends TestCase {
             s3Service.putObject(bucket, object);
             fail("Should have failed due to incorrect hash value");
         } catch (S3ServiceException e) {
-            // This error checks would be nice to have, but it only works for the REST interface, not SOAP.
-            // assertEquals("Expected error code indicating invalid md5 hash", "BadDigest", e.getErrorCode());
+            assertEquals("Expected error code indicating invalid md5 hash", "BadDigest", e.getS3ErrorCode());
         }
         object = new S3Object(bucket, "Testing MD5 Hashing", dataString);
 

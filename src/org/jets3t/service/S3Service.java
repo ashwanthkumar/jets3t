@@ -45,7 +45,6 @@ import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Owner;
 import org.jets3t.service.model.S3Version;
 import org.jets3t.service.mx.MxDelegate;
-import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.AWSDevPayCredentials;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.RestUtils;
@@ -56,9 +55,8 @@ import org.jets3t.service.utils.ServiceUtils;
  * on S3 accounts.
  * <p>
  * This class must be extended by implementation classes that perform the communication with S3 via
- * a particular interface, such as REST or SOAP. Implementations provided with the JetS3t suite
- * include {@link org.jets3t.service.impl.rest.httpclient.RestS3Service} and
- * {@link org.jets3t.service.impl.soap.axis.SoapS3Service}.
+ * a particular interface, such as REST or SOAP. The JetS3t suite includes a REST implementation
+ * in {@link org.jets3t.service.impl.rest.httpclient.RestS3Service}.
  * </p>
  * <p>
  * Implementations of <code>S3Service</code> must be thread-safe as they will probably be used by
@@ -258,10 +256,6 @@ public abstract class S3Service implements Serializable {
      * value for the Requester Pays Enabled setting is set according to the
      * jets3t.properties setting
      * <code>httpclient.requester-pays-buckets-enabled</code>.
-     * <p>
-     * NOTE: Only the REST S3 API supports Requester Pays requests, this
-     * setting is ignored by the SOAP implementation
-     * {@link org.jets3t.service.impl.soap.axis.SoapS3Service}.
      *
      * @param isRequesterPays
      * if true, all subsequent S3 service requests will include the Requester
@@ -277,10 +271,6 @@ public abstract class S3Service implements Serializable {
      * value for the Requester Pays Enabled setting is set according to the
      * jets3t.properties setting
      * <code>httpclient.requester-pays-buckets-enabled</code>.
-     * <p>
-     * NOTE: Only the REST S3 API supports Requester Pays requests, this
-     * setting is ignored by the SOAP implementation
-     * {@link org.jets3t.service.impl.soap.axis.SoapS3Service}.
      *
      * @return
      * true if S3 service requests will include the Requester Pays flag, false

@@ -369,8 +369,8 @@ public class CodeSamples {
         // The jets3t Toolkit includes utility services, S3ServiceMulti and S3ServiceSimpleMulti, that
         // can perform an S3 operation on many objects at a time. These services allow you to use more
         // of your available bandwidth and perform S3 operations much faster. They work with any
-        // thread-safe S3Service implementation, such as the HTTP/REST and SOAP implementations
-        // provided with jets3t.
+        // thread-safe S3Service implementation, such as the HTTP/REST implementation provided with
+        // jets3t.
 
         // The S3ServiceMulti service is intended for advanced developers. It is designed for use in
         // graphical applications and uses an event-notification approach to communicate its results
@@ -840,10 +840,6 @@ public class CodeSamples {
         // The Requester Pays feature of S3 allows a bucket to be configured
         // such that the individual who sends requests to a bucket is charged
         // the S3 request and data transfer fees, instead of the bucket's owner.
-
-        // Note: Only the S3 REST API supports the Requester Pays feature, so
-        // you must use a RestS3Service for all the operations described below.
-        // The SoapS3Service will not work.
 
         // Set a bucket to be Requester Pays
         s3Service.setRequesterPaysBucket(bucketName, true);

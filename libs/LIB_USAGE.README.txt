@@ -29,8 +29,7 @@ Version     : 3.1
 Location    : http://hc.apache.org/httpclient-3.x/
 Required?   : YES
             : This library is used directly by the REST/HTTP S3 
-            : implementation (RestS3Service), and also indirectly by the 
-            : Axis SOAP S3 implementation.
+            : implementation (RestS3Service).
 Description : HTTP/S communications library.
 Files       : commons-httpclient/commons-httpclient-3.1.jar
 
@@ -43,18 +42,6 @@ Required?   : YES
 Description : A utility that creates simple XML documents using sparse Java 
             : code.
 Files       : java-xmlbuilder/java-xmlbuilder-1.jar
-
-
-Name        : Apache Axis
-Version     : 1.4
-Location    : http://ws.apache.org/axis/
-Required?   : NO. Only required when using the SOAP S3 implementation 
-            : (SoapS3Service). Note that this is NOT the recommended 
-            : implementation.
-Description : SOAP communications library.
-Files       : apache-axis/*.jar
-            : jaf/activation.jar
-            : javamail/mail.jar
 
 
 Name        : Bouncy Castle Crypto APIs

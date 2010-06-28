@@ -155,13 +155,4 @@ public class Constants {
     public static final String AMZ_DELETE_MARKER = "x-amz-delete-marker";
     public static final String AMZ_MULTI_FACTOR_AUTH_CODE = "x-amz-mfa";
 
-    ///////////////////////////////////
-    // Headers used by SOAP S3 Services
-    ///////////////////////////////////
-
-    /**
-     * SOAP service name: AmazonS3
-     */
-    public static final String SOAP_SERVICE_NAME = "AmazonS3";
-
 }
