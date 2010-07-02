@@ -26,7 +26,7 @@ import org.apache.commons.logging.LogFactory;
  *
  * @author James Murty
  * @author Nikolas Coukouma
- * @author Claudio Cherubino
+ * @author Google developers
  */
 public abstract class ProviderCredentials {
     protected static final Log log = LogFactory.getLog(ProviderCredentials.class);

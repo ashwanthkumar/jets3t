@@ -21,7 +21,7 @@ package org.jets3t.service.security;
 /**
  * Class to contain the Google Storage (GS) credentials of a user. 
  *
- * @author Claudio Cherubino
+ * @author Google developers
  */
 public class GSCredentials extends ProviderCredentials {
     protected static final String GS_TYPE_NAME = "gs";

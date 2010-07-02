@@ -6,6 +6,8 @@ TOOLKIT
 
   * General
 
+- Compatibility with JDK 1.4 is no longer a project goal, any users
+  of Java 1.4 will need to upgrade to continue running JetS3t.
 - Removed antiquated and unsupported SOAP S3 service implementation
   from toolkit.
 
