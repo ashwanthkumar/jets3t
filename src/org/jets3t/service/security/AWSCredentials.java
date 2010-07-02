@@ -1,6 +1,6 @@
 /*
- * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
- * This is a java.net project, see https://jets3t.dev.java.net/
+ * JetS3t : Java S3 Toolkit
+ * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
  * Copyright 2006 James Murty
  *
