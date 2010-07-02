@@ -9,6 +9,15 @@ TOOLKIT
 - Removed antiquated and unsupported SOAP S3 service implementation
   from toolkit.
 
+  * SOAP implementation
+
+- REMOVED from project.
+
+KUDOS TO:
+
+- Claudio Cherubino of Google Inc. for significant refactoring work
+  and the addition of full support for the Google Storage service.
+
 
 -------------
 Version 0.7.4
