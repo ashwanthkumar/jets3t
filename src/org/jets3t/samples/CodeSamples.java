@@ -1,8 +1,8 @@
 /*
- * jets3t : Java Extra-Tasty S3 Toolkit (for Amazon S3 online storage service)
- * This is a java.net project, see https://jets3t.dev.java.net/
+ * JetS3t : Java S3 Toolkit
+ * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2006 James Murty
+ * Copyright 2006-2010 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -366,11 +366,11 @@ public class CodeSamples {
          * ***********************
          */
 
-        // The jets3t Toolkit includes utility services, S3ServiceMulti and S3ServiceSimpleMulti, that
+        // The JetS3t Toolkit includes utility services, S3ServiceMulti and S3ServiceSimpleMulti, that
         // can perform an S3 operation on many objects at a time. These services allow you to use more
         // of your available bandwidth and perform S3 operations much faster. They work with any
         // thread-safe S3Service implementation, such as the HTTP/REST implementation provided with
-        // jets3t.
+        // JetS3t.
 
         // The S3ServiceMulti service is intended for advanced developers. It is designed for use in
         // graphical applications and uses an event-notification approach to communicate its results
@@ -657,7 +657,7 @@ public class CodeSamples {
          */
 
         // AWS credentials are your means to login to and manage your S3 account, and should be
-        // kept secure. The jets3t toolkit stores these credentials in AWSCredentials objects.
+        // kept secure. The JetS3t toolkit stores these credentials in AWSCredentials objects.
         // The AWSCredentials class provides utility methods to allow credentials to be saved to
         // an encrypted file and loaded from a previously saved file with the right password.
 
@@ -682,7 +682,7 @@ public class CodeSamples {
 
         // S3 uses Access Control Lists to control who has access to buckets and objects in S3.
         // By default, any bucket or object you create will belong to you and will not be accessible
-        // to anyone else. You can use jets3t's support for access control lists to make buckets or
+        // to anyone else. You can use JetS3t's support for access control lists to make buckets or
         // objects publicly accessible, or to allow other S3 members to access or manage your objects.
 
         // The ACL capabilities of S3 are quite involved, so to understand this subject fully please
