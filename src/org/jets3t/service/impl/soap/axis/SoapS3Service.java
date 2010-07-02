@@ -102,6 +102,8 @@ import org.jets3t.service.utils.ServiceUtils;
  * recommend that this service be used to perform any real work.</b>
  * </p>
  *
+ * @deprecated in 0.7.4 -- full removal is imminent.
+ *
  * @author James Murty
  */
 public class SoapS3Service extends S3Service {

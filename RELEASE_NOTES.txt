@@ -43,6 +43,10 @@ TOOLKIT
   The new non-static method equivalents should be used from now on to
   avoid dependency on a VM-wide S3 endpoint constant.
 
+  * SOAP implementation
+
+- Deprecated in preparation for imminent removal from project.
+
 COCKPIT
 
 - Added support for the REDUCED_REDUNDANCY storage class to the
