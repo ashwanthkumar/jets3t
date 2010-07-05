@@ -52,6 +52,9 @@ import org.jets3t.service.Constants;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.model.S3Object;
+import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.XMLReaderFactory;
 
 /**
  * General utility methods used throughout the jets3t project.
@@ -700,6 +703,37 @@ public class ServiceUtils {
             + (applicationDescription != null
                 ? " " + applicationDescription
                 : "");
+    }
+
+    /**
+     * Find a SAX XMLReader by hook or by crook, with work-arounds for
+     * non-standard platforms.
+     *
+     * @return an initialized XML SAX reader
+     */
+    public static XMLReader loadXMLReader() throws S3ServiceException {
+        // Try loading the default SAX reader
+        try {
+            return XMLReaderFactory.createXMLReader();
+        } catch (SAXException e) {
+            // Ignore failure
+        }
+
+        // No dice using the standard approach, try loading alternatives...
+        String[] altXmlReaderClasspaths = new String[] {
+            "org.apache.crimson.parser.XMLReaderImpl",  // JDK 1.4
+            "org.xmlpull.v1.sax2.Driver",  // Android
+        };
+        for (int i = 0; i < altXmlReaderClasspaths.length; i++) {
+            String xmlReaderClasspath = altXmlReaderClasspaths[i];
+            try {
+                return XMLReaderFactory.createXMLReader(xmlReaderClasspath);
+            } catch (SAXException e) {
+                // Ignore failure
+            }
+        }
+        // If we haven't found and returned an XMLReader yet, give up.
+        throw new S3ServiceException("Failed to initialize a SAX XMLReader");
     }
 
 }

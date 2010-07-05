@@ -79,7 +79,7 @@ COCKPIT
   storage class property of objects)
 - Added support for buckets located in the Asia Pacific
   (Singapore) location.
-- Added support for HTTPS creating HTTPS-only CloudFront distributions.
+- Added support for creating HTTPS-only CloudFront distributions.
 - Removed overly fussy string-length checks in credentials dialog.
 
 SYNCHRONIZE

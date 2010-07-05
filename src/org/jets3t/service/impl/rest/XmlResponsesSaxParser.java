@@ -79,20 +79,7 @@ public class XmlResponsesSaxParser {
      */
     public XmlResponsesSaxParser(Jets3tProperties properties) throws S3ServiceException {
         this.properties = properties;
-
-        // Ensure we can load the XML Reader.
-        try {
-            xr = XMLReaderFactory.createXMLReader();
-        } catch (SAXException e) {
-            // oops, lets try doing this (needed in 1.4)
-            System.setProperty("org.xml.sax.driver", "org.apache.crimson.parser.XMLReaderImpl");
-            try {
-                // Try once more...
-                xr = XMLReaderFactory.createXMLReader();
-            } catch (SAXException e2) {
-                throw new S3ServiceException("Couldn't initialize a sax driver for the XMLReader");
-            }
-        }
+        this.xr = ServiceUtils.loadXMLReader();
     }
 
     /**
