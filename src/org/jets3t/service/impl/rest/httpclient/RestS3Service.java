@@ -540,8 +540,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                 }
                 byte[] responseBody = httpMethod.getResponseBody();
 
-                if (responseBody != null && responseBody.length > 0)
+                if (responseBody != null && responseBody.length > 0) {
                     throw new S3ServiceException("Oops, too keen to release connection with a non-empty response body");
+                }
                 httpMethod.releaseConnection();
             }
 
@@ -1360,8 +1361,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                 priorLastKey = null;
             }
 
-            if (!automaticallyMergeChunks)
+            if (!automaticallyMergeChunks) {
                 break;
+            }
         }
         if (automaticallyMergeChunks) {
             if (log.isDebugEnabled()) {
@@ -1459,8 +1461,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                 }
             }
 
-            if (!automaticallyMergeChunks)
+            if (!automaticallyMergeChunks) {
                 break;
+            }
         }
         if (automaticallyMergeChunks) {
             if (log.isDebugEnabled()) {
@@ -2143,8 +2146,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      * uploads the object by performing a standard HTTP PUT using the signed URL.
      *
      * @param signedPutUrl
-     * a signed PUT URL generated with
-     * {@link S3Service#createSignedPutUrl(String, String, Map, ProviderCredentials, Date)}.
+     * a signed PUT URL.
      * @param object
      * the object to upload, which must correspond to the object for which the URL was signed.
      * The object <b>must</b> have the correct content length set, and to apply a non-standard
@@ -2173,7 +2175,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         boolean isLiveMD5HashingRequired =
             (object.getMetadata(S3Object.METADATA_HEADER_CONTENT_MD5) == null);
         String s3Endpoint = this.jets3tProperties.getStringProperty(
-            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);        
+            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
 
         if (object.getDataInputStream() != null) {
             repeatableRequestEntity = new RepeatableRequestEntity(object.getKey(),
@@ -2214,7 +2216,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             if (repeatableRequestEntity != null && isLiveMD5HashingRequired) {
                 // Obtain locally-calculated MD5 hash from request entity.
                 String hexMD5OfUploadedData = ServiceUtils.toHex(
-                    ((RepeatableRequestEntity)repeatableRequestEntity).getMD5DigestOfData());
+                    repeatableRequestEntity.getMD5DigestOfData());
                 verifyExpectedAndActualETagValues(hexMD5OfUploadedData, uploadedObject);
             }
 
@@ -2234,7 +2236,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      * deletes the object by performing a standard HTTP DELETE using the signed URL.
      *
      * @param signedDeleteUrl
-     * a signed DELETE URL generated with {@link S3Service#createSignedDeleteUrl}.
+     * a signed DELETE URL.
      *
      * @throws S3ServiceException
      */
@@ -2254,8 +2256,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      * uploads the object by performing a standard HTTP GET using the signed URL.
      *
      * @param signedGetUrl
-     * a signed GET URL generated with
-     * {@link S3Service#createSignedGetUrl(String, String, ProviderCredentials, Date)}.
+     * a signed GET URL.
      *
      * @return
      * the S3Object in S3 including all metadata and the object's data input stream.
@@ -2274,8 +2275,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      * uploads the object by performing a standard HTTP HEAD using the signed URL.
      *
      * @param signedHeadUrl
-     * a signed HEAD URL generated with
-     * {@link S3Service#createSignedHeadUrl(String, String, ProviderCredentials, Date)}.
+     * a signed HEAD URL.
      *
      * @return
      * the S3Object in S3 including all metadata, but without the object's data input stream.
@@ -2291,7 +2291,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      * This method is an implementation of the interface {@link SignedUrlHandler}.
      *
      * @param signedAclUrl
-     * a signed URL generated with {@link S3Service#createSignedUrl(String, String, String, String, Map, ProviderCredentials, long, boolean)}.
+     * a signed URL.
      *
      * @return
      * the AccessControlList settings of the object in S3.
@@ -2317,7 +2317,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      * This method is an implementation of the interface {@link SignedUrlHandler}.
      *
      * @param signedAclUrl
-     * a signed URL generated with {@link S3Service#createSignedUrl(String, String, String, String, Map, ProviderCredentials, long, boolean)}.
+     * a signed URL.
      * @param acl
      * the ACL settings to apply to the object represented by the signed URL.
      *
@@ -2357,7 +2357,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         throws S3ServiceException
     {
         String s3Endpoint = this.jets3tProperties.getStringProperty(
-            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);        
+            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
 
         HttpMethodBase httpMethod = null;
         if (headOnly) {

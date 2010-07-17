@@ -34,11 +34,11 @@ import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.httpclient.DefaultHttpMethodRetryHandler;
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.HttpMethodRetryHandler;
 import org.apache.commons.httpclient.HttpVersion;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
 import org.apache.commons.httpclient.NTCredentials;
@@ -351,48 +351,41 @@ public class RestUtils {
         }
         clientParams.setParameter(HttpMethodParams.USER_AGENT, userAgent);
 
-        clientParams.setParameter("http.protocol.version", HttpVersion.HTTP_1_1);
-        clientParams.setBooleanParameter("http.protocol.expect-continue", true);
+        clientParams.setParameter(HttpMethodParams.PROTOCOL_VERSION, HttpVersion.HTTP_1_1);
+        clientParams.setBooleanParameter(HttpMethodParams.USE_EXPECT_CONTINUE, true);
 
         // Replace default error retry handler.
         final int retryMaxCount = jets3tProperties.getIntProperty("httpclient.retry-max", 5);
 
-        clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
+        clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new DefaultHttpMethodRetryHandler(retryMaxCount, false) {
             public boolean retryMethod(HttpMethod httpMethod, IOException ioe, int executionCount) {
-                if (executionCount > retryMaxCount) {
-                    if (log.isWarnEnabled()) {
-                        log.warn("Retried connection " + executionCount
-                            + " times, which exceeds the maximum retry count of " + retryMaxCount);
+                if (super.retryMethod(httpMethod, ioe, executionCount)) {
+                    if  (ioe instanceof UnrecoverableIOException) {
+                        if (log.isDebugEnabled()) {
+                            log.debug("Deliberate interruption, will not retry");
+                        }
+                        return false;
                     }
-                    return false;
-                }
 
-                if  (ioe instanceof UnrecoverableIOException) {
+                    // Release underlying connection so we will get a new one (hopefully) when we retry.
+                    httpMethod.releaseConnection();
+
                     if (log.isDebugEnabled()) {
-                        log.debug("Deliberate interruption, will not retry");
+                        log.debug("Retrying " + httpMethod.getName() + " request with path '"
+                            + httpMethod.getPath() + "' - attempt " + executionCount
+                            + " of " + retryMaxCount);
                     }
-                    return false;
-                }
-
-                // Release underlying connection so we will get a new one (hopefully) when we retry.
-                httpMethod.releaseConnection();
-
-                if (log.isDebugEnabled()) {
-                    log.debug("Retrying " + httpMethod.getName() + " request with path '"
-                        + httpMethod.getPath() + "' - attempt " + executionCount
-                        + " of " + retryMaxCount);
-                }
-
-                // Build the authorization string for the method.
-                try {
-                    awsRequestAuthorizer.authorizeHttpRequest(httpMethod);
-                } catch (Exception e) {
-                    if (log.isWarnEnabled()) {
-                        log.warn("Unable to generate updated authorization string for retried request", e);
+                    // Build the authorization string for the method.
+                    try {
+                        awsRequestAuthorizer.authorizeHttpRequest(httpMethod);
+                    } catch (Exception e) {
+                        if (log.isWarnEnabled()) {
+                            log.warn("Unable to generate updated authorization string for retried request", e);
+                        }
                     }
+                    return true;
                 }
-
-                return true;
+                return false;
             }
         });
 
@@ -465,7 +458,7 @@ public class RestUtils {
      * @param proxyPassword
      * @param proxyDomain
      */
-    protected static void initHttpProxy(HttpClient httpClient, 
+    protected static void initHttpProxy(HttpClient httpClient,
         Jets3tProperties jets3tProperties, boolean proxyAutodetect,
         String proxyHostAddress, int proxyPort, String proxyUser,
         String proxyPassword, String proxyDomain)
@@ -495,7 +488,7 @@ public class RestUtils {
         // If no explicit settings are available, try autodetecting proxies (unless autodetect is disabled)
         else if (proxyAutodetect) {
             String s3Endpoint = jets3tProperties.getStringProperty(
-                "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);        
+                "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
             // Try to detect any proxy settings from applet.
             ProxyHost proxyHost = null;
             try {

@@ -509,6 +509,7 @@ public class ServiceUtils {
 
     /**
      * Computes the MD5 hash of the data in the given input stream and returns it as a hex string.
+     * The provided input stream is consumed and closed by this method.
      *
      * @param is
      * @return
@@ -659,7 +660,7 @@ public class ServiceUtils {
 
         return true;
     }
-    
+
     public static String generateS3HostnameForBucket(String bucketName,
         boolean isDnsBucketNamingDisabled, String s3Endpoint)
     {

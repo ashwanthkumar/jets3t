@@ -44,10 +44,7 @@ public interface SignedUrlHandler {
      * uploads the object by performing a standard HTTP PUT using the signed URL.
      *
      * @param signedPutUrl
-     * a signed PUT URL generated with
-     * {@link org.jets3t.service.S3Service
-     * #createSignedPutUrl(String, String, java.util.Map,
-     * org.jets3t.service.security.AWSCredentials, java.util.Date)}.
+     * a signed PUT URL generated.
      * @param object
      * the object to upload, which must correspond to the object for which the URL was signed.
      * The object <b>must</b> have the correct content length set, and to apply a non-standard
@@ -70,8 +67,7 @@ public interface SignedUrlHandler {
      * deletes the object by performing a standard HTTP DELETE using the signed URL.
      *
      * @param signedDeleteUrl
-     * a signed DELETE URL generated with
-     * {@link org.jets3t.service.S3Service#createSignedDeleteUrl(String, String, org.jets3t.service.security.AWSCredentials, java.util.Date)}.
+     * a signed DELETE URL.
      *
      * @throws S3ServiceException
      */
@@ -85,8 +81,7 @@ public interface SignedUrlHandler {
      * uploads the object by performing a standard HTTP GET using the signed URL.
      *
      * @param signedGetUrl
-     * a signed GET URL generated with
-     * {@link org.jets3t.service.S3Service#createSignedGetUrl(String, String, org.jets3t.service.security.AWSCredentials, java.util.Date)}.
+     * a signed GET URL.
      *
      * @return
      * the S3Object in S3 including all metadata and the object's data input stream.
@@ -103,8 +98,7 @@ public interface SignedUrlHandler {
      * uploads the object by performing a standard HTTP HEAD using the signed URL.
      *
      * @param signedHeadUrl
-     * a signed HEAD URL generated with
-     * {@link org.jets3t.service.S3Service#createSignedHeadUrl(String, String, org.jets3t.service.security.AWSCredentials, java.util.Date)}.
+     * a signed HEAD URL.
      *
      * @return
      * the S3Object in S3 including all metadata, but without the object's data input stream.
@@ -118,8 +112,7 @@ public interface SignedUrlHandler {
      * This method is an implementation of the interface {@link SignedUrlHandler}.
      *
      * @param signedAclUrl
-     * a signed URL generated with
-     * {@link org.jets3t.service.S3Service#createSignedUrl(String, String, String, String, java.util.Map, org.jets3t.service.security.AWSCredentials, long, boolean)}.
+     * a signed URL.
      *
      * @return
      * the AccessControlList settings of the object in S3.
@@ -133,8 +126,7 @@ public interface SignedUrlHandler {
      * This method is an implementation of the interface {@link SignedUrlHandler}.
      *
      * @param signedAclUrl
-     * a signed URL generated with
-     * {@link org.jets3t.service.S3Service#createSignedUrl(String, String, String, String, java.util.Map, org.jets3t.service.security.AWSCredentials, long, boolean)}.
+     * a signed URL.
      * @param acl
      * the ACL settings to apply to the object represented by the signed URL.
      *
