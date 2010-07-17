@@ -2147,8 +2147,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      * uploads the object by performing a standard HTTP PUT using the signed URL.
      *
      * @param signedPutUrl
-     * a signed PUT URL generated with
-     * {@link S3Service#createSignedPutUrl(String, String, Map, AWSCredentials, Date)}.
+     * a signed PUT URL.
      * @param object
      * the object to upload, which must correspond to the object for which the URL was signed.
      * The object <b>must</b> have the correct content length set, and to apply a non-standard
@@ -2238,7 +2237,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      * deletes the object by performing a standard HTTP DELETE using the signed URL.
      *
      * @param signedDeleteUrl
-     * a signed DELETE URL generated with {@link S3Service#createSignedDeleteUrl}.
+     * a signed DELETE URL.
      *
      * @throws S3ServiceException
      */
@@ -2258,8 +2257,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      * uploads the object by performing a standard HTTP GET using the signed URL.
      *
      * @param signedGetUrl
-     * a signed GET URL generated with
-     * {@link S3Service#createSignedGetUrl(String, String, AWSCredentials, Date)}.
+     * a signed GET URL.
      *
      * @return
      * the S3Object in S3 including all metadata and the object's data input stream.
@@ -2278,8 +2276,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      * uploads the object by performing a standard HTTP HEAD using the signed URL.
      *
      * @param signedHeadUrl
-     * a signed HEAD URL generated with
-     * {@link S3Service#createSignedHeadUrl(String, String, AWSCredentials, Date)}.
+     * a signed HEAD URL.
      *
      * @return
      * the S3Object in S3 including all metadata, but without the object's data input stream.
@@ -2295,7 +2292,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      * This method is an implementation of the interface {@link SignedUrlHandler}.
      *
      * @param signedAclUrl
-     * a signed URL generated with {@link S3Service#createSignedUrl(String, String, String, String, Map, AWSCredentials, long, boolean)}.
+     * a signed URL.
      *
      * @return
      * the AccessControlList settings of the object in S3.
@@ -2321,7 +2318,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
      * This method is an implementation of the interface {@link SignedUrlHandler}.
      *
      * @param signedAclUrl
-     * a signed URL generated with {@link S3Service#createSignedUrl(String, String, String, String, Map, AWSCredentials, long, boolean)}.
+     * a signed URL.
      * @param acl
      * the ACL settings to apply to the object represented by the signed URL.
      *

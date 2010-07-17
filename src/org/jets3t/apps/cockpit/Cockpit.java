@@ -179,7 +179,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     public static final String APPLICATION_TITLE = "JetS3t Cockpit";
     private static final int BUCKET_LIST_CHUNKING_SIZE = 1000;
 
-    private File cockpitHomeDirectory = Constants.DEFAULT_PREFERENCES_DIRECTORY;
+    private final File cockpitHomeDirectory = Constants.DEFAULT_PREFERENCES_DIRECTORY;
     private CockpitPreferences cockpitPreferences = null;
 
     private final Insets insetsZero = new Insets(0, 0, 0, 0);
@@ -250,7 +250,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
     private JLabel objectsSummaryLabel = null;
 
-    private HashMap cachedBuckets = new HashMap();
+    private final HashMap cachedBuckets = new HashMap();
     private ProgressDialog progressDialog = null;
     private ObjectsAttributesDialog objectsAttributesDialog = null;
 
@@ -276,7 +276,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
     private S3Bucket currentSelectedBucket = null;
 
-    private HashMap loginAwsCredentialsMap = new HashMap();
+    private final HashMap loginAwsCredentialsMap = new HashMap();
 
     /**
      * Constructor to run this application as an Applet.
@@ -1795,7 +1795,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      */
     private void addThirdPartyBucket() {
         try {
-            String bucketName = (String) JOptionPane.showInputDialog(ownerFrame,
+            String bucketName = JOptionPane.showInputDialog(ownerFrame,
                 "Name for third-party bucket:",
                 "Add a third-party bucket", JOptionPane.QUESTION_MESSAGE);
 
@@ -2740,7 +2740,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
         // Generate URL
         String torrentUrl = S3Service.createTorrentUrl(
-            currentSelectedBucket.getName(), currentObject.getKey());
+            currentSelectedBucket.getName(), currentObject.getKey(),
+            this.cockpitProperties);
 
         // Display signed URL
         JOptionPane.showInputDialog(ownerFrame,
