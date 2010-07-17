@@ -1700,7 +1700,7 @@ public abstract class S3Service implements Serializable {
      * This method can be performed by anonymous services. Anonymous services
      * can only list the objects in a publicly-readable bucket.
      *
-     * @param bucket
+     * @param bucketName
      * the name of the bucket whose contents will be listed.
      * @return
      * the set of objects contained in a bucket.

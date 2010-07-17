@@ -539,8 +539,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                 }
                 byte[] responseBody = httpMethod.getResponseBody();
 
-                if (responseBody != null && responseBody.length > 0)
+                if (responseBody != null && responseBody.length > 0) {
                     throw new S3ServiceException("Oops, too keen to release connection with a non-empty response body");
+                }
                 httpMethod.releaseConnection();
             }
 
@@ -1361,8 +1362,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                 priorLastKey = null;
             }
 
-            if (!automaticallyMergeChunks)
+            if (!automaticallyMergeChunks) {
                 break;
+            }
         }
         if (automaticallyMergeChunks) {
             if (log.isDebugEnabled()) {
@@ -1460,8 +1462,9 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                 }
             }
 
-            if (!automaticallyMergeChunks)
+            if (!automaticallyMergeChunks) {
                 break;
+            }
         }
         if (automaticallyMergeChunks) {
             if (log.isDebugEnabled()) {
@@ -2215,7 +2218,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             if (repeatableRequestEntity != null && isLiveMD5HashingRequired) {
                 // Obtain locally-calculated MD5 hash from request entity.
                 String hexMD5OfUploadedData = ServiceUtils.toHex(
-                    ((RepeatableRequestEntity)repeatableRequestEntity).getMD5DigestOfData());
+                    repeatableRequestEntity.getMD5DigestOfData());
                 verifyExpectedAndActualETagValues(hexMD5OfUploadedData, uploadedObject);
             }
 

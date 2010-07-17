@@ -24,7 +24,7 @@ import java.io.InputStream;
 /**
  * Input stream wrapper that tracks the number of bytes that have been read through the stream.
  * When data is read through this stream the count of bytes is increased and the associated
- * {@link BytesTransferredWatcher} object is notified of the count of bytes read.
+ * {@link BytesProgressWatcher} object is notified of the count of bytes read.
  *
  * @author James Murty
  */

@@ -1354,7 +1354,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     /**
      * Convenience method to disable a streaming distribution that you intend to delete.
      * This method merely calls the
-     * {@link #updateStreamingDistributionConfig(String, String[], String, boolean)}
+     * {@link #updateStreamingDistributionConfig(String, String[], String, boolean, LoggingStatus)}
      * method with default values for most of the distribution's configuration
      * settings.
      * <p>
