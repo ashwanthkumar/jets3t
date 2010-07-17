@@ -406,7 +406,7 @@ public abstract class S3Service implements Serializable {
      *
      * @return
      * the object's URL.
-     * 
+     *
      * @throws S3ServiceException
      */
     public String createUnsignedObjectUrl(String bucketName, String objectKey,

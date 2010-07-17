@@ -624,7 +624,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
 
         // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
         String s3Endpoint = this.jets3tProperties.getStringProperty(
-            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);        
+            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
         if (!s3Endpoint.equals(hostname)) {
             int subdomainOffset = hostname.lastIndexOf("." + s3Endpoint);
             if (subdomainOffset > 0) {
@@ -1043,7 +1043,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         boolean disableDnsBuckets = jets3tProperties
             .getBoolProperty("s3service.disable-dns-buckets", false);
         String s3Endpoint = this.jets3tProperties.getStringProperty(
-            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);        
+            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
         String hostname = ServiceUtils.generateS3HostnameForBucket(bucketName, disableDnsBuckets, s3Endpoint);
 
         // Allow for non-standard virtual directory paths on the server-side
@@ -2174,7 +2174,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         boolean isLiveMD5HashingRequired =
             (object.getMetadata(S3Object.METADATA_HEADER_CONTENT_MD5) == null);
         String s3Endpoint = this.jets3tProperties.getStringProperty(
-            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);        
+            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
 
         if (object.getDataInputStream() != null) {
             repeatableRequestEntity = new RepeatableRequestEntity(object.getKey(),
@@ -2358,7 +2358,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         throws S3ServiceException
     {
         String s3Endpoint = this.jets3tProperties.getStringProperty(
-            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);        
+            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
 
         HttpMethodBase httpMethod = null;
         if (headOnly) {

@@ -63,11 +63,11 @@ public abstract class BaseVersionOrDeleteMarker {
     public S3Owner getOwner() {
     	return owner;
     }
-    
+
     public static String[] toVersionIds(BaseVersionOrDeleteMarker[] items) {
         List versionsList = new ArrayList();
         for (int i = 0; i < items.length; i++) {
-            versionsList.add(items[i].getVersionId());                
+            versionsList.add(items[i].getVersionId());
         }
         return (String[]) versionsList.toArray(new String[versionsList.size()]);
     }

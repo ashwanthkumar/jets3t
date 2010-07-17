@@ -202,10 +202,10 @@ public class S3ServiceSimpleMulti {
      * the name of the versioned bucket containing the object to be deleted.
      * @param objectKey
      * the key representing the object in S3.
-     * 
+     *
      * @throws S3ServiceException
      */
-    public void deleteVersionsOfObjectWithMFA(final String[] versionIds, 
+    public void deleteVersionsOfObjectWithMFA(final String[] versionIds,
         String multiFactorSerialNumber, String multiFactorAuthCode,
         String bucketName, String objectKey) throws S3ServiceException
     {
@@ -225,15 +225,15 @@ public class S3ServiceSimpleMulti {
      * the name of the versioned bucket containing the object to be deleted.
      * @param objectKey
      * the key representing the object in S3.
-     * 
+     *
      * @throws S3ServiceException
      */
-    public void deleteVersionsOfObject(final String[] versionIds, 
+    public void deleteVersionsOfObject(final String[] versionIds,
         String bucketName, String objectKey) throws S3ServiceException
     {
         deleteVersionsOfObjectWithMFA(versionIds, null, null, bucketName, objectKey);
     }
-    
+
     /**
      * Retrieves multiple objects (including details and data).
      * The objects' data will be stored in temporary files, and can be retrieved using

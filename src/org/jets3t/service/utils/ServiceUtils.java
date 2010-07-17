@@ -660,7 +660,7 @@ public class ServiceUtils {
 
         return true;
     }
-    
+
     public static String generateS3HostnameForBucket(String bucketName,
         boolean isDnsBucketNamingDisabled, String s3Endpoint)
     {

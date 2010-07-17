@@ -135,7 +135,7 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
         // Uploads preferences pane.
         JPanel uploadPrefsPanel = new JPanel(new GridBagLayout());
         int row = 0;
-        
+
         JHtmlLabel storageClassLabel = new JHtmlLabel(
             "<html>Storage Class<br><font size=\"-2\">Choose a storage class " +
             "to balance cost and redundancy</html>", hyperlinkListener);

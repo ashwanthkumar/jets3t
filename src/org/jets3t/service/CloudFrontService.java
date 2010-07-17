@@ -442,7 +442,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         throws CloudFrontServiceException
     {
         String s3Endpoint = this.jets3tProperties.getStringProperty(
-            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);        
+            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
         if (log.isDebugEnabled()) {
             log.debug("Listing "
             	+ (isStreaming ? "streaming" : "")
@@ -1257,7 +1257,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             true, id, cnames, comment, enabled, loggingStatus, originAccessIdentityId,
             trustedSignerSelf, trustedSignerAwsAccountNumbers, null);
     }
-    
+
     /**
      * Update the configuration of an existing distribution to change its properties.
      * If the original distribution is private this method will make it public instead.

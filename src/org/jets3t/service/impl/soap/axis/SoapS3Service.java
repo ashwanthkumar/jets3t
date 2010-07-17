@@ -133,7 +133,7 @@ public class SoapS3Service extends S3Service {
 
         String s3Endpoint = this.jets3tProperties.getStringProperty(
             "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
-        
+
         locator = new AmazonS3_ServiceLocator();
         if (super.isHttpsOnly()) {
             // Use an SSL connection, to further secure the signature.
