@@ -67,8 +67,9 @@ SYNCHRONIZE
 KUDOS TO:
 
 - Alexey I. Froloff for Eucalyptus-friendly generated URLs patch.
-- David Kocher for a RestS3Service patch to allow advanced users
-  to provide their own RequestEntity classes when uploading objects.
+- David Kocher for patches to allow advanced users to provide their own
+  RequestEntity classes when uploading objects, and to improve HTTP
+  retry handling.
 
 
 -------------
