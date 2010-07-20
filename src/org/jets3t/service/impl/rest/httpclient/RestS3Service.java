@@ -625,7 +625,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         String fullUrl = httpMethod.getPath();
 
         // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
-        String s3Endpoint = this.getEndpoint();      
+        String s3Endpoint = this.getEndpoint();
         if (!s3Endpoint.equals(hostname)) {
             int subdomainOffset = hostname.lastIndexOf("." + s3Endpoint);
             if (subdomainOffset > 0) {
@@ -1043,7 +1043,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
 
         boolean disableDnsBuckets = jets3tProperties
             .getBoolProperty("s3service.disable-dns-buckets", false);
-        String s3Endpoint = this.getEndpoint();      
+        String s3Endpoint = this.getEndpoint();
         String hostname = ServiceUtils.generateS3HostnameForBucket(bucketName, disableDnsBuckets, s3Endpoint);
 
         // Allow for non-standard virtual directory paths on the server-side
@@ -1602,7 +1602,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
                 CreateBucketConfiguration config = new CreateBucketConfiguration(location);
                 metadata.put("Content-Length", String.valueOf(config.toXml().length()));
                 requestEntity = new StringRequestEntity(config.toXml(), "text/xml", Constants.DEFAULT_ENCODING);
-            } catch (UnsupportedEncodingException e) {
+            } catch (Exception e) {
                 throw new S3ServiceException("Unable to encode CreateBucketConfiguration XML document", e);
             }
         }
@@ -2089,7 +2089,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
             performRestPut(bucketName, null, metadata, requestParameters,
                 new StringRequestEntity(statusAsXml, "text/plain", Constants.DEFAULT_ENCODING),
                 true);
-        } catch (UnsupportedEncodingException e) {
+        } catch (Exception e) {
             throw new S3ServiceException("Unable to encode LoggingStatus XML document", e);
         }
     }

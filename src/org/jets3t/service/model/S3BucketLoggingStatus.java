@@ -23,8 +23,15 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.xml.parsers.FactoryConfigurationError;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
+
 import org.jets3t.service.Constants;
+import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.GrantAndPermission;
+
+import com.jamesmurty.utils.XMLBuilder;
 
 /**
  * Represents Bucket Logging Status settings used to control bucket-based Server Access Logging in S3.
@@ -46,7 +53,7 @@ import org.jets3t.service.acl.GrantAndPermission;
 public class S3BucketLoggingStatus {
     private String targetBucketName = null;
     private String logfilePrefix = null;
-    private List targetGrantsList = new ArrayList();
+    private final List targetGrantsList = new ArrayList();
 
     public S3BucketLoggingStatus() {
     }
@@ -105,38 +112,33 @@ public class S3BucketLoggingStatus {
      *
      * @return
      * An XML representation of the object suitable for use as an input to the REST/HTTP interface.
+     *
+     * @throws FactoryConfigurationError
+     * @throws ParserConfigurationException
+     * @throws TransformerException
      */
-    public String toXml() {
-        StringBuffer sb = new StringBuffer();
-        sb.append(
-            "<BucketLoggingStatus xmlns=\"" + Constants.XML_NAMESPACE + "\">");
-            if (isLoggingEnabled()) {
-                sb.append(
-        		"<LoggingEnabled>" +
-            		"<TargetBucket>" + getTargetBucketName() + "</TargetBucket>" +
-            		"<TargetPrefix>" + getLogfilePrefix() + "</TargetPrefix>");
-                if (targetGrantsList.size() > 0) {
-                    Iterator targetGrantsIter = targetGrantsList.iterator();
-                    sb.append(
-            		"<TargetGrants>");
-                    while (targetGrantsIter.hasNext()) {
-                    	GrantAndPermission gap = (GrantAndPermission) targetGrantsIter.next();
-                    	sb.append(
-            			"<Grant>" +
-            			gap.getGrantee().toXml() +
-            			"<Permission>" + gap.getPermission() + "</Permission>" +
-            			"</Grant>"
-                    	);
-                    }
-                    sb.append(
-            		"</TargetGrants>");
+    public String toXml() throws S3ServiceException, ParserConfigurationException,
+        FactoryConfigurationError, TransformerException
+    {
+        XMLBuilder builder = XMLBuilder.create("BucketLoggingStatus")
+            .attr("xmlns", Constants.XML_NAMESPACE);
+
+        if (isLoggingEnabled()) {
+            builder.elem("LoggingEnabled")
+                .elem("TargetBucket").text(getTargetBucketName()).up()
+                .elem("TargetPrefix").text(getLogfilePrefix()).up();
+            if (targetGrantsList.size() > 0) {
+                Iterator targetGrantsIter = targetGrantsList.iterator();
+                XMLBuilder grantsBuilder = builder.elem("TargetGrants");
+                while (targetGrantsIter.hasNext()) {
+                	GrantAndPermission gap = (GrantAndPermission) targetGrantsIter.next();
+                	grantsBuilder.elem("Grant")
+                	    .importXMLBuilder(gap.getGrantee().toXMLBuilder())
+                	    .elem("Permission").text(gap.getPermission().toString());
                 }
-                sb.append(
-        		"</LoggingEnabled>");
             }
-            sb.append(
-        	"</BucketLoggingStatus>");
-        return sb.toString();
+        }
+        return builder.asString();
     }
 
 }
