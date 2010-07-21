@@ -862,6 +862,11 @@ public class FileComparer {
                     	log.debug("Ignoring object that looks like a directory " +
                         "placeholder created by Panic's Transmit application: " + keyPath);
                     }
+                    // Convert placeholder object into something JetS3t tools will recognize.
+                    String originalKey = s3Object.getKey();
+                    s3Object.setKey(originalKey.substring(0, originalKey.length()-1));
+                    s3Object.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
+                    alreadySynchronisedKeys.add(s3Object.getKey());
                     continue;
                 } else {
                     if (log.isWarnEnabled()) {
@@ -890,6 +895,12 @@ public class FileComparer {
                     	log.debug("Ignoring object that looks like a directory " +
                         "placeholder created by the S3 Organizer Firefox add-on: " + keyPath);
                     }
+                    // Convert placeholder object into something JetS3t tools will recognize.
+                    String originalKey = s3Object.getKey();
+                    int suffixPos = originalKey.indexOf("_$");
+                    s3Object.setKey(originalKey.substring(0, suffixPos));
+                    s3Object.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
+                    alreadySynchronisedKeys.add(s3Object.getKey());
                     continue;
                 } else {
                     if (log.isWarnEnabled()) {
@@ -935,8 +946,9 @@ public class FileComparer {
                             	log.warn("Unable to read hash from computed MD5 file", e);
                             }
                         } finally {
-                            if (br != null)
-                            	br.close();
+                            if (br != null) {
+                                br.close();
+                            }
                         }
                     }
 
@@ -975,8 +987,9 @@ public class FileComparer {
                             	log.warn("Unable to write computed MD5 hash to a file", e);
                             }
                         } finally {
-                            if (fw != null)
+                            if (fw != null) {
                                 fw.close();
+                            }
                         }
                     }
 
