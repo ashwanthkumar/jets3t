@@ -26,28 +26,28 @@ import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.security.ProviderCredentials;
 
 /**
- * REST/HTTP implementation of an S3Service based on the
+ * REST/HTTP implementation of Google Storage Service based on the
  * <a href="http://jakarta.apache.org/commons/httpclient/">HttpClient</a> library.
  * <p>
- * This class uses properties obtained through {@link Jets3tProperties}. For more information on
+ * This class uses properties obtained through {@link org.jets3t.service.Jets3tProperties}. For more information on
  * these properties please refer to
  * <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html">JetS3t Configuration</a>
  * </p>
  *
  * @author James Murty
  */
-public class RestS3Service extends RestStorageService {
+public class GoogleStorageService extends RestStorageService {
 
     /**
      * Constructs the service and initialises the properties.
      *
      * @param credentials
-     * the user credentials to use when communicating with S3, may be null in which case the
+     * the user credentials to use when communicating with Google Storage, may be null in which case the
      * communication is done as an anonymous user.
      *
      * @throws S3ServiceException
      */
-    public RestS3Service(ProviderCredentials credentials) throws S3ServiceException {
+    public GoogleStorageService(ProviderCredentials credentials) throws S3ServiceException {
         this(credentials, null, null);
     }
 
@@ -55,7 +55,7 @@ public class RestS3Service extends RestStorageService {
      * Constructs the service and initialises the properties.
      *
      * @param credentials
-     * the S3 user credentials to use when communicating with S3, may be null in which case the
+     * the user credentials to use when communicating with Google Storage, may be null in which case the
      * communication is done as an anonymous user.
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
@@ -67,7 +67,7 @@ public class RestS3Service extends RestStorageService {
      *
      * @throws S3ServiceException
      */
-    public RestS3Service(ProviderCredentials credentials, String invokingApplicationDescription,
+    public GoogleStorageService(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider) throws S3ServiceException
     {
         this(credentials, invokingApplicationDescription, credentialsProvider,
@@ -78,7 +78,7 @@ public class RestS3Service extends RestStorageService {
      * Constructs the service and initialises the properties.
      *
      * @param credentials
-     * the S3 user credentials to use when communicating with S3, may be null in which case the
+     * the user credentials to use when communicating with Google Storage, may be null in which case the
      * communication is done as an anonymous user.
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
@@ -92,7 +92,7 @@ public class RestS3Service extends RestStorageService {
      *
      * @throws S3ServiceException
      */
-    public RestS3Service(ProviderCredentials credentials, String invokingApplicationDescription,
+    public GoogleStorageService(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties)
         throws S3ServiceException
     {
@@ -104,7 +104,7 @@ public class RestS3Service extends RestStorageService {
      * Constructs the service and initialises the properties.
      *
      * @param credentials
-     * the S3 user credentials to use when communicating with S3, may be null in which case the
+     * the user credentials to use when communicating with Google Storage, may be null in which case the
      * communication is done as an anonymous user.
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
@@ -120,7 +120,7 @@ public class RestS3Service extends RestStorageService {
      *
      * @throws S3ServiceException
      */
-    public RestS3Service(ProviderCredentials credentials, String invokingApplicationDescription,
+    public GoogleStorageService(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties,
         HostConfiguration hostConfig) throws S3ServiceException
     {

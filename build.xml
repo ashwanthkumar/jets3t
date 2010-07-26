@@ -507,8 +507,20 @@
 		</java>
 	</target>
 
-        <target name="runCodeSamples" depends="compile">
+        <target name="runS3CodeSamples" depends="compile">
                 <java classname="org.jets3t.samples.CodeSamples" fork="true">
+
+                        <classpath>
+                                <fileset dir="${dir.libs}" includes="**/*.jar"/>
+                                <path path="${dir.build}" />
+                                <path path="${dir.resources}" />
+                                <path path="${dir.configs}" />
+                        </classpath>
+                </java>
+        </target>
+
+        <target name="runGSCodeSamples" depends="compile">
+                <java classname="org.jets3t.samples.GSCodeSamples" fork="true">
 
                         <classpath>
                                 <fileset dir="${dir.libs}" includes="**/*.jar"/>
