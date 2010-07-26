@@ -57,6 +57,8 @@ import org.jets3t.service.utils.ServiceUtils;
  */
 public class CodeSamples {
 
+    private static final String BUCKET_NAME = "test-bucket";
+
     public static void main(String[] args) throws Exception {
         /* ************
          * Code Samples
@@ -90,7 +92,7 @@ public class CodeSamples {
 
         // To store data in S3 you must first create a bucket, a container for objects.
 
-        S3Bucket testBucket = s3Service.createBucket("test-bucket");
+        S3Bucket testBucket = s3Service.createBucket(BUCKET_NAME);
         System.out.println("Created test bucket: " + testBucket.getName());
 
         // If you try using a common name, you will probably not be able to create the
@@ -307,7 +309,7 @@ public class CodeSamples {
         // Copy an existing source object to the target S3Object
         // This will copy the source's object data and metadata to the target object.
         boolean replaceMetadata = false;
-        s3Service.copyObject("test-bucket", "HelloWorld.txt", "destination-bucket", targetObject, replaceMetadata);
+        s3Service.copyObject(BUCKET_NAME, "HelloWorld.txt", "destination-bucket", targetObject, replaceMetadata);
 
         // You can also copy an object and update its metadata at the same time. Perform a
         // copy-in-place  (with the same bucket and object names for source and destination)
@@ -315,7 +317,7 @@ public class CodeSamples {
         targetObject = new S3Object("HelloWorld.txt");
         targetObject.addMetadata(S3Object.METADATA_HEADER_CONTENT_TYPE, "text/html");
         replaceMetadata = true;
-        s3Service.copyObject("test-bucket", "HelloWorld.txt", "test-bucket", targetObject, replaceMetadata);
+        s3Service.copyObject(BUCKET_NAME, "HelloWorld.txt", BUCKET_NAME, targetObject, replaceMetadata);
 
         /*
          * Moving and Renaming objects
@@ -328,13 +330,13 @@ public class CodeSamples {
         // operation fails, the object will exist in both the source and destination locations.
 
         // Here is a command that moves an object from one bucket to another.
-        s3Service.moveObject("test-bucket", "HelloWorld.txt", "destination-bucket", targetObject, false);
+        s3Service.moveObject(BUCKET_NAME, "HelloWorld.txt", "destination-bucket", targetObject, false);
 
         // You can move an object to a new name in the same bucket. This is essentially a rename operation.
-        s3Service.moveObject("test-bucket", "HelloWorld.txt", "test-bucket", new S3Object("NewName.txt"), false);
+        s3Service.moveObject(BUCKET_NAME, "HelloWorld.txt", BUCKET_NAME, new S3Object("NewName.txt"), false);
 
         // To make renaming easier, JetS3t has a shortcut method especially for this purpose.
-        s3Service.renameObject("test-bucket", "HelloWorld.txt", targetObject);
+        s3Service.renameObject(BUCKET_NAME, "HelloWorld.txt", targetObject);
 
         /*
          * Deleting objects and buckets
@@ -793,7 +795,6 @@ public class CodeSamples {
 
         // We will now create a POST form with a range of policy conditions,
         // that will allow users to upload image files to a protected bucket.
-        String bucketName = "test-bucket";
         String key = "uploads/images/pic.jpg";
 
         // Specify input fields to set the access permissions and content type
@@ -812,7 +813,7 @@ public class CodeSamples {
         // Note that our list of conditions must include a condition
         // corresponding to each of the additional input fields we specified above.
         String[] conditions = {
-            S3Service.generatePostPolicyCondition_Equality("bucket", bucketName),
+            S3Service.generatePostPolicyCondition_Equality("bucket", BUCKET_NAME),
             S3Service.generatePostPolicyCondition_Equality("key", key),
             S3Service.generatePostPolicyCondition_Range(10240, 204800),
             // Conditions to allow the additional fields specified above
@@ -828,7 +829,7 @@ public class CodeSamples {
 
         // Generate the form.
         String restrictedForm = S3Service.buildPostForm(
-            bucketName, key, awsCredentials, expiration, conditions,
+            BUCKET_NAME, key, awsCredentials, expiration, conditions,
             inputFields, null, true);
 
         /*
@@ -842,13 +843,13 @@ public class CodeSamples {
         // the S3 request and data transfer fees, instead of the bucket's owner.
 
         // Set a bucket to be Requester Pays
-        s3Service.setRequesterPaysBucket(bucketName, true);
+        s3Service.setRequesterPaysBucket(BUCKET_NAME, true);
 
         // Set a bucket to be Owner pays (the default value for S3 buckets)
-        s3Service.setRequesterPaysBucket(bucketName, false);
+        s3Service.setRequesterPaysBucket(BUCKET_NAME, false);
 
         // Find out whether a bucket is configured as Requester pays
-        s3Service.isRequesterPaysBucket(bucketName);
+        s3Service.isRequesterPaysBucket(BUCKET_NAME);
 
         /*
          * Access a Requester Pays bucket when you are not the bucket's owner
@@ -887,7 +888,7 @@ public class CodeSamples {
         boolean isDnsBucketNamingDisabled = false;
 
         String requesterPaysSignedGetUrl =
-            s3Service.createSignedUrl("GET", bucketName, "object-name",
+            s3Service.createSignedUrl("GET", BUCKET_NAME, "object-name",
                 Constants.REQUESTER_PAYS_BUCKET_FLAG, // Include Requester Pays flag
                 httpHeaders, expirySecsAfterEpoch,
                 isVirtualHost, isHttpsUrl,
@@ -912,7 +913,7 @@ public class CodeSamples {
         devPayService.listAllBuckets();
 
         // You can also generate signed URLs for DevPay S3 accounts. Here is the
-        // code to generate a linke that makes an object in a DevPay account
+        // code to generate a link that makes an object in a DevPay account
         // temporary available for public download.
 
         cal = Calendar.getInstance();
