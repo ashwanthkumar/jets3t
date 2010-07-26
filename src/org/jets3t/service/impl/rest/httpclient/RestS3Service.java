@@ -145,7 +145,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
     /**
      * Constructs the service and initialises the properties.
      *
-     * @param awsCredentials
+     * @param credentials
      * the S3 user credentials to use when communicating with S3, may be null in which case the
      * communication is done as an anonymous user.
      * @param invokingApplicationDescription
@@ -171,7 +171,7 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
     /**
      * Constructs the service and initialises the properties.
      *
-     * @param awsCredentials
+     * @param credentials
      * the S3 user credentials to use when communicating with S3, may be null in which case the
      * communication is done as an anonymous user.
      * @param invokingApplicationDescription
@@ -2397,33 +2397,6 @@ public class RestS3Service extends S3Service implements SignedUrlHandler, AWSReq
         }
 
         return responseObject;
-    }
-
-    /**
-     * Simple container object to store an HttpMethod object representing a request connection, and a
-     * count of the byte size of the S3 object associated with the request.
-     * <p>
-     * This object is used when S3 objects are created to associate the connection and the actual size
-     * of the object as reported back by S3.
-     *
-     * @author James Murty
-     */
-    public class HttpMethodAndByteCount {
-        private HttpMethodBase httpMethod = null;
-        private long byteCount = 0;
-
-        public HttpMethodAndByteCount(HttpMethodBase httpMethod, long byteCount) {
-            this.httpMethod = httpMethod;
-            this.byteCount = byteCount;
-        }
-
-        public HttpMethodBase getHttpMethod() {
-            return httpMethod;
-        }
-
-        public long getByteCount() {
-            return byteCount;
-        }
     }
 
 }
