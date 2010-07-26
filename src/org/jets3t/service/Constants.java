@@ -29,6 +29,7 @@ import java.io.File;
 public class Constants {
 
     public static String S3_DEFAULT_HOSTNAME = "s3.amazonaws.com";
+    public static String GS_DEFAULT_HOSTNAME = "commondatastorage.googleapis.com";
 
     ////////////////////////////////////
     // Default file names and locations.

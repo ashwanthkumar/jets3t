@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.util.Properties;
 
 import org.jets3t.service.security.AWSCredentials;
+import org.jets3t.service.security.GSCredentials;
 
 /**
  * Utilities used by all Sample code, collected in one place for convenience.
@@ -34,6 +35,8 @@ public class SamplesUtils {
     public static final String SAMPLES_PROPERTIES_NAME = "samples.properties";
     public static final String AWS_ACCESS_KEY_PROPERTY_NAME = "awsAccessKey";
     public static final String AWS_SECRET_KEY_PROPERTY_NAME = "awsSecretKey";
+    public static final String GS_ACCESS_KEY_PROPERTY_NAME = "gsAccessKey";
+    public static final String GS_SECRET_KEY_PROPERTY_NAME = "gsSecretKey";
 
     /**
      * Loads AWS Credentials from the file <tt>samples.properties</tt>
@@ -71,5 +74,42 @@ public class SamplesUtils {
 
         return awsCredentials;
     }
+
+    /**
+     * Loads Google Storage Credentials from the file <tt>samples.properties</tt>
+     * ({@link #SAMPLES_PROPERTIES_NAME}) that must be available in the
+     * classpath, and must contain settings <tt>awsAccessKey</tt> and
+     * <tt>awsSecretKey</tt>.
+     *
+     * @return
+     * the Google Storage  credentials loaded from the samples properties file.
+     */
+    public static GSCredentials loadGSCredentials() throws IOException {
+        InputStream propertiesIS =
+            ClassLoader.getSystemResourceAsStream(SAMPLES_PROPERTIES_NAME);
+
+        if (propertiesIS == null) {
+            throw new RuntimeException("Unable to load test properties file from classpath: "
+                + SAMPLES_PROPERTIES_NAME);
+        }
+
+        Properties testProperties = new Properties();
+        testProperties.load(propertiesIS);
+
+        if (!testProperties.containsKey(GS_ACCESS_KEY_PROPERTY_NAME)) {
+            throw new RuntimeException(
+                "Properties file 'test.properties' does not contain required property: " + GS_ACCESS_KEY_PROPERTY_NAME);
+        }
+        if (!testProperties.containsKey(GS_SECRET_KEY_PROPERTY_NAME)) {
+            throw new RuntimeException(
+                "Properties file 'test.properties' does not contain required property: " + GS_SECRET_KEY_PROPERTY_NAME);
+        }
+
+        GSCredentials gsCredentials = new GSCredentials(
+            testProperties.getProperty(AWS_ACCESS_KEY_PROPERTY_NAME),
+            testProperties.getProperty(AWS_SECRET_KEY_PROPERTY_NAME));
+
+        return gsCredentials;
+     }
 
 }
