@@ -19,11 +19,17 @@
 package org.jets3t.service.impl.rest.httpclient;
 
 import org.apache.commons.httpclient.HostConfiguration;
+import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.auth.CredentialsProvider;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.security.AWSDevPayCredentials;
 import org.jets3t.service.security.ProviderCredentials;
+
+import java.util.Map;
 
 /**
  * REST/HTTP implementation of an S3Service based on the
@@ -37,6 +43,13 @@ import org.jets3t.service.security.ProviderCredentials;
  * @author James Murty
  */
 public class RestS3Service extends RestStorageService {
+
+    private static final Log log = LogFactory.getLog(RestS3Service.class);
+
+    private String awsDevPayUserToken = null;
+    private String awsDevPayProductToken = null;
+
+    private boolean isRequesterPaysEnabled = false;
 
     /**
      * Constructs the service and initialises the properties.
@@ -125,6 +138,191 @@ public class RestS3Service extends RestStorageService {
         HostConfiguration hostConfig) throws S3ServiceException
     {
         super(credentials, invokingApplicationDescription, credentialsProvider, jets3tProperties, hostConfig);
+
+        if (credentials instanceof AWSDevPayCredentials) {
+            AWSDevPayCredentials awsDevPayCredentials = (AWSDevPayCredentials) credentials;
+            this.awsDevPayUserToken = awsDevPayCredentials.getUserToken();
+            this.awsDevPayProductToken = awsDevPayCredentials.getProductToken();
+        } else {
+            this.awsDevPayUserToken = jets3tProperties.getStringProperty("devpay.user-token", null);
+            this.awsDevPayProductToken = jets3tProperties.getStringProperty("devpay.product-token", null);
+        }
+
+        this.setRequesterPaysEnabled(
+            this.jets3tProperties.getBoolProperty("httpclient.requester-pays-buckets-enabled", false));
+    }
+
+    /**
+     * Set the User Token value to use for requests to a DevPay S3 account.
+     * The user token is not required for DevPay web products for which the
+     * user token was created after 15th May 2008.
+     *
+     * @param userToken
+     * the user token value provided by the AWS DevPay activation service.
+     */
+    public void setDevPayUserToken(String userToken) {
+        this.awsDevPayUserToken = userToken;
+    }
+
+    /**
+     * @return
+     * the user token value to use in requests to a DevPay S3 account, or null
+     * if no such token value has been set.
+     */
+    public String getDevPayUserToken() {
+        return this.awsDevPayUserToken;
+    }
+
+    /**
+     * Set the Product Token value to use for requests to a DevPay S3 account.
+     *
+     * @param productToken
+     * the token that identifies your DevPay product.
+     */
+    public void setDevPayProductToken(String productToken) {
+        this.awsDevPayProductToken = productToken;
+    }
+
+    /**
+     * @return
+     * the product token value to use in requests to a DevPay S3 account, or
+     * null if no such token value has been set.
+     */
+    public String getDevPayProductToken() {
+        return this.awsDevPayProductToken;
+    }
+
+    /**
+     * Instruct the service whether to generate Requester Pays requests when
+     * uploading data to S3, or retrieving data from the service. The default
+     * value for the Requester Pays Enabled setting is set according to the
+     * jets3t.properties setting
+     * <code>httpclient.requester-pays-buckets-enabled</code>.
+     *
+     * @param isRequesterPays
+     * if true, all subsequent S3 service requests will include the Requester
+     * Pays flag.
+     */
+    public void setRequesterPaysEnabled(boolean isRequesterPays) {
+        this.isRequesterPaysEnabled = isRequesterPays;
+    }
+
+    /**
+     * Is this service configured to generate Requester Pays requests when
+     * uploading data to S3, or retrieving data from the service. The default
+     * value for the Requester Pays Enabled setting is set according to the
+     * jets3t.properties setting
+     * <code>httpclient.requester-pays-buckets-enabled</code>.
+     *
+     * @return
+     * true if S3 service requests will include the Requester Pays flag, false
+     * otherwise.
+     */
+    public boolean isRequesterPaysEnabled() {
+        return this.isRequesterPaysEnabled;
+    }
+
+    /**
+     * Creates an {@link org.apache.commons.httpclient.HttpMethod} object to handle a particular connection method.
+     *
+     * @param method
+     *        the HTTP method/connection-type to use, must be one of: PUT, HEAD, GET, DELETE
+     * @param bucketName
+     *        the bucket's name
+     * @param objectKey
+     *        the object's key name, may be null if the operation is on a bucket only.
+     * @return
+     *        the HTTP method object used to perform the request
+     *
+     * @throws org.jets3t.service.S3ServiceException
+     */
+    protected HttpMethodBase setupConnection(String method, String bucketName, String objectKey,
+    	Map requestParameters) throws S3ServiceException
+    {
+        HttpMethodBase httpMethod = super.setupConnection(method, bucketName, objectKey, requestParameters);
+
+        // Set DevPay request headers.
+        if (getDevPayUserToken() != null || getDevPayProductToken() != null) {
+            // DevPay tokens have been provided, include these with the request.
+            if (getDevPayProductToken() != null) {
+                String securityToken = getDevPayUserToken() + "," + getDevPayProductToken();
+                httpMethod.setRequestHeader(Constants.AMZ_SECURITY_TOKEN, securityToken);
+                if (log.isDebugEnabled()) {
+                    log.debug("Including DevPay user and product tokens in request: "
+                        + Constants.AMZ_SECURITY_TOKEN + "=" + securityToken);
+                }
+            } else {
+                httpMethod.setRequestHeader(Constants.AMZ_SECURITY_TOKEN, getDevPayUserToken());
+                if (log.isDebugEnabled()) {
+                    log.debug("Including DevPay user token in request: "
+                        + Constants.AMZ_SECURITY_TOKEN + "=" + getDevPayUserToken());
+                }
+            }
+        }
+
+        // Set Requester Pays header to allow access to these buckets.
+        if (this.isRequesterPaysEnabled()) {
+            String[] requesterPaysHeaderAndValue = Constants.REQUESTER_PAYS_BUCKET_FLAG.split("=");
+            httpMethod.setRequestHeader(requesterPaysHeaderAndValue[0], requesterPaysHeaderAndValue[1]);
+            if (log.isDebugEnabled()) {
+                log.debug("Including Requester Pays header in request: " +
+                    Constants.REQUESTER_PAYS_BUCKET_FLAG);
+            }
+        }
+
+        return httpMethod;
+    }
+
+    /**
+     * @return
+     * the endpoint to be used to connect to S3.
+     */
+    protected String getEndpoint() {
+    	return this.jets3tProperties.getStringProperty(
+                "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
+    }
+
+    /**
+     * @return
+     * the virtual path inside the S3 server.
+     */
+    protected String getVirtualPath() {
+    	return this.jets3tProperties.getStringProperty(
+                "s3service.s3-endpoint-virtual-path", "");
+    }
+
+    /**
+     * @return
+     * the port number to be used for insecure connections over HTTP.
+     */
+    protected int getHttpPort() {
+      return this.jets3tProperties.getIntProperty("s3service.s3-endpoint-http-port", 80);
+    }
+
+    /**
+     * @return
+     * the port number to be used for secure connections over HTTPS.
+     */
+    protected int getHttpsPort() {
+      return this.jets3tProperties.getIntProperty("s3service.s3-endpoint-https-port", 443);
+    }
+
+    /**
+     * @return
+     * If true, all communication with S3 will be via encrypted HTTPS connections, 
+     * otherwise communications will be sent unencrypted via HTTP.
+     */
+    protected boolean getHttpsOnly() {
+      return this.jets3tProperties.getBoolProperty("s3service.https-only", true);
+    }
+
+    /**
+     * @return
+     * If true, JetS3t will specify bucket names in the request path of the HTTP message
+     * instead of the Host header.
+     */
+    protected boolean getDisableDnsBuckets() {
+      return this.jets3tProperties.getBoolProperty("s3service.disable-dns-buckets", false);
     }
 
 }

@@ -106,8 +106,8 @@ public class SamplesUtils {
         }
 
         GSCredentials gsCredentials = new GSCredentials(
-            testProperties.getProperty(AWS_ACCESS_KEY_PROPERTY_NAME),
-            testProperties.getProperty(AWS_SECRET_KEY_PROPERTY_NAME));
+            testProperties.getProperty(GS_ACCESS_KEY_PROPERTY_NAME),
+            testProperties.getProperty(GS_SECRET_KEY_PROPERTY_NAME));
 
         return gsCredentials;
      }

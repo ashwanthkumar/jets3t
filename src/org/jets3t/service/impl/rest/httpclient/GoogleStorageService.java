@@ -127,4 +127,56 @@ public class GoogleStorageService extends RestStorageService {
         super(credentials, invokingApplicationDescription, credentialsProvider, jets3tProperties, hostConfig);
     }
 
+    /**
+     * @return
+     * the endpoint to be used to connect to Google Storage.
+     */
+    protected String getEndpoint() {
+    	return this.jets3tProperties.getStringProperty(
+                "gsservice.gs-endpoint", Constants.GS_DEFAULT_HOSTNAME);
+    }
+
+    /**
+     * @return
+     * the virtual path inside the S3 server.
+     */
+    protected String getVirtualPath() {
+    	return this.jets3tProperties.getStringProperty(
+                "gsservice.gs-endpoint-virtual-path", "");
+    }
+
+    /**
+     * @return
+     * the port number to be used for insecure connections over HTTP.
+     */
+    protected int getHttpPort() {
+      return this.jets3tProperties.getIntProperty("gsservice.gs-endpoint-http-port", 80);
+    }
+
+    /**
+     * @return
+     * the port number to be used for secure connections over HTTPS.
+     */
+    protected int getHttpsPort() {
+      return this.jets3tProperties.getIntProperty("gsservice.gs-endpoint-https-port", 443);
+    }
+
+    /**
+     * @return
+     * If true, all communication with GS will be via encrypted HTTPS connections,
+     * otherwise communications will be sent unencrypted via HTTP
+     */
+    protected boolean getHttpsOnly() {
+      return this.jets3tProperties.getBoolProperty("gsservice.https-only", true);
+    }
+
+    /**
+     * @return
+     * If true, JetS3t will specify bucket names in the request path of the HTTP message
+     * instead of the Host header.
+     */
+    protected boolean getDisableDnsBuckets() {
+      return this.jets3tProperties.getBoolProperty("gsservice.disable-dns-buckets", false);
+    }
+
 }

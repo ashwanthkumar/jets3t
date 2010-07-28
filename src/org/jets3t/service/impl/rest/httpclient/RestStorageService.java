@@ -197,9 +197,6 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         this.httpClient = initHttpResult.getHttpClient();
         this.connectionManager = initHttpResult.getHttpConnectionManager();
 
-        this.setRequesterPaysEnabled(
-            this.jets3tProperties.getBoolProperty("httpclient.requester-pays-buckets-enabled", false));
-
         this.defaultStorageClass = this.jets3tProperties.getStringProperty(
             "s3service.defaultStorageClass", null);
 
@@ -1044,12 +1041,11 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         String hostname = ServiceUtils.generateS3HostnameForBucket(bucketName, disableDnsBuckets, s3Endpoint);
 
         // Allow for non-standard virtual directory paths on the server-side
-        String virtualPath = this.jets3tProperties.getStringProperty(
-            "s3service.s3-endpoint-virtual-path", "");
+        String virtualPath = this.getVirtualPath();
 
     	// Determine the resource string (ie the item's path in S3, including the bucket name)
         String resourceString = "/";
-        if (hostname.equals(s3Endpoint) && bucketName != null && bucketName.length() > 0) {
+        if (hostname.equals(s3Endpoint) && bucketName.length() > 0) {
             resourceString += bucketName + "/";
         }
         resourceString += (objectKey != null? RestUtils.encodeUrlString(objectKey) : "");
@@ -1057,10 +1053,10 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
     	// Construct a URL representing a connection for the S3 resource.
         String url = null;
         if (isHttpsOnly()) {
-            int securePort = this.jets3tProperties.getIntProperty("s3service.s3-endpoint-https-port", 443);
+            int securePort = this.getHttpsPort();
             url = "https://" + hostname + ":" + securePort + virtualPath + resourceString;
         } else {
-            int insecurePort = this.jets3tProperties.getIntProperty("s3service.s3-endpoint-http-port", 80);
+            int insecurePort = this.getHttpPort();
             url = "http://" + hostname + ":" + insecurePort + virtualPath + resourceString;
         }
         if (log.isDebugEnabled()) {
@@ -1090,35 +1086,6 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         }
         if (httpMethod.getRequestHeader("Content-Type") == null) {
             httpMethod.setRequestHeader("Content-Type", "");
-        }
-
-        // Set DevPay request headers.
-        if (getDevPayUserToken() != null || getDevPayProductToken() != null) {
-            // DevPay tokens have been provided, include these with the request.
-            if (getDevPayProductToken() != null) {
-                String securityToken = getDevPayUserToken() + "," + getDevPayProductToken();
-                httpMethod.setRequestHeader(Constants.AMZ_SECURITY_TOKEN, securityToken);
-                if (log.isDebugEnabled()) {
-                    log.debug("Including DevPay user and product tokens in request: "
-                        + Constants.AMZ_SECURITY_TOKEN + "=" + securityToken);
-                }
-            } else {
-                httpMethod.setRequestHeader(Constants.AMZ_SECURITY_TOKEN, getDevPayUserToken());
-                if (log.isDebugEnabled()) {
-                    log.debug("Including DevPay user token in request: "
-                        + Constants.AMZ_SECURITY_TOKEN + "=" + getDevPayUserToken());
-                }
-            }
-        }
-
-        // Set Requester Pays header to allow access to these buckets.
-        if (this.isRequesterPaysEnabled()) {
-            String[] requesterPaysHeaderAndValue = Constants.REQUESTER_PAYS_BUCKET_FLAG.split("=");
-            httpMethod.setRequestHeader(requesterPaysHeaderAndValue[0], requesterPaysHeaderAndValue[1]);
-            if (log.isDebugEnabled()) {
-                log.debug("Including Requester Pays header in request: " +
-                    Constants.REQUESTER_PAYS_BUCKET_FLAG);
-            }
         }
 
         return httpMethod;

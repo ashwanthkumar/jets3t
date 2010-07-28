@@ -18,9 +18,17 @@
  */
 package org.jets3t.samples;
 
+import org.jets3t.service.Constants;
 import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
 import org.jets3t.service.model.S3Bucket;
+import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.GSCredentials;
+import org.jets3t.service.utils.ServiceUtils;
+
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.InputStreamReader;
 
 /**
  * This class includes all the code samples as listed in the Google Storage
@@ -35,6 +43,7 @@ import org.jets3t.service.security.GSCredentials;
 public class GSCodeSamples {
 
     private static final String BUCKET_NAME = "test-bucket";
+    private static final String TEST_OBJECT_NAME = "helloworld.txt";
 
     public static void main(String[] args) throws Exception {
         /* ************
@@ -74,6 +83,182 @@ public class GSCodeSamples {
 
         // If you try using a common name, you will probably not be able to create the
         // bucket as someone else will already have a bucket of that name.
+
+        /*
+         * Uploading data objects
+         */
+
+        // We use S3Object classes to represent data objects in S3. To store some information in our
+        // new test bucket, we must first create an object with a key/name then tell our
+        // GSService to upload it to GS.
+
+        // In the example below, we print out information about the S3Object before and after
+        // uploading it to GS. These print-outs demonstrate that the S3Object returned by the
+        // putObject method contains extra information provided by GS, such as the date the
+        // object was last modified on a GS server.
+
+        // Create an empty object with a key/name, and print the object's details.
+        S3Object object = new S3Object("object");
+        System.out.println("S3Object before upload: " + object);
+
+        // Upload the object to our test bucket in GS.
+        object = gsService.putObject(testBucket, object);
+
+        // Print the details about the uploaded object, which contains more information.
+        System.out.println("S3Object after upload: " + object);
+
+        // The example above will create an empty object in GS, which isn't very useful.
+        // To include data in the object you must provide some data for the object.
+        // If you know the Content/Mime type of the data (e.g. text/plain) you should set this too.
+
+        // S3Object's can contain any data available from an input stream, but JetS3t provides two
+        // convenient object types to hold File or String data. These convenient constructors
+        // automatically set the Content-Type and Content-Length of the object.
+
+        // Create an S3Object based on a string, with Content-Length set automatically and
+        // Content-Type set to "text/plain"
+        String stringData = "Hello World!";
+        S3Object stringObject = new S3Object(TEST_OBJECT_NAME, stringData);
+
+        // Create an S3Object based on a file, with Content-Length set automatically and
+        // Content-Type set based on the file's extension (using the Mimetypes utility class)
+        File fileData = new File("src/org/jets3t/samples/GSCodeSamples.java");
+        S3Object fileObject = new S3Object(fileData);
+
+        // If your data isn't a File or String you can use any input stream as a data source,
+        // but you must manually set the Content-Length.
+
+        // Create an object containing a greeting string as input stream data.
+        String greeting = "Hello World!";
+        S3Object helloWorldObject = new S3Object("HelloWorld2.txt");
+        ByteArrayInputStream greetingIS = new ByteArrayInputStream(
+            greeting.getBytes(Constants.DEFAULT_ENCODING));
+        helloWorldObject.setDataInputStream(greetingIS);
+        helloWorldObject.setContentLength(
+            greeting.getBytes(Constants.DEFAULT_ENCODING).length);
+        helloWorldObject.setContentType("text/plain");
+
+        // Upload the data objects.
+        gsService.putObject(testBucket, stringObject);
+        gsService.putObject(testBucket, fileObject);
+        gsService.putObject(testBucket, helloWorldObject);
+
+        // Print details about the uploaded object.
+        System.out.println("S3Object with data: " + helloWorldObject);
+
+        /*
+         * Verifying Uploads
+         */
+
+        // To be 100% sure that data you have uploaded to GS has not been
+        // corrupted in transit, you can verify that the hash value of the data
+        // GS received matches the hash value of your original data.
+
+        // The easiest way to do this is to specify your data's hash value
+        // in the Content-MD5 header before you upload the object. JetS3t will
+        // do this for you automatically when you use the File- or String-based
+        // S3Object constructors:
+
+        S3Object objectWithHash = new S3Object(TEST_OBJECT_NAME, stringData);
+        System.out.println("Hash value: " + objectWithHash.getMd5HashAsHex());
+
+        // If you do not use these constructors, you should *always* set the
+        // Content-MD5 header value yourself before you upload an object.
+        // JetS3t provides the ServiceUtils#computeMD5Hash method to calculate
+        // the hash value of an input stream or byte array.
+
+        ByteArrayInputStream dataIS = new ByteArrayInputStream(
+            "Here is my data".getBytes(Constants.DEFAULT_ENCODING));
+        byte[] md5Hash = ServiceUtils.computeMD5Hash(dataIS);
+        dataIS.reset();
+
+        stringObject = new S3Object("MyData");
+        stringObject.setDataInputStream(dataIS);
+        stringObject.setMd5Hash(md5Hash);
+
+        /*
+         * Downloading data objects
+         */
+
+        // To download data from GS you retrieve an S3Object through the GSService.
+        // You may retrieve an object in one of two ways, with the data contents or without.
+
+        // If you just want to know some details about an object and you don't need its contents,
+        // it's faster to use the getObjectDetails method. This returns only the object's details,
+        // also known as its 'HEAD'. Head information includes the object's size, date, and other
+        // metadata associated with it such as the Content Type.
+
+        // Retrieve the HEAD of the data object we created previously.
+        S3Object objectDetailsOnly = gsService.getObjectDetails(testBucket, TEST_OBJECT_NAME);
+        System.out.println("S3Object, details only: " + objectDetailsOnly);
+
+        // If you need the data contents of the object, the getObject method will return all the
+        // object's details and will also set the object's DataInputStream variable from which
+        // the object's data can be read.
+
+        // Retrieve the whole data object we created previously
+        S3Object objectComplete = gsService.getObject(testBucket, TEST_OBJECT_NAME);
+        System.out.println("S3Object, complete: " + objectComplete);
+
+        // Read the data from the object's DataInputStream using a loop, and print it out.
+        System.out.println("Greeting:");
+        BufferedReader reader = new BufferedReader(
+            new InputStreamReader(objectComplete.getDataInputStream()));
+        String data;
+        while ((data = reader.readLine()) != null) {
+            System.out.println(data);
+        }
+
+        /*
+         * Verifying Downloads
+         */
+
+        // To be 100% sure that data you have downloaded from GS has not been
+        // corrupted in transit, you can verify the data by calculating its hash
+        // value and comparing this against the hash value returned by GS.
+
+        // JetS3t provides convenient methods for verifying data that has been
+        // downloaded to a File, byte array or InputStream.
+
+        S3Object downloadedObject = gsService.getObject(testBucket, TEST_OBJECT_NAME);
+        String textData = ServiceUtils.readInputStreamToString(
+            downloadedObject.getDataInputStream(), "UTF-8");
+        boolean valid = downloadedObject.verifyData(textData.getBytes("UTF-8"));
+        System.out.println("Object verified? " + valid);
+
+        /*
+         * List your buckets and objects
+         */
+
+        // Now that you have a bucket and some objects, it's worth listing them. Note that when
+        // you list objects, the objects returned will not include much information compared to
+        // what you get from the getObject and getObjectDetails methods. However, they will
+        // include the size of each object
+
+        // List all your buckets.
+        S3Bucket[] buckets = gsService.listAllBuckets();
+
+        // List the object contents of each bucket.
+        for (int b = 0; b < buckets.length; b++) {
+            System.out.println("Bucket '" + buckets[b].getName() + "' contains:");
+
+            // List the objects in this bucket.
+            S3Object[] objects = gsService.listObjects(buckets[b]);
+
+            // Print out each object's key and size.
+            for (int o = 0; o < objects.length; o++) {
+                System.out.println(" " + objects[o].getKey() + " (" + objects[o].getContentLength() + " bytes)");
+            }
+        }
+
+        // When listing the objects in a bucket you can filter which objects to return based on
+        // the names of those objects. This is useful when you are only interested in some
+        // specific objects in a bucket and you don't need to list all the bucket's contents.
+
+        // List only objects whose keys match a prefix.
+        String prefix = "Reports";
+        String delimiter = null; // Refer to the S3 guide for more information on delimiters
+        S3Object[] filteredObjects = gsService.listObjects(testBucket, prefix, delimiter);
 
     }
 

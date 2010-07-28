@@ -58,6 +58,7 @@ import org.jets3t.service.utils.ServiceUtils;
 public class CodeSamples {
 
     private static final String BUCKET_NAME = "test-bucket";
+    private static final String TEST_OBJECT_NAME = "helloworld.txt";
 
     public static void main(String[] args) throws Exception {
         /* ************
@@ -78,7 +79,7 @@ public class CodeSamples {
         // We will use the REST/HTTP implementation based on HttpClient, as this is the most
         // robust implementation provided with jets3t.
 
-        S3Service s3Service = new RestS3Service(awsCredentials);
+        RestS3Service s3Service = new RestS3Service(awsCredentials);
 
         // A good test to see if your S3Service can connect to S3 is to list all the buckets you own.
         // If a bucket listing produces no exceptions, all is well.
@@ -144,7 +145,7 @@ public class CodeSamples {
         // Create an S3Object based on a string, with Content-Length set automatically and
         // Content-Type set to "text/plain"
         String stringData = "Hello World!";
-        S3Object stringObject = new S3Object("HelloWorld.txt", stringData);
+        S3Object stringObject = new S3Object(TEST_OBJECT_NAME, stringData);
 
         // Create an S3Object based on a file, with Content-Length set automatically and
         // Content-Type set based on the file's extension (using the Mimetypes utility class)
@@ -196,7 +197,7 @@ public class CodeSamples {
         // do this for you automatically when you use the File- or String-based
         // S3Object constructors:
 
-        S3Object objectWithHash = new S3Object("HelloWorld.txt", stringData);
+        S3Object objectWithHash = new S3Object(TEST_OBJECT_NAME, stringData);
         System.out.println("Hash value: " + objectWithHash.getMd5HashAsHex());
 
         // If you do not use these constructors, you should *always* set the
@@ -226,7 +227,7 @@ public class CodeSamples {
         // metadata associated with it such as the Content Type.
 
         // Retrieve the HEAD of the data object we created previously.
-        S3Object objectDetailsOnly = s3Service.getObjectDetails(testBucket, "helloWorld.txt");
+        S3Object objectDetailsOnly = s3Service.getObjectDetails(testBucket, TEST_OBJECT_NAME);
         System.out.println("S3Object, details only: " + objectDetailsOnly);
 
         // If you need the data contents of the object, the getObject method will return all the
@@ -234,7 +235,7 @@ public class CodeSamples {
         // the object's data can be read.
 
         // Retrieve the whole data object we created previously
-        S3Object objectComplete = s3Service.getObject(testBucket, "helloWorld.txt");
+        S3Object objectComplete = s3Service.getObject(testBucket, TEST_OBJECT_NAME);
         System.out.println("S3Object, complete: " + objectComplete);
 
         // Read the data from the object's DataInputStream using a loop, and print it out.
@@ -257,7 +258,7 @@ public class CodeSamples {
         // JetS3t provides convenient methods for verifying data that has been
         // downloaded to a File, byte array or InputStream.
 
-        S3Object downloadedObject = s3Service.getObject(testBucket, "helloWorld.txt");
+        S3Object downloadedObject = s3Service.getObject(testBucket, TEST_OBJECT_NAME);
         String textData = ServiceUtils.readInputStreamToString(
             downloadedObject.getDataInputStream(), "UTF-8");
         boolean valid = downloadedObject.verifyData(textData.getBytes("UTF-8"));
@@ -309,15 +310,15 @@ public class CodeSamples {
         // Copy an existing source object to the target S3Object
         // This will copy the source's object data and metadata to the target object.
         boolean replaceMetadata = false;
-        s3Service.copyObject(BUCKET_NAME, "HelloWorld.txt", "destination-bucket", targetObject, replaceMetadata);
+        s3Service.copyObject(BUCKET_NAME, TEST_OBJECT_NAME, "destination-bucket", targetObject, replaceMetadata);
 
         // You can also copy an object and update its metadata at the same time. Perform a
         // copy-in-place  (with the same bucket and object names for source and destination)
         // to update an object's metadata while leaving the object's data unchanged.
-        targetObject = new S3Object("HelloWorld.txt");
+        targetObject = new S3Object(TEST_OBJECT_NAME);
         targetObject.addMetadata(S3Object.METADATA_HEADER_CONTENT_TYPE, "text/html");
         replaceMetadata = true;
-        s3Service.copyObject(BUCKET_NAME, "HelloWorld.txt", BUCKET_NAME, targetObject, replaceMetadata);
+        s3Service.copyObject(BUCKET_NAME, TEST_OBJECT_NAME, BUCKET_NAME, targetObject, replaceMetadata);
 
         /*
          * Moving and Renaming objects
@@ -330,13 +331,13 @@ public class CodeSamples {
         // operation fails, the object will exist in both the source and destination locations.
 
         // Here is a command that moves an object from one bucket to another.
-        s3Service.moveObject(BUCKET_NAME, "HelloWorld.txt", "destination-bucket", targetObject, false);
+        s3Service.moveObject(BUCKET_NAME, TEST_OBJECT_NAME, "destination-bucket", targetObject, false);
 
         // You can move an object to a new name in the same bucket. This is essentially a rename operation.
-        s3Service.moveObject(BUCKET_NAME, "HelloWorld.txt", BUCKET_NAME, new S3Object("NewName.txt"), false);
+        s3Service.moveObject(BUCKET_NAME, TEST_OBJECT_NAME, BUCKET_NAME, new S3Object("NewName.txt"), false);
 
         // To make renaming easier, JetS3t has a shortcut method especially for this purpose.
-        s3Service.renameObject(BUCKET_NAME, "HelloWorld.txt", targetObject);
+        s3Service.renameObject(BUCKET_NAME, TEST_OBJECT_NAME, targetObject);
 
         /*
          * Deleting objects and buckets
