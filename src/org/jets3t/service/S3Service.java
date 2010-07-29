@@ -20,6 +20,7 @@ package org.jets3t.service;
 
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -27,8 +28,20 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.apache.commons.httpclient.HostConfiguration;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.NTCredentials;
+import org.apache.commons.httpclient.ProxyHost;
+import org.apache.commons.httpclient.UsernamePasswordCredentials;
+import org.apache.commons.httpclient.auth.AuthScope;
+import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.acl.AccessControlList;
@@ -433,7 +446,7 @@ public abstract class S3Service implements Serializable {
 
         String canonicalString = RestUtils.makeS3CanonicalString(method,
             serviceEndpointVirtualPath + "/" + virtualBucketPath + uriPath,
-            RestUtils.renameMetadataKeys(headersMap), String.valueOf(secondsSinceEpoch));
+            renameMetadataKeys(headersMap), String.valueOf(secondsSinceEpoch), this.getRestHeaderPrefix());
         if (log.isDebugEnabled()) {
             log.debug("Signing canonical string:\n" + canonicalString);
         }
@@ -3707,6 +3720,37 @@ public abstract class S3Service implements Serializable {
         return new Date(System.currentTimeMillis() + timeOffset);
     }
 
+    /**
+     * Renames metadata property names to be suitable for use as HTTP Headers. This is done
+     * by renaming any non-HTTP headers to have the prefix <code>x-amz-meta-</code> and leaving the
+     * HTTP header names unchanged. The HTTP header names left unchanged are those found in
+     * {@link #HTTP_HEADER_METADATA_NAMES}
+     *
+     * @param metadata
+     * @return
+     * a map of metadata property name/value pairs renamed to be suitable for use as HTTP headers.
+     */
+    public Map renameMetadataKeys(Map metadata) {
+        Map convertedMetadata = new HashMap();
+        // Add all meta-data headers.
+        if (metadata != null) {
+            Iterator metaDataIter = metadata.entrySet().iterator();
+            while (metaDataIter.hasNext()) {
+                Map.Entry entry = (Map.Entry) metaDataIter.next();
+                String key = (String) entry.getKey();
+                Object value = entry.getValue();
+
+                if (!RestUtils.HTTP_HEADER_METADATA_NAMES.contains(key.toLowerCase(Locale.getDefault()))
+                    && !key.startsWith(this.getRestHeaderPrefix()))
+                {
+                    key = this.getRestMetadataPrefix() + key;
+                }
+                convertedMetadata.put(key, value);
+            }
+        }
+        return convertedMetadata;
+    }
+
     // /////////////////////////////////////////////////////////////////////////////////
     // Abstract methods that must be implemented by interface-specific S3Service classes
     // /////////////////////////////////////////////////////////////////////////////////
@@ -3957,6 +4001,9 @@ public abstract class S3Service implements Serializable {
 
     protected abstract String getEndpoint();
     protected abstract String getVirtualPath();
+    protected abstract String getSignatureIdentifier();
+    protected abstract String getRestHeaderPrefix();
+    protected abstract String getRestMetadataPrefix();
     protected abstract int getHttpPort();
     protected abstract int getHttpsPort();
     protected abstract boolean getHttpsOnly();

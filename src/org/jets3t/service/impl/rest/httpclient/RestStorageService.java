@@ -75,6 +75,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -92,9 +93,6 @@ import javax.xml.parsers.ParserConfigurationException;
  */
 public abstract class RestStorageService extends S3Service implements SignedUrlHandler, AWSRequestAuthorizer {
     private static final long serialVersionUID = -2374187385305273212L;
-
-    public static final String VERSION = "2006-03-01";
-    public static final String XML_NAMESPACE = "http://s3.amazonaws.com/doc/" + VERSION + "/";
 
     private static final Log log = LogFactory.getLog(RestStorageService.class);
 
@@ -202,15 +200,15 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
 
         // Retrieve Proxy settings.
         if (this.jets3tProperties.getBoolProperty("httpclient.proxy-autodetect", true)) {
-            RestUtils.initHttpProxy(httpClient, this.jets3tProperties);
+            RestUtils.initHttpProxy(httpClient, this.jets3tProperties, this.getEndpoint());
         } else {
             String proxyHostAddress = this.jets3tProperties.getStringProperty("httpclient.proxy-host", null);
             int proxyPort = this.jets3tProperties.getIntProperty("httpclient.proxy-port", -1);
             String proxyUser = this.jets3tProperties.getStringProperty("httpclient.proxy-user", null);
             String proxyPassword = this.jets3tProperties.getStringProperty("httpclient.proxy-password", null);
             String proxyDomain = this.jets3tProperties.getStringProperty("httpclient.proxy-domain", null);
-            RestUtils.initHttpProxy(httpClient, this.jets3tProperties,
-                proxyHostAddress, proxyPort, proxyUser, proxyPassword, proxyDomain);
+            RestUtils.initHttpProxy(httpClient, this.jets3tProperties, false,
+                proxyHostAddress, proxyPort, proxyUser, proxyPassword, proxyDomain, this.getEndpoint());
         }
     }
 
@@ -595,11 +593,11 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
     public void authorizeHttpRequest(HttpMethod httpMethod) throws Exception {
         if (getAWSCredentials() != null) {
             if (log.isDebugEnabled()) {
-                log.debug("Adding authorization for AWS Access Key '" + getAWSCredentials().getAccessKey() + "'.");
+                log.debug("Adding authorization for Access Key '" + getAWSCredentials().getAccessKey() + "'.");
             }
         } else {
             if (log.isDebugEnabled()) {
-                log.debug("Service has no AWS Credential and is un-authenticated, skipping authorization");
+                log.debug("Service has no Credential and is un-authenticated, skipping authorization");
             }
             return;
         }
@@ -644,7 +642,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         // Generate a canonical string representing the operation.
         String canonicalString = RestUtils.makeS3CanonicalString(
                 httpMethod.getName(), fullUrl,
-                convertHeadersToMap(httpMethod.getRequestHeaders()), null);
+                convertHeadersToMap(httpMethod.getRequestHeaders()), null, this.getRestHeaderPrefix());
         if (log.isDebugEnabled()) {
             log.debug("Canonical string ('|' is a newline): " + canonicalString.replace('\n', '|'));
         }
@@ -654,7 +652,8 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
             getAWSCredentials().getSecretKey(), canonicalString);
 
         // Add encoded authorization to connection as HTTP Authorization header.
-        String authorizationString = "AWS " + getAWSCredentials().getAccessKey() + ":" + signedCanonical;
+        String authorizationString = getSignatureIdentifier() + " " +
+            getAWSCredentials().getAccessKey() + ":" + signedCanonical;
         httpMethod.setRequestHeader("Authorization", authorizationString);
     }
 
@@ -929,7 +928,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         // Add any request parameters.
         HttpMethodBase httpMethod = setupConnection("PUT", bucketName, objectKey, requestParameters);
 
-        Map renamedMetadata = RestUtils.renameMetadataKeys(metadata);
+        Map renamedMetadata = renameMetadataKeys(metadata);
         addMetadataToHeaders(httpMethod, renamedMetadata);
 
         long contentLength = 0;
@@ -1035,8 +1034,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
             throw new S3ServiceException("Cannot connect to S3 Service with a null path");
         }
 
-        boolean disableDnsBuckets = jets3tProperties
-            .getBoolProperty("s3service.disable-dns-buckets", false);
+        boolean disableDnsBuckets = this.getDisableDnsBuckets();
         String s3Endpoint = this.getEndpoint();
         String hostname = ServiceUtils.generateS3HostnameForBucket(bucketName, disableDnsBuckets, s3Endpoint);
 
@@ -1183,7 +1181,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
 
     protected S3Bucket[] listAllBucketsImpl() throws S3ServiceException {
         if (log.isDebugEnabled()) {
-            log.debug("Listing all buckets for AWS user: " + getAWSCredentials().getAccessKey());
+            log.debug("Listing all buckets for user: " + getAWSCredentials().getAccessKey());
         }
 
         String bucketName = ""; // Root path of S3 service lists the user's buckets.
@@ -1462,7 +1460,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
     {
         if (log.isDebugEnabled()) {
             log.debug("Retrieving Access Control List for bucketName="
-            	+ bucketName + ", objectKkey=" + objectKey);
+            	+ bucketName + ", objectKey=" + objectKey);
         }
 
         HashMap requestParameters = new HashMap();
@@ -1479,7 +1477,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
     {
         if (log.isDebugEnabled()) {
             log.debug("Retrieving versioned Access Control List for bucketName="
-            	+ bucketName + ", objectKkey=" + objectKey);
+            	+ bucketName + ", objectKey=" + objectKey);
         }
 
         HashMap requestParameters = new HashMap();
@@ -1593,7 +1591,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         }
     	try {
     		XMLBuilder builder = XMLBuilder
-    			.create("VersioningConfiguration").a("xmlns", XML_NAMESPACE)
+    			.create("VersioningConfiguration").a("xmlns", Constants.XML_NAMESPACE)
     				.e("Status").t( (enabled ? "Enabled" : "Suspended") ).up()
     			    .e("MfaDelete").t( (multiFactorAuthDeleteEnabled ? "Enabled" : "Disabled"));
     		Map requestParams = new HashMap();
@@ -1723,7 +1721,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
                     + "' to object '" + objectKey + "'");
             }
             if (storageClass != null) {
-                metadata.put("x-amz-storage-class", storageClass);
+                metadata.put(this.getRestHeaderPrefix() + "storage-class", storageClass);
             }
         }
 
@@ -1794,16 +1792,16 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
             sourceKey += "?versionId=" + versionId;
         }
 
-        metadata.put("x-amz-copy-source", sourceKey);
+        metadata.put(this.getRestHeaderPrefix() + "copy-source", sourceKey);
 
         boolean enableStorageClasses = this.jets3tProperties.getBoolProperty(
             "s3service.enable-storage-classes", true);
         if (enableStorageClasses && destinationObjectStorageClass != null) {
-            metadata.put("x-amz-storage-class", destinationObjectStorageClass);
+            metadata.put(this.getRestHeaderPrefix() + "storage-class", destinationObjectStorageClass);
         }
 
         if (destinationMetadata != null) {
-            metadata.put("x-amz-metadata-directive", "REPLACE");
+            metadata.put(this.getRestHeaderPrefix() + "metadata-directive", "REPLACE");
             // Include any metadata provided with S3 object.
             metadata.putAll(destinationMetadata);
             // Set default content type.
@@ -1811,7 +1809,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
                 metadata.put("Content-Type", Mimetypes.MIMETYPE_OCTET_STREAM);
             }
         } else {
-            metadata.put("x-amz-metadata-directive", "COPY");
+            metadata.put(this.getRestHeaderPrefix() + "metadata-directive", "COPY");
         }
 
         boolean putNonStandardAcl = false;
@@ -1830,14 +1828,14 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         }
 
         if (ifModifiedSince != null) {
-            metadata.put("x-amz-copy-source-if-modified-since",
+            metadata.put(this.getRestHeaderPrefix() + "copy-source-if-modified-since",
                 ServiceUtils.formatRfc822Date(ifModifiedSince.getTime()));
             if (log.isDebugEnabled()) {
                 log.debug("Only copy object if-modified-since:" + ifModifiedSince);
             }
         }
         if (ifUnmodifiedSince != null) {
-            metadata.put("x-amz-copy-source-if-unmodified-since",
+            metadata.put(this.getRestHeaderPrefix() + "copy-source-if-unmodified-since",
                 ServiceUtils.formatRfc822Date(ifUnmodifiedSince.getTime()));
             if (log.isDebugEnabled()) {
                 log.debug("Only copy object if-unmodified-since:" + ifUnmodifiedSince);
@@ -1845,14 +1843,14 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         }
         if (ifMatchTags != null) {
             String tags = ServiceUtils.join(ifMatchTags, ",");
-            metadata.put("x-amz-copy-source-if-match", tags);
+            metadata.put(this.getRestHeaderPrefix() + "copy-source-if-match", tags);
             if (log.isDebugEnabled()) {
                 log.debug("Only copy object based on hash comparison if-match:" + tags);
             }
         }
         if (ifNoneMatchTags != null) {
             String tags = ServiceUtils.join(ifNoneMatchTags, ",");
-            metadata.put("x-amz-copy-source-if-none-match", tags);
+            metadata.put(this.getRestHeaderPrefix() + "copy-source-if-none-match", tags);
             if (log.isDebugEnabled()) {
                 log.debug("Only copy object based on hash comparison if-none-match:" + tags);
             }
@@ -2124,7 +2122,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
     public S3Object putObjectWithSignedUrl(String signedPutUrl, S3Object object) throws S3ServiceException {
         PutMethod putMethod = new PutMethod(signedPutUrl);
 
-        Map renamedMetadata = RestUtils.renameMetadataKeys(object.getMetadataMap());
+        Map renamedMetadata = renameMetadataKeys(object.getMetadataMap());
         addMetadataToHeaders(putMethod, renamedMetadata);
 
         if (!object.containsMetadata("Content-Length")) {
@@ -2137,8 +2135,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         // expected hash value was provided as the object's Content-MD5 header.
         boolean isLiveMD5HashingRequired =
             (object.getMetadata(S3Object.METADATA_HEADER_CONTENT_MD5) == null);
-        String s3Endpoint = this.jets3tProperties.getStringProperty(
-            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
+        String s3Endpoint = this.getEndpoint();
 
         if (object.getDataInputStream() != null) {
             repeatableRequestEntity = new RepeatableRequestEntity(object.getKey(),
@@ -2293,13 +2290,13 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
 
         if (acl != null) {
             if (AccessControlList.REST_CANNED_PRIVATE.equals(acl)) {
-                putMethod.addRequestHeader(Constants.REST_HEADER_PREFIX + "acl", "private");
+                putMethod.addRequestHeader(this.getRestHeaderPrefix() + "acl", "private");
             } else if (AccessControlList.REST_CANNED_PUBLIC_READ.equals(acl)) {
-                putMethod.addRequestHeader(Constants.REST_HEADER_PREFIX + "acl", "public-read");
+                putMethod.addRequestHeader(this.getRestHeaderPrefix() + "acl", "public-read");
             } else if (AccessControlList.REST_CANNED_PUBLIC_READ_WRITE.equals(acl)) {
-                putMethod.addRequestHeader(Constants.REST_HEADER_PREFIX + "acl", "public-read-write");
+                putMethod.addRequestHeader(this.getRestHeaderPrefix() + "acl", "public-read-write");
             } else if (AccessControlList.REST_CANNED_AUTHENTICATED_READ.equals(acl)) {
-                putMethod.addRequestHeader(Constants.REST_HEADER_PREFIX + "acl", "authenticated-read");
+                putMethod.addRequestHeader(this.getRestHeaderPrefix() + "acl", "authenticated-read");
             } else {
                 try {
                     String aclAsXml = acl.toXml();
@@ -2321,8 +2318,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
     private S3Object getObjectWithSignedUrlImpl(String signedGetOrHeadUrl, boolean headOnly)
         throws S3ServiceException
     {
-        String s3Endpoint = this.jets3tProperties.getStringProperty(
-            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
+        String s3Endpoint = this.getEndpoint();
 
         HttpMethodBase httpMethod = null;
         if (headOnly) {
@@ -2363,5 +2359,4 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
 
         return responseObject;
     }
-
 }

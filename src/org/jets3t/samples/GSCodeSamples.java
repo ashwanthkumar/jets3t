@@ -19,6 +19,7 @@
 package org.jets3t.samples;
 
 import org.jets3t.service.Constants;
+import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
@@ -172,9 +173,9 @@ public class GSCodeSamples {
         byte[] md5Hash = ServiceUtils.computeMD5Hash(dataIS);
         dataIS.reset();
 
-        stringObject = new S3Object("MyData");
-        stringObject.setDataInputStream(dataIS);
-        stringObject.setMd5Hash(md5Hash);
+        S3Object hashObject = new S3Object("MyData");
+        hashObject.setDataInputStream(dataIS);
+        hashObject.setMd5Hash(md5Hash);
 
         /*
          * Downloading data objects
@@ -259,6 +260,73 @@ public class GSCodeSamples {
         String prefix = "Reports";
         String delimiter = null; // Refer to the S3 guide for more information on delimiters
         S3Object[] filteredObjects = gsService.listObjects(testBucket, prefix, delimiter);
+
+        /*
+         * Copying objects
+         */
+
+        // Objects can be copied within the same bucket and between buckets.
+
+        // Create a target S3Object
+        S3Object targetObject = new S3Object("target-object-with-sources-metadata");
+
+        // Copy an existing source object to the target S3Object
+        // This will copy the source's object data and metadata to the target object.
+        boolean replaceMetadata = false;
+        gsService.copyObject(BUCKET_NAME, TEST_OBJECT_NAME, "cherutest", targetObject, replaceMetadata);
+
+        // You can also copy an object and update its metadata at the same time. Perform a
+        // copy-in-place  (with the same bucket and object names for source and destination)
+        // to update an object's metadata while leaving the object's data unchanged.
+        targetObject = new S3Object(TEST_OBJECT_NAME);
+        targetObject.addMetadata(S3Object.METADATA_HEADER_CONTENT_TYPE, "text/html");
+        replaceMetadata = true;
+        gsService.copyObject(BUCKET_NAME, TEST_OBJECT_NAME, BUCKET_NAME, targetObject, replaceMetadata);
+
+        /*
+         * Moving and Renaming objects
+         */
+
+        // Objects can be moved within a bucket (to a different name) or to another S3
+        // bucket in the same region (eg US or EU).
+        // A move operation is composed of a copy then a delete operation behind the scenes.
+        // If the initial copy operation fails, the object is not deleted. If the final delete
+        // operation fails, the object will exist in both the source and destination locations.
+
+        // Here is a command that moves an object from one bucket to another.
+        gsService.moveObject(BUCKET_NAME, TEST_OBJECT_NAME, "cherutest", targetObject, false);
+
+        // You can move an object to a new name in the same bucket. This is essentially a rename operation.
+        gsService.moveObject(BUCKET_NAME, TEST_OBJECT_NAME, BUCKET_NAME, new S3Object("newname.txt"), false);
+
+        // To make renaming easier, JetS3t has a shortcut method especially for this purpose.
+        gsService.renameObject(BUCKET_NAME, TEST_OBJECT_NAME, targetObject);
+
+        /*
+         * Deleting objects and buckets
+         */
+
+        // Objects can be easily deleted. When they are gone they are gone for good so be careful.
+
+        // Buckets may only be deleted when they are empty.
+
+        // If you try to delete your bucket before it is empty, it will fail.
+        try {
+            // This will fail if the bucket isn't empty.
+            gsService.deleteBucket(testBucket.getName());
+        } catch (S3ServiceException e) {
+            e.printStackTrace();
+        }
+
+        // Delete all the objects in the bucket
+        gsService.deleteObject(testBucket, object.getKey());
+        gsService.deleteObject(testBucket, helloWorldObject.getKey());
+        gsService.deleteObject(testBucket, stringObject.getKey());
+        gsService.deleteObject(testBucket, fileObject.getKey());
+
+        // Now that the bucket is empty, you can delete it.
+        gsService.deleteBucket(testBucket.getName());
+        System.out.println("Deleted bucket " + testBucket.getName());
 
     }
 

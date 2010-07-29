@@ -45,6 +45,9 @@ import java.util.Map;
 public class RestS3Service extends RestStorageService {
 
     private static final Log log = LogFactory.getLog(RestS3Service.class);
+    private static final String AWS_SIGNATURE_IDENTIFIER = "AWS";
+    private static final String AWS_REST_HEADER_PREFIX = "x-amz-";
+    private static final String AWS_REST_METADATA_PREFIX = "x-amz-meta-";
 
     private String awsDevPayUserToken = null;
     private String awsDevPayProductToken = null;
@@ -289,6 +292,30 @@ public class RestS3Service extends RestStorageService {
     protected String getVirtualPath() {
     	return this.jets3tProperties.getStringProperty(
                 "s3service.s3-endpoint-virtual-path", "");
+    }
+
+    /**
+     * @return
+     * the identifier for the signature algorithm.
+     */
+    protected String getSignatureIdentifier() {
+    	return AWS_SIGNATURE_IDENTIFIER;
+    }
+
+    /**
+     * @return
+     * header prefix for general Amazon headers: x-amz-.
+     */
+    protected String getRestHeaderPrefix() {
+    	return AWS_REST_HEADER_PREFIX;
+    }
+
+    /**
+     * @return
+     * header prefix for Amazon metadata headers: x-amz-meta-.
+     */
+    protected String getRestMetadataPrefix() {
+    	return AWS_REST_METADATA_PREFIX;
     }
 
     /**

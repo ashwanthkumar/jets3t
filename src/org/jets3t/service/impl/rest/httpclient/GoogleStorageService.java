@@ -38,6 +38,10 @@ import org.jets3t.service.security.ProviderCredentials;
  */
 public class GoogleStorageService extends RestStorageService {
 
+    private static final String GOOGLE_SIGNATURE_IDENTIFIER = "GOOG1";
+    private static final String GOOGLE_REST_HEADER_PREFIX = "x-goog-";
+    private static final String GOOGLE_REST_METADATA_PREFIX = "x-goog-meta-";
+
     /**
      * Constructs the service and initialises the properties.
      *
@@ -90,7 +94,7 @@ public class GoogleStorageService extends RestStorageService {
      * @param jets3tProperties
      * JetS3t properties that will be applied within this service.
      *
-     * @throws S3ServiceException
+     * @throws S3ServiceException 
      */
     public GoogleStorageService(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties)
@@ -143,6 +147,30 @@ public class GoogleStorageService extends RestStorageService {
     protected String getVirtualPath() {
     	return this.jets3tProperties.getStringProperty(
                 "gsservice.gs-endpoint-virtual-path", "");
+    }
+
+    /**
+     * @return
+     * the identifier for the signature algorithm.
+     */
+    protected String getSignatureIdentifier() {
+    	return GOOGLE_SIGNATURE_IDENTIFIER;
+    }
+
+    /**
+     * @return
+     * header prefix for general Google Storage headers: x-goog-.
+     */
+    protected String getRestHeaderPrefix() {
+    	return GOOGLE_REST_HEADER_PREFIX;
+    }
+
+    /**
+     * @return
+     * header prefix for Google Storage metadata headers: x-goog-meta-.
+     */
+    protected String getRestMetadataPrefix() {
+    	return GOOGLE_REST_METADATA_PREFIX;
     }
 
     /**

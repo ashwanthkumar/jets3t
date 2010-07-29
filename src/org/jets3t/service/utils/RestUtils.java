@@ -151,6 +151,17 @@ public class RestUtils {
      */
     public static String makeS3CanonicalString(String method, String resource, Map headersMap, String expires)
     {
+         return makeS3CanonicalString(method, resource, headersMap, expires, Constants.REST_HEADER_PREFIX)    ;
+    }
+
+    /**
+     * Calculate the canonical string for a REST/HTTP request to S3.
+     *
+     * When expires is non-null, it will be used instead of the Date header.
+     */
+    public static String makeS3CanonicalString(String method, String resource, Map headersMap,
+        String expires, String headerPrefix)
+    {
         StringBuffer buf = new StringBuffer();
         buf.append(method + "\n");
 
@@ -169,7 +180,7 @@ public class RestUtils {
 
                 // Ignore any headers that are not particularly interesting.
                 if (lk.equals("content-type") || lk.equals("content-md5") || lk.equals("date") ||
-                    lk.startsWith(Constants.REST_HEADER_PREFIX))
+                    lk.startsWith(headerPrefix))
                 {
                     interestingHeaders.put(lk, value);
                 }
@@ -196,13 +207,13 @@ public class RestUtils {
             interestingHeaders.put("content-md5", "");
         }
 
-        // Finally, add all the interesting headers (i.e.: all that startwith x-amz- ;-))
+        // Finally, add all the interesting headers (i.e.: all that start with x-amz- ;-))
         for (Iterator i = interestingHeaders.entrySet().iterator(); i.hasNext(); ) {
             Map.Entry entry = (Map.Entry) i.next();
             String key = (String) entry.getKey();
             Object value = entry.getValue();
 
-            if (key.startsWith(Constants.REST_HEADER_PREFIX)) {
+            if (key.startsWith(headerPrefix)) {
                 buf.append(key).append(':').append(value);
             } else {
                 buf.append(value);
@@ -252,37 +263,6 @@ public class RestUtils {
         }
 
         return buf.toString();
-    }
-
-    /**
-     * Renames metadata property names to be suitable for use as HTTP Headers. This is done
-     * by renaming any non-HTTP headers to have the prefix <code>x-amz-meta-</code> and leaving the
-     * HTTP header names unchanged. The HTTP header names left unchanged are those found in
-     * {@link #HTTP_HEADER_METADATA_NAMES}
-     *
-     * @param metadata
-     * @return
-     * a map of metadata property name/value pairs renamed to be suitable for use as HTTP headers.
-     */
-    public static Map renameMetadataKeys(Map metadata) {
-        Map convertedMetadata = new HashMap();
-        // Add all meta-data headers.
-        if (metadata != null) {
-            Iterator metaDataIter = metadata.entrySet().iterator();
-            while (metaDataIter.hasNext()) {
-                Map.Entry entry = (Map.Entry) metaDataIter.next();
-                String key = (String) entry.getKey();
-                Object value = entry.getValue();
-
-                if (!HTTP_HEADER_METADATA_NAMES.contains(key.toLowerCase(Locale.getDefault()))
-                    && !key.startsWith(Constants.REST_HEADER_PREFIX))
-                {
-                    key = Constants.REST_METADATA_PREFIX + key;
-                }
-                convertedMetadata.put(key, value);
-            }
-        }
-        return convertedMetadata;
     }
 
     /**
@@ -424,6 +404,14 @@ public class RestUtils {
     }
 
     /**
+     * Initialises this service's HTTP proxy by auto-detecting the proxy settings using the given endpoint.
+     */
+    public static void initHttpProxy(HttpClient httpClient, Jets3tProperties jets3tProperties,
+        String endpoint) {
+        initHttpProxy(httpClient, jets3tProperties, true, null, -1, null, null, null, endpoint);
+    }
+
+    /**
      * Initialises this service's HTTP proxy with the given proxy settings.
      *
      * @param proxyHostAddress
@@ -465,10 +453,31 @@ public class RestUtils {
      * @param proxyPassword
      * @param proxyDomain
      */
-    protected static void initHttpProxy(HttpClient httpClient, 
+    public static void initHttpProxy(HttpClient httpClient,
         Jets3tProperties jets3tProperties, boolean proxyAutodetect,
         String proxyHostAddress, int proxyPort, String proxyUser,
         String proxyPassword, String proxyDomain)
+    {
+        String s3Endpoint = jets3tProperties.getStringProperty(
+                "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
+        initHttpProxy(httpClient, jets3tProperties, proxyAutodetect, proxyHostAddress, proxyPort,
+            proxyUser, proxyPassword, proxyDomain, s3Endpoint);
+    }
+
+    /**
+     * @param httpClient
+     * @param proxyAutodetect
+     * @param proxyHostAddress
+     * @param proxyPort
+     * @param proxyUser
+     * @param proxyPassword
+     * @param proxyDomain
+     * @param endpoint
+     */
+    public static void initHttpProxy(HttpClient httpClient,
+        Jets3tProperties jets3tProperties, boolean proxyAutodetect,
+        String proxyHostAddress, int proxyPort, String proxyUser,
+        String proxyPassword, String proxyDomain, String endpoint)
     {
         HostConfiguration hostConfig = httpClient.getHostConfiguration();
 
@@ -494,12 +503,10 @@ public class RestUtils {
         }
         // If no explicit settings are available, try autodetecting proxies (unless autodetect is disabled)
         else if (proxyAutodetect) {
-            String s3Endpoint = jets3tProperties.getStringProperty(
-                "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);        
             // Try to detect any proxy settings from applet.
             ProxyHost proxyHost = null;
             try {
-                proxyHost = PluginProxyUtil.detectProxy(new URL("http://" + s3Endpoint));
+                proxyHost = PluginProxyUtil.detectProxy(new URL("http://" + endpoint));
                 if (proxyHost != null) {
                     if (log.isInfoEnabled()) {
                         log.info("Using Proxy: " + proxyHost.getHostName() + ":" + proxyHost.getPort());
