@@ -133,12 +133,12 @@ public class S3BucketLoggingStatus {
             .attr("xmlns", Constants.XML_NAMESPACE);
 
         if (isLoggingEnabled()) {
-            builder.elem("LoggingEnabled")
+            XMLBuilder enabledBuilder = builder.elem("LoggingEnabled")
                 .elem("TargetBucket").text(getTargetBucketName()).up()
                 .elem("TargetPrefix").text(getLogfilePrefix()).up();
             if (targetGrantsList.size() > 0) {
                 Iterator targetGrantsIter = targetGrantsList.iterator();
-                XMLBuilder grantsBuilder = builder.elem("TargetGrants");
+                XMLBuilder grantsBuilder = enabledBuilder.elem("TargetGrants");
                 while (targetGrantsIter.hasNext()) {
                     GrantAndPermission gap = (GrantAndPermission) targetGrantsIter.next();
                     grantsBuilder.elem("Grant")
