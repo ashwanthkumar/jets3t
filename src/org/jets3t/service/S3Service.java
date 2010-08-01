@@ -453,7 +453,6 @@ public abstract class S3Service implements Serializable {
         throws S3ServiceException
     {
         String s3Endpoint = this.getEndpoint();
-        System.out.println(s3Endpoint);
         String uriPath = "";
 
         String hostname = (isVirtualHost
@@ -544,7 +543,7 @@ public abstract class S3Service implements Serializable {
             + "/" + uriPath;
         }
     }
-    
+
     protected String getEndpoint() {
     	return this.jets3tProperties.getStringProperty(
                 "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
@@ -1412,7 +1411,7 @@ public abstract class S3Service implements Serializable {
      * include the special variable <tt>${filename}</tt> which expands to the
      * name of the file the user uploaded in the form.
      * @param credentials
-     * your Storage Provideer credentials. Credentials are only required if the form 
+     * your Storage Provideer credentials. Credentials are only required if the form
      * includes policy document conditions, otherwise this can be null.
      * @param expiration
      * the expiration date beyond which the form will cease to work. If this
@@ -1476,7 +1475,7 @@ public abstract class S3Service implements Serializable {
      * include the special variable <tt>${filename}</tt> which expands to the
      * name of the file the user uploaded in the form.
      * @param credentials
-     * your Storage Provider credentials. Credentials are only required if the form 
+     * your Storage Provider credentials. Credentials are only required if the form
      * includes policy document conditions, otherwise this can be null.
      * @param expiration
      * the expiration date beyond which the form will cease to work. If this
