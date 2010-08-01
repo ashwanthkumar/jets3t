@@ -515,6 +515,7 @@
                                 <path path="${dir.build}" />
                                 <path path="${dir.resources}" />
                                 <path path="${dir.configs}" />
+                                <path path="." />
                         </classpath>
                 </java>
         </target>
@@ -527,6 +528,7 @@
                                 <path path="${dir.build}" />
                                 <path path="${dir.resources}" />
                                 <path path="${dir.configs}" />
+                                <path path="." />
                         </classpath>
                 </java>
         </target>

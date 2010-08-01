@@ -98,6 +98,7 @@ public class S3BucketLoggingStatus {
         targetGrantsList.add(targetGrant);
     }
 
+    @Override
     public String toString() {
         String result = "LoggingStatus enabled=" + isLoggingEnabled();
         if (isLoggingEnabled()) {
@@ -117,7 +118,15 @@ public class S3BucketLoggingStatus {
      * @throws ParserConfigurationException
      * @throws TransformerException
      */
-    public String toXml() throws S3ServiceException, ParserConfigurationException,
+    public String toXml() throws S3ServiceException {
+        try {
+            return toXMLBuilder().asString();
+        } catch (Exception e) {
+            throw new S3ServiceException("Failed to build XML document for ACL", e);
+        }
+    }
+
+    public XMLBuilder toXMLBuilder() throws ParserConfigurationException,
         FactoryConfigurationError, TransformerException
     {
         XMLBuilder builder = XMLBuilder.create("BucketLoggingStatus")
@@ -138,7 +147,7 @@ public class S3BucketLoggingStatus {
                 }
             }
         }
-        return builder.asString();
+        return builder;
     }
 
 }

@@ -215,6 +215,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
     /**
      * Shut down all connections managed by the underlying HttpConnectionManager.
      */
+    @Override
     protected void shutdownImpl() throws S3ServiceException {
         HttpConnectionManager manager = this.getHttpConnectionManager();
         if (manager instanceof SimpleHttpConnectionManager) {
@@ -533,8 +534,9 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
                 }
                 byte[] responseBody = httpMethod.getResponseBody();
 
-                if (responseBody != null && responseBody.length > 0)
+                if (responseBody != null && responseBody.length > 0) {
                     throw new S3ServiceException("Oops, too keen to release connection with a non-empty response body");
+                }
                 httpMethod.releaseConnection();
             }
 
@@ -1094,6 +1096,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
     // Methods below this point implement S3Service abstract methods
     ////////////////////////////////////////////////////////////////
 
+    @Override
     public boolean isBucketAccessible(String bucketName) throws S3ServiceException {
         if (log.isDebugEnabled()) {
             log.debug("Checking existence of bucket: " + bucketName);
@@ -1131,6 +1134,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         return true;
     }
 
+    @Override
     public int checkBucketStatus(String bucketName) throws S3ServiceException {
         if (log.isDebugEnabled()) {
             log.debug("Checking availability of bucket name: " + bucketName);
@@ -1179,6 +1183,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         return BUCKET_STATUS__MY_BUCKET;
     }
 
+    @Override
     protected S3Bucket[] listAllBucketsImpl() throws S3ServiceException {
         if (log.isDebugEnabled()) {
             log.debug("Listing all buckets for user: " + getAWSCredentials().getAccessKey());
@@ -1199,6 +1204,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         return buckets;
     }
 
+    @Override
     protected S3Owner getAccountOwnerImpl() throws S3ServiceException {
         if (log.isDebugEnabled()) {
             log.debug("Looking up owner of S3 account via the ListAllBuckets response: "
@@ -1221,6 +1227,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
     }
 
 
+    @Override
     protected S3Object[] listObjectsImpl(String bucketName, String prefix, String delimiter,
         long maxListingLength) throws S3ServiceException
     {
@@ -1228,6 +1235,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         	maxListingLength, true, null, null).getObjects();
     }
 
+    @Override
     protected BaseVersionOrDeleteMarker[] listVersionedObjectsImpl(String bucketName,
     	String prefix, String delimiter, String keyMarker, String versionMarker,
     	long maxListingLength) throws S3ServiceException
@@ -1236,6 +1244,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         	maxListingLength, true, keyMarker, versionMarker).getItems();
     }
 
+    @Override
     protected S3ObjectsChunk listObjectsChunkedImpl(String bucketName, String prefix, String delimiter,
         long maxListingLength, String priorLastKey, boolean completeListing) throws S3ServiceException
     {
@@ -1243,6 +1252,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         	maxListingLength, completeListing, priorLastKey, null);
     }
 
+    @Override
     protected VersionOrDeleteMarkersChunk listVersionedObjectsChunkedImpl(String bucketName,
     	String prefix, String delimiter, long maxListingLength, String priorLastKey,
     	String priorLastVersion, boolean completeListing) throws S3ServiceException
@@ -1323,8 +1333,9 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
                 priorLastKey = null;
             }
 
-            if (!automaticallyMergeChunks)
+            if (!automaticallyMergeChunks) {
                 break;
+            }
         }
         if (automaticallyMergeChunks) {
             if (log.isDebugEnabled()) {
@@ -1422,8 +1433,9 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
                 }
             }
 
-            if (!automaticallyMergeChunks)
+            if (!automaticallyMergeChunks) {
                 break;
+            }
         }
         if (automaticallyMergeChunks) {
             if (log.isDebugEnabled()) {
@@ -1443,6 +1455,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         }
     }
 
+    @Override
     protected void deleteObjectImpl(String bucketName, String objectKey,
     	String versionId, String multiFactorSerialNumber, String multiFactorAuthCode)
         throws S3ServiceException
@@ -1472,6 +1485,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
                 new HttpMethodReleaseInputStream(httpMethod)).getAccessControlList();
     }
 
+    @Override
     protected AccessControlList getObjectAclImpl(String bucketName, String objectKey,
     	String versionId) throws S3ServiceException
     {
@@ -1492,6 +1506,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
                 new HttpMethodReleaseInputStream(httpMethod)).getAccessControlList();
     }
 
+    @Override
     protected AccessControlList getBucketAclImpl(String bucketName) throws S3ServiceException {
         if (log.isDebugEnabled()) {
             log.debug("Retrieving Access Control List for Bucket: " + bucketName);
@@ -1506,12 +1521,14 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
                 new HttpMethodReleaseInputStream(httpMethod)).getAccessControlList();
     }
 
+    @Override
     protected void putObjectAclImpl(String bucketName, String objectKey, AccessControlList acl,
     	String versionId) throws S3ServiceException
     {
         putAclImpl(bucketName, objectKey, acl, versionId);
     }
 
+    @Override
     protected void putBucketAclImpl(String bucketName, AccessControlList acl)
         throws S3ServiceException
     {
@@ -1546,6 +1563,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         }
     }
 
+    @Override
     protected S3Bucket createBucketImpl(String bucketName, String location, AccessControlList acl)
         throws S3ServiceException
     {
@@ -1560,9 +1578,10 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
             metadata.put("Content-Type", "text/xml");
             try {
                 CreateBucketConfiguration config = new CreateBucketConfiguration(location);
-                metadata.put("Content-Length", String.valueOf(config.toXml().length()));
-                requestEntity = new StringRequestEntity(config.toXml(), "text/xml", Constants.DEFAULT_ENCODING);
-            } catch (UnsupportedEncodingException e) {
+                String configXml = config.toXml();
+                metadata.put("Content-Length", String.valueOf(configXml.length()));
+                requestEntity = new StringRequestEntity(configXml, "text/xml", Constants.DEFAULT_ENCODING);
+            } catch (Exception e) {
                 throw new S3ServiceException("Unable to encode CreateBucketConfiguration XML document", e);
             }
         }
@@ -1575,10 +1594,12 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         return bucket;
     }
 
+    @Override
     protected void deleteBucketImpl(String bucketName) throws S3ServiceException {
         performRestDelete(bucketName, null, null, null, null);
     }
 
+    @Override
     protected void updateBucketVersioningStatusImpl(String bucketName,
     	boolean enabled, boolean multiFactorAuthDeleteEnabled,
     	String multiFactorSerialNumber, String multiFactorAuthCode)
@@ -1607,6 +1628,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
     	}
     }
 
+    @Override
     protected S3BucketVersioningStatus getBucketVersioningStatusImpl(String bucketName)
         throws S3ServiceException
     {
@@ -1624,6 +1646,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
      * Beware of high memory requirements when creating large S3 objects when the Content-Length
      * is not set in the object.
      */
+    @Override
     protected S3Object putObjectImpl(String bucketName, S3Object object) throws S3ServiceException
     {
         if (log.isDebugEnabled()) {
@@ -1773,6 +1796,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         return map;
     }
 
+    @Override
     protected Map copyObjectImpl(String sourceBucketName, String sourceObjectKey,
         String destinationBucketName, String destinationObjectKey,
         AccessControlList acl, Map destinationMetadata, Calendar ifModifiedSince,
@@ -1895,6 +1919,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         return map;
     }
 
+    @Override
     protected S3Object getObjectDetailsImpl(String bucketName, String objectKey,
     	Calendar ifModifiedSince, Calendar ifUnmodifiedSince,
     	String[] ifMatchTags, String[] ifNoneMatchTags, String versionId)
@@ -1905,6 +1930,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
             versionId);
     }
 
+    @Override
     protected S3Object getObjectImpl(String bucketName, String objectKey,
     	Calendar ifModifiedSince, Calendar ifUnmodifiedSince,
     	String[] ifMatchTags, String[] ifNoneMatchTags,
@@ -1998,6 +2024,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         return responseObject;
     }
 
+    @Override
     protected String getBucketLocationImpl(String bucketName)
         throws S3ServiceException
     {
@@ -2014,6 +2041,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
                 new HttpMethodReleaseInputStream(httpMethod));
     }
 
+    @Override
     protected S3BucketLoggingStatus getBucketLoggingStatusImpl(String bucketName)
         throws S3ServiceException
     {
@@ -2030,6 +2058,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
                 new HttpMethodReleaseInputStream(httpMethod)).getBucketLoggingStatus();
     }
 
+    @Override
     protected void setBucketLoggingStatusImpl(String bucketName, S3BucketLoggingStatus status)
         throws S3ServiceException
     {
@@ -2043,8 +2072,13 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         HashMap metadata = new HashMap();
         metadata.put("Content-Type", "text/plain");
 
+        String statusAsXml = null;
         try {
-            String statusAsXml = status.toXml();
+            statusAsXml = status.toXml();
+        } catch (Exception e) {
+            throw new S3ServiceException("Unable to generate LoggingStatus XML document", e);
+        }
+        try {
             metadata.put("Content-Length", String.valueOf(statusAsXml.length()));
             performRestPut(bucketName, null, metadata, requestParameters,
                 new StringRequestEntity(statusAsXml, "text/plain", Constants.DEFAULT_ENCODING),
@@ -2054,6 +2088,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         }
     }
 
+    @Override
     protected boolean isRequesterPaysBucketImpl(String bucketName)
         throws S3ServiceException
     {
@@ -2070,6 +2105,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
                 new HttpMethodReleaseInputStream(httpMethod));
     }
 
+    @Override
     protected void setRequesterPaysBucketImpl(String bucketName, boolean requesterPays) throws S3ServiceException {
         if (log.isDebugEnabled()) {
             log.debug("Setting Request Payment Configuration settings for bucket: " + bucketName);
@@ -2176,7 +2212,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
             if (repeatableRequestEntity != null && isLiveMD5HashingRequired) {
                 // Obtain locally-calculated MD5 hash from request entity.
                 String hexMD5OfUploadedData = ServiceUtils.toHex(
-                    ((RepeatableRequestEntity)repeatableRequestEntity).getMD5DigestOfData());
+                    (repeatableRequestEntity).getMD5DigestOfData());
                 verifyExpectedAndActualETagValues(hexMD5OfUploadedData, uploadedObject);
             }
 

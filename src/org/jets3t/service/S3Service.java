@@ -786,6 +786,7 @@ public abstract class S3Service implements Serializable {
      *
      * @throws S3ServiceException
      */
+    @Deprecated
     public static String createSignedUrl(String method, String bucketName, String objectKey,
         String specialParamName, Map headersMap, ProviderCredentials credentials,
         long secondsSinceEpoch, boolean isVirtualHost, boolean isHttps,
@@ -834,6 +835,7 @@ public abstract class S3Service implements Serializable {
      *
      * @throws S3ServiceException
      */
+    @Deprecated
     public String createSignedUrl(String method, String bucketName, String objectKey,
         String specialParamName, Map headersMap, ProviderCredentials credentials,
         long secondsSinceEpoch, boolean isVirtualHost) throws S3ServiceException
@@ -877,6 +879,7 @@ public abstract class S3Service implements Serializable {
      *
      * @throws S3ServiceException
      */
+    @Deprecated
     public String createSignedUrl(String method, String bucketName, String objectKey,
         String specialParamName, Map headersMap, ProviderCredentials credentials, long secondsSinceEpoch)
         throws S3ServiceException
@@ -907,6 +910,7 @@ public abstract class S3Service implements Serializable {
      * a URL signed in such a way as to grant GET access to an S3 resource to whoever uses it.
      * @throws S3ServiceException
      */
+    @Deprecated
     public String createSignedGetUrl(String bucketName, String objectKey,
         ProviderCredentials credentials, Date expiryTime, boolean isVirtualHost)
         throws S3ServiceException
@@ -935,6 +939,7 @@ public abstract class S3Service implements Serializable {
      * a URL signed in such a way as to grant GET access to an S3 resource to whoever uses it.
      * @throws S3ServiceException
      */
+    @Deprecated
     public String createSignedGetUrl(String bucketName, String objectKey,
         ProviderCredentials credentials, Date expiryTime)
         throws S3ServiceException
@@ -968,6 +973,7 @@ public abstract class S3Service implements Serializable {
      * a URL signed in such a way as to allow anyone to PUT an object into S3.
      * @throws S3ServiceException
      */
+    @Deprecated
     public String createSignedPutUrl(String bucketName, String objectKey,
         Map headersMap, ProviderCredentials credentials, Date expiryTime, boolean isVirtualHost)
         throws S3ServiceException
@@ -1000,6 +1006,7 @@ public abstract class S3Service implements Serializable {
      * a URL signed in such a way as to allow anyone to PUT an object into S3.
      * @throws S3ServiceException
      */
+    @Deprecated
     public String createSignedPutUrl(String bucketName, String objectKey,
         Map headersMap, ProviderCredentials credentials, Date expiryTime)
         throws S3ServiceException
@@ -1029,6 +1036,7 @@ public abstract class S3Service implements Serializable {
      * a URL signed in such a way as to allow anyone do DELETE an object in S3.
      * @throws S3ServiceException
      */
+    @Deprecated
     public String createSignedDeleteUrl(String bucketName, String objectKey,
         ProviderCredentials credentials, Date expiryTime, boolean isVirtualHost)
         throws S3ServiceException
@@ -1057,6 +1065,7 @@ public abstract class S3Service implements Serializable {
      * a URL signed in such a way as to allow anyone do DELETE an object in S3.
      * @throws S3ServiceException
      */
+    @Deprecated
     public String createSignedDeleteUrl(String bucketName, String objectKey,
         ProviderCredentials credentials, Date expiryTime)
         throws S3ServiceException
@@ -1086,6 +1095,7 @@ public abstract class S3Service implements Serializable {
      * a URL signed in such a way as to grant HEAD access to an S3 resource to whoever uses it.
      * @throws S3ServiceException
      */
+    @Deprecated
     public String createSignedHeadUrl(String bucketName, String objectKey,
         ProviderCredentials credentials, Date expiryTime, boolean isVirtualHost)
         throws S3ServiceException
@@ -1114,6 +1124,7 @@ public abstract class S3Service implements Serializable {
      * a URL signed in such a way as to grant HEAD access to an S3 resource to whoever uses it.
      * @throws S3ServiceException
      */
+    @Deprecated
     public String createSignedHeadUrl(String bucketName, String objectKey,
         ProviderCredentials credentials, Date expiryTime)
         throws S3ServiceException
@@ -3619,10 +3630,7 @@ public abstract class S3Service implements Serializable {
 
             AccessControlList logBucketACL = getBucketAcl(status.getTargetBucketName());
 
-            Iterator grantIter = logBucketACL.getGrants().iterator();
-            while (grantIter.hasNext()) {
-                GrantAndPermission gap = (GrantAndPermission) grantIter.next();
-
+            for (GrantAndPermission gap: logBucketACL.getGrantAndPermissions()) {
                 if (groupIdentifier.equals(gap.getGrantee().getIdentifier())) {
                     // Found a Group Grantee.
                     if (gap.getPermission().equals(Permission.PERMISSION_WRITE)) {

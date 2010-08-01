@@ -85,7 +85,7 @@ public class CodeSamples {
         // If a bucket listing produces no exceptions, all is well.
 
         S3Bucket[] myBuckets = s3Service.listAllBuckets();
-        System.out.println("How many buckets to I have in S3? " + myBuckets.length);
+        System.out.println("How many buckets do I have in S3? " + myBuckets.length);
 
         /*
          * Create a bucket
