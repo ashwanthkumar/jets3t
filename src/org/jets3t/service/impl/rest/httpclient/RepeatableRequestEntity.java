@@ -131,7 +131,7 @@ public class RepeatableRequestEntity implements RequestEntity {
 
         if (this.repeatableInputStream == null) {
             if (log.isDebugEnabled()) {
-            	log.debug("Wrapping non-repeatable input stream in a RepeatableInputStream");
+                log.debug("Wrapping non-repeatable input stream in a RepeatableInputStream");
             }
             int bufferSize = jets3tProperties.getIntProperty(
                 "s3service.stream-retry-buffer-size", 131072);
@@ -192,7 +192,7 @@ public class RepeatableRequestEntity implements RequestEntity {
                 messageDigest = MessageDigest.getInstance("MD5");
             } catch (NoSuchAlgorithmException e) {
                 if (log.isWarnEnabled()) {
-                	log.warn("Unable to calculate MD5 hash of data sent as algorithm is not available", e);
+                    log.warn("Unable to calculate MD5 hash of data sent as algorithm is not available", e);
                 }
             }
         }

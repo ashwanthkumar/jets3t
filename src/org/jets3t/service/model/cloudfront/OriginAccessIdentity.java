@@ -26,7 +26,7 @@ public class OriginAccessIdentity {
     private OriginAccessIdentityConfig config = null;
 
     public OriginAccessIdentity(String id, String s3CanonicalUserId,
-        	String comment)
+            String comment)
     {
         this.id = id;
         this.s3CanonicalUserId = s3CanonicalUserId;
@@ -34,7 +34,7 @@ public class OriginAccessIdentity {
     }
 
     public OriginAccessIdentity(String id, String s3CanonicalUserId,
-        	OriginAccessIdentityConfig config)
+            OriginAccessIdentityConfig config)
     {
         this.id = id;
         this.s3CanonicalUserId = s3CanonicalUserId;
@@ -50,19 +50,19 @@ public class OriginAccessIdentity {
     }
 
     public String getId() {
-    	return id;
+        return id;
     }
 
     public String getS3CanonicalUserId() {
-    	return s3CanonicalUserId;
+        return s3CanonicalUserId;
     }
 
     public String toString() {
         return "CloudFrontOriginAccessIdentity: id=" + id +
             ", s3CanonicalUserId=" + s3CanonicalUserId +
             (isSummary()
-        		? ", comment=" + comment
-    			: ", config=[" + config + "]");
+                ? ", comment=" + comment
+                : ", config=[" + config + "]");
     }
 
 }

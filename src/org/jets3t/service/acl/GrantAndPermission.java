@@ -28,31 +28,31 @@ public class GrantAndPermission {
     private Permission permission = null;
 
     public GrantAndPermission(GranteeInterface grantee, Permission permission) {
-    	this.grantee = grantee;
-    	this.permission = permission;
+        this.grantee = grantee;
+        this.permission = permission;
     }
 
     public GranteeInterface getGrantee() {
-    	return grantee;
+        return grantee;
     }
 
     public Permission getPermission() {
-    	return permission;
+        return permission;
     }
 
     public int hashCode() {
-    	return (grantee + ":" + permission.toString()).hashCode();
+        return (grantee + ":" + permission.toString()).hashCode();
     }
 
     public boolean equals(Object obj) {
-    	return (obj instanceof GrantAndPermission
-    		&& this.getGrantee().getIdentifier().equals(((GrantAndPermission)obj).getGrantee().getIdentifier())
-    		&& this.getPermission().equals(((GrantAndPermission)obj).getPermission())
-    		);
+        return (obj instanceof GrantAndPermission
+            && this.getGrantee().getIdentifier().equals(((GrantAndPermission)obj).getGrantee().getIdentifier())
+            && this.getPermission().equals(((GrantAndPermission)obj).getPermission())
+            );
     }
 
     public String toString() {
-    	return "GrantAndPermission [grantee=" + grantee + ", permission=" + permission + "]";
+        return "GrantAndPermission [grantee=" + grantee + ", permission=" + permission + "]";
     }
 
 }

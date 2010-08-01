@@ -400,8 +400,8 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             System.exit(1);
         }
 
-    	gkClient = new GatekeeperClientUtils(
-        		gatekeeperUrl,
+        gkClient = new GatekeeperClientUtils(
+                gatekeeperUrl,
                 APPLICATION_DESCRIPTION, MAX_CONNECTION_RETRIES, HTTP_CONNECTION_TIMEOUT,
                 this);
 
@@ -847,7 +847,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         if (event.getSource().equals(loginButton)) {
             new Thread() {
                 public void run() {
-                	listObjects();
+                    listObjects();
                 }
             }.start();
         }
@@ -858,7 +858,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         } else if ("RefreshObjects".equals(event.getActionCommand())) {
             new Thread() {
                 public void run() {
-                	listObjects();
+                    listObjects();
                 }
             }.start();
         } else if ("TogglePublicPrivate".equals(event.getActionCommand())) {
@@ -961,7 +961,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
     private void listObjects() {
         try {
-        	// Obtain login details from application's login screen and store them in
+            // Obtain login details from application's login screen and store them in
             // the application properties so the details will be forwarded to the Gatekeeper
             // with each request.
             Properties loginProperties = userInputFields.getUserInputsAsProperties(true);
@@ -974,33 +974,33 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
             startProgressPanel(this, "Finding files", 0, null);
 
-        	// Perform object listing operation via Gatekeeper.
-        	Map requestProperties = new HashMap();
-        	requestProperties.put(GatekeeperMessage.LIST_OBJECTS_IN_BUCKET_FLAG, "");
-        	requestProperties.putAll(cockpitLiteProperties.getProperties());
+            // Perform object listing operation via Gatekeeper.
+            Map requestProperties = new HashMap();
+            requestProperties.put(GatekeeperMessage.LIST_OBJECTS_IN_BUCKET_FLAG, "");
+            requestProperties.putAll(cockpitLiteProperties.getProperties());
             if (filterObjectsCheckBox.isSelected() && filterObjectsPrefix.getText().length() > 0) {
                 requestProperties.put("Prefix", filterObjectsPrefix.getText());
             }
 
-    		GatekeeperMessage responseMessage =
-    			gkClient.requestActionThroughGatekeeper(
-    					null, null, new S3Object[] {}, requestProperties);
+            GatekeeperMessage responseMessage =
+                gkClient.requestActionThroughGatekeeper(
+                        null, null, new S3Object[] {}, requestProperties);
 
-    		stopProgressPanel(this);
+            stopProgressPanel(this);
 
             String gatekeeperErrorCode = responseMessage.getApplicationProperties()
                 .getProperty(GatekeeperMessage.APP_PROPERTY_GATEKEEPER_ERROR_CODE);
 
             if (gatekeeperErrorCode == null) {
                 // Listing succeeded
-        		final S3Object[] objects = gkClient.buildS3ObjectsFromSignatureRequests(
-    				responseMessage.getSignatureRequests());
+                final S3Object[] objects = gkClient.buildS3ObjectsFromSignatureRequests(
+                    responseMessage.getSignatureRequests());
 
                 // User account description provided by Gatekeeper
                 final String accountDescription =
                     responseMessage.getApplicationProperties().getProperty("AccountDescription");
 
-        		// User's settings
+                // User's settings
                 userCanUpload = "true".equalsIgnoreCase(
                     responseMessage.getApplicationProperties().getProperty("UserCanUpload"));
                 userCanDownload = "true".equalsIgnoreCase(
@@ -1011,8 +1011,8 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                     responseMessage.getApplicationProperties().getProperty("UserCanACL"));
 
                 userBucketName = responseMessage.getApplicationProperties().getProperty("S3BucketName");
-        		userPath = responseMessage.getApplicationProperties().getProperty("UserPath", "");
-        		userVanityHost = responseMessage.getApplicationProperties().getProperty("UserVanityHost");
+                userPath = responseMessage.getApplicationProperties().getProperty("UserPath", "");
+                userVanityHost = responseMessage.getApplicationProperties().getProperty("UserVanityHost");
 
                 objectTableModel.setUsersPath(userPath);
                 uploadFilesMenuItem.setEnabled(userCanUpload);
@@ -1023,26 +1023,26 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                             (accountDescription != null ? accountDescription : "Logged in"));
 
                         objectTableModel.removeAllObjects();
-    	    			objectTableModel.addObjects(objects);
-    	                updateObjectsSummary();
-    	                refreshObjectMenuItem.setEnabled(true);
+                        objectTableModel.addObjects(objects);
+                        updateObjectsSummary();
+                        refreshObjectMenuItem.setEnabled(true);
 
                         lookupObjectsAccessControlLists(objects);
                     }
                 });
 
-            	stackPanelCardLayout.show(stackPanel, "ObjectsPanel");
+                stackPanelCardLayout.show(stackPanel, "ObjectsPanel");
             } else {
                 // Listing failed
                 ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(),
-                	"Your log-in information was not correct, please try again", null);
+                    "Your log-in information was not correct, please try again", null);
             }
-    	} catch (Exception e) {
-    		stopProgressPanel(this);
+        } catch (Exception e) {
+            stopProgressPanel(this);
             log.error("Gatekeeper login failed for URL: " + gkClient.getGatekeeperUrl(), e);
             ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(),
-                	"Log-in failed, please try again", e);
-    	}
+                    "Log-in failed, please try again", e);
+        }
     }
 
     /**
@@ -1533,27 +1533,27 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         (new Thread() {
             public void run() {
                 try {
-                	SignatureRequest[] signatureRequests = requestSignedRequests(
-                			SignatureRequest.SIGNATURE_TYPE_HEAD, incompleteObjects);
+                    SignatureRequest[] signatureRequests = requestSignedRequests(
+                            SignatureRequest.SIGNATURE_TYPE_HEAD, incompleteObjects);
 
                     if (signatureRequests != null) {
-                    	String[] signedRequests = new String[signatureRequests.length];
-                    	for (int i = 0; i < signedRequests.length; i++) {
-                    		signedRequests[i] = signatureRequests[i].getSignedUrl();
-                    	}
+                        String[] signedRequests = new String[signatureRequests.length];
+                        for (int i = 0; i < signedRequests.length; i++) {
+                            signedRequests[i] = signatureRequests[i].getSignedUrl();
+                        }
 
-                    	s3ServiceMulti.getObjectsHeads(signedRequests);
+                        s3ServiceMulti.getObjectsHeads(signedRequests);
                     } else {
-                    	// Listing failed
-                    	ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(),
-                    		"Sorry, you do not have the permission to view object details", null);
+                        // Listing failed
+                        ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(),
+                            "Sorry, you do not have the permission to view object details", null);
                     }
-        		} catch (Exception e) {
-        			stopProgressDialog();
+                } catch (Exception e) {
+                    stopProgressDialog();
                     log.error("Gatekeeper permissions check failed", e);
                     ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(),
-                    		"Permissions check failed, please try again", e);
-        		}
+                            "Permissions check failed, please try again", e);
+                }
             };
         }).start();
     }
@@ -1635,15 +1635,15 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             (new Thread() {
                 public void run() {
                     try {
-                    	SignatureRequest[] signedRequests = requestSignedRequests(
-                			SignatureRequest.SIGNATURE_TYPE_GET, objects);
+                        SignatureRequest[] signedRequests = requestSignedRequests(
+                            SignatureRequest.SIGNATURE_TYPE_GET, objects);
 
-                    	if (signedRequests != null) {
+                        if (signedRequests != null) {
                             // Setup files to write to, creating parent directories when necessary.
                             downloadObjectsToFileMap = new HashMap();
                             ArrayList downloadPackageList = new ArrayList();
                             for (int i = 0; i < signedRequests.length; i++) {
-                            	S3Object object = signedRequests[i].buildObject();
+                                S3Object object = signedRequests[i].buildObject();
 
                                 File file = new File(downloadDirectory, object.getKey());
 
@@ -1652,27 +1652,27 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                                     file.mkdirs();
                                 }
 
-    							DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
-    									object, file, true, false, null);
-    							if (downloadPackage == null) {
-    								continue;
-    							}
-    							downloadPackage.setSignedUrl(signedRequests[i].getSignedUrl());
+                                DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
+                                        object, file, true, false, null);
+                                if (downloadPackage == null) {
+                                    continue;
+                                }
+                                downloadPackage.setSignedUrl(signedRequests[i].getSignedUrl());
 
                                 downloadObjectsToFileMap.put(object.getKey(), file);
                                 downloadPackageList.add(downloadPackage);
                             }
                             DownloadPackage[] downloadPackagesArray = (DownloadPackage[])
-                            	downloadPackageList.toArray(new DownloadPackage[downloadPackageList.size()]);
+                                downloadPackageList.toArray(new DownloadPackage[downloadPackageList.size()]);
 
                             // Perform downloads.
                             s3ServiceMulti.downloadObjects(downloadPackagesArray);
-                    	}
-                	} catch (Exception e) {
+                        }
+                    } catch (Exception e) {
                         log.error("Download failed", e);
                         ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(),
-                            	"Download failed, please try again", e);
-                	}
+                                "Download failed, please try again", e);
+                    }
                 }
             }).start();
         } catch (RuntimeException e) {
@@ -1689,9 +1689,9 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             startProgressPanel(this, "Checking permissions", 0, null);
 
             GatekeeperMessage responseMessage = gkClient.requestActionThroughGatekeeper(
-        		operationType, userBucketName, objects, cockpitLiteProperties.getProperties());
+                operationType, userBucketName, objects, cockpitLiteProperties.getProperties());
 
-    		stopProgressPanel(this);
+            stopProgressPanel(this);
 
             String gatekeeperErrorCode = responseMessage.getApplicationProperties()
                 .getProperty(GatekeeperMessage.APP_PROPERTY_GATEKEEPER_ERROR_CODE);
@@ -1699,10 +1699,10 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             if (gatekeeperErrorCode == null) {
                 // Confirm that all the signatures requested were approved
                 for (int i = 0; i < responseMessage.getSignatureRequests().length; i++) {
-                	if (responseMessage.getSignatureRequests()[i].getSignedUrl() == null) {
+                    if (responseMessage.getSignatureRequests()[i].getSignedUrl() == null) {
                         // Some permissions missing.
                         return null;
-                	}
+                    }
                 }
 
                 return responseMessage.getSignatureRequests();
@@ -1710,15 +1710,15 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                 // No permissions
                 return null;
 //                ErrorDialog.showDialog(ownerFrame, null, appProperties.getProperties(),
-//                	"Sorry, you do not have the necessary permissions", null);
+//                    "Sorry, you do not have the necessary permissions", null);
             }
-    	} catch (Exception e) {
-    		stopProgressPanel(this);
+        } catch (Exception e) {
+            stopProgressPanel(this);
             log.error("Gatekeeper permissions check failed", e);
             ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(),
-                	"Permissions check failed, please try again", e);
-    	}
-    	return null;
+                    "Permissions check failed, please try again", e);
+        }
+        return null;
     }
 
     /**
@@ -1888,15 +1888,15 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             stopProgressDialog();
 
             // Confirm we have permission to do this.
-        	SignatureRequest[] signedRequests = requestSignedRequests(
-        			SignatureRequest.SIGNATURE_TYPE_PUT, objects);
+            SignatureRequest[] signedRequests = requestSignedRequests(
+                    SignatureRequest.SIGNATURE_TYPE_PUT, objects);
 
             if (signedRequests != null) {
                 // Upload the files.
                 SignedUrlAndObject[] urlAndObjs = new SignedUrlAndObject[signedRequests.length];
                 for (int i = 0; i < signedRequests.length; i++) {
-                	urlAndObjs[i] = new SignedUrlAndObject(
-            			signedRequests[i].getSignedUrl(), objects[i]);
+                    urlAndObjs[i] = new SignedUrlAndObject(
+                        signedRequests[i].getSignedUrl(), objects[i]);
                 }
 
                 s3ServiceMulti.putObjects(urlAndObjs);
@@ -2084,26 +2084,26 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         new Thread() {
             public void run() {
                 try {
-                	SignatureRequest[] signatureRequests = requestSignedRequests(
-                			SignatureRequest.SIGNATURE_TYPE_DELETE, objects);
+                    SignatureRequest[] signatureRequests = requestSignedRequests(
+                            SignatureRequest.SIGNATURE_TYPE_DELETE, objects);
 
                     if (signatureRequests != null) {
-                    	String[] signedRequests = new String[signatureRequests.length];
-                    	for (int i = 0; i < signedRequests.length; i++) {
-                    		signedRequests[i] = signatureRequests[i].getSignedUrl();
-                    	}
+                        String[] signedRequests = new String[signatureRequests.length];
+                        for (int i = 0; i < signedRequests.length; i++) {
+                            signedRequests[i] = signatureRequests[i].getSignedUrl();
+                        }
 
-                    	s3ServiceMulti.deleteObjects(signedRequests);
+                        s3ServiceMulti.deleteObjects(signedRequests);
                     } else {
-                    	ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(),
-                    		"Sorry, you do not have the permission to delete files", null);
+                        ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(),
+                            "Sorry, you do not have the permission to delete files", null);
                     }
-        		} catch (Exception e) {
-        			stopProgressDialog();
+                } catch (Exception e) {
+                    stopProgressDialog();
                     log.error("Gatekeeper permissions check failed", e);
                     ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(),
-                    		"Permissions check failed, please try again", e);
-        		}
+                            "Permissions check failed, please try again", e);
+                }
             }
         }.start();
     }
@@ -2358,7 +2358,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     }
 
     public void s3ServiceEventPerformed(CreateBucketsEvent event) {
-    	// Not applicable in this app.
+        // Not applicable in this app.
     }
 
     public void s3ServiceEventPerformed(CopyObjectsEvent event) {

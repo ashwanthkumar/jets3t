@@ -72,7 +72,7 @@ public class GroupGrantee implements GranteeInterface {
      * @param groupUri
      */
     public GroupGrantee(String groupUri) {
-    	this.uri = groupUri;
+        this.uri = groupUri;
     }
 
     public String toXml() throws TransformerException,
@@ -95,29 +95,29 @@ public class GroupGrantee implements GranteeInterface {
      * Set the group grantee's URI.
      */
     public void setIdentifier(String uri) {
-    	this.uri = uri;
+        this.uri = uri;
     }
 
     /**
      * Returns the group grantee's URI.
      */
     public String getIdentifier() {
-    	return uri;
+        return uri;
     }
 
     public String toString() {
-    	return "GroupGrantee [" + uri + "]";
+        return "GroupGrantee [" + uri + "]";
     }
 
     public boolean equals(Object obj) {
-    	if (obj instanceof GroupGrantee) {
-    		return uri.equals(((GroupGrantee)obj).uri);
-    	}
-    	return false;
+        if (obj instanceof GroupGrantee) {
+            return uri.equals(((GroupGrantee)obj).uri);
+        }
+        return false;
     }
 
     public int hashCode() {
-    	return uri.hashCode();
+        return uri.hashCode();
     }
 
 }

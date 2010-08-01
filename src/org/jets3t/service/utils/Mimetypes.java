@@ -97,18 +97,18 @@ public class Mimetypes {
         InputStream mimetypesFile = mimetypes.getClass().getResourceAsStream("/mime.types");
         if (mimetypesFile != null) {
             if (log.isDebugEnabled()) {
-            	log.debug("Loading mime types from file in the classpath: mime.types");
+                log.debug("Loading mime types from file in the classpath: mime.types");
             }
             try {
                 mimetypes.loadAndReplaceMimetypes(mimetypesFile);
             } catch (IOException e) {
                 if (log.isErrorEnabled()) {
-                	log.error("Failed to load mime types from file in the classpath: mime.types", e);
+                    log.error("Failed to load mime types from file in the classpath: mime.types", e);
                 }
             }
         } else {
             if (log.isWarnEnabled()) {
-            	log.warn("Unable to find 'mime.types' file in classpath");
+                log.warn("Unable to find 'mime.types' file in classpath");
             }
         }
         return mimetypes;
@@ -145,7 +145,7 @@ public class Mimetypes {
                     }
                 } else {
                     if (log.isDebugEnabled()) {
-                    	log.debug("Ignoring mimetype with no associated file extensions: '" + line + "'");
+                        log.debug("Ignoring mimetype with no associated file extensions: '" + line + "'");
                     }
                 }
             }
@@ -181,13 +181,13 @@ public class Mimetypes {
                 return mimetype;
             } else {
                 if (log.isDebugEnabled()) {
-                	log.debug("Extension '" + ext + "' is unrecognized in mime type listing"
+                    log.debug("Extension '" + ext + "' is unrecognized in mime type listing"
                     + ", using default mime type: '" + MIMETYPE_OCTET_STREAM + "'");
                 }
             }
         } else {
             if (log.isDebugEnabled()) {
-            	log.debug("File name has no extension, mime type cannot be recognised for: " + fileName);
+                log.debug("File name has no extension, mime type cannot be recognised for: " + fileName);
             }
         }
         return MIMETYPE_OCTET_STREAM;

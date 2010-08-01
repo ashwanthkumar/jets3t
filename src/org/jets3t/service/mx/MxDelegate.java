@@ -64,7 +64,7 @@ public class MxDelegate implements MxInterface {
      */
     public void init() {
         if (System.getProperty("com.sun.management.jmxremote") == null
-    		&& System.getProperty("jets3t.mx") == null)
+            && System.getProperty("jets3t.mx") == null)
         {
             this.handler = null;
             return;

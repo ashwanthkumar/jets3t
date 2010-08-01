@@ -40,7 +40,7 @@ public class CloudFrontServiceException extends Exception {
         String errorType, String errorCode, String errorMessage,
         String errorDetail, String errorRequestId)
     {
-    	super(message);
+        super(message);
         this.responseCode = responseCode;
         this.errorType = errorType;
         this.errorCode = errorCode;
@@ -50,19 +50,19 @@ public class CloudFrontServiceException extends Exception {
     }
 
     public CloudFrontServiceException() {
-    	super();
+        super();
     }
 
     public CloudFrontServiceException(String message, Throwable cause) {
-    	super(message, cause);
+        super(message, cause);
     }
 
     public CloudFrontServiceException(String message) {
-    	super(message);
+        super(message);
     }
 
     public CloudFrontServiceException(Throwable cause) {
-    	super(cause);
+        super(cause);
     }
 
     public String getErrorCode() {

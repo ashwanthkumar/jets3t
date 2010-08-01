@@ -75,7 +75,7 @@ public abstract class BaseS3Object implements Serializable {
      * the metadata item value.
      */
     public void addMetadata(String name, String value) {
-    	this.metadata.put(name, value);
+        this.metadata.put(name, value);
     }
 
     /**
@@ -109,7 +109,7 @@ public abstract class BaseS3Object implements Serializable {
      * metadata items to add.
      */
     public void addAllMetadata(Map metadata) {
-    	this.metadata.putAll(metadata);
+        this.metadata.putAll(metadata);
     }
 
     /**
@@ -131,8 +131,8 @@ public abstract class BaseS3Object implements Serializable {
      * metadata items to add.
      */
     public void replaceAllMetadata(Map metadata) {
-    	this.metadata.clear();
-    	addAllMetadata(metadata);
+        this.metadata.clear();
+        addAllMetadata(metadata);
     }
 
 }

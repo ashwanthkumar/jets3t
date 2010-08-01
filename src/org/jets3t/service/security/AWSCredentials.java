@@ -238,7 +238,7 @@ public class AWSCredentials extends ProviderCredentials {
      */
     public static AWSCredentials load(String password, File file) throws S3ServiceException {
         if (log.isDebugEnabled()) {
-        	log.debug("Loading credentials from file: " + file.getAbsolutePath());
+            log.debug("Loading credentials from file: " + file.getAbsolutePath());
         }
         BufferedInputStream fileIS = null;
         try {
@@ -273,11 +273,11 @@ public class AWSCredentials extends ProviderCredentials {
         boolean partialReadOnly = (password == null);
         if (partialReadOnly) {
             if (log.isDebugEnabled()) {
-            	log.debug("Loading partial information about AWS Credentials from input stream");
+                log.debug("Loading partial information about AWS Credentials from input stream");
             }
         } else {
             if (log.isDebugEnabled()) {
-            	log.debug("Loading AWS Credentials from input stream");
+                log.debug("Loading AWS Credentials from input stream");
             }
         }
 

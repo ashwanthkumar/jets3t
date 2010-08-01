@@ -51,7 +51,7 @@ public class EmailAddressGrantee implements GranteeInterface {
      * @param emailAddress
      */
     public EmailAddressGrantee(String emailAddress) {
-    	this.setIdentifier(emailAddress);
+        this.setIdentifier(emailAddress);
     }
 
     public String toXml() throws TransformerException,
@@ -74,25 +74,25 @@ public class EmailAddressGrantee implements GranteeInterface {
      * Set the email address as the grantee's ID.
      */
     public void setIdentifier(String emailAddress) {
-    	this.emailAddress = emailAddress;
+        this.emailAddress = emailAddress;
     }
 
     /**
      * Returns the grantee's email address (ID).
      */
     public String getIdentifier() {
-    	return emailAddress;
+        return emailAddress;
     }
 
     public boolean equals(Object obj) {
-    	if (obj instanceof EmailAddressGrantee) {
-    		return emailAddress.equals(((EmailAddressGrantee)obj).emailAddress);
-    	}
-    	return false;
+        if (obj instanceof EmailAddressGrantee) {
+            return emailAddress.equals(((EmailAddressGrantee)obj).emailAddress);
+        }
+        return false;
     }
 
     public int hashCode() {
-    	return emailAddress.hashCode();
+        return emailAddress.hashCode();
     }
 
 }

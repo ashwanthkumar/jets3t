@@ -76,7 +76,7 @@ public class S3Bucket extends BaseS3Object {
     }
 
     public String toString() {
-    	return "S3Bucket [name=" + getName() +
+        return "S3Bucket [name=" + getName() +
             ",location=" + getLocation() +
             ",creationDate=" + getCreationDate() + ",owner=" + getOwner()
             + "] Metadata=" + getMetadataMap();
@@ -87,7 +87,7 @@ public class S3Bucket extends BaseS3Object {
      * the bucket's owner, or null if it is unknown.
      */
     public S3Owner getOwner() {
-    	return (S3Owner) getMetadata(METADATA_HEADER_OWNER);
+        return (S3Owner) getMetadata(METADATA_HEADER_OWNER);
     }
 
     /**
@@ -105,7 +105,7 @@ public class S3Bucket extends BaseS3Object {
      * the bucket's creation date, or null if it is unknown.
      */
     public Date getCreationDate() {
-    	return (Date) getMetadata(METADATA_HEADER_CREATION_DATE);
+        return (Date) getMetadata(METADATA_HEADER_CREATION_DATE);
     }
 
     /**
@@ -115,7 +115,7 @@ public class S3Bucket extends BaseS3Object {
      * @param creationDate
      */
     public void setCreationDate(Date creationDate) {
-    	addMetadata(METADATA_HEADER_CREATION_DATE, creationDate);
+        addMetadata(METADATA_HEADER_CREATION_DATE, creationDate);
     }
 
     /**
@@ -123,7 +123,7 @@ public class S3Bucket extends BaseS3Object {
      * the bucket's Access Control List, or null if it is unknown.
      */
     public AccessControlList getAcl() {
-    	return acl;
+        return acl;
     }
 
     /**
@@ -133,7 +133,7 @@ public class S3Bucket extends BaseS3Object {
      * @param acl
      */
     public void setAcl(AccessControlList acl) {
-    	this.acl = acl;
+        this.acl = acl;
     }
 
     /**
@@ -141,7 +141,7 @@ public class S3Bucket extends BaseS3Object {
      * the name of the bucket.
      */
     public String getName() {
-    	return name;
+        return name;
     }
 
     /**
@@ -150,7 +150,7 @@ public class S3Bucket extends BaseS3Object {
      * @param name the name for the bucket
      */
     public void setName(String name) {
-    	this.name = name;
+        this.name = name;
     }
 
     /**

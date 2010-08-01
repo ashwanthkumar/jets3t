@@ -233,8 +233,8 @@ public class GatekeeperServlet extends HttpServlet {
         response.setContentType("text/html");
         response.getWriter().println("<html><head><title>JetS3t Gatekeeper</title><body>");
         response.getWriter().println("<p>JetS3t Gatekeeper is running " +
-        	(isInitCompleted? "and initialized successfully" : "but <b>initialization failed</b>")
-        	+ "</p></body></html>");
+            (isInitCompleted? "and initialized successfully" : "but <b>initialization failed</b>")
+            + "</p></body></html>");
     }
 
     /**
@@ -268,10 +268,10 @@ public class GatekeeperServlet extends HttpServlet {
                 if (log.isWarnEnabled()) {
                     log.warn("Cannot process POST request as Gatekeeper servlet did not initialize correctly");
                 }
-            	gatekeeperMessage.addApplicationProperty(
+                gatekeeperMessage.addApplicationProperty(
                         GatekeeperMessage.APP_PROPERTY_GATEKEEPER_ERROR_CODE, "GatekeeperInitializationError");
             } else if (gatekeeperMessage.getApplicationProperties().containsKey(
-                	GatekeeperMessage.LIST_OBJECTS_IN_BUCKET_FLAG))
+                    GatekeeperMessage.LIST_OBJECTS_IN_BUCKET_FLAG))
             {
                 // Handle "limited listing" requests.
                 if (log.isDebugEnabled()) {
@@ -279,12 +279,12 @@ public class GatekeeperServlet extends HttpServlet {
                 }
                 boolean allowed = authorizer.allowBucketListingRequest(gatekeeperMessage, clientInformation);
                 if (allowed) {
-                	bucketLister.listObjects(gatekeeperMessage, clientInformation);
+                    bucketLister.listObjects(gatekeeperMessage, clientInformation);
                 }
             } else {
                 if (log.isDebugEnabled()) {
                     log.debug("Processing " + gatekeeperMessage.getSignatureRequests().length
-                    		+ " object signature requests");
+                            + " object signature requests");
                 }
                 // Process each signature request.
                 for (int i = 0; i < gatekeeperMessage.getSignatureRequests().length; i++) {

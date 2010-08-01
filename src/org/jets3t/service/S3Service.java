@@ -350,8 +350,8 @@ public abstract class S3Service implements Serializable {
         if (internalErrorCount <= internalErrorRetryMax) {
             long delayMs = 50L * (int) Math.pow(internalErrorCount, 2);
             if (log.isWarnEnabled()) {
-    	        log.warn("Encountered " + internalErrorCount
-    	            + " S3 Internal Server error(s), will retry in " + delayMs + "ms");
+                log.warn("Encountered " + internalErrorCount
+                    + " S3 Internal Server error(s), will retry in " + delayMs + "ms");
             }
             Thread.sleep(delayMs);
         } else {
@@ -545,7 +545,7 @@ public abstract class S3Service implements Serializable {
     }
 
     protected String getEndpoint() {
-    	return this.jets3tProperties.getStringProperty(
+        return this.jets3tProperties.getStringProperty(
                 "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
     }
 
@@ -1450,8 +1450,8 @@ public abstract class S3Service implements Serializable {
         throws S3ServiceException, UnsupportedEncodingException
     {
         return buildPostForm(bucketName, key, credentials, expiration,
-        		conditions, inputFields, textInput, isSecureHttp,
-        		false, "Upload to Amazon S3");
+                conditions, inputFields, textInput, isSecureHttp,
+                false, "Upload to Amazon S3");
     }
 
     /**
@@ -1524,7 +1524,7 @@ public abstract class S3Service implements Serializable {
         boolean usePathStyleUrl, String submitButtonName)
         throws S3ServiceException, UnsupportedEncodingException
     {
-    	List myInputFields = new ArrayList();
+        List myInputFields = new ArrayList();
 
         // Form is only authenticated if a policy is specified.
         if (expiration != null || conditions != null) {
@@ -1880,7 +1880,7 @@ public abstract class S3Service implements Serializable {
      */
     public S3Object getObject(String bucketName, String objectKey) throws S3ServiceException {
         return getObject(new S3Bucket(bucketName), objectKey,
-        	null, null, null, null, null, null);
+            null, null, null, null, null, null);
     }
 
     /**
@@ -1973,7 +1973,7 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public S3Object getVersionedObjectDetails(String versionId, String bucketName,
-    	String objectKey) throws S3ServiceException
+        String objectKey) throws S3ServiceException
     {
         MxDelegate.getInstance().registerS3ObjectHeadEvent(bucketName, objectKey);
         return getObjectDetailsImpl(bucketName, objectKey, null, null, null, null, versionId);
@@ -2118,7 +2118,7 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public BaseVersionOrDeleteMarker[] listVersionedObjects(String bucketName, String prefix,
-    	String delimiter)
+        String delimiter)
         throws S3ServiceException
     {
         return listVersionedObjectsImpl(bucketName, prefix, delimiter, null, null, 1000);
@@ -2149,13 +2149,13 @@ public abstract class S3Service implements Serializable {
         throws S3ServiceException
     {
         BaseVersionOrDeleteMarker[] matchesForNamePrefix =
-        	listVersionedObjectsImpl(bucketName, objectKey, null, null, null, 1000);
+            listVersionedObjectsImpl(bucketName, objectKey, null, null, null, 1000);
         // Limit results to only matches for the exact object key name
         int exactMatchCount = 0;
         for (int i = 0; i < matchesForNamePrefix.length && i <= exactMatchCount; i++) {
-        	if (matchesForNamePrefix[i].getKey().equals(objectKey)) {
-        		exactMatchCount++;
-        	}
+            if (matchesForNamePrefix[i].getKey().equals(objectKey)) {
+                exactMatchCount++;
+            }
         }
         BaseVersionOrDeleteMarker[] exactMatches = new BaseVersionOrDeleteMarker[exactMatchCount];
         System.arraycopy(matchesForNamePrefix, 0, exactMatches, 0, exactMatchCount);
@@ -2279,8 +2279,8 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public VersionOrDeleteMarkersChunk listVersionedObjectsChunked(String bucketName,
-    	String prefix, String delimiter, long maxListingLength, String priorLastKey,
-    	String priorLastVersionId, boolean completeListing) throws S3ServiceException
+        String prefix, String delimiter, long maxListingLength, String priorLastKey,
+        String priorLastVersionId, boolean completeListing) throws S3ServiceException
     {
         return listVersionedObjectsChunkedImpl(bucketName, prefix, delimiter,
             maxListingLength, priorLastKey, priorLastVersionId, completeListing);
@@ -2480,11 +2480,11 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public void disableMFAForVersionedBucket(String bucketName,
-    	String multiFactorSerialNumber, String multiFactorAuthCode)
+        String multiFactorSerialNumber, String multiFactorAuthCode)
         throws S3ServiceException
     {
         updateBucketVersioningStatusImpl(bucketName, true, false,
-    		multiFactorSerialNumber, multiFactorAuthCode);
+            multiFactorSerialNumber, multiFactorAuthCode);
     }
 
     /**
@@ -2497,7 +2497,7 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public void suspendBucketVersioning(String bucketName)
-    	throws S3ServiceException
+        throws S3ServiceException
     {
         updateBucketVersioningStatusImpl(bucketName, false, false, null, null);
     }
@@ -2515,11 +2515,11 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public void suspendBucketVersioningWithMFA(String bucketName,
-    	String multiFactorSerialNumber, String multiFactorAuthCode)
+        String multiFactorSerialNumber, String multiFactorAuthCode)
         throws S3ServiceException
     {
         updateBucketVersioningStatusImpl(bucketName, false,
-    		false, multiFactorSerialNumber, multiFactorAuthCode);
+            false, multiFactorSerialNumber, multiFactorAuthCode);
     }
 
     /**
@@ -2676,9 +2676,9 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public Map copyVersionedObject(String versionId, String sourceBucketName,
-    	String sourceObjectKey, String destinationBucketName, S3Object destinationObject,
-    	boolean replaceMetadata, Calendar ifModifiedSince,
-    	Calendar ifUnmodifiedSince, String[] ifMatchTags,
+        String sourceObjectKey, String destinationBucketName, S3Object destinationObject,
+        boolean replaceMetadata, Calendar ifModifiedSince,
+        Calendar ifUnmodifiedSince, String[] ifMatchTags,
         String[] ifNoneMatchTags) throws S3ServiceException
     {
         assertAuthenticatedConnection("copyVersionedObject");
@@ -2777,7 +2777,7 @@ public abstract class S3Service implements Serializable {
         boolean replaceMetadata) throws S3ServiceException
     {
         return copyVersionedObject(versionId, sourceBucketName, sourceObjectKey,
-        	destinationBucketName, destinationObject, replaceMetadata, null, null, null, null);
+            destinationBucketName, destinationObject, replaceMetadata, null, null, null, null);
     }
 
     /**
@@ -2986,12 +2986,12 @@ public abstract class S3Service implements Serializable {
      */
     public void deleteVersionedObjectWithMFA(String versionId,
         String multiFactorSerialNumber, String multiFactorAuthCode,
-    	String bucketName, String objectKey) throws S3ServiceException
+        String bucketName, String objectKey) throws S3ServiceException
     {
         assertValidObject(objectKey, "deleteVersionedObjectWithMFA");
         MxDelegate.getInstance().registerS3ObjectDeleteEvent(bucketName, objectKey);
         deleteObjectImpl(bucketName, objectKey, versionId,
-        	multiFactorSerialNumber, multiFactorAuthCode);
+            multiFactorSerialNumber, multiFactorAuthCode);
     }
 
     /**
@@ -3261,8 +3261,8 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public S3Object getVersionedObject(String versionId, S3Bucket bucket, String objectKey,
-    	Calendar ifModifiedSince, Calendar ifUnmodifiedSince,
-    	String[] ifMatchTags, String[] ifNoneMatchTags,
+        Calendar ifModifiedSince, Calendar ifUnmodifiedSince,
+        String[] ifMatchTags, String[] ifNoneMatchTags,
         Long byteRangeStart, Long byteRangeEnd) throws S3ServiceException
     {
         assertValidBucket(bucket, "Get Versioned Object");
@@ -3360,8 +3360,8 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public S3Object getVersionedObject(String versionId, String bucketName, String objectKey,
-    	Calendar ifModifiedSince, Calendar ifUnmodifiedSince,
-    	String[] ifMatchTags, String[] ifNoneMatchTags,
+        Calendar ifModifiedSince, Calendar ifUnmodifiedSince,
+        String[] ifMatchTags, String[] ifNoneMatchTags,
         Long byteRangeStart, Long byteRangeEnd) throws S3ServiceException
     {
         MxDelegate.getInstance().registerS3ObjectGetEvent(bucketName, objectKey);
@@ -3438,7 +3438,7 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public void putVersionedObjectAcl(String versionId, String bucketName,
-    	String objectKey, AccessControlList acl) throws S3ServiceException
+        String objectKey, AccessControlList acl) throws S3ServiceException
     {
         putObjectAclImpl(bucketName, objectKey, acl, versionId);
     }
@@ -3568,7 +3568,7 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public AccessControlList getVersionedObjectAcl(String versionId, S3Bucket bucket,
-    	String objectKey) throws S3ServiceException
+        String objectKey) throws S3ServiceException
     {
         assertValidBucket(bucket, "Get versioned Object Access Control List");
         return getObjectAclImpl(bucket.getName(), objectKey, versionId);
@@ -3620,7 +3620,7 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     public AccessControlList getVersionedObjectAcl(String versionId, String bucketName,
-    	String objectKey) throws S3ServiceException
+        String objectKey) throws S3ServiceException
     {
         return getObjectAclImpl(bucketName, objectKey, versionId);
     }
@@ -3720,8 +3720,8 @@ public abstract class S3Service implements Serializable {
         if (status.isLoggingEnabled() && updateTargetACLifRequired) {
             // Check whether the target bucket has the ACL permissions necessary for logging.
             if (log.isDebugEnabled()) {
-            	log.debug("Checking whether the target logging bucket '" +
-            		status.getTargetBucketName() + "' has the appropriate ACL settings");
+                log.debug("Checking whether the target logging bucket '" +
+                    status.getTargetBucketName() + "' has the appropriate ACL settings");
             }
             boolean isSetLoggingGroupWrite = false;
             boolean isSetLoggingGroupReadACP = false;
@@ -3739,8 +3739,8 @@ public abstract class S3Service implements Serializable {
                         isSetLoggingGroupWrite = true;
                         if (log.isDebugEnabled()) {
                             log.debug("Target bucket '" + status.getTargetBucketName() + "' has ACL "
-                            		+ "permission " + Permission.PERMISSION_WRITE + " for group " +
-                            		groupIdentifier);
+                                    + "permission " + Permission.PERMISSION_WRITE + " for group " +
+                                    groupIdentifier);
                         }
                     } else if (gap.getPermission().equals(Permission.PERMISSION_READ_ACP)) {
                         isSetLoggingGroupReadACP = true;
@@ -3929,8 +3929,8 @@ public abstract class S3Service implements Serializable {
         String delimiter, long maxListingLength) throws S3ServiceException;
 
     protected abstract BaseVersionOrDeleteMarker[] listVersionedObjectsImpl(String bucketName,
-    	String prefix, String delimiter, String keyMarker, String versionMarker,
-    	long maxListingLength) throws S3ServiceException;
+        String prefix, String delimiter, String keyMarker, String versionMarker,
+        long maxListingLength) throws S3ServiceException;
 
     /**
      * Lists objects in a bucket up to the maximum listing length specified.
@@ -3974,8 +3974,8 @@ public abstract class S3Service implements Serializable {
      * @throws S3ServiceException
      */
     protected abstract VersionOrDeleteMarkersChunk listVersionedObjectsChunkedImpl(
-    	String bucketName, String prefix, String delimiter, long maxListingLength,
-    	String priorLastKey, String priorLastVersion, boolean completeListing)
+        String bucketName, String prefix, String delimiter, long maxListingLength,
+        String priorLastKey, String priorLastVersion, boolean completeListing)
         throws S3ServiceException;
 
     /**
@@ -4004,12 +4004,12 @@ public abstract class S3Service implements Serializable {
     protected abstract void deleteBucketImpl(String bucketName) throws S3ServiceException;
 
     protected abstract void updateBucketVersioningStatusImpl(String bucketName,
-    	boolean enabled, boolean multiFactorAuthDeleteEnabled,
-    	String multiFactorSerialNumber, String multiFactorAuthCode)
+        boolean enabled, boolean multiFactorAuthDeleteEnabled,
+        String multiFactorSerialNumber, String multiFactorAuthCode)
         throws S3ServiceException;
 
     protected abstract S3BucketVersioningStatus getBucketVersioningStatusImpl(
-    	String bucketName) throws S3ServiceException;
+        String bucketName) throws S3ServiceException;
 
     protected abstract S3Object putObjectImpl(String bucketName, S3Object object) throws S3ServiceException;
 
@@ -4053,7 +4053,7 @@ public abstract class S3Service implements Serializable {
         throws S3ServiceException;
 
     protected abstract void deleteObjectImpl(String bucketName, String objectKey,
-    	String versionId, String multiFactorSerialNumber, String multiFactorAuthCode)
+        String versionId, String multiFactorSerialNumber, String multiFactorAuthCode)
         throws S3ServiceException;
 
     protected abstract S3Object getObjectDetailsImpl(String bucketName, String objectKey,
@@ -4068,10 +4068,10 @@ public abstract class S3Service implements Serializable {
         throws S3ServiceException;
 
     protected abstract void putObjectAclImpl(String bucketName, String objectKey,
-    	AccessControlList acl, String versionId) throws S3ServiceException;
+        AccessControlList acl, String versionId) throws S3ServiceException;
 
     protected abstract AccessControlList getObjectAclImpl(String bucketName, String objectKey,
-    	String versionId) throws S3ServiceException;
+        String versionId) throws S3ServiceException;
 
     protected abstract AccessControlList getBucketAclImpl(String bucketName) throws S3ServiceException;
 

@@ -96,7 +96,7 @@ public class XmlResponsesSaxParser {
     {
         try {
             if (log.isDebugEnabled()) {
-            	log.debug("Parsing XML response document with handler: " + handler.getClass());
+                log.debug("Parsing XML response document with handler: " + handler.getClass());
             }
             BufferedReader breader = new BufferedReader(new InputStreamReader(inputStream,
                 Constants.DEFAULT_ENCODING));
@@ -108,7 +108,7 @@ public class XmlResponsesSaxParser {
                 inputStream.close();
             } catch (IOException e) {
                 if (log.isErrorEnabled()) {
-                	log.error("Unable to close response InputStream up after XML parse failure", e);
+                    log.error("Unable to close response InputStream up after XML parse failure", e);
                 }
             }
             throw new S3ServiceException("Failed to parse XML document with handler "
@@ -124,7 +124,7 @@ public class XmlResponsesSaxParser {
             return inputStream;
         } else {
             if (log.isDebugEnabled()) {
-            	log.debug("Sanitizing XML document destined for handler " + handler.getClass());
+                log.debug("Sanitizing XML document destined for handler " + handler.getClass());
             }
 
             InputStream sanitizedInputStream = null;
@@ -157,7 +157,7 @@ public class XmlResponsesSaxParser {
                     inputStream.close();
                 } catch (IOException e) {
                     if (log.isErrorEnabled()) {
-                    	log.error("Unable to close response InputStream after failure sanitizing XML document", e);
+                        log.error("Unable to close response InputStream after failure sanitizing XML document", e);
                     }
                 }
                 throw new S3ServiceException("Failed to sanitize XML document destined for handler "
@@ -277,7 +277,7 @@ public class XmlResponsesSaxParser {
      * @throws S3ServiceException
      */
     public S3BucketVersioningStatus parseVersioningConfigurationResponse(
-    	InputStream inputStream) throws S3ServiceException
+        InputStream inputStream) throws S3ServiceException
     {
         VersioningConfigurationHandler handler = new VersioningConfigurationHandler();
         parseXmlInputStream(handler, inputStream);
@@ -333,7 +333,7 @@ public class XmlResponsesSaxParser {
                     return lastKey;
                 } else {
                     if (log.isWarnEnabled()) {
-                    	log.warn("Unable to find Next Marker or Last Key for truncated listing");
+                        log.warn("Unable to find Next Marker or Last Key for truncated listing");
                     }
                     return null;
                 }
@@ -431,8 +431,8 @@ public class XmlResponsesSaxParser {
                     currentObject.setLastModifiedDate(ServiceUtils.parseIso8601Date(elementText));
                 } catch (ParseException e) {
                     throw new RuntimeException(
-                    	"Non-ISO8601 date for LastModified in bucket's object listing output: "
-                    	+ elementText, e);
+                        "Non-ISO8601 date for LastModified in bucket's object listing output: "
+                        + elementText, e);
                 }
             } else if (name.equals("ETag")) {
                 currentObject.setETag(elementText);
@@ -510,7 +510,7 @@ public class XmlResponsesSaxParser {
             // Bucket item details.
             else if (name.equals("Bucket")) {
                 if (log.isDebugEnabled()) {
-                	log.debug("Created new bucket from listing: " + currentBucket);
+                    log.debug("Created new bucket from listing: " + currentBucket);
                 }
                 currentBucket.setOwner(bucketsOwner);
                 buckets.add(currentBucket);
@@ -522,8 +522,8 @@ public class XmlResponsesSaxParser {
                     currentBucket.setCreationDate(ServiceUtils.parseIso8601Date(elementText));
                 } catch (ParseException e) {
                     throw new RuntimeException(
-                    	"Non-ISO8601 date for CreationDate in list buckets output: "
-                    	+ elementText, e);
+                        "Non-ISO8601 date for CreationDate in list buckets output: "
+                        + elementText, e);
                 }
             }
         }
@@ -648,7 +648,7 @@ public class XmlResponsesSaxParser {
                 currentPermission = Permission.parsePermission(elementText);
             } else if (name.equals("Grant")) {
                 GrantAndPermission grantAndPermission = new GrantAndPermission(
-            		currentGrantee, currentPermission);
+                    currentGrantee, currentPermission);
                 bucketLoggingStatus.addTargetGrant(grantAndPermission);
             }
         }
@@ -739,8 +739,8 @@ public class XmlResponsesSaxParser {
                     lastModified = ServiceUtils.parseIso8601Date(elementText);
                 } catch (ParseException e) {
                     throw new RuntimeException(
-                    	"Non-ISO8601 date for LastModified in copy object output: "
-                    	+ elementText, e);
+                        "Non-ISO8601 date for LastModified in copy object output: "
+                        + elementText, e);
                 }
             } else if (name.equals("ETag")) {
                 etag = elementText;
@@ -799,8 +799,8 @@ public class XmlResponsesSaxParser {
                 this.mfaStatus = elementText;
             } else if (name.equals("VersioningConfiguration")) {
                 this.versioningStatus = new S3BucketVersioningStatus(
-            		"Enabled".equals(status),
-            		"Enabled".equals(mfaStatus));
+                    "Enabled".equals(status),
+                    "Enabled".equals(mfaStatus));
             }
         }
     }
@@ -917,11 +917,11 @@ public class XmlResponsesSaxParser {
             // Version/DeleteMarker finished.
             else if (name.equals("Version")) {
                 BaseVersionOrDeleteMarker item = new S3Version(key, versionId,
-            		isLatest, lastModified, owner, etag, size, storageClass);
+                    isLatest, lastModified, owner, etag, size, storageClass);
                 items.add(item);
             } else if (name.equals("DeleteMarker")) {
                 BaseVersionOrDeleteMarker item = new S3DeleteMarker(key, versionId,
-                		isLatest, lastModified, owner);
+                        isLatest, lastModified, owner);
                 items.add(item);
 
             // Version/DeleteMarker details
@@ -936,8 +936,8 @@ public class XmlResponsesSaxParser {
                     lastModified = ServiceUtils.parseIso8601Date(elementText);
                 } catch (ParseException e) {
                     throw new RuntimeException(
-                    	"Non-ISO8601 date for LastModified in bucket's versions listing output: "
-                    	+ elementText, e);
+                        "Non-ISO8601 date for LastModified in bucket's versions listing output: "
+                        + elementText, e);
                 }
             } else if (name.equals("ETag")) {
                 etag = elementText;

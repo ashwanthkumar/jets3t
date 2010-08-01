@@ -66,7 +66,7 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
             this.inputStream = new InterruptableInputStream(httpMethod.getResponseBodyAsStream());
         } catch (IOException e) {
             if (log.isWarnEnabled()) {
-            	log.warn("Unable to obtain HttpMethod's response data stream", e);
+                log.warn("Unable to obtain HttpMethod's response data stream", e);
             }
             httpMethod.releaseConnection();
             this.inputStream = new ByteArrayInputStream(new byte[] {}); // Empty input stream;
@@ -191,7 +191,7 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
     protected void finalize() throws Throwable {
         if (!alreadyReleased) {
             if (log.isWarnEnabled()) {
-            	log.warn("Attempting to release HttpMethod in finalize() as its response data stream has gone out of scope. "
+                log.warn("Attempting to release HttpMethod in finalize() as its response data stream has gone out of scope. "
                 + "This attempt will not always succeed and cannot be relied upon! Please ensure S3 response data streams are "
                 + "always fully consumed or closed to avoid HTTP connection starvation.");
             }

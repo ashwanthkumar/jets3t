@@ -83,17 +83,17 @@ public class ServiceUtils {
         ParseException exception = null;
         synchronized (iso8601DateParser) {
             try {
-            	return iso8601DateParser.parse(dateString);
+                return iso8601DateParser.parse(dateString);
             } catch (ParseException e) {
-            	exception = e;
+                exception = e;
             }
         }
         // Work-around to parse datetime value returned by Walrus
         synchronized (iso8601DateParser_Walrus) {
             try {
-            	return iso8601DateParser_Walrus.parse(dateString);
+                return iso8601DateParser_Walrus.parse(dateString);
             } catch (ParseException e) {
-            	// Ignore work-around exceptions
+                // Ignore work-around exceptions
             }
         }
         // Throw original exception if the Walrus work-around doesn't save us.
@@ -133,7 +133,7 @@ public class ServiceUtils {
     {
         if (awsSecretKey == null) {
             if (log.isDebugEnabled()) {
-            	log.debug("Canonical string will not be signed, as no AWS Secret Key was provided");
+                log.debug("Canonical string will not be signed, as no AWS Secret Key was provided");
             }
             return null;
         }
@@ -204,7 +204,7 @@ public class ServiceUtils {
             }
         } catch (Exception e) {
             if (log.isWarnEnabled()) {
-            	log.warn("Unable to read String from Input Stream", e);
+                log.warn("Unable to read String from Input Stream", e);
             }
         }
         return sb.toString();
@@ -277,7 +277,7 @@ public class ServiceUtils {
      */
     public static Map cleanRestMetadataMap(Map metadata) {
         if (log.isDebugEnabled()) {
-        	log.debug("Cleaning up REST metadata items");
+            log.debug("Cleaning up REST metadata items");
         }
         HashMap cleanMap = new HashMap();
         if (metadata != null) {
@@ -317,7 +317,7 @@ public class ServiceUtils {
                     }
                 } else {
                     if (log.isDebugEnabled()) {
-                    	log.debug("Ignoring metadata item: " + keyStr + "=" + value);
+                        log.debug("Ignoring metadata item: " + keyStr + "=" + value);
                     }
                     continue;
                 }
@@ -327,14 +327,14 @@ public class ServiceUtils {
                 if (value instanceof Collection) {
                     if (((Collection) value).size() == 1) {
                         if (log.isDebugEnabled()) {
-                        	log.debug("Converted metadata single-item Collection "
-                    			+ value.getClass() + " " + value + " for key: " + key);
+                            log.debug("Converted metadata single-item Collection "
+                                + value.getClass() + " " + value + " for key: " + key);
                         }
                         value = ((Collection) value).iterator().next();
                     } else {
                         if (log.isWarnEnabled()) {
-                        	log.warn("Collection " + value
-                    			+ " has too many items to convert to a single string");
+                            log.warn("Collection " + value
+                                + " has too many items to convert to a single string");
                         }
                     }
                 }
@@ -343,7 +343,7 @@ public class ServiceUtils {
                 if ("Date".equals(key) || "Last-Modified".equals(key)) {
                     if (!(value instanceof Date)) {
                         if (log.isDebugEnabled()) {
-                        	log.debug("Parsing date string '" + value
+                            log.debug("Parsing date string '" + value
                             + "' into Date object for key: " + key);
                         }
                         try {
@@ -355,7 +355,7 @@ public class ServiceUtils {
                             } catch (ParseException pe2) {
                                 // Log original exception if the work-around fails.
                                 if (log.isWarnEnabled()) {
-                                	log.warn("Date string is not RFC 822 compliant for metadata field " + key, pe);
+                                    log.warn("Date string is not RFC 822 compliant for metadata field " + key, pe);
                                 }
                             }
                         }

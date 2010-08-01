@@ -87,7 +87,7 @@ public class DefaultBucketLister extends BucketLister {
     }
 
     public void listObjects(GatekeeperMessage gatekeeperMessage,
-        	ClientInformation clientInformation) throws S3ServiceException
+            ClientInformation clientInformation) throws S3ServiceException
     {
         // Build prefix based on user's path and any additional prefix provided.
         String prefix = null;
@@ -104,12 +104,12 @@ public class DefaultBucketLister extends BucketLister {
         // Package object information in SignatureRequest objects. This data will be
         // automatically encoded and sent across the wire back to the client.
         for (int i = 0; i < objects.length; i++) {
-        	SignatureRequest sr = new SignatureRequest();
+            SignatureRequest sr = new SignatureRequest();
             sr.setObjectMetadata(objects[i].getMetadataMap());
             sr.addObjectMetadata(S3Object.METADATA_HEADER_LAST_MODIFIED_DATE,
                 ServiceUtils.formatIso8601Date(objects[i].getLastModifiedDate()));
             sr.setObjectKey(objects[i].getKey());
-        	gatekeeperMessage.addSignatureRequest(sr);
+            gatekeeperMessage.addSignatureRequest(sr);
         }
 
         gatekeeperMessage.addApplicationProperty("AccountDescription",

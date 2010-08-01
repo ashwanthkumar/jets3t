@@ -77,15 +77,15 @@ public class AccessControlList implements Serializable {
      * Returns a string representation of the ACL contents, useful for debugging.
      */
     public String toString() {
-    	return "AccessControlList [owner=" + owner + ", grants=" + getGrants() + "]";
+        return "AccessControlList [owner=" + owner + ", grants=" + getGrants() + "]";
     }
 
     public S3Owner getOwner() {
-    	return owner;
+        return owner;
     }
 
     public void setOwner(S3Owner owner) {
-    	this.owner = owner;
+        this.owner = owner;
     }
 
     /**
@@ -98,7 +98,7 @@ public class AccessControlList implements Serializable {
      *        the permission to apply to the grantee.
      */
     public void grantPermission(GranteeInterface grantee, Permission permission) {
-    	grants.add(new GrantAndPermission(grantee, permission));
+        grants.add(new GrantAndPermission(grantee, permission));
     }
 
     /**
@@ -112,10 +112,10 @@ public class AccessControlList implements Serializable {
      * a set of {@link GrantAndPermission} objects
      */
     public void grantAllPermissions(Set grants) {
-    	for (Iterator iter = grants.iterator(); iter.hasNext();) {
-    		GrantAndPermission gap = (GrantAndPermission) iter.next();
-    		grantPermission(gap.getGrantee(), gap.getPermission());
-    	}
+        for (Iterator iter = grants.iterator(); iter.hasNext();) {
+            GrantAndPermission gap = (GrantAndPermission) iter.next();
+            grantPermission(gap.getGrantee(), gap.getPermission());
+        }
     }
 
     /**
@@ -139,14 +139,14 @@ public class AccessControlList implements Serializable {
      *        the grantee to remove from this ACL.
      */
     public void revokeAllPermissions(GranteeInterface grantee) {
-    	ArrayList grantsToRemove = new ArrayList();
-    	for (Iterator iter = grants.iterator(); iter.hasNext();) {
-    		GrantAndPermission gap = (GrantAndPermission) iter.next();
-    		if (gap.getGrantee().equals(grantee)) {
-    			grantsToRemove.add(gap);
-    		}
-    	}
-    	grants.removeAll(grantsToRemove);
+        ArrayList grantsToRemove = new ArrayList();
+        for (Iterator iter = grants.iterator(); iter.hasNext();) {
+            GrantAndPermission gap = (GrantAndPermission) iter.next();
+            if (gap.getGrantee().equals(grantee)) {
+                grantsToRemove.add(gap);
+            }
+        }
+        grants.removeAll(grantsToRemove);
     }
 
     /**
@@ -157,7 +157,7 @@ public class AccessControlList implements Serializable {
      * the set of {@link GrantAndPermission} objects in this ACL.
      */
     public Set getGrants() {
-    	return grants;
+        return grants;
     }
 
     /**
@@ -202,7 +202,7 @@ public class AccessControlList implements Serializable {
      */
     public String toXml() throws S3ServiceException {
         try {
-        	return toXMLBuilder().asString();
+            return toXMLBuilder().asString();
         } catch (Exception e) {
             throw new S3ServiceException("Failed to build XML document for ACL", e);
         }

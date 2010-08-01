@@ -58,52 +58,52 @@ public class S3ServiceException extends Exception {
      * @param xmlMessage
      */
     public S3ServiceException(String message, String xmlMessage) {
-    	super(message);
+        super(message);
         parseS3XmlMessage(xmlMessage);
         MxDelegate.getInstance().registerS3ServiceExceptionEvent(getS3ErrorCode());
     }
 
     public S3ServiceException() {
-    	super();
+        super();
     }
 
     public S3ServiceException(String message, Throwable cause) {
-    	super(message, cause);
+        super(message, cause);
     }
 
     public S3ServiceException(String message) {
-    	super(message);
+        super(message);
     }
 
     public S3ServiceException(Throwable cause) {
-    	super(cause);
+        super(cause);
     }
 
     public String toString() {
-    	String myString = super.toString();
+        String myString = super.toString();
 
-    	// Add request-specific information, if it's available.
-    	if (requestVerb != null) {
-    		myString +=
-    			" " + requestVerb
-    			+ " '" + requestPath + "'"
-    			+ (requestHost != null ? " on Host '" + requestHost + "'" : "")
-    			+ (responseDate != null ? " @ '" + responseDate + "'" : "");
-    	}
-    	if (responseCode != -1) {
-    		myString +=
-    			" -- ResponseCode: " + responseCode
-    			+ ", ResponseStatus: " + responseStatus;
-    	}
-    	if (isParsedFromXmlMessage()) {
-    		myString += ", XML Error Message: " + xmlMessage;
-    	}  else {
-    		if (s3ErrorRequestId != null) {
-    			myString += ", RequestId: " + s3ErrorRequestId
-    				+ ", HostId: " + s3ErrorHostId;
-    		}
-    	}
-    	return myString;
+        // Add request-specific information, if it's available.
+        if (requestVerb != null) {
+            myString +=
+                " " + requestVerb
+                + " '" + requestPath + "'"
+                + (requestHost != null ? " on Host '" + requestHost + "'" : "")
+                + (responseDate != null ? " @ '" + responseDate + "'" : "");
+        }
+        if (responseCode != -1) {
+            myString +=
+                " -- ResponseCode: " + responseCode
+                + ", ResponseStatus: " + responseStatus;
+        }
+        if (isParsedFromXmlMessage()) {
+            myString += ", XML Error Message: " + xmlMessage;
+        }  else {
+            if (s3ErrorRequestId != null) {
+                myString += ", RequestId: " + s3ErrorRequestId
+                    + ", HostId: " + s3ErrorHostId;
+            }
+        }
+        return myString;
     }
 
     private String findXmlElementText(String xmlMessage, String elementName) {
@@ -204,11 +204,11 @@ public class S3ServiceException extends Exception {
 
 
     public String getResponseDate() {
-    	return responseDate;
+        return responseDate;
     }
 
     public void setResponseDate(String responseDate) {
-    	this.responseDate = responseDate;
+        this.responseDate = responseDate;
     }
 
     /**
@@ -216,27 +216,27 @@ public class S3ServiceException extends Exception {
      * For example: "GET", "PUT", "DELETE"
      */
     public String getRequestVerb() {
-    	return requestVerb;
+        return requestVerb;
     }
 
     public void setRequestVerb(String requestVerb) {
-    	this.requestVerb = requestVerb;
+        this.requestVerb = requestVerb;
     }
 
     public String getRequestPath() {
-    	return requestPath;
+        return requestPath;
     }
 
     public void setRequestPath(String requestPath) {
-    	this.requestPath = requestPath;
+        this.requestPath = requestPath;
     }
 
     public String getRequestHost() {
-    	return requestHost;
+        return requestHost;
     }
 
     public void setRequestHost(String requestHost) {
-    	this.requestHost = requestHost;
+        this.requestHost = requestHost;
     }
 
     /**

@@ -102,7 +102,7 @@ public class EncryptionUtil {
             throw e;
         } catch (Exception e) {
             if (log.isDebugEnabled()) {
-            	log.debug("Unable to load security provider BouncyCastleProvider");
+                log.debug("Unable to load security provider BouncyCastleProvider");
             }
         }
     }
@@ -465,7 +465,7 @@ public class EncryptionUtil {
             throw e;
         } catch (Exception e) {
             if (log.isDebugEnabled()) {
-            	log.debug("Availability test failed for encryption cipher " + cipher);
+                log.debug("Availability test failed for encryption cipher " + cipher);
             }
             return false;
         }

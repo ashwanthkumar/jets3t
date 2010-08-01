@@ -53,7 +53,7 @@ public class CanonicalGrantee implements GranteeInterface {
      * @param identifier
      */
     public CanonicalGrantee(String identifier) {
-    	this.setIdentifier(identifier);
+        this.setIdentifier(identifier);
     }
 
     public String toXml() throws TransformerException,
@@ -73,15 +73,15 @@ public class CanonicalGrantee implements GranteeInterface {
     }
 
     public void setIdentifier(String id) {
-    	this.id = id;
+        this.id = id;
     }
 
     public String getIdentifier() {
-    	return id;
+        return id;
     }
 
     public void setDisplayName(String displayName) {
-    	this.displayName = displayName;
+        this.displayName = displayName;
     }
 
     public String getDisplayName() {
@@ -89,21 +89,21 @@ public class CanonicalGrantee implements GranteeInterface {
     }
 
     public boolean equals(Object obj) {
-    	if (obj instanceof CanonicalGrantee) {
-    		CanonicalGrantee canonicalGrantee = (CanonicalGrantee) obj;
-    		return id.equals(canonicalGrantee.id);
-    	}
-    	return false;
+        if (obj instanceof CanonicalGrantee) {
+            CanonicalGrantee canonicalGrantee = (CanonicalGrantee) obj;
+            return id.equals(canonicalGrantee.id);
+        }
+        return false;
     }
 
     public int hashCode() {
-    	return id.hashCode();
+        return id.hashCode();
     }
 
     public String toString() {
-    	return "CanonicalGrantee [id=" + id
-    		+ (displayName != null ? ", displayName=" + displayName : "")
-    		+ "]";
+        return "CanonicalGrantee [id=" + id
+            + (displayName != null ? ", displayName=" + displayName : "")
+            + "]";
     }
 
 }

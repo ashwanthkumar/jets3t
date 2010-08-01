@@ -162,7 +162,7 @@ public class FileComparer {
         File jets3tIgnoreFile = new File(directory, Constants.JETS3T_IGNORE_FILENAME);
         if (jets3tIgnoreFile.exists() && jets3tIgnoreFile.canRead()) {
             if (log.isDebugEnabled()) {
-            	log.debug("Found ignore file: " + jets3tIgnoreFile.getPath());
+                log.debug("Found ignore file: " + jets3tIgnoreFile.getPath());
             }
             try {
                 String ignorePaths = ServiceUtils.readInputStreamToString(
@@ -193,7 +193,7 @@ public class FileComparer {
                 }
             } catch (IOException e) {
                 if (log.isErrorEnabled()) {
-                	log.error("Failed to read contents of ignore file '" + jets3tIgnoreFile.getPath()
+                    log.error("Failed to read contents of ignore file '" + jets3tIgnoreFile.getPath()
                     + "'", e);
                 }
             }
@@ -229,27 +229,27 @@ public class FileComparer {
      */
     protected boolean isIgnored(List ignorePatternList, File file) {
         if (jets3tProperties.getBoolProperty("filecomparer.skip-symlinks", false)) {
-        	/*
-        	 * Check whether this file is actually a symlink/alias, and skip it if so.
-        	 * Since Java IO libraries do not provide an official way to determine whether
-        	 * a file is a symlink, we rely on a property of symlinks where the absolute
-        	 * path to the symlink differs from the canonical path. This is hacky, but
-        	 * mostly seems to work...
-        	 */
-        	try {
-    			if (!file.getAbsolutePath().equals(file.getCanonicalPath())) {
-                	if (log.isDebugEnabled()) {
-                		log.debug("Ignoring symlink "
-                			+ (file.isDirectory() ? "directory" : "file") + ": " + file.getName());
-                	}
-    				// Skip symlink.
-    				return true;
-    			}
-    		} catch (IOException e) {
-    			log.warn("Unable to determine whether "
-    				+ (file.isDirectory() ? "directory" : "file")
-    				+ " '" + file.getAbsolutePath() + "' is a symlink", e);
-    		}
+            /*
+             * Check whether this file is actually a symlink/alias, and skip it if so.
+             * Since Java IO libraries do not provide an official way to determine whether
+             * a file is a symlink, we rely on a property of symlinks where the absolute
+             * path to the symlink differs from the canonical path. This is hacky, but
+             * mostly seems to work...
+             */
+            try {
+                if (!file.getAbsolutePath().equals(file.getCanonicalPath())) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Ignoring symlink "
+                            + (file.isDirectory() ? "directory" : "file") + ": " + file.getName());
+                    }
+                    // Skip symlink.
+                    return true;
+                }
+            } catch (IOException e) {
+                log.warn("Unable to determine whether "
+                    + (file.isDirectory() ? "directory" : "file")
+                    + " '" + file.getAbsolutePath() + "' is a symlink", e);
+            }
         }
 
         Iterator patternIter = ignorePatternList.iterator();
@@ -258,7 +258,7 @@ public class FileComparer {
 
             if (pattern.matcher(file.getName()).matches()) {
                 if (log.isDebugEnabled()) {
-                	log.debug("Ignoring " + (file.isDirectory() ? "directory" : "file")
+                    log.debug("Ignoring " + (file.isDirectory() ? "directory" : "file")
                     + " matching pattern '" + pattern.pattern() + "': " + file.getName());
                 }
                 return true;
@@ -491,7 +491,7 @@ public class FileComparer {
 
         while (currentDepth <= toDepth && prefixesToList.length > 0) {
             if (log.isDebugEnabled()) {
-            	log.debug("Listing objects in '" + bucketName + "' using "
+                log.debug("Listing objects in '" + bucketName + "' using "
                 + prefixesToList.length + " prefixes: "
                 + Arrays.asList(prefixesToList));
             }
@@ -825,17 +825,17 @@ public class FileComparer {
         boolean generateMd5Files = jets3tProperties
             .getBoolProperty("filecomparer.generate-md5-files", false);
         boolean assumeLocalLatestInMismatch = jets3tProperties
-        	.getBoolProperty("filecomparer.assume-local-latest-in-mismatch", false);
+            .getBoolProperty("filecomparer.assume-local-latest-in-mismatch", false);
         String md5FilesRootDirectoryPath = jets3tProperties
-        	.getStringProperty("filecomparer.md5-files-root-dir", null);
+            .getStringProperty("filecomparer.md5-files-root-dir", null);
         File md5FilesRootDirectory = null;
         if (md5FilesRootDirectoryPath != null) {
-        	md5FilesRootDirectory = new File(md5FilesRootDirectoryPath);
-        	if (!md5FilesRootDirectory.isDirectory()) {
-        		throw new FileNotFoundException(
-        			"filecomparer.md5-files-root-dir path is not a directory: "
-        			+ md5FilesRootDirectoryPath);
-        	}
+            md5FilesRootDirectory = new File(md5FilesRootDirectoryPath);
+            if (!md5FilesRootDirectory.isDirectory()) {
+                throw new FileNotFoundException(
+                    "filecomparer.md5-files-root-dir path is not a directory: "
+                    + md5FilesRootDirectoryPath);
+            }
         }
 
         // Check files on server against local client files.
@@ -859,7 +859,7 @@ public class FileComparer {
 
                 if (ignorePanicDirPlaceholders) {
                     if (log.isDebugEnabled()) {
-                    	log.debug("Ignoring object that looks like a directory " +
+                        log.debug("Ignoring object that looks like a directory " +
                         "placeholder created by Panic's Transmit application: " + keyPath);
                     }
                     // Convert placeholder object into something JetS3t tools will recognize.
@@ -870,7 +870,7 @@ public class FileComparer {
                     continue;
                 } else {
                     if (log.isWarnEnabled()) {
-                    	log.warn("Identified an object that looks like a directory " +
+                        log.warn("Identified an object that looks like a directory " +
                         "placeholder created by Panic's Transmit application. " +
                         "If this object was indeed created by Transmit, it will not " +
                         "be handled properly unless the JetS3t property " +
@@ -892,7 +892,7 @@ public class FileComparer {
 
                 if (ignoreS3FoxDirPlaceholders) {
                     if (log.isDebugEnabled()) {
-                    	log.debug("Ignoring object that looks like a directory " +
+                        log.debug("Ignoring object that looks like a directory " +
                         "placeholder created by the S3 Organizer Firefox add-on: " + keyPath);
                     }
                     // Convert placeholder object into something JetS3t tools will recognize.
@@ -904,7 +904,7 @@ public class FileComparer {
                     continue;
                 } else {
                     if (log.isWarnEnabled()) {
-                    	log.warn("Identified an object that looks like a directory " +
+                        log.warn("Identified an object that looks like a directory " +
                         "placeholder created by the S3 Organizer Firefox add-on. " +
                         "If this object was indeed created by S3 Organizer, it will not " +
                         "be handled properly unless the JetS3t property " +
@@ -928,7 +928,7 @@ public class FileComparer {
 
                     // Check whether a pre-computed MD5 hash file is available
                     File computedHashFile = (md5FilesRootDirectory != null
-                    	? new File(md5FilesRootDirectory, keyPath + ".md5")
+                        ? new File(md5FilesRootDirectory, keyPath + ".md5")
                         : new File(file.getPath() + ".md5"));
                     if (useMd5Files
                         && computedHashFile.canRead()
@@ -943,7 +943,7 @@ public class FileComparer {
                             throw e;
                         } catch (Exception e) {
                             if (log.isWarnEnabled()) {
-                            	log.warn("Unable to read hash from computed MD5 file", e);
+                                log.warn("Unable to read hash from computed MD5 file", e);
                             }
                         } finally {
                             if (br != null) {
@@ -974,7 +974,7 @@ public class FileComparer {
                         // Create parent directory for new hash file if necessary
                         File parentDir = computedHashFile.getParentFile();
                         if (parentDir != null && !parentDir.exists()) {
-                        	parentDir.mkdirs();
+                            parentDir.mkdirs();
                         }
 
                         // Create or update a pre-computed MD5 hash file.
@@ -984,7 +984,7 @@ public class FileComparer {
                             fw.write(ServiceUtils.toHex(computedHash));
                         } catch (Exception e) {
                             if (log.isWarnEnabled()) {
-                            	log.warn("Unable to write computed MD5 hash to a file", e);
+                                log.warn("Unable to write computed MD5 hash to a file", e);
                             }
                         } finally {
                             if (fw != null) {
@@ -1020,7 +1020,7 @@ public class FileComparer {
                         if (metadataLocalFileDate == null) {
                             // This is risky as local file times and S3 times don't match!
                             if (!assumeLocalLatestInMismatch && log.isWarnEnabled()) {
-                            	log.warn("Using S3 last modified date as file date. This is not reliable "
+                                log.warn("Using S3 last modified date as file date. This is not reliable "
                                 + "as the time according to S3 can differ from your local system time. "
                                 + "Please use the metadata item "
                                 + Constants.METADATA_JETS3T_LOCAL_FILE_DATE);
@@ -1040,7 +1040,7 @@ public class FileComparer {
                             // sometimes does with Excel files.
                             if (assumeLocalLatestInMismatch) {
                                 if (log.isWarnEnabled()) {
-                                	log.warn("Backed-up S3Object " + s3Object.getKey()
+                                    log.warn("Backed-up S3Object " + s3Object.getKey()
                                     + " and local file " + file.getName()
                                     + " have the same date but different hash values. "
                                     + "Assuming local file is the latest version.");

@@ -2174,7 +2174,7 @@ public class S3ServiceMulti implements Serializable {
 
             try {                
                 if (!downloadPackage.isSignedDownload()) {
-                	object = s3Service.getObject(bucket, objectKey);
+                    object = s3Service.getObject(bucket, objectKey);
                 } else {
                     SignedUrlHandler handler = (SignedUrlHandler) s3Service;
                     object = handler.getObjectWithSignedUrl(downloadPackage.getSignedUrl());
@@ -2196,7 +2196,7 @@ public class S3ServiceMulti implements Serializable {
                     messageDigest = MessageDigest.getInstance("MD5");
                 } catch (NoSuchAlgorithmException e) {
                     if (log.isWarnEnabled()) {
-                    	log.warn("Unable to calculate MD5 hash of data received as algorithm is not available", e);
+                        log.warn("Unable to calculate MD5 hash of data received as algorithm is not available", e);
                     }
                 }
 

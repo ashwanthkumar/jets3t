@@ -56,9 +56,9 @@ public class DefaultAuthorizer extends Authorizer {
      * Returns true in all cases.
      */
     public boolean allowBucketListingRequest(
-    		GatekeeperMessage requestMessage, ClientInformation clientInformation)
+            GatekeeperMessage requestMessage, ClientInformation clientInformation)
     {
-    	return true;
+        return true;
     }
 
 }

@@ -170,12 +170,12 @@ public class Synchronize {
             Entry entry = (Entry) myPropertiesIter.next();
             String keyName = entry.getKey().toString().toLowerCase();
             if (entry.getKey() != null
-        		&& keyName.startsWith("upload.metadata."))
+                && keyName.startsWith("upload.metadata."))
             {
-            	String metadataName = entry.getKey().toString()
-            		.substring("upload.metadata.".length());
-            	String metadataValue = entry.getValue().toString();
-            	this.customMetadata.put(metadataName, metadataValue);
+                String metadataName = entry.getKey().toString()
+                    .substring("upload.metadata.".length());
+                String metadataValue = entry.getValue().toString();
+                this.customMetadata.put(metadataName, metadataValue);
             }
         }
     }
@@ -1339,7 +1339,7 @@ public class Synchronize {
                                 continue;
                             } else {
                                 System.err.println(
-                                	"ERROR: Cannot read upload file/directory: " + file + "\n" +
+                                    "ERROR: Cannot read upload file/directory: " + file + "\n" +
                                     "       To ignore missing paths set the property upload.ignoreMissingPaths");
                                 printHelpAndExit(false);
                             }

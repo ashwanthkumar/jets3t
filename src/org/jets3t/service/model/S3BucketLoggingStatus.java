@@ -86,7 +86,7 @@ public class S3BucketLoggingStatus {
 
     public GrantAndPermission[] getTargetGrants() {
         return (GrantAndPermission[]) targetGrantsList.toArray(
-    		new GrantAndPermission[targetGrantsList.size()]);
+            new GrantAndPermission[targetGrantsList.size()]);
     }
 
     public void setTargetGrants(GrantAndPermission[] targetGrants) {
@@ -104,7 +104,7 @@ public class S3BucketLoggingStatus {
             result += ", targetBucketName=" + getTargetBucketName()
                 + ", logfilePrefix=" + getLogfilePrefix();
         }
-    	result += ", targetGrants=[" + targetGrantsList + "]";
+        result += ", targetGrants=[" + targetGrantsList + "]";
         return result;
     }
 
@@ -131,10 +131,10 @@ public class S3BucketLoggingStatus {
                 Iterator targetGrantsIter = targetGrantsList.iterator();
                 XMLBuilder grantsBuilder = builder.elem("TargetGrants");
                 while (targetGrantsIter.hasNext()) {
-                	GrantAndPermission gap = (GrantAndPermission) targetGrantsIter.next();
-                	grantsBuilder.elem("Grant")
-                	    .importXMLBuilder(gap.getGrantee().toXMLBuilder())
-                	    .elem("Permission").text(gap.getPermission().toString());
+                    GrantAndPermission gap = (GrantAndPermission) targetGrantsIter.next();
+                    grantsBuilder.elem("Grant")
+                        .importXMLBuilder(gap.getGrantee().toXMLBuilder())
+                        .elem("Permission").text(gap.getPermission().toString());
                 }
             }
         }

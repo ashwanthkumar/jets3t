@@ -322,7 +322,7 @@ public class RestUtils {
         }
 
         connectionParams.setMaxConnectionsPerHost(
-        	HostConfiguration.ANY_HOST_CONFIGURATION, maxConnectionsPerHost);
+            HostConfiguration.ANY_HOST_CONFIGURATION, maxConnectionsPerHost);
         connectionParams.setMaxTotalConnections(maxConnections);
 
         // Connection properties to take advantage of S3 window scaling.
@@ -390,7 +390,7 @@ public class RestUtils {
         });
 
         long connectionManagerTimeout = jets3tProperties.getLongProperty(
-        	"httpclient.connection-manager-timeout", 0);
+            "httpclient.connection-manager-timeout", 0);
         clientParams.setConnectionManagerTimeout(connectionManagerTimeout);
 
         HttpClient httpClient = new HttpClient(clientParams, connectionManager);

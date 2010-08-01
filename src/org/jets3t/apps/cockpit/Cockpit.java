@@ -1150,8 +1150,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             bucketLoggingMenuItem.setEnabled(true);
 
             String loginName = (credentials.hasFriendlyName()
-            	? credentials.getFriendlyName()
-    			: credentials.getAccessKey());
+                ? credentials.getFriendlyName()
+                : credentials.getAccessKey());
             if (!loginAwsCredentialsMap.containsKey(loginName)) {
                 loginAwsCredentialsMap.put(loginName, credentials);
                 JMenuItem menuItem = new JMenuItem(loginName);
@@ -1180,18 +1180,18 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         try {
             ProviderCredentials credentials = s3ServiceMulti.getAWSCredentials();
             String loginName = (credentials.hasFriendlyName()
-            	? credentials.getFriendlyName()
-    			: credentials.getAccessKey());
+                ? credentials.getFriendlyName()
+                : credentials.getAccessKey());
             if (loginAwsCredentialsMap.containsKey(loginName)) {
                 Component[] components = loginSwitchMenu.getMenuComponents();
                 for (int i = 0; i < components.length; i++) {
-                	JMenuItem menuItem = (JMenuItem)components[i];
-                	if (loginName.equals(menuItem.getText())) {
-                		loginSwitchMenu.remove(components[i]);
-                		break;
-                	}
+                    JMenuItem menuItem = (JMenuItem)components[i];
+                    if (loginName.equals(menuItem.getText())) {
+                        loginSwitchMenu.remove(components[i]);
+                        break;
+                    }
                 }
-            	loginAwsCredentialsMap.remove(loginName);
+                loginAwsCredentialsMap.remove(loginName);
                 loginSwitchMenu.setEnabled(loginAwsCredentialsMap.size() > 0);
             }
 

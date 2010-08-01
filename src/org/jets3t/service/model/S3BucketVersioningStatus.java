@@ -28,7 +28,7 @@ public class S3BucketVersioningStatus {
     private boolean multiFactorAuthDeleteEnabled = false;
 
     public S3BucketVersioningStatus(boolean versioningEnabled,
-    	boolean multiFactorAuthEnabled)
+        boolean multiFactorAuthEnabled)
     {
         this.versioningEnabled = versioningEnabled;
         this.multiFactorAuthDeleteEnabled = multiFactorAuthEnabled;

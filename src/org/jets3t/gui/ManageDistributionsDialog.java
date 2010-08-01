@@ -130,8 +130,8 @@ public class ManageDistributionsDialog extends JDialog
         loggingBucketComboBox.setSelectedIndex(0);
         loggingBucketComboBox.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-            	loggingPrefixTextField.setEnabled(
-        			loggingBucketComboBox.getSelectedIndex() > 0);
+                loggingPrefixTextField.setEnabled(
+                    loggingBucketComboBox.getSelectedIndex() > 0);
             }
         });
         JLabel loggingPrefixLabel = new JLabel("Logging prefix:");
@@ -359,7 +359,7 @@ public class ManageDistributionsDialog extends JDialog
                     distributionConfig = cloudFrontService.getDistributionConfig(distribution.getId());
                 } catch (CloudFrontServiceException ex) {
                     String message = "Unable to retrieve configuration information "
-                    	+ "for distribution: " + distribution.getId();
+                        + "for distribution: " + distribution.getId();
                     ErrorDialog.showDialog(ownerFrame, this, message, ex);
                     return;
                 }
@@ -371,9 +371,9 @@ public class ManageDistributionsDialog extends JDialog
 
                 if (distributionConfig.getLoggingStatus() != null) {
                     loggingBucketComboBox.setSelectedItem(
-                    	distributionConfig.getLoggingStatus().getShortBucketName());
+                        distributionConfig.getLoggingStatus().getShortBucketName());
                     loggingPrefixTextField.setText(
-                    	distributionConfig.getLoggingStatus().getPrefix());
+                        distributionConfig.getLoggingStatus().getPrefix());
                 } else {
                     loggingBucketComboBox.setSelectedIndex(0);
                     loggingPrefixTextField.setText("");
@@ -476,11 +476,11 @@ public class ManageDistributionsDialog extends JDialog
                     try {
                         LoggingStatus loggingStatus = null;
                         if (loggingBucketComboBox.getSelectedIndex() > 0) {
-                        	String loggingBucket = (String) loggingBucketComboBox.getSelectedItem()
-                        		+ CloudFrontService.DEFAULT_BUCKET_SUFFIX;
-                        	loggingStatus = new LoggingStatus(
-                        			loggingBucket,
-                        			loggingPrefixTextField.getText());
+                            String loggingBucket = (String) loggingBucketComboBox.getSelectedItem()
+                                + CloudFrontService.DEFAULT_BUCKET_SUFFIX;
+                            loggingStatus = new LoggingStatus(
+                                    loggingBucket,
+                                    loggingPrefixTextField.getText());
                         }
 
                         String[] requiredProtocols = null;
@@ -538,11 +538,11 @@ public class ManageDistributionsDialog extends JDialog
                     try {
                         LoggingStatus loggingStatus = null;
                         if (loggingBucketComboBox.getSelectedIndex() > 0) {
-                        	String loggingBucket = (String) loggingBucketComboBox.getSelectedItem()
-                    			+ CloudFrontService.DEFAULT_BUCKET_SUFFIX;
-                        	loggingStatus = new LoggingStatus(
-                        			loggingBucket,
-                        			loggingPrefixTextField.getText());
+                            String loggingBucket = (String) loggingBucketComboBox.getSelectedItem()
+                                + CloudFrontService.DEFAULT_BUCKET_SUFFIX;
+                            loggingStatus = new LoggingStatus(
+                                    loggingBucket,
+                                    loggingPrefixTextField.getText());
                         }
 
                         String[] requiredProtocols = null;
@@ -646,7 +646,7 @@ public class ManageDistributionsDialog extends JDialog
                 (distribution.isDeployed() ? deployedIcon : inProgressIcon),
                 Boolean.valueOf(distribution.isEnabled()),
                 distribution.getOriginAsBucketName(), distribution.getDomainName(),
-            	distribution.getLastModifiedTime()
+                distribution.getLastModifiedTime()
             });
         }
 

@@ -325,8 +325,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     {
         if (log.isDebugEnabled()) {
             log.debug("Listing "
-            	+ (isStreaming ? "streaming" : "")
-            	+ " distributions for AWS user: " + getAWSCredentials().getAccessKey());
+                + (isStreaming ? "streaming" : "")
+                + " distributions for AWS user: " + getAWSCredentials().getAccessKey());
         }
         try {
             List distributions = new ArrayList();
@@ -334,10 +334,10 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             boolean incompleteListing = true;
             do {
                 String uri = ENDPOINT + VERSION
-                	+ (isStreaming ? "/streaming-distribution" : "/distribution")
-        			+ "?MaxItems=" + pagingSize;
+                    + (isStreaming ? "/streaming-distribution" : "/distribution")
+                    + "?MaxItems=" + pagingSize;
                 if (nextMarker != null) {
-                	uri += "&Marker=" + nextMarker;
+                    uri += "&Marker=" + nextMarker;
                 }
                 HttpMethod httpMethod = new GetMethod(uri);
                 performRestRequest(httpMethod, 200);
@@ -353,7 +353,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 // Sanity check for valid pagination values.
                 if (incompleteListing && nextMarker == null) {
                     throw new CloudFrontServiceException("Unable to retrieve paginated "
-                    		+ "DistributionList results without a valid NextMarker value.");
+                            + "DistributionList results without a valid NextMarker value.");
                 }
             } while (incompleteListing);
 
@@ -401,7 +401,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     {
         List distributions = listDistributionsImpl(true, pagingSize);
         return (StreamingDistribution[]) distributions.toArray(
-        	new StreamingDistribution[distributions.size()]);
+            new StreamingDistribution[distributions.size()]);
     }
 
     /**
@@ -446,7 +446,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
         if (log.isDebugEnabled()) {
             log.debug("Listing "
-            	+ (isStreaming ? "streaming" : "")
+                + (isStreaming ? "streaming" : "")
                 + " distributions for the S3 bucket '" + bucketName
                 + "' for AWS user: " + getAWSCredentials().getAccessKey());
         }
@@ -522,13 +522,13 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws FactoryConfigurationError
      */
     protected String buildDistributionConfigXmlDocument(boolean isStreamingDistribution,
-    	String origin, String callerReference, String[] cnames, String comment, boolean enabled,
-    	LoggingStatus loggingStatus, String originAccessIdentityId, boolean trustedSignerSelf,
+        String origin, String callerReference, String[] cnames, String comment, boolean enabled,
+        LoggingStatus loggingStatus, String originAccessIdentityId, boolean trustedSignerSelf,
         String[] trustedSignerAwsAccountNumbers, String[] requiredProtocols)
-    	throws TransformerException, ParserConfigurationException, FactoryConfigurationError
+        throws TransformerException, ParserConfigurationException, FactoryConfigurationError
     {
         XMLBuilder builder = XMLBuilder.create(
-        	isStreamingDistribution ? "StreamingDistributionConfig" : "DistributionConfig")
+            isStreamingDistribution ? "StreamingDistributionConfig" : "DistributionConfig")
             .a("xmlns", XML_NAMESPACE)
             .e("Origin").t(origin).up()
             .e("CallerReference").t(callerReference).up();
@@ -539,33 +539,33 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             .e("Comment").t(comment).up()
             .e("Enabled").t("" + enabled);
         if (originAccessIdentityId != null) {
-        	builder.e("OriginAccessIdentity")
-        		.t(ORIGIN_ACCESS_IDENTITY_PREFIX + originAccessIdentityId)
-    		.up();
+            builder.e("OriginAccessIdentity")
+                .t(ORIGIN_ACCESS_IDENTITY_PREFIX + originAccessIdentityId)
+            .up();
         }
         if (trustedSignerSelf
-    		|| (trustedSignerAwsAccountNumbers != null
-    			&& trustedSignerAwsAccountNumbers.length > 0))
+            || (trustedSignerAwsAccountNumbers != null
+                && trustedSignerAwsAccountNumbers.length > 0))
         {
-        	XMLBuilder trustedSigners = builder.e("TrustedSigners");
-        	if (trustedSignerSelf) {
-        		trustedSigners.e("Self");
-        	}
-        	for (int i = 0;
-        		trustedSignerAwsAccountNumbers != null
-        			&& i < trustedSignerAwsAccountNumbers.length;
-        		i++)
-        	{
-        		trustedSigners.e("AWSAccountNumber")
-        			.t(trustedSignerAwsAccountNumbers[i]);
-        	}
-        	builder.up();
+            XMLBuilder trustedSigners = builder.e("TrustedSigners");
+            if (trustedSignerSelf) {
+                trustedSigners.e("Self");
+            }
+            for (int i = 0;
+                trustedSignerAwsAccountNumbers != null
+                    && i < trustedSignerAwsAccountNumbers.length;
+                i++)
+            {
+                trustedSigners.e("AWSAccountNumber")
+                    .t(trustedSignerAwsAccountNumbers[i]);
+            }
+            builder.up();
         }
         if (loggingStatus != null) {
-        	builder.e("Logging")
-        		.e("Bucket").t(loggingStatus.getBucket()).up()
-        		.e("Prefix").t(loggingStatus.getPrefix()).up()
-        	.up();
+            builder.e("Logging")
+                .e("Bucket").t(loggingStatus.getBucket()).up()
+                .e("Prefix").t(loggingStatus.getPrefix()).up()
+            .up();
         }
         if (requiredProtocols != null && requiredProtocols.length > 0) {
             XMLBuilder rpsBuilder = builder.e("RequiredProtocols");
@@ -594,7 +594,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     protected Distribution createDistributionImpl(
-    	boolean isStreaming, String origin, String callerReference,
+        boolean isStreaming, String origin, String callerReference,
         String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus,
         String originAccessIdentityId, boolean trustedSignerSelf,
         String[] trustedSignerAwsAccountNumbers, String[] requiredProtocols)
@@ -602,7 +602,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     {
         if (log.isDebugEnabled()) {
             log.debug("Creating "
-            	+ (isStreaming ? "streaming" : "")
+                + (isStreaming ? "streaming" : "")
                 + " distribution for origin: " + origin);
         }
 
@@ -619,7 +619,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         }
 
         PostMethod httpMethod = new PostMethod(ENDPOINT + VERSION
-        	+ (isStreaming ? "/streaming-distribution" : "/distribution"));
+            + (isStreaming ? "/streaming-distribution" : "/distribution"));
 
         try {
             String distributionConfigXml = buildDistributionConfigXmlDocument(
@@ -701,8 +701,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         throws CloudFrontServiceException
     {
         return createDistributionImpl(false, origin, callerReference, cnames, comment,
-    		enabled, loggingStatus, originAccessIdentityId, trustedSignerSelf,
-    		trustedSignerAwsAccountNumbers, requiredProtocols);
+            enabled, loggingStatus, originAccessIdentityId, trustedSignerSelf,
+            trustedSignerAwsAccountNumbers, requiredProtocols);
     }
 
     /**
@@ -757,7 +757,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         throws CloudFrontServiceException
     {
         return createDistribution(origin, callerReference, cnames, comment, enabled,
-        		loggingStatus, null, false, null, null);
+                loggingStatus, null, false, null, null);
     }
 
      /**
@@ -777,11 +777,11 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         throws CloudFrontServiceException
     {
         return createDistribution(config.getOrigin(), config.getCallerReference(),
-    		config.getCNAMEs(), config.getComment(), config.isEnabled(),
-    		config.getLoggingStatus(), config.getOrigin(),
-    		config.isTrustedSignerSelf(),
-    		config.getTrustedSignerAwsAccountNumbers(),
-    		config.getRequiredProtocols());
+            config.getCNAMEs(), config.getComment(), config.isEnabled(),
+            config.getLoggingStatus(), config.getOrigin(),
+            config.isTrustedSignerSelf(),
+            config.getTrustedSignerAwsAccountNumbers(),
+            config.getRequiredProtocols());
     }
 
     /**
@@ -835,8 +835,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         throws CloudFrontServiceException
     {
         return (StreamingDistribution) createDistributionImpl(true, origin, callerReference,
-    		cnames, comment, enabled, loggingStatus, originAccessIdentityId,
-    		trustedSignerSelf, trustedSignerAwsAccountNumbers, null);
+            cnames, comment, enabled, loggingStatus, originAccessIdentityId,
+            trustedSignerSelf, trustedSignerAwsAccountNumbers, null);
     }
 
     /**
@@ -887,12 +887,12 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     {
         if (log.isDebugEnabled()) {
             log.debug("Getting information for "
-            	+ (isStreaming ? "streaming" : "")
-            	+ " distribution with id: " + id);
+                + (isStreaming ? "streaming" : "")
+                + " distribution with id: " + id);
         }
         GetMethod httpMethod = new GetMethod(ENDPOINT + VERSION
-        	+ (isStreaming ? "/streaming-distribution/" : "/distribution/")
-        	+ id);
+            + (isStreaming ? "/streaming-distribution/" : "/distribution/")
+            + id);
 
         try {
             performRestRequest(httpMethod, 200);
@@ -957,12 +957,12 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     {
         if (log.isDebugEnabled()) {
             log.debug("Getting configuration for "
-            	+ (isStreaming ? "streaming" : "")
-            	+ " distribution with id: " + id);
+                + (isStreaming ? "streaming" : "")
+                + " distribution with id: " + id);
         }
         GetMethod httpMethod = new GetMethod(ENDPOINT + VERSION
-        	+ (isStreaming ? "/streaming-distribution/" : "/distribution/")
-        	+ id + "/config");
+            + (isStreaming ? "/streaming-distribution/" : "/distribution/")
+            + id + "/config");
 
         try {
             performRestRequest(httpMethod, 200);
@@ -1041,7 +1041,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     protected DistributionConfig updateDistributionConfigImpl(
-    	boolean isStreaming, String id, String[] cnames,
+        boolean isStreaming, String id, String[] cnames,
         String comment, boolean enabled, LoggingStatus loggingStatus,
         String originAccessIdentityId, boolean trustedSignerSelf,
         String[] trustedSignerAwsAccountNumbers,
@@ -1050,8 +1050,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     {
         if (log.isDebugEnabled()) {
             log.debug("Updating configuration of "
-            	+ (isStreaming ? "streaming" : "")
-            	+ "distribution with id: " + id);
+                + (isStreaming ? "streaming" : "")
+                + "distribution with id: " + id);
         }
 
         // Retrieve the old configuration.
@@ -1067,14 +1067,14 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         }
 
         PutMethod httpMethod = new PutMethod(ENDPOINT + VERSION
-        	+ (isStreaming ? "/streaming-distribution/" : "/distribution/")
-        	+ id + "/config");
+            + (isStreaming ? "/streaming-distribution/" : "/distribution/")
+            + id + "/config");
 
         try {
             String distributionConfigXml = buildDistributionConfigXmlDocument(isStreaming,
-            		oldConfig.getOrigin(), oldConfig.getCallerReference(), cnames, comment, enabled,
-            		loggingStatus, originAccessIdentityId, trustedSignerSelf,
-            		trustedSignerAwsAccountNumbers, requiredProtocols);
+                    oldConfig.getOrigin(), oldConfig.getCallerReference(), cnames, comment, enabled,
+                    loggingStatus, originAccessIdentityId, trustedSignerSelf,
+                    trustedSignerAwsAccountNumbers, requiredProtocols);
 
             httpMethod.setRequestEntity(
                 new StringRequestEntity(distributionConfigXml, "text/xml", Constants.DEFAULT_ENCODING));
@@ -1157,8 +1157,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         throws CloudFrontServiceException
     {
         return updateDistributionConfigImpl(false, id, cnames, comment, enabled, loggingStatus,
-    		originAccessIdentityId, trustedSignerSelf, trustedSignerAwsAccountNumbers,
-    		requiredProtocols);
+            originAccessIdentityId, trustedSignerSelf, trustedSignerAwsAccountNumbers,
+            requiredProtocols);
     }
 
     /**
@@ -1193,12 +1193,12 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public StreamingDistributionConfig updateStreamingDistributionConfig(
-    	String id, String[] cnames, String comment, boolean enabled,
-    	LoggingStatus loggingStatus)
+        String id, String[] cnames, String comment, boolean enabled,
+        LoggingStatus loggingStatus)
         throws CloudFrontServiceException
     {
         return (StreamingDistributionConfig) updateDistributionConfigImpl(
-    		true, id, cnames, comment, enabled, loggingStatus, null, false, null, null);
+            true, id, cnames, comment, enabled, loggingStatus, null, false, null, null);
     }
 
     /**
@@ -1296,7 +1296,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         throws CloudFrontServiceException
     {
         return updateDistributionConfig(id, cnames, comment, enabled, loggingStatus,
-    		null, false, null, null);
+            null, false, null, null);
     }
 
      /**
@@ -1322,12 +1322,12 @@ public class CloudFrontService implements AWSRequestAuthorizer {
       * @throws CloudFrontServiceException
       */
     public DistributionConfig updateDistributionConfig(String id,
-    	DistributionConfig config) throws CloudFrontServiceException
+        DistributionConfig config) throws CloudFrontServiceException
     {
         return updateDistributionConfig(id, config.getCNAMEs(), config.getComment(),
-    		config.isEnabled(), config.getLoggingStatus(), config.getOriginAccessIdentity(),
-    		config.isTrustedSignerSelf(), config.getTrustedSignerAwsAccountNumbers(),
-    		config.getRequiredProtocols());
+            config.isEnabled(), config.getLoggingStatus(), config.getOriginAccessIdentity(),
+            config.isTrustedSignerSelf(), config.getTrustedSignerAwsAccountNumbers(),
+            config.getRequiredProtocols());
     }
 
     /**
@@ -1369,12 +1369,12 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public void disableStreamingDistributionForDeletion(String id)
-    	throws CloudFrontServiceException
+        throws CloudFrontServiceException
     {
-    	updateStreamingDistributionConfig(id, new String[] {}, "Disabled prior to deletion",
-    	    false, // enabled?
-    	    null // LoggingStatus
-    	    );
+        updateStreamingDistributionConfig(id, new String[] {}, "Disabled prior to deletion",
+            false, // enabled?
+            null // LoggingStatus
+            );
     }
 
     /**
@@ -1388,8 +1388,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     {
         if (log.isDebugEnabled()) {
             log.debug("Deleting "
-            	+ (isStreaming ? "streaming" : "")
-            	+ "distribution with id: " + id);
+                + (isStreaming ? "streaming" : "")
+                + "distribution with id: " + id);
         }
 
         // Get the distribution's current config.
@@ -1397,8 +1397,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             (isStreaming ? getStreamingDistributionConfig(id) : getDistributionConfig(id));
 
         DeleteMethod httpMethod = new DeleteMethod(ENDPOINT + VERSION
-        	+ (isStreaming ? "/streaming-distribution/" : "/distribution/")
-        	+ id);
+            + (isStreaming ? "/streaming-distribution/" : "/distribution/")
+            + id);
 
         try {
             httpMethod.setRequestHeader("If-Match", currentConfig.getEtag());
@@ -1476,15 +1476,15 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public OriginAccessIdentity createOriginAccessIdentity(
-        	String callerReference, String comment)
-        	throws CloudFrontServiceException
+            String callerReference, String comment)
+            throws CloudFrontServiceException
     {
         if (log.isDebugEnabled()) {
             log.debug("Creating origin access identity");
         }
 
         PostMethod httpMethod = new PostMethod(ENDPOINT + VERSION +
-            	ORIGIN_ACCESS_IDENTITY_URI_PATH);
+                ORIGIN_ACCESS_IDENTITY_URI_PATH);
 
         if (callerReference == null) {
             callerReference = "" + System.currentTimeMillis();
@@ -1492,13 +1492,13 @@ public class CloudFrontService implements AWSRequestAuthorizer {
 
         try {
             XMLBuilder builder = XMLBuilder.create(
-            	"CloudFrontOriginAccessIdentityConfig")
+                "CloudFrontOriginAccessIdentityConfig")
                 .a("xmlns", XML_NAMESPACE)
                 .e("CallerReference").t(callerReference).up()
                 .e("Comment").t(comment);
 
             httpMethod.setRequestEntity(new StringRequestEntity(
-                	builder.asString(null), "text/xml", Constants.DEFAULT_ENCODING));
+                    builder.asString(null), "text/xml", Constants.DEFAULT_ENCODING));
 
             performRestRequest(httpMethod, 201);
 
@@ -1558,13 +1558,13 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public OriginAccessIdentity getOriginAccessIdentity(String id)
-        	throws CloudFrontServiceException
+            throws CloudFrontServiceException
     {
         if (log.isDebugEnabled()) {
             log.debug("Getting information for origin access identity with id: " + id);
         }
         GetMethod httpMethod = new GetMethod(ENDPOINT + VERSION +
-            	ORIGIN_ACCESS_IDENTITY_URI_PATH + "/" + id);
+                ORIGIN_ACCESS_IDENTITY_URI_PATH + "/" + id);
 
         try {
             performRestRequest(httpMethod, 200);
@@ -1594,31 +1594,31 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public OriginAccessIdentityConfig getOriginAccessIdentityConfig(String id)
-    	throws CloudFrontServiceException
+        throws CloudFrontServiceException
     {
-    	if (log.isDebugEnabled()) {
-    	    log.debug("Getting config for origin access identity with id: " + id);
-    	}
-    	GetMethod httpMethod = new GetMethod(ENDPOINT + VERSION +
-    			ORIGIN_ACCESS_IDENTITY_URI_PATH + "/" + id + "/config");
+        if (log.isDebugEnabled()) {
+            log.debug("Getting config for origin access identity with id: " + id);
+        }
+        GetMethod httpMethod = new GetMethod(ENDPOINT + VERSION +
+                ORIGIN_ACCESS_IDENTITY_URI_PATH + "/" + id + "/config");
 
-    	try {
-    	    performRestRequest(httpMethod, 200);
+        try {
+            performRestRequest(httpMethod, 200);
 
-    	    OriginAccessIdentityConfigHandler handler =
-    	        (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
-    	            .parseOriginAccessIdentityConfig(httpMethod.getResponseBodyAsStream());
+            OriginAccessIdentityConfigHandler handler =
+                (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
+                    .parseOriginAccessIdentityConfig(httpMethod.getResponseBodyAsStream());
 
-    	    OriginAccessIdentityConfig config = handler.getOriginAccessIdentityConfig();
-    	    config.setEtag(httpMethod.getResponseHeader("ETag").getValue());
-    		return config;
-    	} catch (CloudFrontServiceException e) {
-    	    throw e;
-    	} catch (RuntimeException e) {
-    		throw e;
-    	} catch (Exception e) {
-    	    throw new CloudFrontServiceException(e);
-    	}
+            OriginAccessIdentityConfig config = handler.getOriginAccessIdentityConfig();
+            config.setEtag(httpMethod.getResponseHeader("ETag").getValue());
+            return config;
+        } catch (CloudFrontServiceException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CloudFrontServiceException(e);
+        }
     }
 
     /**
@@ -1635,7 +1635,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public OriginAccessIdentityConfig updateOriginAccessIdentityConfig(
-        	String id, String comment) throws CloudFrontServiceException
+            String id, String comment) throws CloudFrontServiceException
     {
         if (log.isDebugEnabled()) {
             log.debug("Updating configuration of origin access identity with id: " + id);
@@ -1650,17 +1650,17 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         }
 
         PutMethod httpMethod = new PutMethod(ENDPOINT + VERSION +
-            	ORIGIN_ACCESS_IDENTITY_URI_PATH + "/" + id + "/config");
+                ORIGIN_ACCESS_IDENTITY_URI_PATH + "/" + id + "/config");
 
         try {
             XMLBuilder builder = XMLBuilder.create(
-            	"CloudFrontOriginAccessIdentityConfig")
+                "CloudFrontOriginAccessIdentityConfig")
                 .a("xmlns", XML_NAMESPACE)
                 .e("CallerReference").t(oldConfig.getCallerReference()).up()
                 .e("Comment").t(comment);
 
             httpMethod.setRequestEntity(new StringRequestEntity(
-            	builder.asString(null), "text/xml", Constants.DEFAULT_ENCODING));
+                builder.asString(null), "text/xml", Constants.DEFAULT_ENCODING));
             httpMethod.setRequestHeader("If-Match", oldConfig.getEtag());
 
             performRestRequest(httpMethod, 200);
@@ -1699,7 +1699,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         OriginAccessIdentityConfig currentConfig = getOriginAccessIdentityConfig(id);
 
         DeleteMethod httpMethod = new DeleteMethod(ENDPOINT + VERSION +
-            	ORIGIN_ACCESS_IDENTITY_URI_PATH + "/" + id);
+                ORIGIN_ACCESS_IDENTITY_URI_PATH + "/" + id);
 
         try {
             httpMethod.setRequestHeader("If-Match", currentConfig.getEtag());
@@ -1727,9 +1727,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     public static String sanitizeS3BucketName(String proposedBucketName) {
         if (!proposedBucketName.endsWith(DEFAULT_BUCKET_SUFFIX)) {
             log.warn("Bucket names used within the CloudFront service should be specified as " +
-            		"full S3 subdomain paths like 'jets3t.s3.amazonaws.com'. Repairing " +
-            		"faulty bucket name value \"" + proposedBucketName + "\" by adding suffix " +
-            		"'" + DEFAULT_BUCKET_SUFFIX + "'.");
+                    "full S3 subdomain paths like 'jets3t.s3.amazonaws.com'. Repairing " +
+                    "faulty bucket name value \"" + proposedBucketName + "\" by adding suffix " +
+                    "'" + DEFAULT_BUCKET_SUFFIX + "'.");
             return proposedBucketName + DEFAULT_BUCKET_SUFFIX;
         } else {
             return proposedBucketName;
@@ -1745,9 +1745,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      */
     protected static String makeStringUrlSafe(String str) throws UnsupportedEncodingException {
         return ServiceUtils.toBase64(str.getBytes("UTF-8"))
-        	.replace('+', '-')
-        	.replace('=', '_')
-        	.replace('/', '~');
+            .replace('+', '-')
+            .replace('=', '_')
+            .replace('/', '~');
     }
 
     /**
@@ -1760,9 +1760,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      */
     protected static String makeBytesUrlSafe(byte[] bytes) throws UnsupportedEncodingException {
         return ServiceUtils.toBase64(bytes)
-        	.replace('+', '-')
-        	.replace('=', '_')
-        	.replace('/', '~');
+            .replace('+', '-')
+            .replace('=', '_')
+            .replace('/', '~');
     }
 
     /**
@@ -1799,38 +1799,38 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public static String buildPolicyForSignedUrl(
-    	String resourcePath, Date epochDateLessThan,
-    	String limitToIpAddressCIDR, Date epochDateGreaterThan)
+        String resourcePath, Date epochDateLessThan,
+        String limitToIpAddressCIDR, Date epochDateGreaterThan)
         throws CloudFrontServiceException
     {
         if (epochDateLessThan == null) {
-        	throw new CloudFrontServiceException(
-    			"epochDateLessThan must be provided to sign CloudFront URLs");
+            throw new CloudFrontServiceException(
+                "epochDateLessThan must be provided to sign CloudFront URLs");
         }
         if (resourcePath == null) {
-        	resourcePath = "*";
+            resourcePath = "*";
         }
         try {
-        	String resource = "http://" + resourcePath;
-        	String ipAddress = (limitToIpAddressCIDR == null
-    			? "0.0.0.0/0"
-    			: limitToIpAddressCIDR);
-        	String policy =
-        		"{\n" +
-        		"   \"Statement\": [{\n" +
-        		"      \"Resource\":\"" + resource + "\",\n" +
-        		"      \"Condition\":{\n" +
-    			"         \"DateLessThan\":{\"AWS:EpochTime\":"
-        					+ epochDateLessThan.getTime() / 1000 + "}" +
-        				(ipAddress == null ? "" : ",\n" +
-    			"         \"IpAddress\":{\"AWS:SourceIp\":\"" + ipAddress + "\"}") +
-        				(epochDateGreaterThan == null ? "" : ",\n" +
-    			"         \"DateGreaterThan\":{\"AWS:EpochTime\":"
-        					+ epochDateGreaterThan.getTime() / 1000 + "}") +
-    			"\n      }\n" +
-    			"   }]\n" +
-    			"}";
-        	return policy;
+            String resource = "http://" + resourcePath;
+            String ipAddress = (limitToIpAddressCIDR == null
+                ? "0.0.0.0/0"
+                : limitToIpAddressCIDR);
+            String policy =
+                "{\n" +
+                "   \"Statement\": [{\n" +
+                "      \"Resource\":\"" + resource + "\",\n" +
+                "      \"Condition\":{\n" +
+                "         \"DateLessThan\":{\"AWS:EpochTime\":"
+                            + epochDateLessThan.getTime() / 1000 + "}" +
+                        (ipAddress == null ? "" : ",\n" +
+                "         \"IpAddress\":{\"AWS:SourceIp\":\"" + ipAddress + "\"}") +
+                        (epochDateGreaterThan == null ? "" : ",\n" +
+                "         \"DateGreaterThan\":{\"AWS:EpochTime\":"
+                            + epochDateGreaterThan.getTime() / 1000 + "}") +
+                "\n      }\n" +
+                "   }]\n" +
+                "}";
+            return policy;
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
@@ -1866,23 +1866,23 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public static String signUrl(String domainName, String s3ObjectKey,
-    	String keyPairId, byte[] derPrivateKey, String policy)
+        String keyPairId, byte[] derPrivateKey, String policy)
         throws CloudFrontServiceException
     {
         try {
-    		String url = "http://" + domainName + "/" + s3ObjectKey;
-        	byte[] signatureBytes = EncryptionUtil.signWithRsaSha1(derPrivateKey,
-        		policy.getBytes("UTF-8"));
+            String url = "http://" + domainName + "/" + s3ObjectKey;
+            byte[] signatureBytes = EncryptionUtil.signWithRsaSha1(derPrivateKey,
+                policy.getBytes("UTF-8"));
 
-        	String urlSafePolicy = makeStringUrlSafe(policy);
-        	String urlSafeSignature = makeBytesUrlSafe(signatureBytes);
+            String urlSafePolicy = makeStringUrlSafe(policy);
+            String urlSafeSignature = makeBytesUrlSafe(signatureBytes);
 
-        	String signedUrl = url
-        		+ (url.indexOf('?') >= 0 ? "&" : "?")
-        		+ "Policy=" + urlSafePolicy
-        		+ "&Signature=" + urlSafeSignature
-        		+ "&Key-Pair-Id=" + keyPairId;
-        	return signedUrl;
+            String signedUrl = url
+                + (url.indexOf('?') >= 0 ? "&" : "?")
+                + "Policy=" + urlSafePolicy
+                + "&Signature=" + urlSafeSignature
+                + "&Key-Pair-Id=" + keyPairId;
+            return signedUrl;
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
@@ -1916,29 +1916,29 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public static String signUrlCanned(String domainName, String s3ObjectKey,
-        	String keyPairId, byte[] derPrivateKey, Date epochDateLessThan)
+            String keyPairId, byte[] derPrivateKey, Date epochDateLessThan)
             throws CloudFrontServiceException
     {
         try {
-    		String url = "http://" + domainName + "/" + s3ObjectKey;
-    		String resourcePath = url;
+            String url = "http://" + domainName + "/" + s3ObjectKey;
+            String resourcePath = url;
 
             String cannedPolicy =
-            	"{\"Statement\":[{\"Resource\":\"" + resourcePath
-        		+ "\",\"Condition\":{\"DateLessThan\":{\"AWS:EpochTime\":"
-        		+ epochDateLessThan.getTime() / 1000 + "}}}]}";
+                "{\"Statement\":[{\"Resource\":\"" + resourcePath
+                + "\",\"Condition\":{\"DateLessThan\":{\"AWS:EpochTime\":"
+                + epochDateLessThan.getTime() / 1000 + "}}}]}";
 
-        	byte[] signatureBytes = EncryptionUtil.signWithRsaSha1(derPrivateKey,
-        		cannedPolicy.getBytes("UTF-8"));
+            byte[] signatureBytes = EncryptionUtil.signWithRsaSha1(derPrivateKey,
+                cannedPolicy.getBytes("UTF-8"));
 
-        	String urlSafeSignature = makeBytesUrlSafe(signatureBytes);
+            String urlSafeSignature = makeBytesUrlSafe(signatureBytes);
 
-        	String signedUrl = url
-        		+ (url.indexOf('?') >= 0 ? "&" : "?")
-        		+ "Expires=" + epochDateLessThan.getTime() / 1000
-        		+ "&Signature=" + urlSafeSignature
-        		+ "&Key-Pair-Id=" + keyPairId;
-        	return signedUrl;
+            String signedUrl = url
+                + (url.indexOf('?') >= 0 ? "&" : "?")
+                + "Expires=" + epochDateLessThan.getTime() / 1000
+                + "&Signature=" + urlSafeSignature
+                + "&Key-Pair-Id=" + keyPairId;
+            return signedUrl;
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {

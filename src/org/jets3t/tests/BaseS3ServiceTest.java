@@ -555,9 +555,9 @@ public abstract class BaseS3ServiceTest extends TestCase {
 
         // Add TargetGrants ACLs for log files
         newLoggingStatus.addTargetGrant(new GrantAndPermission(
-        	GroupGrantee.ALL_USERS, Permission.PERMISSION_READ));
+            GroupGrantee.ALL_USERS, Permission.PERMISSION_READ));
         newLoggingStatus.addTargetGrant(new GrantAndPermission(
-        	GroupGrantee.AUTHENTICATED_USERS, Permission.PERMISSION_READ_ACP));
+            GroupGrantee.AUTHENTICATED_USERS, Permission.PERMISSION_READ_ACP));
         s3Service.setBucketLoggingStatus(bucket.getName(), newLoggingStatus, false);
         // Retrieve and verify TargetGrants
         loggingStatus = s3Service.getBucketLoggingStatus(bucket.getName());
@@ -640,8 +640,8 @@ public abstract class BaseS3ServiceTest extends TestCase {
         S3Object objectWithoutETag = new S3Object("Object Without ETag");
         objectWithoutETag.setContentType("text/html");
         String objectWithoutETagSignedPutURL = s3Service.createSignedPutUrl(
-        	bucket.getName(), objectWithoutETag.getKey(), objectWithoutETag.getMetadataMap(),
-        	expiryDate, false);
+            bucket.getName(), objectWithoutETag.getKey(), objectWithoutETag.getMetadataMap(),
+            expiryDate, false);
         objectWithoutETag.setDataInputStream(new ByteArrayInputStream(dataString.getBytes()));
         objectWithoutETag.setContentLength(dataString.getBytes().length);
         restS3Service.putObjectWithSignedUrl(objectWithoutETagSignedPutURL, objectWithoutETag);
