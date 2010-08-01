@@ -33,41 +33,41 @@ public abstract class BaseVersionOrDeleteMarker {
     private S3Owner owner = null;
 
     public BaseVersionOrDeleteMarker(String key, String versionId, boolean isLatest,
-    	Date lastModified, S3Owner owner)
+        Date lastModified, S3Owner owner)
     {
-    	this.key = key;
-    	this.versionId = versionId;
-    	this.isLatest = isLatest;
-    	this.lastModified = lastModified;
-    	this.owner = owner;
+        this.key = key;
+        this.versionId = versionId;
+        this.isLatest = isLatest;
+        this.lastModified = lastModified;
+        this.owner = owner;
     }
 
     public abstract boolean isDeleteMarker();
 
     public String getKey() {
-    	return key;
+        return key;
     }
 
     public String getVersionId() {
-    	return versionId;
+        return versionId;
     }
 
     public boolean isLatest() {
-    	return isLatest;
+        return isLatest;
     }
 
     public Date getLastModified() {
-    	return lastModified;
+        return lastModified;
     }
 
     public S3Owner getOwner() {
-    	return owner;
+        return owner;
     }
-    
+
     public static String[] toVersionIds(BaseVersionOrDeleteMarker[] items) {
         List versionsList = new ArrayList();
         for (int i = 0; i < items.length; i++) {
-            versionsList.add(items[i].getVersionId());                
+            versionsList.add(items[i].getVersionId());
         }
         return (String[]) versionsList.toArray(new String[versionsList.size()]);
     }

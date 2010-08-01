@@ -18,6 +18,16 @@
  */
 package org.jets3t.service.acl;
 
+import javax.xml.parsers.FactoryConfigurationError;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.jets3t.service.CloudFrontService;
+
+import com.jamesmurty.utils.XMLBuilder;
+
 /**
  * Represents a Group grantee.
  * <p>
@@ -62,40 +72,52 @@ public class GroupGrantee implements GranteeInterface {
      * @param groupUri
      */
     public GroupGrantee(String groupUri) {
-    	this.uri = groupUri;
+        this.uri = groupUri;
     }
 
-    public String toXml() {
-    	return "<Grantee xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"Group\"><URI>" + uri + "</URI></Grantee>";
+    public String toXml() throws TransformerException,
+        ParserConfigurationException, FactoryConfigurationError
+    {
+        return toXMLBuilder().asString();
+    }
+
+    public XMLBuilder toXMLBuilder() throws TransformerException,
+        ParserConfigurationException, FactoryConfigurationError
+    {
+        return (XMLBuilder.create("Grantee")
+            .attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
+            .attr("xsi:type", "Group")
+            .element("URI").text(uri)
+            );
     }
 
     /**
      * Set the group grantee's URI.
      */
     public void setIdentifier(String uri) {
-    	this.uri = uri;
+        this.uri = uri;
     }
 
     /**
      * Returns the group grantee's URI.
      */
     public String getIdentifier() {
-    	return uri;
+        return uri;
     }
 
     public String toString() {
-    	return "GroupGrantee [" + uri + "]";
+        return "GroupGrantee [" + uri + "]";
     }
 
     public boolean equals(Object obj) {
-    	if (obj instanceof GroupGrantee) {
-    		return uri.equals(((GroupGrantee)obj).uri);
-    	}
-    	return false;
+        if (obj instanceof GroupGrantee) {
+            return uri.equals(((GroupGrantee)obj).uri);
+        }
+        return false;
     }
 
     public int hashCode() {
-    	return uri.hashCode();
+        return uri.hashCode();
     }
 
 }

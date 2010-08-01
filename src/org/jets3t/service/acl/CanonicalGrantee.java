@@ -18,6 +18,12 @@
  */
 package org.jets3t.service.acl;
 
+import javax.xml.parsers.FactoryConfigurationError;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
+
+import com.jamesmurty.utils.XMLBuilder;
+
 /**
  * Represents a grantee identified by their canonical Amazon ID, which is something along the lines
  * of an Amazon-internal ID specific to a user. For example, Amazon can map a grantee identified
@@ -47,24 +53,35 @@ public class CanonicalGrantee implements GranteeInterface {
      * @param identifier
      */
     public CanonicalGrantee(String identifier) {
-    	this.setIdentifier(identifier);
+        this.setIdentifier(identifier);
     }
 
-    public String toXml() {
-    	return "<Grantee xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"CanonicalUser\"><ID>" + id + "</ID>"
-    		+ "</Grantee>";
+    public String toXml() throws TransformerException,
+        ParserConfigurationException, FactoryConfigurationError
+    {
+        return toXMLBuilder().asString();
+    }
+
+    public XMLBuilder toXMLBuilder() throws TransformerException,
+        ParserConfigurationException, FactoryConfigurationError
+    {
+        return (XMLBuilder.create("Grantee")
+            .attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
+            .attr("xsi:type", "CanonicalUser")
+            .element("ID").text(id)
+            );
     }
 
     public void setIdentifier(String id) {
-    	this.id = id;
+        this.id = id;
     }
 
     public String getIdentifier() {
-    	return id;
+        return id;
     }
 
     public void setDisplayName(String displayName) {
-    	this.displayName = displayName;
+        this.displayName = displayName;
     }
 
     public String getDisplayName() {
@@ -72,21 +89,21 @@ public class CanonicalGrantee implements GranteeInterface {
     }
 
     public boolean equals(Object obj) {
-    	if (obj instanceof CanonicalGrantee) {
-    		CanonicalGrantee canonicalGrantee = (CanonicalGrantee) obj;
-    		return id.equals(canonicalGrantee.id);
-    	}
-    	return false;
+        if (obj instanceof CanonicalGrantee) {
+            CanonicalGrantee canonicalGrantee = (CanonicalGrantee) obj;
+            return id.equals(canonicalGrantee.id);
+        }
+        return false;
     }
 
     public int hashCode() {
-    	return id.hashCode();
+        return id.hashCode();
     }
 
     public String toString() {
-    	return "CanonicalGrantee [id=" + id
-    		+ (displayName != null ? ", displayName=" + displayName : "")
-    		+ "]";
+        return "CanonicalGrantee [id=" + id
+            + (displayName != null ? ", displayName=" + displayName : "")
+            + "]";
     }
 
 }

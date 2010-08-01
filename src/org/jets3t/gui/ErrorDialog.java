@@ -63,7 +63,7 @@ public class ErrorDialog extends JDialog implements ActionListener {
 
 
     private ErrorDialog(Frame ownerFrame, HyperlinkActivatedListener hyperlinkListener,
-        	Properties applicationProperties)
+            Properties applicationProperties)
     {
         super(ownerFrame, "Error Message", true);
         this.hyperlinkListener = hyperlinkListener;
@@ -71,7 +71,7 @@ public class ErrorDialog extends JDialog implements ActionListener {
     }
 
     private ErrorDialog(JDialog ownerDialog, HyperlinkActivatedListener hyperlinkListener,
-        	Properties applicationProperties)
+            Properties applicationProperties)
     {
         super(ownerDialog, "Error Message", true);
         this.hyperlinkListener = hyperlinkListener;
@@ -101,7 +101,7 @@ public class ErrorDialog extends JDialog implements ActionListener {
         messageLabel.setText(message);
         messageLabel.setHorizontalAlignment(JLabel.CENTER);
         JHtmlLabel detailsLabel = skinsFactory
-        	.createSkinnedJHtmlLabel("ErrorDetailsLabel", hyperlinkListener);
+            .createSkinnedJHtmlLabel("ErrorDetailsLabel", hyperlinkListener);
         detailsLabel.setText(details);
 
         JButton okButton = skinsFactory.createSkinnedJButton("ErrorOkButton");
@@ -215,7 +215,7 @@ public class ErrorDialog extends JDialog implements ActionListener {
      * the underlying exception that caused the error.
      */
     public static void showDialog(Frame ownerFrame, HyperlinkActivatedListener hyperlinkListener,
-        	Properties applicationProperties, String message, Throwable throwable)
+            Properties applicationProperties, String message, Throwable throwable)
     {
         ErrorDialog dialog = new ErrorDialog(ownerFrame, hyperlinkListener, applicationProperties);
         dialog.initGui(message, dialog.buildDetailedText(throwable));
@@ -240,7 +240,7 @@ public class ErrorDialog extends JDialog implements ActionListener {
      * the underlying exception that caused the error.
      */
     public static void showDialog(JDialog ownerDialog, HyperlinkActivatedListener hyperlinkListener,
-        	Properties applicationProperties, String message, Throwable throwable)
+            Properties applicationProperties, String message, Throwable throwable)
     {
         ErrorDialog dialog = new ErrorDialog(ownerDialog, hyperlinkListener, applicationProperties);
         dialog.initGui(message, dialog.buildDetailedText(throwable));
@@ -265,7 +265,7 @@ public class ErrorDialog extends JDialog implements ActionListener {
      * the underlying exception that caused the error.
      */
     public static void showDialog(Frame ownerFrame, HyperlinkActivatedListener hyperlinkListener,
-        	String message, Throwable throwable)
+            String message, Throwable throwable)
     {
         showDialog(ownerFrame, hyperlinkListener, null, message, throwable);
     }
@@ -287,7 +287,7 @@ public class ErrorDialog extends JDialog implements ActionListener {
      * the underlying exception that caused the error.
      */
     public static void showDialog(JDialog ownerDialog, HyperlinkActivatedListener hyperlinkListener,
-        	String message, Throwable throwable)
+            String message, Throwable throwable)
     {
         showDialog(ownerDialog, hyperlinkListener, null, message, throwable);
     }

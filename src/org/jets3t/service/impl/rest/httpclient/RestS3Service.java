@@ -240,7 +240,7 @@ public class RestS3Service extends RestStorageService {
      * @throws org.jets3t.service.S3ServiceException
      */
     protected HttpMethodBase setupConnection(String method, String bucketName, String objectKey,
-    	Map requestParameters) throws S3ServiceException
+        Map requestParameters) throws S3ServiceException
     {
         HttpMethodBase httpMethod = super.setupConnection(method, bucketName, objectKey, requestParameters);
 
@@ -336,7 +336,7 @@ public class RestS3Service extends RestStorageService {
 
     /**
      * @return
-     * If true, all communication with S3 will be via encrypted HTTPS connections, 
+     * If true, all communication with S3 will be via encrypted HTTPS connections,
      * otherwise communications will be sent unencrypted via HTTP.
      */
     protected boolean getHttpsOnly() {

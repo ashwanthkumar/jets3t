@@ -34,11 +34,11 @@ import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.httpclient.DefaultHttpMethodRetryHandler;
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.HttpMethodRetryHandler;
 import org.apache.commons.httpclient.HttpVersion;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
 import org.apache.commons.httpclient.NTCredentials;
@@ -175,7 +175,9 @@ public class RestUtils {
                 Object key = entry.getKey();
                 Object value = entry.getValue();
 
-                if (key == null) continue;
+                if (key == null) {
+                    continue;
+                }
                 String lk = key.toString().toLowerCase(Locale.getDefault());
 
                 // Ignore any headers that are not particularly interesting.
@@ -302,7 +304,7 @@ public class RestUtils {
         }
 
         connectionParams.setMaxConnectionsPerHost(
-        	HostConfiguration.ANY_HOST_CONFIGURATION, maxConnectionsPerHost);
+            HostConfiguration.ANY_HOST_CONFIGURATION, maxConnectionsPerHost);
         connectionParams.setMaxTotalConnections(maxConnections);
 
         // Connection properties to take advantage of S3 window scaling.
@@ -331,53 +333,46 @@ public class RestUtils {
         }
         clientParams.setParameter(HttpMethodParams.USER_AGENT, userAgent);
 
-        clientParams.setParameter("http.protocol.version", HttpVersion.HTTP_1_1);
-        clientParams.setBooleanParameter("http.protocol.expect-continue", true);
+        clientParams.setParameter(HttpMethodParams.PROTOCOL_VERSION, HttpVersion.HTTP_1_1);
+        clientParams.setBooleanParameter(HttpMethodParams.USE_EXPECT_CONTINUE, true);
 
         // Replace default error retry handler.
         final int retryMaxCount = jets3tProperties.getIntProperty("httpclient.retry-max", 5);
 
-        clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
+        clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new DefaultHttpMethodRetryHandler(retryMaxCount, false) {
             public boolean retryMethod(HttpMethod httpMethod, IOException ioe, int executionCount) {
-                if (executionCount > retryMaxCount) {
-                    if (log.isWarnEnabled()) {
-                        log.warn("Retried connection " + executionCount
-                            + " times, which exceeds the maximum retry count of " + retryMaxCount);
+                if (super.retryMethod(httpMethod, ioe, executionCount)) {
+                    if  (ioe instanceof UnrecoverableIOException) {
+                        if (log.isDebugEnabled()) {
+                            log.debug("Deliberate interruption, will not retry");
+                        }
+                        return false;
                     }
-                    return false;
-                }
 
-                if  (ioe instanceof UnrecoverableIOException) {
+                    // Release underlying connection so we will get a new one (hopefully) when we retry.
+                    httpMethod.releaseConnection();
+
                     if (log.isDebugEnabled()) {
-                        log.debug("Deliberate interruption, will not retry");
+                        log.debug("Retrying " + httpMethod.getName() + " request with path '"
+                            + httpMethod.getPath() + "' - attempt " + executionCount
+                            + " of " + retryMaxCount);
                     }
-                    return false;
-                }
-
-                // Release underlying connection so we will get a new one (hopefully) when we retry.
-                httpMethod.releaseConnection();
-
-                if (log.isDebugEnabled()) {
-                    log.debug("Retrying " + httpMethod.getName() + " request with path '"
-                        + httpMethod.getPath() + "' - attempt " + executionCount
-                        + " of " + retryMaxCount);
-                }
-
-                // Build the authorization string for the method.
-                try {
-                    awsRequestAuthorizer.authorizeHttpRequest(httpMethod);
-                } catch (Exception e) {
-                    if (log.isWarnEnabled()) {
-                        log.warn("Unable to generate updated authorization string for retried request", e);
+                    // Build the authorization string for the method.
+                    try {
+                        awsRequestAuthorizer.authorizeHttpRequest(httpMethod);
+                    } catch (Exception e) {
+                        if (log.isWarnEnabled()) {
+                            log.warn("Unable to generate updated authorization string for retried request", e);
+                        }
                     }
+                    return true;
                 }
-
-                return true;
+                return false;
             }
         });
 
         long connectionManagerTimeout = jets3tProperties.getLongProperty(
-        	"httpclient.connection-manager-timeout", 0);
+            "httpclient.connection-manager-timeout", 0);
         clientParams.setConnectionManagerTimeout(connectionManagerTimeout);
 
         HttpClient httpClient = new HttpClient(clientParams, connectionManager);

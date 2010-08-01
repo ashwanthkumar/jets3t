@@ -31,11 +31,11 @@ public class OriginAccessIdentityConfig {
     }
 
     public String getCallerReference() {
-    	return callerReference;
+        return callerReference;
     }
 
     public String getComment() {
-    	return comment;
+        return comment;
     }
 
     public String getEtag() {

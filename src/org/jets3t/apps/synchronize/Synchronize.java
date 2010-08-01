@@ -96,7 +96,7 @@ public class Synchronize {
     private final TimeFormatter timeFormatter = new TimeFormatter();
     private FileComparer fileComparer = null;
     private int maxTemporaryStringLength = 0;
-    private Map customMetadata = new HashMap();
+    private final Map customMetadata = new HashMap();
 
     // Hacky variables to track progress of batched uploads for transformed files.
     private long partialUploadObjectsTotal = -1;
@@ -170,12 +170,12 @@ public class Synchronize {
             Entry entry = (Entry) myPropertiesIter.next();
             String keyName = entry.getKey().toString().toLowerCase();
             if (entry.getKey() != null
-        		&& keyName.startsWith("upload.metadata."))
+                && keyName.startsWith("upload.metadata."))
             {
-            	String metadataName = entry.getKey().toString()
-            		.substring("upload.metadata.".length());
-            	String metadataValue = entry.getValue().toString();
-            	this.customMetadata.put(metadataName, metadataValue);
+                String metadataName = entry.getKey().toString()
+                    .substring("upload.metadata.".length());
+                String metadataValue = entry.getValue().toString();
+                this.customMetadata.put(metadataName, metadataValue);
             }
         }
     }
@@ -189,10 +189,10 @@ public class Synchronize {
      */
 
     class LazyPreparedUploadObject {
-        private String targetKey;
-        private File file;
-        private String aclString;
-        private EncryptionUtil encryptionUtil;
+        private final String targetKey;
+        private final File file;
+        private final String aclString;
+        private final EncryptionUtil encryptionUtil;
 
         /**
          * @param bucket    the bucket to create the object in
@@ -628,8 +628,9 @@ public class Synchronize {
             List downloadPackagesList = new ArrayList();
             Iterator s3KeyIter = sortedS3ObjectKeys.iterator();
             while (s3KeyIter.hasNext()) {
-                String keyPath = (String) s3KeyIter.next();
-                S3Object s3Object = (S3Object) s3ObjectsMap.get(keyPath);
+                String originalKeyPath = (String) s3KeyIter.next();
+                S3Object s3Object = (S3Object) s3ObjectsMap.get(originalKeyPath);
+                String keyPath = s3Object.getKey();
 
                 // If object metadata is not available, skip zero-byte objects as
                 // we cannot tell whether they are directory placeholders or normal
@@ -1338,7 +1339,7 @@ public class Synchronize {
                                 continue;
                             } else {
                                 System.err.println(
-                                	"ERROR: Cannot read upload file/directory: " + file + "\n" +
+                                    "ERROR: Cannot read upload file/directory: " + file + "\n" +
                                     "       To ignore missing paths set the property upload.ignoreMissingPaths");
                                 printHelpAndExit(false);
                             }

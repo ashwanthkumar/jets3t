@@ -26,19 +26,19 @@ import java.util.Date;
 public class S3DeleteMarker extends BaseVersionOrDeleteMarker {
 
     public S3DeleteMarker(String key, String versionId, boolean isLatest,
-    	Date lastModified, S3Owner owner)
+        Date lastModified, S3Owner owner)
     {
-    	super(key, versionId, isLatest, lastModified, owner);
+        super(key, versionId, isLatest, lastModified, owner);
     }
 
     public boolean isDeleteMarker() {
-    	return true;
+        return true;
     }
 
     public String toString() {
-    	return "S3DeleteMarker [key=" + getKey() + ", versionId=" + getVersionId()
-    		+ ", isLatest=" + isLatest() + ", lastModified=" + getLastModified()
-    		+ ", owner=" + getOwner() + "]";
+        return "S3DeleteMarker [key=" + getKey() + ", versionId=" + getVersionId()
+            + ", isLatest=" + isLatest() + ", lastModified=" + getLastModified()
+            + ", owner=" + getOwner() + "]";
     }
 
 }

@@ -18,6 +18,15 @@
  */
 package org.jets3t.service.acl;
 
+import javax.xml.parsers.FactoryConfigurationError;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.jamesmurty.utils.XMLBuilder;
+
 /**
  * Represents an Email Grantee, that is a grantee identified by their email address and
  * authenticated by an Amazon system.
@@ -42,36 +51,48 @@ public class EmailAddressGrantee implements GranteeInterface {
      * @param emailAddress
      */
     public EmailAddressGrantee(String emailAddress) {
-    	this.setIdentifier(emailAddress);
+        this.setIdentifier(emailAddress);
     }
 
-    public String toXml() {
-    	return "<Grantee xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:type=\"AmazonCustomerByEmail\"><EmailAddress>" + emailAddress + "</EmailAddress></Grantee>";
+    public String toXml() throws TransformerException,
+        ParserConfigurationException, FactoryConfigurationError
+    {
+        return toXMLBuilder().asString();
+    }
+
+    public XMLBuilder toXMLBuilder() throws TransformerException,
+        ParserConfigurationException, FactoryConfigurationError
+    {
+        return (XMLBuilder.create("Grantee")
+            .attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
+            .attr("xsi:type", "AmazonCustomerByEmail")
+            .element("EmailAddress").text(emailAddress)
+            );
     }
 
     /**
      * Set the email address as the grantee's ID.
      */
     public void setIdentifier(String emailAddress) {
-    	this.emailAddress = emailAddress;
+        this.emailAddress = emailAddress;
     }
 
     /**
      * Returns the grantee's email address (ID).
      */
     public String getIdentifier() {
-    	return emailAddress;
+        return emailAddress;
     }
 
     public boolean equals(Object obj) {
-    	if (obj instanceof EmailAddressGrantee) {
-    		return emailAddress.equals(((EmailAddressGrantee)obj).emailAddress);
-    	}
-    	return false;
+        if (obj instanceof EmailAddressGrantee) {
+            return emailAddress.equals(((EmailAddressGrantee)obj).emailAddress);
+        }
+        return false;
     }
 
     public int hashCode() {
-    	return emailAddress.hashCode();
+        return emailAddress.hashCode();
     }
 
 }

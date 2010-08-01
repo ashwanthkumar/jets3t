@@ -32,16 +32,16 @@ public class HttpException extends Exception {
     private String responseMessage = null;
     
     public HttpException(int responseCode, String responseMessage) {
-    	this.responseCode = responseCode;
-    	this.responseMessage = responseMessage;
+        this.responseCode = responseCode;
+        this.responseMessage = responseMessage;
     }
 
     public int getResponseCode() {
-    	return responseCode;
+        return responseCode;
     }
 
     public String getResponseMessage() {
-    	return responseMessage;
+        return responseMessage;
     }
     
 }

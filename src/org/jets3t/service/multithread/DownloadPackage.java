@@ -161,7 +161,7 @@ public class DownloadPackage {
 
             outputStream = new FileOutputStream(outputFile, appendToFile);
         } else {
-        	outputStream = this.outputStream;
+            outputStream = this.outputStream;
         }
 
         if (isUnzipping) {

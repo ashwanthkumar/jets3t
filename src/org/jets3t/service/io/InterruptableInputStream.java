@@ -50,14 +50,14 @@ public class InterruptableInputStream extends InputStream implements InputStream
     private void maybeInterruptInputStream() throws IOException {
         if (interrupted) {
             if (log.isDebugEnabled()) {
-            	log.debug("Input stream interrupted, closing underlying input stream " +
+                log.debug("Input stream interrupted, closing underlying input stream " +
                 this.inputStream.getClass());
             }
             try {
                 close();
             } catch (IOException ioe) {
                 if (log.isWarnEnabled()) {
-                	log.warn("Unable to close underlying InputStream on interrupt");
+                    log.warn("Unable to close underlying InputStream on interrupt");
                 }
             }
             // Throw an unrecoverable exception to indicate that this exception was deliberate, and

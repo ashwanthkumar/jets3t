@@ -132,9 +132,9 @@ public class Distribution {
     public String toString() {
         return
             (isStreamingDistribution()
-            	? "CloudFrontStreamingDistribution"
-    			: "CloudFrontDistribution")
-    		+ ": id=" + id + ", status=" + status
+                ? "CloudFrontStreamingDistribution"
+                : "CloudFrontDistribution")
+            + ": id=" + id + ", status=" + status
             + ", domainName=" + domainName
             + ", activeTrustedSigners=" + activeTrustedSigners
             + ", lastModifiedTime=" + lastModifiedTime +

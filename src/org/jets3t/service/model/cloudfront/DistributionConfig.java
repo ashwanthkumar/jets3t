@@ -23,7 +23,7 @@ import java.util.Arrays;
 
 public class DistributionConfig {
     public static final String ORIGIN_ACCESS_IDENTITY_PREFIX =
-    	"origin-access-identity/cloudfront/";
+        "origin-access-identity/cloudfront/";
 
     private String origin = null;
     private String callerReference = null;
@@ -52,7 +52,7 @@ public class DistributionConfig {
         this.loggingStatus = loggingStatus;
         // Ensure origin access identity has required prefix
         if (originAccessIdentity != null
-        	&& !originAccessIdentity.startsWith(ORIGIN_ACCESS_IDENTITY_PREFIX))
+            && !originAccessIdentity.startsWith(ORIGIN_ACCESS_IDENTITY_PREFIX))
         {
             originAccessIdentity = ORIGIN_ACCESS_IDENTITY_PREFIX + originAccessIdentity;
         }
@@ -67,7 +67,7 @@ public class DistributionConfig {
             LoggingStatus loggingStatus)
     {
         this(origin, callerReference, cnames, comment, enabled,
-        		loggingStatus, null, false, null, null);
+                loggingStatus, null, false, null, null);
     }
 
     public String getOrigin() {
@@ -124,7 +124,7 @@ public class DistributionConfig {
 
     public boolean hasTrustedSignerAwsAccountNumbers() {
         return getTrustedSignerAwsAccountNumbers() != null
-    		&& getTrustedSignerAwsAccountNumbers().length > 0;
+            && getTrustedSignerAwsAccountNumbers().length > 0;
     }
 
     public boolean isUrlSigningRequired() {
@@ -161,26 +161,26 @@ public class DistributionConfig {
     public String toString() {
         return
             (isStreamingDistributionConfig()
-            	? "StreamingDistributionConfig"
-    			: "DistributionConfig")
+                ? "StreamingDistributionConfig"
+                : "DistributionConfig")
             + ": origin=" + origin
             + ", callerReference=" + callerReference + ", comment=" + comment
             + ", enabled=" + enabled +
             (isPrivate()
-            	? ", Private:originAccessIdentity=" + originAccessIdentity
-    			: ", Public") +
+                ? ", Private:originAccessIdentity=" + originAccessIdentity
+                : ", Public") +
             (isUrlSigningRequired()
-                	? ", TrustedSigners:self=" + isTrustedSignerSelf()
-            			+ (hasTrustedSignerAwsAccountNumbers()
-        					? ":awsAccountNumbers="
-    							+ Arrays.asList(getTrustedSignerAwsAccountNumbers())
-    						: "")
-        			: "") +
+                    ? ", TrustedSigners:self=" + isTrustedSignerSelf()
+                        + (hasTrustedSignerAwsAccountNumbers()
+                            ? ":awsAccountNumbers="
+                                + Arrays.asList(getTrustedSignerAwsAccountNumbers())
+                            : "")
+                    : "") +
             (etag != null ? ", etag=" + etag : "") +
             (!isLoggingEnabled()
-            	? 	""
-                : 	", LoggingStatus: bucket=" + loggingStatus.getBucket() +
-                	", prefix=" + loggingStatus.getPrefix()) +
+                ?     ""
+                :     ", LoggingStatus: bucket=" + loggingStatus.getBucket() +
+                    ", prefix=" + loggingStatus.getPrefix()) +
             (getRequiredProtocols() == null || getRequiredProtocols().length == 0
                 ? ""
                 : ", RequiredProtocols=" + Arrays.asList(getRequiredProtocols())) +

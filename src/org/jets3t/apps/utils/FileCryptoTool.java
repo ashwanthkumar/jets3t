@@ -145,9 +145,9 @@ public class FileCryptoTool {
             }
         } finally {
             if (os != null)
-            	os.close();
+                os.close();
             if (is != null)
-            	is.close();
+                is.close();
         }
     }
 

@@ -29,8 +29,8 @@ public class VersionOrDeleteMarkersChunk {
     private String nextVersionIdMarker = null;
 
     public VersionOrDeleteMarkersChunk(String prefix, String delimiter,
-    	BaseVersionOrDeleteMarker[] items, String[] commonPrefixes,
-    	String nextKeyMarker, String nextVersionIdMarker)
+        BaseVersionOrDeleteMarker[] items, String[] commonPrefixes,
+        String nextKeyMarker, String nextVersionIdMarker)
     {
         this.prefix = prefix;
         this.delimiter = delimiter;

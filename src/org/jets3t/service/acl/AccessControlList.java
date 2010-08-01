@@ -24,9 +24,15 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import javax.xml.parsers.FactoryConfigurationError;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
+
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.model.S3Owner;
+
+import com.jamesmurty.utils.XMLBuilder;
 
 /**
  * Represents an Amazon S3 Access Control List (ACL), including the ACL's set of grantees and the
@@ -64,22 +70,22 @@ public class AccessControlList implements Serializable {
      */
     public static final AccessControlList REST_CANNED_AUTHENTICATED_READ = new AccessControlList();
 
-    private HashSet grants = new HashSet();
+    private final HashSet grants = new HashSet();
     private S3Owner owner = null;
 
     /**
      * Returns a string representation of the ACL contents, useful for debugging.
      */
     public String toString() {
-    	return "AccessControlList [owner=" + owner + ", grants=" + getGrants() + "]";
+        return "AccessControlList [owner=" + owner + ", grants=" + getGrants() + "]";
     }
 
     public S3Owner getOwner() {
-    	return owner;
+        return owner;
     }
 
     public void setOwner(S3Owner owner) {
-    	this.owner = owner;
+        this.owner = owner;
     }
 
     /**
@@ -92,7 +98,7 @@ public class AccessControlList implements Serializable {
      *        the permission to apply to the grantee.
      */
     public void grantPermission(GranteeInterface grantee, Permission permission) {
-    	grants.add(new GrantAndPermission(grantee, permission));
+        grants.add(new GrantAndPermission(grantee, permission));
     }
 
     /**
@@ -106,10 +112,10 @@ public class AccessControlList implements Serializable {
      * a set of {@link GrantAndPermission} objects
      */
     public void grantAllPermissions(Set grants) {
-    	for (Iterator iter = grants.iterator(); iter.hasNext();) {
-    		GrantAndPermission gap = (GrantAndPermission) iter.next();
-    		grantPermission(gap.getGrantee(), gap.getPermission());
-    	}
+        for (Iterator iter = grants.iterator(); iter.hasNext();) {
+            GrantAndPermission gap = (GrantAndPermission) iter.next();
+            grantPermission(gap.getGrantee(), gap.getPermission());
+        }
     }
 
     /**
@@ -133,14 +139,14 @@ public class AccessControlList implements Serializable {
      *        the grantee to remove from this ACL.
      */
     public void revokeAllPermissions(GranteeInterface grantee) {
-    	ArrayList grantsToRemove = new ArrayList();
-    	for (Iterator iter = grants.iterator(); iter.hasNext();) {
-    		GrantAndPermission gap = (GrantAndPermission) iter.next();
-    		if (gap.getGrantee().equals(grantee)) {
-    			grantsToRemove.add(gap);
-    		}
-    	}
-    	grants.removeAll(grantsToRemove);
+        ArrayList grantsToRemove = new ArrayList();
+        for (Iterator iter = grants.iterator(); iter.hasNext();) {
+            GrantAndPermission gap = (GrantAndPermission) iter.next();
+            if (gap.getGrantee().equals(grantee)) {
+                grantsToRemove.add(gap);
+            }
+        }
+        grants.removeAll(grantsToRemove);
     }
 
     /**
@@ -151,7 +157,7 @@ public class AccessControlList implements Serializable {
      * the set of {@link GrantAndPermission} objects in this ACL.
      */
     public Set getGrants() {
-    	return grants;
+        return grants;
     }
 
     /**
@@ -163,46 +169,43 @@ public class AccessControlList implements Serializable {
             new GrantAndPermission[grants.size()]);
     }
 
+    public XMLBuilder toXMLBuilder() throws S3ServiceException, ParserConfigurationException,
+        FactoryConfigurationError, TransformerException
+    {
+        if (owner == null) {
+            throw new S3ServiceException("Invalid AccessControlList: missing an S3Owner");
+        }
+        XMLBuilder builder = XMLBuilder.create("AccessControlPolicy")
+            .attr("xmlns", Constants.XML_NAMESPACE)
+            .elem("Owner")
+                .elem("ID").text(owner.getId()).up()
+                .elem("DisplayName").text(owner.getDisplayName()).up()
+            .up();
+
+        XMLBuilder accessControlList = builder.elem("AccessControlList");
+        Iterator grantIter = grants.iterator();
+        while (grantIter.hasNext()) {
+            GrantAndPermission gap = (GrantAndPermission) grantIter.next();
+            GranteeInterface grantee = gap.getGrantee();
+            Permission permission = gap.getPermission();
+            accessControlList
+                .elem("Grant")
+                    .importXMLBuilder(grantee.toXMLBuilder())
+                    .elem("Permission").text(permission.toString());
+        }
+        return builder;
+    }
+
     /**
      * @return
      * an XML representation of the Access Control List object, suitable to send in a request to S3.
      */
-    /*
-     * This method is a nasty hack - we should build the XML document in a more professional way...
-     */
     public String toXml() throws S3ServiceException {
-        if (owner == null) {
-            throw new S3ServiceException("Invalid AccessControlList: missing an S3Owner");
+        try {
+            return toXMLBuilder().asString();
+        } catch (Exception e) {
+            throw new S3ServiceException("Failed to build XML document for ACL", e);
         }
-
-    	StringBuffer sb = new StringBuffer();
-    	sb.append(
-    		"<AccessControlPolicy xmlns=\"" + Constants.XML_NAMESPACE + "\">" +
-                "<Owner>" +
-                    "<ID>" + owner.getId() + "</ID>" +
-                    "<DisplayName>" + owner.getDisplayName() + "</DisplayName>" +
-                "</Owner>" +
-    			"<AccessControlList>");
-
-    	Iterator grantIter = grants.iterator();
-    	while (grantIter.hasNext()) {
-    		GrantAndPermission gap = (GrantAndPermission) grantIter.next();
-    		GranteeInterface grantee = gap.getGrantee();
-    		Permission permission = gap.getPermission();
-    		sb.append(
-    				"<Grant>" +
-    					grantee.toXml() +
-    					"<Permission>" + permission + "</Permission>" +
-    				"</Grant>"
-    				);
-    	}
-
-    	sb.append(
-    			"</AccessControlList>" +
-    		"</AccessControlPolicy>"
-    			);
-
-    	return sb.toString();
     }
 
     /**

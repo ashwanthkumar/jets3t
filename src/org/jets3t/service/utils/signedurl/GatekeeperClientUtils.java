@@ -141,7 +141,7 @@ public class GatekeeperClientUtils {
      * @throws Exception
      */
     public GatekeeperMessage requestActionThroughGatekeeper(String operationType, String bucketName,
-        	S3Object[] objects, Map applicationPropertiesMap)
+            S3Object[] objects, Map applicationPropertiesMap)
         throws HttpException, Exception
     {
         /*
@@ -150,7 +150,7 @@ public class GatekeeperClientUtils {
         GatekeeperMessage gatekeeperMessage = new GatekeeperMessage();
         gatekeeperMessage.addApplicationProperties(applicationPropertiesMap);
         gatekeeperMessage.addApplicationProperty(
-            	GatekeeperMessage.PROPERTY_CLIENT_VERSION_ID, userAgentDescription);
+                GatekeeperMessage.PROPERTY_CLIENT_VERSION_ID, userAgentDescription);
 
         // If a prior failure has occurred, add information about this failure.
         if (priorFailureException != null) {
@@ -163,7 +163,7 @@ public class GatekeeperClientUtils {
         // Add all S3 objects as candiates for PUT signing.
         for (int i = 0; i < objects.length; i++) {
             SignatureRequest signatureRequest = new SignatureRequest(
-                	operationType, objects[i].getKey());
+                    operationType, objects[i].getKey());
             signatureRequest.setObjectMetadata(objects[i].getMetadataMap());
             signatureRequest.setBucketName(bucketName);
 
@@ -276,8 +276,8 @@ public class GatekeeperClientUtils {
     public S3Object[] buildS3ObjectsFromSignatureRequests(SignatureRequest[] srs) {
         S3Object[] objects = new S3Object[srs.length];
         for (int i = 0; i < srs.length; i++) {
-        	objects[i] = new S3Object(srs[i].getObjectKey());
-        	objects[i].addAllMetadata(srs[i].getObjectMetadata());
+            objects[i] = new S3Object(srs[i].getObjectKey());
+            objects[i].addAllMetadata(srs[i].getObjectMetadata());
         }
         return objects;
     }

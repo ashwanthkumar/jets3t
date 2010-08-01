@@ -24,7 +24,7 @@ import java.io.OutputStream;
 /**
  * Output stream wrapper that tracks the number of bytes that have been written through the stream.
  * When data is written through this stream the count of bytes is increased, and at a set minimum
- * interval (eg after at least 1024 bytes) a {@link BytesTransferredWatcher} implementation
+ * interval (eg after at least 1024 bytes) a {@link BytesProgressWatcher} implementation
  * is notified of the count of bytes read since the last notification.
  *
  * @author James Murty

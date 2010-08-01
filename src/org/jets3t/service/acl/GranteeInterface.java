@@ -18,6 +18,12 @@
  */
 package org.jets3t.service.acl;
 
+import javax.xml.parsers.FactoryConfigurationError;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
+
+import com.jamesmurty.utils.XMLBuilder;
+
 /**
  * Represents a grantee (entity) who can be assigned access permissions in an {@link AccessControlList}.
  * All grantees have an ID of some kind (though the format of the ID can differ depending on the kind
@@ -31,7 +37,11 @@ public interface GranteeInterface {
      * @return
      * the grantee represented in an XML fragment compatible with the S3 REST interface.
      */
-    public String toXml();
+    public String toXml() throws TransformerException,
+        ParserConfigurationException, FactoryConfigurationError;
+
+    public XMLBuilder toXMLBuilder() throws TransformerException,
+        ParserConfigurationException, FactoryConfigurationError;
 
     public void setIdentifier(String id);
 

@@ -81,6 +81,22 @@ public class CloudFrontSamples {
             );
         System.out.println("Updated Distribution Config: " + updatedDistributionConfig);
 
+        // Update a distribution's configuration to require secure HTTPS
+        // connections, using the RequiredProtocols feature
+        updatedDistributionConfig = cloudFrontService.updateDistributionConfig(
+            testDistributionId,
+            new String[] {"test1.jamesmurty.com", "test2.jamesmurty.com"}, // CNAME aliases for distribution
+            "HTTPS Only!", // Comment
+            true, // Distribution enabled?
+            new LoggingStatus("log-bucket.s3.amazonaws.com", "log-prefix/"),  // Distribution logging
+            null, // Origin Access Identity to make distribution private
+            false, // URLs self-signing disabled
+            null,  // No other AWS users can sign URLs
+            new String[] {"https"} // RequiredProtocols with HTTPS protocol
+        );
+        System.out.println("HTTPS only distribution Config: " + updatedDistributionConfig);
+
+
         // Disable a distribution, e.g. so that it may be deleted.
         // The CloudFront service may take some time to disable and deploy the distribution.
         DistributionConfig disabledDistributionConfig = cloudFrontService.updateDistributionConfig(

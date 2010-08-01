@@ -90,7 +90,7 @@ public class CloudFrontXmlResponsesSaxParser {
     {
         try {
             if (log.isDebugEnabled()) {
-            	log.debug("Parsing XML response document with handler: " + handler.getClass());
+                log.debug("Parsing XML response document with handler: " + handler.getClass());
             }
             BufferedReader breader = new BufferedReader(new InputStreamReader(inputStream,
                 Constants.DEFAULT_ENCODING));
@@ -102,7 +102,7 @@ public class CloudFrontXmlResponsesSaxParser {
                 inputStream.close();
             } catch (IOException e) {
                 if (log.isErrorEnabled()) {
-                	log.error("Unable to close response InputStream up after XML parse failure", e);
+                    log.error("Unable to close response InputStream up after XML parse failure", e);
                 }
             }
             throw new CloudFrontServiceException("Failed to parse XML document with handler "
@@ -143,7 +143,7 @@ public class CloudFrontXmlResponsesSaxParser {
     }
 
     public OriginAccessIdentityHandler parseOriginAccessIdentity(
-    	InputStream inputStream) throws CloudFrontServiceException
+        InputStream inputStream) throws CloudFrontServiceException
     {
         OriginAccessIdentityHandler handler = new OriginAccessIdentityHandler();
         parseXmlInputStream(handler, inputStream);
@@ -151,7 +151,7 @@ public class CloudFrontXmlResponsesSaxParser {
     }
 
     public OriginAccessIdentityConfigHandler parseOriginAccessIdentityConfig(
-    	InputStream inputStream) throws CloudFrontServiceException
+        InputStream inputStream) throws CloudFrontServiceException
     {
         OriginAccessIdentityConfigHandler handler = new OriginAccessIdentityConfigHandler();
         parseXmlInputStream(handler, inputStream);
@@ -159,7 +159,7 @@ public class CloudFrontXmlResponsesSaxParser {
     }
 
     public OriginAccessIdentityListHandler parseOriginAccessIdentityListResponse(
-    	InputStream inputStream) throws CloudFrontServiceException
+        InputStream inputStream) throws CloudFrontServiceException
     {
         OriginAccessIdentityListHandler handler = new OriginAccessIdentityListHandler();
         parseXmlInputStream(handler, inputStream);
@@ -285,24 +285,24 @@ public class CloudFrontXmlResponsesSaxParser {
 
         public void endSelf(String text) {
             if (inSignerElement) {
-            	lastSignerIdentifier = "Self";
+                lastSignerIdentifier = "Self";
             }
         }
 
         public void endAwsAccountNumber(String text) {
             if (inSignerElement) {
-            	lastSignerIdentifier = text;
+                lastSignerIdentifier = text;
             }
         }
 
         public void endKeyPairId(String text) {
             if (inSignerElement) {
-            	List keypairIdList = (List) activeTrustedSigners.get(lastSignerIdentifier);
-            	if (keypairIdList == null) {
-            		keypairIdList = new ArrayList();
-                	activeTrustedSigners.put(lastSignerIdentifier, keypairIdList);
-            	}
-            	keypairIdList.add(text);
+                List keypairIdList = (List) activeTrustedSigners.get(lastSignerIdentifier);
+                if (keypairIdList == null) {
+                    keypairIdList = new ArrayList();
+                    activeTrustedSigners.put(lastSignerIdentifier, keypairIdList);
+                }
+                keypairIdList.add(text);
             }
         }
         // End handle ActiveTrustedSigner elements //
@@ -410,7 +410,7 @@ public class CloudFrontXmlResponsesSaxParser {
                 (String[]) cnamesList.toArray(new String[cnamesList.size()]),
                 comment, enabled, loggingStatus, originAccessIdentity, trustedSignerSelf,
                 (String[]) trustedSignerAwsAccountNumberList.toArray(
-                	new String[trustedSignerAwsAccountNumberList.size()]),
+                    new String[trustedSignerAwsAccountNumberList.size()]),
                 (String[]) requiredProtocols.toArray(
                     new String[requiredProtocols.size()])
                 );
@@ -566,19 +566,19 @@ public class CloudFrontXmlResponsesSaxParser {
         private OriginAccessIdentityConfig originAccessIdentityConfig = null;
 
         public OriginAccessIdentity getOriginAccessIdentity() {
-    		return this.originAccessIdentity;
-    	}
+            return this.originAccessIdentity;
+        }
 
-    	public void endId(String text) {
-        	this.id = text;
+        public void endId(String text) {
+            this.id = text;
         }
 
         public void endS3CanonicalUserId(String text) {
-        	this.s3CanonicalUserId = text;
+            this.s3CanonicalUserId = text;
         }
 
         public void endComment(String text) {
-        	this.comment = text;
+            this.comment = text;
         }
 
         public void startCloudFrontOriginAccessIdentityConfig() {
@@ -592,12 +592,12 @@ public class CloudFrontXmlResponsesSaxParser {
 
         public void endCloudFrontOriginAccessIdentity(String text) {
             this.originAccessIdentity = new OriginAccessIdentity(
-        		this.id, this.s3CanonicalUserId, this.originAccessIdentityConfig);
+                this.id, this.s3CanonicalUserId, this.originAccessIdentityConfig);
         }
 
         public void endCloudFrontOriginAccessIdentitySummary(String text) {
             this.originAccessIdentity = new OriginAccessIdentity(
-            		this.id, this.s3CanonicalUserId, this.comment);
+                    this.id, this.s3CanonicalUserId, this.comment);
             returnControlToParentHandler();
         }
     }
@@ -608,8 +608,8 @@ public class CloudFrontXmlResponsesSaxParser {
         private OriginAccessIdentityConfig config = null;
 
         public OriginAccessIdentityConfig getOriginAccessIdentityConfig() {
-    		return this.config;
-    	}
+            return this.config;
+        }
 
         public void endCallerReference(String text) {
             this.callerReference = text;

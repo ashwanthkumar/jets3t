@@ -77,7 +77,7 @@ public class CodeSamples {
 
         // To communicate with S3, create a class that implements an S3Service.
         // We will use the REST/HTTP implementation based on HttpClient, as this is the most
-        // robust implementation provided with jets3t.
+        // robust implementation provided with JetS3t.
 
         RestS3Service s3Service = new RestS3Service(awsCredentials);
 
@@ -483,7 +483,7 @@ public class CodeSamples {
          * your objects when they are updated or deleted. This feature means you can be much
          * more confident that vital data will not be lost even if it is accidentally
          * overwritten or deleted.
-         * 
+         *
          * Versioning is not enabled for a bucket by default, you must explicitly enable
          * it. Once it is enabled you access and mange object versions using unique version
          * identifiers.
@@ -590,9 +590,9 @@ public class CodeSamples {
         // if you are the owner of the bucket containing the version.
         s3Service.deleteVersionedObject(finalVersionId,
             vBucketName, "versioned-object");
-        
+
         // You can easily delete all the versions of an object using
-        // one of JetS3t's multi-threaded services. 
+        // one of JetS3t's multi-threaded services.
         versions = s3Service.getObjectVersions(vBucketName, "versioned-object");
         // Convert version and delete marker objects into versionId strings.
         String[] versionIds = BaseVersionOrDeleteMarker.toVersionIds(versions);

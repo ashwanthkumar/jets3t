@@ -52,7 +52,7 @@ public class CLObjectTableModel extends DefaultTableModel {
 
     private void sanitizeObjectKey(S3Object object) {
         if (object.getKey().startsWith(usersPath)) {
-        	object.setKey(object.getKey().substring(usersPath.length()));
+            object.setKey(object.getKey().substring(usersPath.length()));
         }
     }
 

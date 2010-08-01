@@ -51,6 +51,6 @@ public abstract class BucketLister {
      * @throws Exception
      */
     public abstract void listObjects(GatekeeperMessage gatekeeperMessage,
-        	ClientInformation clientInformation) throws Exception;
+            ClientInformation clientInformation) throws Exception;
 
 }

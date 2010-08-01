@@ -18,7 +18,13 @@
  */
 package org.jets3t.service.model;
 
+import javax.xml.parsers.FactoryConfigurationError;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
+
 import org.jets3t.service.Constants;
+
+import com.jamesmurty.utils.XMLBuilder;
 
 /**
  * Represents the location configuraton to be applied to a newly
@@ -50,12 +56,18 @@ public class CreateBucketConfiguration {
      *
      * @return
      * An XML representation of the object suitable for use as an input to the REST/HTTP interface.
+     *
+     * @throws FactoryConfigurationError
+     * @throws ParserConfigurationException
+     * @throws TransformerException
      */
-    public String toXml() {
-        return
-            "<CreateBucketConfiguration xmlns=\"" + Constants.XML_NAMESPACE + "\">" +
-                "<LocationConstraint>" + location + "</LocationConstraint>" +
-            "</CreateBucketConfiguration>";
+    public String toXml() throws ParserConfigurationException,
+        FactoryConfigurationError, TransformerException
+    {
+        XMLBuilder builder = XMLBuilder.create("CreateBucketConfiguration")
+            .attr("xmlns", Constants.XML_NAMESPACE)
+            .elem("LocationConstraint").text(location);
+        return builder.asString();
     }
 
 }

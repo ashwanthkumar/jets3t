@@ -236,10 +236,10 @@ public class S3Object extends BaseS3Object implements Cloneable {
     }
 
     public String toString() {
-    	return "S3Object [key=" + getKey() + ", bucket=" + (bucketName == null ? "<Unknown>" : bucketName)
-    		+ ", lastModified=" + getLastModifiedDate() + ", dataInputStream=" + dataInputStream
-    		+ (getStorageClass() != null ? ", storageClass=" + getStorageClass() : "")
-    		+ ", Metadata=" + getMetadataMap() + "]";
+        return "S3Object [key=" + getKey() + ", bucket=" + (bucketName == null ? "<Unknown>" : bucketName)
+            + ", lastModified=" + getLastModifiedDate() + ", dataInputStream=" + dataInputStream
+            + (getStorageClass() != null ? ", storageClass=" + getStorageClass() : "")
+            + ", Metadata=" + getMetadataMap() + "]";
     }
 
     /**
@@ -283,7 +283,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
      */
     public void setDataInputStream(InputStream dataInputStream) {
         this.dataInputFile = null;
-    	this.dataInputStream = dataInputStream;
+        this.dataInputStream = dataInputStream;
     }
 
     /**
@@ -335,13 +335,13 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * is not known, such as when an object has not yet been uploaded to S3.
      */
     public String getETag() {
-    	String etag = (String) getMetadata(METADATA_HEADER_ETAG);
-    	if (etag != null) {
-    		if (etag.startsWith("\"") && etag.endsWith("\"")) {
-    			return etag.substring(1, etag.length() -1);
-    		}
-    	}
-    	return etag;
+        String etag = (String) getMetadata(METADATA_HEADER_ETAG);
+        if (etag != null) {
+            if (etag.startsWith("\"") && etag.endsWith("\"")) {
+                return etag.substring(1, etag.length() -1);
+            }
+        }
+        return etag;
     }
 
     /**
@@ -406,12 +406,12 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * returned instead. If both last modified and creation dates are unavailable, null is returned.
      */
     public Date getLastModifiedDate() {
-    	Date lastModifiedDate = (Date) getMetadata(METADATA_HEADER_LAST_MODIFIED_DATE);
-    	if (lastModifiedDate == null) {
-    		// Perhaps this object has just been created, in which case we can use the Date metadata.
-    		lastModifiedDate = (Date) getMetadata(METADATA_HEADER_DATE);
-    	}
-    	return lastModifiedDate;
+        Date lastModifiedDate = (Date) getMetadata(METADATA_HEADER_LAST_MODIFIED_DATE);
+        if (lastModifiedDate == null) {
+            // Perhaps this object has just been created, in which case we can use the Date metadata.
+            lastModifiedDate = (Date) getMetadata(METADATA_HEADER_DATE);
+        }
+        return lastModifiedDate;
     }
 
     /**
@@ -430,7 +430,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * this object's owner, or null if the owner is not available.
      */
     public S3Owner getOwner() {
-    	return (S3Owner) getMetadata(METADATA_HEADER_OWNER);
+        return (S3Owner) getMetadata(METADATA_HEADER_OWNER);
     }
 
     /**
@@ -448,12 +448,12 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * the content length, or size, of this object's data, or 0 if it is unknown.
      */
     public long getContentLength() {
-    	Object contentLength = getMetadata(METADATA_HEADER_CONTENT_LENGTH);
-    	if (contentLength == null) {
-    		return 0;
-    	} else {
-    		return Long.parseLong(contentLength.toString());
-    	}
+        Object contentLength = getMetadata(METADATA_HEADER_CONTENT_LENGTH);
+        if (contentLength == null) {
+            return 0;
+        } else {
+            return Long.parseLong(contentLength.toString());
+        }
     }
 
     /**
@@ -474,7 +474,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * the storage class of the object.
      */
     public String getStorageClass() {
-    	return this.storageClass;
+        return this.storageClass;
     }
 
     /**
@@ -491,7 +491,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * the content type of the object
      */
     public String getContentType() {
-    	return (String) getMetadata(METADATA_HEADER_CONTENT_TYPE);
+        return (String) getMetadata(METADATA_HEADER_CONTENT_TYPE);
     }
 
     /**
@@ -558,7 +558,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * the name of the bucket this object belongs to or will be placed into, or null if none is set.
      */
     public String getBucketName() {
-    	return bucketName;
+        return bucketName;
     }
 
 
@@ -567,7 +567,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * @param bucketName the name for the bucket.
      */
     public void setBucketName(String bucketName) {
-    	this.bucketName = bucketName;
+        this.bucketName = bucketName;
     }
 
     /**
@@ -575,7 +575,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * the object's ACL, or null if it is unknown.
      */
     public AccessControlList getAcl() {
-    	return acl;
+        return acl;
     }
 
     /**
@@ -607,7 +607,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * the key of this object.
      */
     public String getKey() {
-    	return key;
+        return key;
     }
 
     /**
@@ -615,7 +615,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
      * @param key the key for this object.
      */
     public void setKey(String key) {
-    	this.key = key;
+        this.key = key;
     }
 
     /**
@@ -653,18 +653,18 @@ public class S3Object extends BaseS3Object implements Cloneable {
             try {
                 Date parsedDate = null;
                 // We shouldn't get ISO 8601 dates here but let's be paranoid...
-        	    if (value.toString().indexOf("-") >= 0) {
-        	        parsedDate = ServiceUtils.parseIso8601Date(value);
-        	    } else {
-        	        parsedDate = ServiceUtils.parseRfc822Date(value);
-        	    }
+                if (value.toString().indexOf("-") >= 0) {
+                    parsedDate = ServiceUtils.parseIso8601Date(value);
+                } else {
+                    parsedDate = ServiceUtils.parseRfc822Date(value);
+                }
                 super.addMetadata(name, parsedDate);
                 return;
             } catch (ParseException e) {
-            	if (log.isErrorEnabled()) {
-            		log.error("Unable to parse value we expect to be a valid date: "
+                if (log.isErrorEnabled()) {
+                    log.error("Unable to parse value we expect to be a valid date: "
                         + name + "=" + value, e);
-            	}
+                }
             }
         }
 
@@ -679,15 +679,15 @@ public class S3Object extends BaseS3Object implements Cloneable {
     public void addAllMetadata(Map metadata) {
         Iterator iter = metadata.entrySet().iterator();
         while (iter.hasNext()) {
-        	Map.Entry entry = (Map.Entry) iter.next();
-        	Object value = entry.getValue();
-        	if (value instanceof String) {
+            Map.Entry entry = (Map.Entry) iter.next();
+            Object value = entry.getValue();
+            if (value instanceof String) {
                 addMetadata(entry.getKey().toString(), (String) value);
-        	} else if (value instanceof Date) {
+            } else if (value instanceof Date) {
                 addMetadata(entry.getKey().toString(), (Date) value);
-        	} else if (value instanceof S3Owner) {
+            } else if (value instanceof S3Owner) {
                 addMetadata(entry.getKey().toString(), (S3Owner) value);
-        	}
+            }
         }
     }
 
@@ -713,7 +713,7 @@ public class S3Object extends BaseS3Object implements Cloneable {
     }
 
     public String getVersionId() {
-    	return (String) getMetadata("version-id");
+        return (String) getMetadata("version-id");
     }
 
     public Object clone() {

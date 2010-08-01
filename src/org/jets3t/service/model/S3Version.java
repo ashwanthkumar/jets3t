@@ -31,18 +31,18 @@ public class S3Version extends BaseVersionOrDeleteMarker {
     private String storageClass = null;
 
     public S3Version(String key, String versionId, boolean isLatest,
-    	Date lastModified, S3Owner owner, String etag, long size, String storageClass)
+        Date lastModified, S3Owner owner, String etag, long size, String storageClass)
     {
-    	this(key, versionId, isLatest, lastModified, owner);
-    	this.etag = etag;
-    	this.size = size;
-    	this.storageClass = storageClass;
+        this(key, versionId, isLatest, lastModified, owner);
+        this.etag = etag;
+        this.size = size;
+        this.storageClass = storageClass;
     }
 
     public S3Version(String key, String versionId, boolean isLatest,
-    	Date lastModified, S3Owner owner)
+        Date lastModified, S3Owner owner)
     {
-    	super(key, versionId, isLatest, lastModified, owner);
+        super(key, versionId, isLatest, lastModified, owner);
     }
 
     public S3Version(String key, String versionId)
@@ -51,27 +51,27 @@ public class S3Version extends BaseVersionOrDeleteMarker {
     }
 
     public boolean isDeleteMarker() {
-    	return false;
+        return false;
     }
 
     public String getEtag() {
-    	return etag;
+        return etag;
     }
 
     public long getSize() {
-    	return size;
+        return size;
     }
 
     public String getStorageClass() {
-    	return storageClass;
+        return storageClass;
     }
 
     public String toString() {
-    	return "S3Version [key=" + getKey() + ", versionId=" + getVersionId()
-    		+ ", isLatest=" + isLatest() + ", lastModified=" + getLastModified()
-    		+ ", owner=" + getOwner() + ", etag=" + getEtag() + ", size=" + getSize()
-    	    + ", storageClass=" + getStorageClass()
-    		+ "]";
+        return "S3Version [key=" + getKey() + ", versionId=" + getVersionId()
+            + ", isLatest=" + isLatest() + ", lastModified=" + getLastModified()
+            + ", owner=" + getOwner() + ", etag=" + getEtag() + ", size=" + getSize()
+            + ", storageClass=" + getStorageClass()
+            + "]";
     }
 
 }

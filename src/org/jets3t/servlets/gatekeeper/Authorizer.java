@@ -80,6 +80,6 @@ public abstract class Authorizer {
      * true if the request is allowed, false otherwise.
      */
     public abstract boolean allowBucketListingRequest(GatekeeperMessage requestMessage,
-        	ClientInformation clientInformation);
+            ClientInformation clientInformation);
 
 }
