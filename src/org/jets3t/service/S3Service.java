@@ -18,9 +18,7 @@
  */
 package org.jets3t.service;
 
-import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -30,18 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import org.apache.commons.httpclient.HostConfiguration;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.NTCredentials;
-import org.apache.commons.httpclient.ProxyHost;
-import org.apache.commons.httpclient.UsernamePasswordCredentials;
-import org.apache.commons.httpclient.auth.AuthScope;
-import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.acl.AccessControlList;
@@ -84,9 +71,7 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author James Murty
  * @author Nikolas Coukouma
  */
-public abstract class S3Service implements Serializable {
-
-    private static final long serialVersionUID = -4501528341689760431L;
+public abstract class S3Service {
 
     private static final Log log = LogFactory.getLog(S3Service.class);
 
@@ -443,7 +428,7 @@ public abstract class S3Service implements Serializable {
 
         String serviceEndpointVirtualPath = this.getVirtualPath();
 
-        String canonicalString = RestUtils.makeS3CanonicalString(method,
+        String canonicalString = RestUtils.makeServiceCanonicalString(method,
             serviceEndpointVirtualPath + "/" + virtualBucketPath + uriPath,
             renameMetadataKeys(headersMap), String.valueOf(secondsSinceEpoch), this.getRestHeaderPrefix());
         if (log.isDebugEnabled()) {

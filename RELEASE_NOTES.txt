@@ -11,9 +11,20 @@ TOOLKIT
 - Removed antiquated and unsupported SOAP S3 service implementation
   from toolkit.
 
+  * GoogleStorageService
+
+- Google Storage (GS) service class added to provide specific support
+  for Google's storage provider.
+
+  * S3Service
+
+- Methods for setting and using AWS DevPay credentials moved from
+  S3Service to RestS3Service.
+
   * SOAP implementation
 
 - REMOVED from project.
+
 
 KUDOS TO:
 

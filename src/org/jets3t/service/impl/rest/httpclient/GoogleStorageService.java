@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2006-2010 James Murty
+ * Copyright 2010 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ import org.jets3t.service.security.ProviderCredentials;
  * <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html">JetS3t Configuration</a>
  * </p>
  *
- * @author James Murty
+ * @author Google Developers
  */
 public class GoogleStorageService extends RestStorageService {
 
@@ -94,7 +94,7 @@ public class GoogleStorageService extends RestStorageService {
      * @param jets3tProperties
      * JetS3t properties that will be applied within this service.
      *
-     * @throws S3ServiceException 
+     * @throws S3ServiceException
      */
     public GoogleStorageService(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties)
@@ -135,6 +135,7 @@ public class GoogleStorageService extends RestStorageService {
      * @return
      * the endpoint to be used to connect to Google Storage.
      */
+    @Override
     protected String getEndpoint() {
     	return this.jets3tProperties.getStringProperty(
                 "gsservice.gs-endpoint", Constants.GS_DEFAULT_HOSTNAME);
@@ -144,6 +145,7 @@ public class GoogleStorageService extends RestStorageService {
      * @return
      * the virtual path inside the S3 server.
      */
+    @Override
     protected String getVirtualPath() {
     	return this.jets3tProperties.getStringProperty(
                 "gsservice.gs-endpoint-virtual-path", "");
@@ -153,6 +155,7 @@ public class GoogleStorageService extends RestStorageService {
      * @return
      * the identifier for the signature algorithm.
      */
+    @Override
     protected String getSignatureIdentifier() {
     	return GOOGLE_SIGNATURE_IDENTIFIER;
     }
@@ -161,6 +164,7 @@ public class GoogleStorageService extends RestStorageService {
      * @return
      * header prefix for general Google Storage headers: x-goog-.
      */
+    @Override
     protected String getRestHeaderPrefix() {
     	return GOOGLE_REST_HEADER_PREFIX;
     }
@@ -169,6 +173,7 @@ public class GoogleStorageService extends RestStorageService {
      * @return
      * header prefix for Google Storage metadata headers: x-goog-meta-.
      */
+    @Override
     protected String getRestMetadataPrefix() {
     	return GOOGLE_REST_METADATA_PREFIX;
     }
@@ -177,6 +182,7 @@ public class GoogleStorageService extends RestStorageService {
      * @return
      * the port number to be used for insecure connections over HTTP.
      */
+    @Override
     protected int getHttpPort() {
       return this.jets3tProperties.getIntProperty("gsservice.gs-endpoint-http-port", 80);
     }
@@ -185,6 +191,7 @@ public class GoogleStorageService extends RestStorageService {
      * @return
      * the port number to be used for secure connections over HTTPS.
      */
+    @Override
     protected int getHttpsPort() {
       return this.jets3tProperties.getIntProperty("gsservice.gs-endpoint-https-port", 443);
     }
@@ -194,6 +201,7 @@ public class GoogleStorageService extends RestStorageService {
      * If true, all communication with GS will be via encrypted HTTPS connections,
      * otherwise communications will be sent unencrypted via HTTP
      */
+    @Override
     protected boolean getHttpsOnly() {
       return this.jets3tProperties.getBoolProperty("gsservice.https-only", true);
     }
@@ -203,6 +211,7 @@ public class GoogleStorageService extends RestStorageService {
      * If true, JetS3t will specify bucket names in the request path of the HTTP message
      * instead of the Host header.
      */
+    @Override
     protected boolean getDisableDnsBuckets() {
       return this.jets3tProperties.getBoolProperty("gsservice.disable-dns-buckets", false);
     }

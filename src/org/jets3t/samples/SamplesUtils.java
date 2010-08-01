@@ -61,11 +61,13 @@ public class SamplesUtils {
 
         if (!testProperties.containsKey(AWS_ACCESS_KEY_PROPERTY_NAME)) {
             throw new RuntimeException(
-                "Properties file 'test.properties' does not contain required property: " + AWS_ACCESS_KEY_PROPERTY_NAME);
+                "Properties file '" + SAMPLES_PROPERTIES_NAME
+                + "' does not contain required property: " + AWS_ACCESS_KEY_PROPERTY_NAME);
         }
         if (!testProperties.containsKey(AWS_SECRET_KEY_PROPERTY_NAME)) {
             throw new RuntimeException(
-                "Properties file 'test.properties' does not contain required property: " + AWS_SECRET_KEY_PROPERTY_NAME);
+                "Properties file '" + SAMPLES_PROPERTIES_NAME
+                + "' does not contain required property: " + AWS_SECRET_KEY_PROPERTY_NAME);
         }
 
         AWSCredentials awsCredentials = new AWSCredentials(
@@ -78,11 +80,11 @@ public class SamplesUtils {
     /**
      * Loads Google Storage Credentials from the file <tt>samples.properties</tt>
      * ({@link #SAMPLES_PROPERTIES_NAME}) that must be available in the
-     * classpath, and must contain settings <tt>awsAccessKey</tt> and
-     * <tt>awsSecretKey</tt>.
+     * classpath, and must contain settings <tt>gsAccessKey</tt> and
+     * <tt>gsSecretKey</tt>.
      *
      * @return
-     * the Google Storage  credentials loaded from the samples properties file.
+     * the Google Storage credentials loaded from the samples properties file.
      */
     public static GSCredentials loadGSCredentials() throws IOException {
         InputStream propertiesIS =
@@ -98,11 +100,13 @@ public class SamplesUtils {
 
         if (!testProperties.containsKey(GS_ACCESS_KEY_PROPERTY_NAME)) {
             throw new RuntimeException(
-                "Properties file 'test.properties' does not contain required property: " + GS_ACCESS_KEY_PROPERTY_NAME);
+                "Properties file '" + SAMPLES_PROPERTIES_NAME
+                + "' does not contain required property: " + GS_ACCESS_KEY_PROPERTY_NAME);
         }
         if (!testProperties.containsKey(GS_SECRET_KEY_PROPERTY_NAME)) {
             throw new RuntimeException(
-                "Properties file 'test.properties' does not contain required property: " + GS_SECRET_KEY_PROPERTY_NAME);
+                "Properties file '" + SAMPLES_PROPERTIES_NAME
+                + "' does not contain required property: " + GS_SECRET_KEY_PROPERTY_NAME);
         }
 
         GSCredentials gsCredentials = new GSCredentials(

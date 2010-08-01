@@ -239,6 +239,7 @@ public class RestS3Service extends RestStorageService {
      *
      * @throws org.jets3t.service.S3ServiceException
      */
+    @Override
     protected HttpMethodBase setupConnection(String method, String bucketName, String objectKey,
         Map requestParameters) throws S3ServiceException
     {
@@ -280,6 +281,7 @@ public class RestS3Service extends RestStorageService {
      * @return
      * the endpoint to be used to connect to S3.
      */
+    @Override
     protected String getEndpoint() {
     	return this.jets3tProperties.getStringProperty(
                 "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
@@ -289,6 +291,7 @@ public class RestS3Service extends RestStorageService {
      * @return
      * the virtual path inside the S3 server.
      */
+    @Override
     protected String getVirtualPath() {
     	return this.jets3tProperties.getStringProperty(
                 "s3service.s3-endpoint-virtual-path", "");
@@ -298,6 +301,7 @@ public class RestS3Service extends RestStorageService {
      * @return
      * the identifier for the signature algorithm.
      */
+    @Override
     protected String getSignatureIdentifier() {
     	return AWS_SIGNATURE_IDENTIFIER;
     }
@@ -306,6 +310,7 @@ public class RestS3Service extends RestStorageService {
      * @return
      * header prefix for general Amazon headers: x-amz-.
      */
+    @Override
     protected String getRestHeaderPrefix() {
     	return AWS_REST_HEADER_PREFIX;
     }
@@ -314,6 +319,7 @@ public class RestS3Service extends RestStorageService {
      * @return
      * header prefix for Amazon metadata headers: x-amz-meta-.
      */
+    @Override
     protected String getRestMetadataPrefix() {
     	return AWS_REST_METADATA_PREFIX;
     }
@@ -322,6 +328,7 @@ public class RestS3Service extends RestStorageService {
      * @return
      * the port number to be used for insecure connections over HTTP.
      */
+    @Override
     protected int getHttpPort() {
       return this.jets3tProperties.getIntProperty("s3service.s3-endpoint-http-port", 80);
     }
@@ -330,6 +337,7 @@ public class RestS3Service extends RestStorageService {
      * @return
      * the port number to be used for secure connections over HTTPS.
      */
+    @Override
     protected int getHttpsPort() {
       return this.jets3tProperties.getIntProperty("s3service.s3-endpoint-https-port", 443);
     }
@@ -339,6 +347,7 @@ public class RestS3Service extends RestStorageService {
      * If true, all communication with S3 will be via encrypted HTTPS connections,
      * otherwise communications will be sent unencrypted via HTTP.
      */
+    @Override
     protected boolean getHttpsOnly() {
       return this.jets3tProperties.getBoolProperty("s3service.https-only", true);
     }
@@ -348,6 +357,7 @@ public class RestS3Service extends RestStorageService {
      * If true, JetS3t will specify bucket names in the request path of the HTTP message
      * instead of the Host header.
      */
+    @Override
     protected boolean getDisableDnsBuckets() {
       return this.jets3tProperties.getBoolProperty("s3service.disable-dns-buckets", false);
     }

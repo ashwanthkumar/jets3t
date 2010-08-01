@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2006-2010 James Murty
+ * Copyright 2010 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,18 @@
  */
 package org.jets3t.service.impl.rest.httpclient;
 
-import com.jamesmurty.utils.XMLBuilder;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HostConfiguration;
@@ -66,19 +77,7 @@ import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.utils.signedurl.SignedUrlHandler;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Locale;
-import java.util.Map;
-
-import javax.xml.parsers.ParserConfigurationException;
+import com.jamesmurty.utils.XMLBuilder;
 
 /**
  * Abstract REST/HTTP implementation of an S3Service based on the
@@ -89,10 +88,9 @@ import javax.xml.parsers.ParserConfigurationException;
  * <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html">JetS3t Configuration</a>
  * </p>
  *
- * @author James Murty
+ * @author James Murty, Google Developers
  */
 public abstract class RestStorageService extends S3Service implements SignedUrlHandler, AWSRequestAuthorizer {
-    private static final long serialVersionUID = -2374187385305273212L;
 
     private static final Log log = LogFactory.getLog(RestStorageService.class);
 
@@ -642,7 +640,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
             getCurrentTimeWithOffset()));
 
         // Generate a canonical string representing the operation.
-        String canonicalString = RestUtils.makeS3CanonicalString(
+        String canonicalString = RestUtils.makeServiceCanonicalString(
                 httpMethod.getName(), fullUrl,
                 convertHeadersToMap(httpMethod.getRequestHeaders()), null, this.getRestHeaderPrefix());
         if (log.isDebugEnabled()) {

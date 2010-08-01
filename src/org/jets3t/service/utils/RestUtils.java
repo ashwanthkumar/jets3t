@@ -151,15 +151,15 @@ public class RestUtils {
      */
     public static String makeS3CanonicalString(String method, String resource, Map headersMap, String expires)
     {
-         return makeS3CanonicalString(method, resource, headersMap, expires, Constants.REST_HEADER_PREFIX)    ;
+         return makeServiceCanonicalString(method, resource, headersMap, expires, Constants.REST_HEADER_PREFIX);
     }
 
     /**
-     * Calculate the canonical string for a REST/HTTP request to S3.
+     * Calculate the canonical string for a REST/HTTP request to a storage service.
      *
      * When expires is non-null, it will be used instead of the Date header.
      */
-    public static String makeS3CanonicalString(String method, String resource, Map headersMap,
+    public static String makeServiceCanonicalString(String method, String resource, Map headersMap,
         String expires, String headerPrefix)
     {
         StringBuffer buf = new StringBuffer();
@@ -340,6 +340,7 @@ public class RestUtils {
         final int retryMaxCount = jets3tProperties.getIntProperty("httpclient.retry-max", 5);
 
         clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new DefaultHttpMethodRetryHandler(retryMaxCount, false) {
+            @Override
             public boolean retryMethod(HttpMethod httpMethod, IOException ioe, int executionCount) {
                 if (super.retryMethod(httpMethod, ioe, executionCount)) {
                     if  (ioe instanceof UnrecoverableIOException) {
