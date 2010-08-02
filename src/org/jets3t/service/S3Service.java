@@ -3991,11 +3991,11 @@ public abstract class S3Service {
 
     protected abstract void shutdownImpl() throws S3ServiceException;
 
-    protected abstract String getEndpoint();
+    public abstract String getEndpoint();
     protected abstract String getVirtualPath();
     protected abstract String getSignatureIdentifier();
-    protected abstract String getRestHeaderPrefix();
-    protected abstract String getRestMetadataPrefix();
+    public abstract String getRestHeaderPrefix();
+    public abstract String getRestMetadataPrefix();
     protected abstract int getHttpPort();
     protected abstract int getHttpsPort();
     protected abstract boolean getHttpsOnly();

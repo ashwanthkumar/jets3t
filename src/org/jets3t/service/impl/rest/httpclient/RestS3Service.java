@@ -282,7 +282,7 @@ public class RestS3Service extends RestStorageService {
      * the endpoint to be used to connect to S3.
      */
     @Override
-    protected String getEndpoint() {
+    public String getEndpoint() {
     	return this.jets3tProperties.getStringProperty(
                 "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
     }
@@ -311,7 +311,7 @@ public class RestS3Service extends RestStorageService {
      * header prefix for general Amazon headers: x-amz-.
      */
     @Override
-    protected String getRestHeaderPrefix() {
+    public String getRestHeaderPrefix() {
     	return AWS_REST_HEADER_PREFIX;
     }
 
@@ -320,7 +320,7 @@ public class RestS3Service extends RestStorageService {
      * header prefix for Amazon metadata headers: x-amz-meta-.
      */
     @Override
-    protected String getRestMetadataPrefix() {
+    public String getRestMetadataPrefix() {
     	return AWS_REST_METADATA_PREFIX;
     }
 

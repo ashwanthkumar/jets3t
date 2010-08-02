@@ -136,7 +136,7 @@ public class GoogleStorageService extends RestStorageService {
      * the endpoint to be used to connect to Google Storage.
      */
     @Override
-    protected String getEndpoint() {
+    public String getEndpoint() {
     	return this.jets3tProperties.getStringProperty(
                 "gsservice.gs-endpoint", Constants.GS_DEFAULT_HOSTNAME);
     }
@@ -165,7 +165,7 @@ public class GoogleStorageService extends RestStorageService {
      * header prefix for general Google Storage headers: x-goog-.
      */
     @Override
-    protected String getRestHeaderPrefix() {
+    public String getRestHeaderPrefix() {
     	return GOOGLE_REST_HEADER_PREFIX;
     }
 
@@ -174,7 +174,7 @@ public class GoogleStorageService extends RestStorageService {
      * header prefix for Google Storage metadata headers: x-goog-meta-.
      */
     @Override
-    protected String getRestMetadataPrefix() {
+    public String getRestMetadataPrefix() {
     	return GOOGLE_REST_METADATA_PREFIX;
     }
 
