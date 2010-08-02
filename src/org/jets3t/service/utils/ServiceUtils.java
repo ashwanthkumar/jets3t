@@ -199,8 +199,13 @@ public class ServiceUtils {
         }
         String line = null;
         try {
+            boolean firstLine = true;
             while ((line = br.readLine()) != null) {
-                sb.append(line + "\n");
+                if (!firstLine) {
+                    sb.append("\n");
+                }
+                sb.append(line);
+                firstLine = false;
             }
         } catch (Exception e) {
             if (log.isWarnEnabled()) {
