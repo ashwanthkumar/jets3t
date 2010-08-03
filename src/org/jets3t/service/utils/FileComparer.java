@@ -885,10 +885,7 @@ public class FileComparer {
 
             // Another special-case check, this time for directory placeholder objects
             // created by the S3 Organizer Firefox extension.
-            if (keyPath.endsWith("_$folder$")
-                && s3Object.getContentLength() == 0
-                && "binary/octet-stream".equals(s3Object.getContentType()))
-            {
+            if (keyPath.endsWith("_$folder$") && s3Object.getContentLength() == 0) {
                 boolean ignoreS3FoxDirPlaceholders =
                     jets3tProperties.getBoolProperty(
                         "filecomparer.ignore-s3organizer-dir-placeholders", true);
