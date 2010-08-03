@@ -460,6 +460,7 @@ public class FileComparer {
          * ListObjectsEvent notifications and populates a complete object listing.
          */
         final S3ServiceMulti s3Multi = new S3ServiceMulti(s3Service, new S3ServiceEventAdaptor() {
+            @Override
             public void s3ServiceEventPerformed(ListObjectsEvent event) {
                 if (ListObjectsEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
                     Iterator chunkIter = event.getChunkList().iterator();
@@ -507,6 +508,7 @@ public class FileComparer {
              * will be used as a unique partition to be listed in a separate thread.
              */
             (new Thread() {
+                @Override
                 public void run() {
                     s3Multi.listObjects(bucketName, finalPrefixes,
                         finalDelimiter, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE);
@@ -699,6 +701,7 @@ public class FileComparer {
             final ArrayList s3ObjectsCompleteList = new ArrayList(s3ObjectsIncomplete.length);
             final S3ServiceException s3ServiceExceptions[] = new S3ServiceException[1];
             S3ServiceMulti s3ServiceMulti = new S3ServiceMulti(s3Service, new S3ServiceEventAdaptor() {
+                @Override
                 public void s3ServiceEventPerformed(GetObjectHeadsEvent event) {
                     if (GetObjectHeadsEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
                         S3Object[] finishedObjects = event.getCompletedObjects();

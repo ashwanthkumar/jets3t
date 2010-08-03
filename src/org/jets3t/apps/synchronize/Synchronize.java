@@ -68,7 +68,7 @@ import org.jets3t.service.utils.FileComparer.PartialObjectListing;
  * @author James Murty
  */
 public class Synchronize {
-    public static final String APPLICATION_DESCRIPTION = "Synchronize/0.7.4-dev";
+    public static final String APPLICATION_DESCRIPTION = "Synchronize/0.8.0-dev";
 
     protected static final int REPORT_LEVEL_NONE = 0;
     protected static final int REPORT_LEVEL_ACTIONS = 1;
@@ -927,6 +927,7 @@ public class Synchronize {
 
         // Monitor generation of MD5 hashes, and provide feedback via progress messages.
         BytesProgressWatcher progressWatcher = new BytesProgressWatcher(filesSizeTotal[0]) {
+            @Override
             public void updateBytesTransferred(long byteCount) {
                 super.updateBytesTransferred(byteCount);
 
@@ -978,6 +979,7 @@ public class Synchronize {
             }
         }
 
+        @Override
         public void s3ServiceEventPerformed(CreateObjectsEvent event) {
             super.s3ServiceEventPerformed(event);
             displayIgnoredErrors(event);
@@ -998,6 +1000,7 @@ public class Synchronize {
             }
         }
 
+        @Override
         public void s3ServiceEventPerformed(DownloadObjectsEvent event) {
             super.s3ServiceEventPerformed(event);
             displayIgnoredErrors(event);
@@ -1006,6 +1009,7 @@ public class Synchronize {
             }
         }
 
+        @Override
         public void s3ServiceEventPerformed(GetObjectHeadsEvent event) {
             super.s3ServiceEventPerformed(event);
             displayIgnoredErrors(event);
@@ -1014,6 +1018,7 @@ public class Synchronize {
             }
         }
 
+        @Override
         public void s3ServiceEventPerformed(DeleteObjectsEvent event) {
             super.s3ServiceEventPerformed(event);
             displayIgnoredErrors(event);
