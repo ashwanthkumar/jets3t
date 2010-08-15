@@ -28,7 +28,7 @@ TOOLKIT
 
 KUDOS TO:
 
-- Claudio Cherubino of Google Inc. for significant refactoring work
+- Claudio Cherubino of Google Inc., for significant refactoring work
   and the addition of full support for the Google Storage service.
 
 
