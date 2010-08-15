@@ -18,18 +18,7 @@
  */
 package org.jets3t.service.impl.rest.httpclient;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-
-import javax.xml.parsers.ParserConfigurationException;
+import com.jamesmurty.utils.XMLBuilder;
 
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.HostConfiguration;
@@ -77,7 +66,18 @@ import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.utils.signedurl.SignedUrlHandler;
 
-import com.jamesmurty.utils.XMLBuilder;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
+import javax.xml.parsers.ParserConfigurationException;
 
 /**
  * Abstract REST/HTTP implementation of an S3Service based on the
@@ -1734,7 +1734,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         }
 
         // Apply per-object or default storage class when uploading object
-        if (this.jets3tProperties.getBoolProperty("s3service.enable-storage-classes", true)) {
+        if (getEnableStorageClasses()) {
             if (storageClass == null && this.defaultStorageClass != null) {
                 // Apply default storage class
                 storageClass = this.defaultStorageClass;
@@ -1816,8 +1816,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
 
         metadata.put(this.getRestHeaderPrefix() + "copy-source", sourceKey);
 
-        boolean enableStorageClasses = this.jets3tProperties.getBoolProperty(
-            "s3service.enable-storage-classes", true);
+        boolean enableStorageClasses = getEnableStorageClasses();
         if (enableStorageClasses && destinationObjectStorageClass != null) {
             metadata.put(this.getRestHeaderPrefix() + "storage-class", destinationObjectStorageClass);
         }

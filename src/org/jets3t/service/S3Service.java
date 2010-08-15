@@ -4000,5 +4000,6 @@ public abstract class S3Service {
     protected abstract int getHttpsPort();
     protected abstract boolean getHttpsOnly();
     protected abstract boolean getDisableDnsBuckets();
+    protected abstract boolean getEnableStorageClasses();
 
 }

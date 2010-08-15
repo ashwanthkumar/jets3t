@@ -362,4 +362,13 @@ public class RestS3Service extends RestStorageService {
       return this.jets3tProperties.getBoolProperty("s3service.disable-dns-buckets", false);
     }
 
+    /**
+     * @return
+     * If true, JetS3t will enable support for Storage Classes.
+     */
+    @Override
+    protected boolean getEnableStorageClasses() {
+      return this.jets3tProperties.getBoolProperty("s3service.enable-storage-classes", false);
+    }
+
 }

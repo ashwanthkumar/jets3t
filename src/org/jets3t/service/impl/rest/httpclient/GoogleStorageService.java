@@ -216,4 +216,13 @@ public class GoogleStorageService extends RestStorageService {
       return this.jets3tProperties.getBoolProperty("gsservice.disable-dns-buckets", false);
     }
 
+    /**
+     * @return
+     * If true, JetS3t will enable support for Storage Classes.
+     */
+    @Override
+    protected boolean getEnableStorageClasses() {
+      return false;
+    }
+
 }
