@@ -25,22 +25,63 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Base class to represent both S3 objects and buckets - both these object types contain metadata.
+ * Base class to represent storage items that can contain metadata: both objects and buckets.
  *
  * @author James Murty
  */
-public abstract class BaseS3Object implements Serializable {
-    /**
-     * Map to privately store metadata associated with this object.
-     */
-    private Map metadata = new HashMap();
+public abstract class BaseStorageItem implements Serializable {
 
+    /*
+     * Standard HTTP metadata/header names.
+     */
+    public static final String METADATA_HEADER_CREATION_DATE = "Date";
+    public static final String METADATA_HEADER_LAST_MODIFIED_DATE = "Last-Modified";
+    public static final String METADATA_HEADER_DATE = "Date";
+    public static final String METADATA_HEADER_CONTENT_MD5 = "Content-MD5";
+    public static final String METADATA_HEADER_CONTENT_LENGTH = "Content-Length";
+    public static final String METADATA_HEADER_CONTENT_TYPE = "Content-Type";
+    public static final String METADATA_HEADER_CONTENT_ENCODING = "Content-Encoding";
+    public static final String METADATA_HEADER_CONTENT_DISPOSITION = "Content-Disposition";
+    public static final String METADATA_HEADER_CONTENT_LANGUAGE = "Content-Language";
+    public static final String METADATA_HEADER_ETAG = "ETag";
+
+    /*
+     * Metadata names common to S3 and Google Storage.
+     */
+    public static final String METADATA_HEADER_OWNER = "Owner";
+
+    private String name = null;
+    // Map to metadata associated with this object.
+    private final Map<String, Object> metadata = new HashMap<String, Object>();
+
+    protected BaseStorageItem(String name) {
+        this.name = name;
+    }
+
+    protected BaseStorageItem() {
+    }
+
+    /**
+     * @return
+     * the name of the bucket.
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Set the name of the bucket.
+     * @param name the name for the bucket
+     */
+    public void setName(String name) {
+        this.name = name;
+    }
 
     /**
      * @return
      * an <b>immutable</b> map containing all the metadata associated with this S3 object.
      */
-    public Map getMetadataMap() {
+    public Map<String, Object> getMetadataMap() {
         return Collections.unmodifiableMap(metadata);
     }
 
@@ -98,7 +139,7 @@ public abstract class BaseS3Object implements Serializable {
      * @param value
      * the metadata item's owner value.
      */
-    public void addMetadata(String name, S3Owner value) {
+    public void addMetadata(String name, StorageItemOwner value) {
         this.metadata.put(name, value);
     }
 
@@ -108,7 +149,7 @@ public abstract class BaseS3Object implements Serializable {
      * @param metadata
      * metadata items to add.
      */
-    public void addAllMetadata(Map metadata) {
+    public void addAllMetadata(Map<String, Object> metadata) {
         this.metadata.putAll(metadata);
     }
 
@@ -130,9 +171,27 @@ public abstract class BaseS3Object implements Serializable {
      * @param metadata
      * metadata items to add.
      */
-    public void replaceAllMetadata(Map metadata) {
+    public void replaceAllMetadata(Map<String, Object> metadata) {
         this.metadata.clear();
         addAllMetadata(metadata);
+    }
+
+    /**
+     * @return
+     * this object's owner, or null if the owner is not available.
+     */
+    public StorageItemOwner getOwner() {
+        return (S3Owner) getMetadata(METADATA_HEADER_OWNER);
+    }
+
+    /**
+     * Set this object's owner object based on information returned from the service.
+     * This method should only by used by code that reads service responses.
+     *
+     * @param owner
+     */
+    public void setOwner(StorageItemOwner owner) {
+        addMetadata(METADATA_HEADER_OWNER, owner);
     }
 
 }

@@ -18,6 +18,17 @@
  */
 package org.jets3t.service.impl.rest;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
@@ -30,6 +41,9 @@ import org.jets3t.service.acl.GranteeInterface;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
 import org.jets3t.service.model.BaseVersionOrDeleteMarker;
+import org.jets3t.service.model.GSBucket;
+import org.jets3t.service.model.GSObject;
+import org.jets3t.service.model.GSOwner;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3BucketVersioningStatus;
@@ -37,20 +51,12 @@ import org.jets3t.service.model.S3DeleteMarker;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Owner;
 import org.jets3t.service.model.S3Version;
+import org.jets3t.service.model.StorageBucket;
+import org.jets3t.service.model.StorageItemOwner;
+import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.utils.ServiceUtils;
 import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
-
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
 
 /**
  * XML Sax parser to read XML documents returned by S3 via the REST interface, converting these
@@ -63,6 +69,7 @@ public class XmlResponsesSaxParser {
 
     private XMLReader xr = null;
     private Jets3tProperties properties = null;
+    private boolean isGoogleStorageMode = false;
 
     /**
      * Constructs the XML SAX parser.
@@ -72,9 +79,36 @@ public class XmlResponsesSaxParser {
      *
      * @throws S3ServiceException
      */
-    public XmlResponsesSaxParser(Jets3tProperties properties) throws S3ServiceException {
+    public XmlResponsesSaxParser(Jets3tProperties properties, boolean returnGoogleStorageObjects)
+        throws S3ServiceException
+    {
         this.properties = properties;
+        this.isGoogleStorageMode = returnGoogleStorageObjects;
         this.xr = ServiceUtils.loadXMLReader();
+    }
+
+    protected StorageBucket newBucket() {
+        if (isGoogleStorageMode) {
+            return new GSBucket();
+        } else {
+            return new S3Bucket();
+        }
+    }
+
+    protected StorageObject newObject() {
+        if (isGoogleStorageMode) {
+            return new GSObject();
+        } else {
+            return new S3Object();
+        }
+    }
+
+    protected StorageItemOwner newOwner() {
+        if (isGoogleStorageMode) {
+            return new GSOwner();
+        } else {
+            return new S3Owner();
+        }
     }
 
     /**
@@ -315,12 +349,12 @@ public class XmlResponsesSaxParser {
      * The document is parsed into {@link S3Object}s available via the {@link #getObjects()} method.
      */
     public class ListBucketHandler extends DefaultXmlHandler {
-        private S3Object currentObject = null;
-        private S3Owner currentOwner = null;
+        private StorageObject currentObject = null;
+        private StorageItemOwner currentOwner = null;
         private boolean insideCommonPrefixes = false;
 
-        private List objects = new ArrayList();
-        private List commonPrefixes = new ArrayList();
+        private final List<StorageObject> objects = new ArrayList<StorageObject>();
+        private final List<String> commonPrefixes = new ArrayList<String>();
 
         // Listing properties.
         private String bucketName = null;
@@ -369,12 +403,12 @@ public class XmlResponsesSaxParser {
          * @return
          * the S3 objects contained in the listing.
          */
-        public S3Object[] getObjects() {
-            return (S3Object[]) objects.toArray(new S3Object[objects.size()]);
+        public StorageObject[] getObjects() {
+            return objects.toArray(new StorageObject[objects.size()]);
         }
 
         public String[] getCommonPrefixes() {
-            return (String[]) commonPrefixes.toArray(new String[commonPrefixes.size()]);
+            return commonPrefixes.toArray(new String[commonPrefixes.size()]);
         }
 
         public String getRequestPrefix() {
@@ -393,18 +427,22 @@ public class XmlResponsesSaxParser {
             return requestMaxKeys;
         }
 
+        @Override
         public void startElement(String name) {
             if (name.equals("Contents")) {
-                currentObject = new S3Object();
-                currentObject.setBucketName(bucketName);
+                currentObject = newObject();
+                if (currentObject instanceof S3Object) {
+                    ((S3Object)currentObject).setBucketName(bucketName);
+                }
             } else if (name.equals("Owner")) {
-                currentOwner = new S3Owner();
+                currentOwner = newOwner();
                 currentObject.setOwner(currentOwner);
             } else if (name.equals("CommonPrefixes")) {
                 insideCommonPrefixes = true;
             }
         }
 
+        @Override
         public void endElement(String name, String elementText) {
             // Listing details
             if (name.equals("Name")) {
@@ -435,7 +473,7 @@ public class XmlResponsesSaxParser {
             else if (name.equals("Contents")) {
                 objects.add(currentObject);
                 if (log.isDebugEnabled()) {
-                    log.debug("Created new S3Object from listing: " + currentObject);
+                    log.debug("Created new object from listing: " + currentObject);
                 }
             } else if (name.equals("Key")) {
                 currentObject.setKey(elementText);
@@ -460,7 +498,7 @@ public class XmlResponsesSaxParser {
                 // Work-around to support Eucalyptus responses, which do not
                 // contain Owner elements.
                 if (currentOwner == null) {
-                    currentOwner = new S3Owner();
+                    currentOwner = newOwner();
                     currentObject.setOwner(currentOwner);
                 }
 
@@ -478,42 +516,44 @@ public class XmlResponsesSaxParser {
     }
 
     /**
-     * Handler for ListAllMyBuckets response XML documents.
-     * The document is parsed into {@link S3Bucket}s available via the {@link #getBuckets()} method.
+     * Handler for ListAllMyBuckets response XML documents. The document is parsed into
+     * {@link StorageBucket}s available via the {@link #getBuckets()} method.
      *
      * @author James Murty
      *
      */
     public class ListAllMyBucketsHandler extends DefaultXmlHandler {
-        private S3Owner bucketsOwner = null;
-        private S3Bucket currentBucket = null;
+        private StorageItemOwner bucketsOwner = null;
+        private StorageBucket currentBucket = null;
 
-        private List buckets = new ArrayList();
+        private final List<StorageBucket> buckets = new ArrayList<StorageBucket>();
 
         /**
          * @return
          * the buckets listed in the document.
          */
-        public S3Bucket[] getBuckets() {
-            return (S3Bucket[]) buckets.toArray(new S3Bucket[buckets.size()]);
+        public StorageBucket[] getBuckets() {
+            return buckets.toArray(new StorageBucket[buckets.size()]);
         }
 
         /**
          * @return
          * the owner of the buckets.
          */
-        public S3Owner getOwner() {
+        public StorageItemOwner getOwner() {
             return bucketsOwner;
         }
 
+        @Override
         public void startElement(String name) {
             if (name.equals("Bucket")) {
-                currentBucket = new S3Bucket();
+                currentBucket = newBucket();
             } else if (name.equals("Owner")) {
-                bucketsOwner = new S3Owner();
+                bucketsOwner = newOwner();
             }
         }
 
+        @Override
         public void endElement(String name, String elementText) {
             // Listing details.
             if (name.equals("ID")) {
@@ -567,12 +607,14 @@ public class XmlResponsesSaxParser {
             return bucketLoggingStatus;
         }
 
+        @Override
         public void startElement(String name) {
             if (name.equals("BucketLoggingStatus")) {
                 bucketLoggingStatus = new S3BucketLoggingStatus();
             }
         }
 
+        @Override
         public void endElement(String name, String elementText) {
             if (name.equals("TargetBucket")) {
                 targetBucket = elementText;
@@ -623,6 +665,7 @@ public class XmlResponsesSaxParser {
             return location;
         }
 
+        @Override
         public void endElement(String name, String elementText) {
             if (name.equals("LocationConstraint")) {
                 if (elementText.length() == 0) {
@@ -675,6 +718,7 @@ public class XmlResponsesSaxParser {
             return receivedErrorResponse;
         }
 
+        @Override
         public void startElement(String name) {
             if (name.equals("CopyObjectResult")) {
                 receivedErrorResponse = false;
@@ -683,6 +727,7 @@ public class XmlResponsesSaxParser {
             }
         }
 
+        @Override
         public void endElement(String name, String elementText) {
             if (name.equals("LastModified")) {
                 try {
@@ -726,6 +771,7 @@ public class XmlResponsesSaxParser {
             return "Requester".equals(payer);
         }
 
+        @Override
         public void endElement(String name, String elementText) {
             if (name.equals("Payer")) {
                 payer = elementText;
@@ -742,6 +788,7 @@ public class XmlResponsesSaxParser {
             return this.versioningStatus;
         }
 
+        @Override
         public void endElement(String name, String elementText) {
             if (name.equals("Status")) {
                 this.status = elementText;
@@ -756,14 +803,15 @@ public class XmlResponsesSaxParser {
     }
 
     public class ListVersionsResultsHandler extends DefaultXmlHandler {
-        private List items = new ArrayList();
-        private List commonPrefixes = new ArrayList();
+        private final List<BaseVersionOrDeleteMarker> items =
+            new ArrayList<BaseVersionOrDeleteMarker>();
+        private final List<String> commonPrefixes = new ArrayList<String>();
 
         private String key = null;
         private String versionId = null;
         private boolean isLatest = false;
         private Date lastModified = null;
-        private S3Owner owner = null;
+        private StorageItemOwner owner = null;
 
         private String etag = null;
         private long size = 0;
@@ -795,11 +843,11 @@ public class XmlResponsesSaxParser {
          * the S3 objects contained in the listing.
          */
         public BaseVersionOrDeleteMarker[] getItems() {
-            return (BaseVersionOrDeleteMarker[]) items.toArray(new BaseVersionOrDeleteMarker[items.size()]);
+            return items.toArray(new BaseVersionOrDeleteMarker[items.size()]);
         }
 
         public String[] getCommonPrefixes() {
-            return (String[]) commonPrefixes.toArray(new String[commonPrefixes.size()]);
+            return commonPrefixes.toArray(new String[commonPrefixes.size()]);
         }
 
         public String getRequestPrefix() {
@@ -826,6 +874,7 @@ public class XmlResponsesSaxParser {
             return requestMaxKeys;
         }
 
+        @Override
         public void startElement(String name) {
             if (name.equals("Owner")) {
                 owner = null;
@@ -834,6 +883,7 @@ public class XmlResponsesSaxParser {
             }
         }
 
+        @Override
         public void endElement(String name, String elementText) {
             // Listing details
             if (name.equals("Name")) {
@@ -867,11 +917,11 @@ public class XmlResponsesSaxParser {
             // Version/DeleteMarker finished.
             else if (name.equals("Version")) {
                 BaseVersionOrDeleteMarker item = new S3Version(key, versionId,
-                    isLatest, lastModified, owner, etag, size, storageClass);
+                    isLatest, lastModified, (S3Owner)owner, etag, size, storageClass);
                 items.add(item);
             } else if (name.equals("DeleteMarker")) {
                 BaseVersionOrDeleteMarker item = new S3DeleteMarker(key, versionId,
-                        isLatest, lastModified, owner);
+                        isLatest, lastModified, (S3Owner)owner);
                 items.add(item);
 
             // Version/DeleteMarker details
@@ -898,7 +948,7 @@ public class XmlResponsesSaxParser {
             }
             // Owner details.
             else if (name.equals("ID")) {
-                owner = new S3Owner();
+                owner = newOwner();
                 owner.setId(elementText);
             } else if (name.equals("DisplayName")) {
                 owner.setDisplayName(elementText);

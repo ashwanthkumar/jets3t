@@ -18,13 +18,18 @@
  */
 package org.jets3t.service.impl.rest.httpclient;
 
+import java.util.Calendar;
+
 import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.auth.CredentialsProvider;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.acl.gs.GSAccessControlList;
 import org.jets3t.service.impl.rest.AccessControlListHandler;
 import org.jets3t.service.impl.rest.GSAccessControlListHandler;
+import org.jets3t.service.model.GSBucket;
+import org.jets3t.service.model.GSObject;
 import org.jets3t.service.security.ProviderCredentials;
 
 /**
@@ -234,6 +239,110 @@ public class GoogleStorageService extends RestStorageService {
     @Override
     protected AccessControlListHandler getAccessControlListHandler() {
       return new GSAccessControlListHandler();
+    }
+
+    ////////////////////////////////////////////////////////////
+    // Methods below this point perform actions in GoogleStorage
+    ////////////////////////////////////////////////////////////
+
+    @Override
+    public GSBucket[] listAllBuckets() throws S3ServiceException {
+        return GSBucket.cast(super.listAllBuckets());
+    }
+
+    @Override
+    public GSObject[] listObjects(String bucketName) throws S3ServiceException {
+        return GSObject.cast(super.listObjects(bucketName));
+    }
+
+    @Override
+    public GSObject[] listObjects(String bucketName, String prefix, String delimiter)
+        throws S3ServiceException
+    {
+        return GSObject.cast(super.listObjects(bucketName, prefix, delimiter));
+    }
+
+
+    @Override
+    public GSBucket createBucket(String bucketName) throws S3ServiceException {
+        return (GSBucket) super.createBucket(bucketName);
+    }
+
+    @Override
+    public GSAccessControlList getBucketAcl(String bucketName) throws S3ServiceException {
+        return (GSAccessControlList) super.getBucketAcl(bucketName);
+    }
+
+    /**
+     * Applies access control settings to a bucket. The ACL settings must be included
+     * inside the bucket.
+     *
+     * This method can be performed by anonymous services, but can only succeed if the
+     * bucket's existing ACL already allows write access by the anonymous user.
+     * In general, you can only access the ACL of a bucket if the ACL already in place
+     * for that bucket (in S3) allows you to do so. See
+     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
+     * the S3 documentation on ACLs</a> for more details on access to ACLs.
+     *
+     * @param bucketName
+     * a name of the bucket with ACL settings to apply.
+     * @throws S3ServiceException
+     */
+    public void putBucketAcl(String bucketName, GSAccessControlList acl) throws S3ServiceException {
+        if (acl == null) {
+            throw new S3ServiceException("The bucket '" + bucketName +
+                "' does not include ACL information");
+        }
+        putBucketAclImpl(bucketName, acl);
+    }
+
+    /**
+     * Applies access control settings to a bucket. The ACL settings must be included
+     * inside the bucket.
+     *
+     * This method can be performed by anonymous services, but can only succeed if the
+     * bucket's existing ACL already allows write access by the anonymous user.
+     * In general, you can only access the ACL of a bucket if the ACL already in place
+     * for that bucket (in S3) allows you to do so. See
+     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
+     * the S3 documentation on ACLs</a> for more details on access to ACLs.
+     *
+     * @param bucket
+     * a bucket with ACL settings to apply.
+     * @throws S3ServiceException
+     */
+    public void putBucketAcl(GSBucket bucket) throws S3ServiceException {
+        assertValidBucket(bucket, "Put Bucket Access Control List");
+        putBucketAcl(bucket.getName(), bucket.getAcl());
+    }
+
+    @Override
+    public GSObject getObject(String bucketName, String objectKey) throws S3ServiceException {
+        return (GSObject) super.getObject(bucketName, objectKey);
+    }
+
+    public GSObject putObject(String bucketName, GSObject object)
+        throws S3ServiceException
+    {
+        return (GSObject) super.putObject(bucketName, object);
+    }
+
+    @Override
+    public GSObject getObject(String bucketName, String objectKey,
+        Calendar ifModifiedSince, Calendar ifUnmodifiedSince,
+        String[] ifMatchTags, String[] ifNoneMatchTags, Long byteRangeStart,
+        Long byteRangeEnd) throws S3ServiceException
+    {
+        return (GSObject) super.getObject(bucketName, objectKey, ifModifiedSince,
+            ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, byteRangeStart,
+            byteRangeEnd);
+    }
+
+    @Override
+    public GSObject getObjectDetails(String bucketName, String objectKey)
+        throws S3ServiceException
+    {
+        return (GSObject) super.getObjectDetails(bucketName, objectKey);
     }
 
 }

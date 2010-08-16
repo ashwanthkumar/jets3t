@@ -26,6 +26,7 @@ import java.util.Map;
 import javax.management.ObjectName;
 
 import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.StorageObject;
 
 public class S3ObjectMx implements S3ObjectMxMBean {
     public static final boolean isEnabled =
@@ -41,7 +42,7 @@ public class S3ObjectMx implements S3ObjectMxMBean {
         COPY = 5,
         MAX = 6;
 
-    private LongCounter[] counters = new LongCounter[MAX];
+    private final LongCounter[] counters = new LongCounter[MAX];
 
     private S3ObjectMx() {
         for (int i=0; i<this.counters.length; i++) {
@@ -73,7 +74,7 @@ public class S3ObjectMx implements S3ObjectMxMBean {
         return this.counters[COPY].getValue();
     }
 
-    public static void registerMBeans(String bucketName, S3Object[] objects) {
+    public static void registerMBeans(String bucketName, StorageObject[] objects) {
         if (!isEnabled) {
             return;
         }

@@ -18,19 +18,36 @@
  */
 package org.jets3t.service.impl.rest.httpclient;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.xml.parsers.ParserConfigurationException;
+
 import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.auth.CredentialsProvider;
+import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
+import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.VersionOrDeleteMarkersChunk;
 import org.jets3t.service.impl.rest.AccessControlListHandler;
+import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListVersionsResultsHandler;
+import org.jets3t.service.model.BaseVersionOrDeleteMarker;
+import org.jets3t.service.model.S3BucketLoggingStatus;
+import org.jets3t.service.model.S3BucketVersioningStatus;
 import org.jets3t.service.security.AWSDevPayCredentials;
 import org.jets3t.service.security.ProviderCredentials;
 
-import java.util.Map;
+import com.jamesmurty.utils.XMLBuilder;
 
 /**
  * REST/HTTP implementation of an S3Service based on the
@@ -43,7 +60,7 @@ import java.util.Map;
  *
  * @author James Murty
  */
-public class RestS3Service extends RestStorageService {
+public class RestS3Service extends S3Service {
 
     private static final Log log = LogFactory.getLog(RestS3Service.class);
     private static final String AWS_SIGNATURE_IDENTIFIER = "AWS";
@@ -242,7 +259,7 @@ public class RestS3Service extends RestStorageService {
      */
     @Override
     protected HttpMethodBase setupConnection(String method, String bucketName, String objectKey,
-        Map requestParameters) throws S3ServiceException
+        Map<String, Object> requestParameters) throws S3ServiceException
     {
         HttpMethodBase httpMethod = super.setupConnection(method, bucketName, objectKey, requestParameters);
 
@@ -379,6 +396,277 @@ public class RestS3Service extends RestStorageService {
     @Override
     protected AccessControlListHandler getAccessControlListHandler() {
       return new AccessControlListHandler();
+    }
+
+    @Override
+    protected BaseVersionOrDeleteMarker[] listVersionedObjectsImpl(String bucketName,
+        String prefix, String delimiter, String keyMarker, String versionMarker,
+        long maxListingLength) throws S3ServiceException
+    {
+        return listVersionedObjectsInternal(bucketName, prefix, delimiter,
+            maxListingLength, true, keyMarker, versionMarker).getItems();
+    }
+
+    @Override
+    protected void updateBucketVersioningStatusImpl(String bucketName,
+        boolean enabled, boolean multiFactorAuthDeleteEnabled,
+        String multiFactorSerialNumber, String multiFactorAuthCode)
+        throws S3ServiceException
+    {
+        if (log.isDebugEnabled()) {
+            log.debug( (enabled ? "Enabling" : "Suspending")
+                + " versioning for bucket " + bucketName
+                + (multiFactorAuthDeleteEnabled ? " with Multi-Factor Auth enabled" : ""));
+        }
+        try {
+            XMLBuilder builder = XMLBuilder
+                .create("VersioningConfiguration").a("xmlns", Constants.XML_NAMESPACE)
+                    .e("Status").t( (enabled ? "Enabled" : "Suspended") ).up()
+                    .e("MfaDelete").t( (multiFactorAuthDeleteEnabled ? "Enabled" : "Disabled"));
+            Map<String, Object> requestParams = new HashMap<String, Object>();
+            requestParams.put("versioning", null);
+            Map<String, Object> metadata = new HashMap<String, Object>();
+            if (multiFactorSerialNumber != null || multiFactorAuthCode != null) {
+                metadata.put(Constants.AMZ_MULTI_FACTOR_AUTH_CODE,
+                    multiFactorSerialNumber + " " + multiFactorAuthCode);
+            }
+            performRestPutWithXmlBuilder(bucketName, null, metadata, requestParams, builder);
+        } catch (ParserConfigurationException e) {
+            throw new S3ServiceException("Failed to build XML document for request", e);
+        }
+    }
+
+    @Override
+    protected S3BucketVersioningStatus getBucketVersioningStatusImpl(String bucketName)
+        throws S3ServiceException
+    {
+        if (log.isDebugEnabled()) {
+            log.debug( "Checking status of versioning for bucket " + bucketName);
+        }
+        Map<String, Object> requestParams = new HashMap<String, Object>();
+        requestParams.put("versioning", null);
+        HttpMethodBase method = performRestGet(bucketName, null, requestParams, null);
+        return getXmlResponseSaxParser()
+            .parseVersioningConfigurationResponse(new HttpMethodReleaseInputStream(method));
+    }
+
+    protected VersionOrDeleteMarkersChunk listVersionedObjectsInternal(
+        String bucketName, String prefix, String delimiter, long maxListingLength,
+        boolean automaticallyMergeChunks, String nextKeyMarker, String nextVersionIdMarker)
+        throws S3ServiceException
+    {
+        Map<String, Object> parameters = new HashMap<String, Object>();
+        parameters.put("versions", null);
+        if (prefix != null) {
+            parameters.put("prefix", prefix);
+        }
+        if (delimiter != null) {
+            parameters.put("delimiter", delimiter);
+        }
+        if (maxListingLength > 0) {
+            parameters.put("max-keys", String.valueOf(maxListingLength));
+        }
+
+        List<BaseVersionOrDeleteMarker> items = new ArrayList<BaseVersionOrDeleteMarker>();
+        List<String> commonPrefixes = new ArrayList<String>();
+
+        boolean incompleteListing = true;
+        int ioErrorRetryCount = 0;
+
+        while (incompleteListing) {
+            if (nextKeyMarker != null) {
+                parameters.put("key-marker", nextKeyMarker);
+            } else {
+                parameters.remove("key-marker");
+            }
+            if (nextVersionIdMarker != null) {
+                parameters.put("version-id-marker", nextVersionIdMarker);
+            } else {
+                parameters.remove("version-id-marker");
+            }
+
+            HttpMethodBase httpMethod = performRestGet(bucketName, null, parameters, null);
+            ListVersionsResultsHandler handler = null;
+
+            try {
+                handler = getXmlResponseSaxParser()
+                    .parseListVersionsResponse(
+                        new HttpMethodReleaseInputStream(httpMethod));
+                ioErrorRetryCount = 0;
+            } catch (S3ServiceException e) {
+                if (e.getCause() instanceof IOException && ioErrorRetryCount < 5) {
+                    ioErrorRetryCount++;
+                    if (log.isWarnEnabled()) {
+                        log.warn("Retrying bucket listing failure due to IO error", e);
+                    }
+                    continue;
+                } else {
+                    throw e;
+                }
+            }
+
+            BaseVersionOrDeleteMarker[] partialItems = handler.getItems();
+            if (log.isDebugEnabled()) {
+                log.debug("Found " + partialItems.length + " items in one batch");
+            }
+            items.addAll(Arrays.asList(partialItems));
+
+            String[] partialCommonPrefixes = handler.getCommonPrefixes();
+            if (log.isDebugEnabled()) {
+                log.debug("Found " + partialCommonPrefixes.length + " common prefixes in one batch");
+            }
+            commonPrefixes.addAll(Arrays.asList(partialCommonPrefixes));
+
+            incompleteListing = handler.isListingTruncated();
+            nextKeyMarker = handler.getNextKeyMarker();
+            nextVersionIdMarker = handler.getNextVersionIdMarker();
+            if (incompleteListing) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Yet to receive complete listing of bucket versions, "
+                        + "continuing with key-marker=" + nextKeyMarker
+                        + " and version-id-marker=" + nextVersionIdMarker);
+                }
+            }
+
+            if (!automaticallyMergeChunks) {
+                break;
+            }
+        }
+        if (automaticallyMergeChunks) {
+            if (log.isDebugEnabled()) {
+                log.debug("Found " + items.size() + " items in total");
+            }
+            return new VersionOrDeleteMarkersChunk(
+                prefix, delimiter,
+                items.toArray(new BaseVersionOrDeleteMarker[items.size()]),
+                commonPrefixes.toArray(new String[commonPrefixes.size()]),
+                null, null);
+        } else {
+            return new VersionOrDeleteMarkersChunk(
+                prefix, delimiter,
+                items.toArray(new BaseVersionOrDeleteMarker[items.size()]),
+                commonPrefixes.toArray(new String[commonPrefixes.size()]),
+                nextKeyMarker, nextVersionIdMarker);
+        }
+    }
+
+    @Override
+    protected VersionOrDeleteMarkersChunk listVersionedObjectsChunkedImpl(String bucketName,
+        String prefix, String delimiter, long maxListingLength, String priorLastKey,
+        String priorLastVersion, boolean completeListing) throws S3ServiceException
+    {
+        return listVersionedObjectsInternal(bucketName, prefix, delimiter,
+            maxListingLength, completeListing, priorLastKey, priorLastVersion);
+    }
+
+    @Override
+    protected String getBucketLocationImpl(String bucketName)
+        throws S3ServiceException
+    {
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving location of Bucket: " + bucketName);
+        }
+
+        Map<String, Object> requestParameters = new HashMap<String, Object>();
+        requestParameters.put("location","");
+
+        HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
+        return getXmlResponseSaxParser()
+            .parseBucketLocationResponse(
+                new HttpMethodReleaseInputStream(httpMethod));
+    }
+
+    @Override
+    protected S3BucketLoggingStatus getBucketLoggingStatusImpl(String bucketName)
+        throws S3ServiceException
+    {
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving Logging Status for Bucket: " + bucketName);
+        }
+
+        Map<String, Object> requestParameters = new HashMap<String, Object>();
+        requestParameters.put("logging","");
+
+        HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
+        return getXmlResponseSaxParser()
+            .parseLoggingStatusResponse(
+                new HttpMethodReleaseInputStream(httpMethod)).getBucketLoggingStatus();
+    }
+
+    @Override
+    protected void setBucketLoggingStatusImpl(String bucketName, S3BucketLoggingStatus status)
+        throws S3ServiceException
+    {
+        if (log.isDebugEnabled()) {
+            log.debug("Setting Logging Status for bucket: " + bucketName);
+        }
+
+        Map<String, Object> requestParameters = new HashMap<String, Object>();
+        requestParameters.put("logging","");
+
+        Map<String, Object> metadata = new HashMap<String, Object>();
+        metadata.put("Content-Type", "text/plain");
+
+        String statusAsXml = null;
+        try {
+            statusAsXml = status.toXml();
+        } catch (Exception e) {
+            throw new S3ServiceException("Unable to generate LoggingStatus XML document", e);
+        }
+        try {
+            metadata.put("Content-Length", String.valueOf(statusAsXml.length()));
+            performRestPut(bucketName, null, metadata, requestParameters,
+                new StringRequestEntity(statusAsXml, "text/plain", Constants.DEFAULT_ENCODING),
+                true);
+        } catch (UnsupportedEncodingException e) {
+            throw new S3ServiceException("Unable to encode LoggingStatus XML document", e);
+        }
+    }
+
+    @Override
+    protected boolean isRequesterPaysBucketImpl(String bucketName)
+        throws S3ServiceException
+    {
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving Request Payment Configuration settings for Bucket: " + bucketName);
+        }
+
+        Map<String, Object> requestParameters = new HashMap<String, Object>();
+        requestParameters.put("requestPayment","");
+
+        HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
+        return getXmlResponseSaxParser()
+            .parseRequestPaymentConfigurationResponse(
+                new HttpMethodReleaseInputStream(httpMethod));
+    }
+
+    @Override
+    protected void setRequesterPaysBucketImpl(String bucketName, boolean requesterPays) throws S3ServiceException {
+        if (log.isDebugEnabled()) {
+            log.debug("Setting Request Payment Configuration settings for bucket: " + bucketName);
+        }
+
+        Map<String, Object> requestParameters = new HashMap<String, Object>();
+        requestParameters.put("requestPayment","");
+
+        Map<String, Object> metadata = new HashMap<String, Object>();
+        metadata.put("Content-Type", "text/plain");
+
+        try {
+            String xml =
+                "<RequestPaymentConfiguration xmlns=\"" + Constants.XML_NAMESPACE + "\">" +
+                    "<Payer>" +
+                        (requesterPays ? "Requester" : "BucketOwner") +
+                    "</Payer>" +
+                "</RequestPaymentConfiguration>";
+
+            metadata.put("Content-Length", String.valueOf(xml.length()));
+            performRestPut(bucketName, null, metadata, requestParameters,
+                new StringRequestEntity(xml, "text/plain", Constants.DEFAULT_ENCODING),
+                true);
+        } catch (UnsupportedEncodingException e) {
+            throw new S3ServiceException("Unable to encode RequestPaymentConfiguration XML document", e);
+        }
     }
 
 }

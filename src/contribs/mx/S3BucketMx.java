@@ -25,7 +25,7 @@ import java.util.Map;
 
 import javax.management.ObjectName;
 
-import org.jets3t.service.model.S3Bucket;
+import org.jets3t.service.model.StorageBucket;
 
 public class S3BucketMx implements S3BucketMxMBean {
     public static final boolean isEnabled =
@@ -42,7 +42,7 @@ public class S3BucketMx implements S3BucketMxMBean {
         LIST = 6,
         MAX = 7;
 
-    private LongCounter[] counters = new LongCounter[MAX];
+    private final LongCounter[] counters = new LongCounter[MAX];
 
     S3BucketMx() {
         for (int i=0; i<this.counters.length; i++) {
@@ -80,7 +80,7 @@ public class S3BucketMx implements S3BucketMxMBean {
         return this.counters[O_COPY].getValue();
     }
 
-    public static void registerMBeans(S3Bucket[] buckets) {
+    public static void registerMBeans(StorageBucket[] buckets) {
         if (!isEnabled) {
             return;
         }

@@ -18,7 +18,8 @@
  */
 package org.jets3t.service.model;
 
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.jets3t.service.acl.AccessControlList;
 
@@ -27,10 +28,9 @@ import org.jets3t.service.acl.AccessControlList;
  *
  * @author James Murty
  */
-public class S3Bucket extends BaseS3Object {
-    private static final long serialVersionUID = -8646831898339939580L;
+public class S3Bucket extends StorageBucket {
+    private static final long serialVersionUID = 1007160640382133920L;
 
-    public static final String METADATA_HEADER_CREATION_DATE = "Date";
     public static final String METADATA_HEADER_OWNER = "Owner";
 
     public static final String LOCATION_US = null;
@@ -39,8 +39,6 @@ public class S3Bucket extends BaseS3Object {
     public static final String LOCATION_EUROPE = "EU";
     public static final String LOCATION_ASIA_PACIFIC = "ap-southeast-1";
 
-    private String name = null;
-    private AccessControlList acl = null;
     private String location = LOCATION_US;
     private boolean isLocationKnown = false;
     private boolean requesterPays = false;
@@ -58,7 +56,7 @@ public class S3Bucket extends BaseS3Object {
      * @param name the name for the bucket
      */
     public S3Bucket(String name) {
-        this.name = name;
+        super(name);
     }
 
     /**
@@ -70,11 +68,12 @@ public class S3Bucket extends BaseS3Object {
      * {@link #LOCATION_EUROPE}.
      */
     public S3Bucket(String name, String location) {
-        this.name = name;
+        this(name);
         this.location = location;
         this.isLocationKnown = true;
     }
 
+    @Override
     public String toString() {
         return "S3Bucket [name=" + getName() +
             ",location=" + getLocation() +
@@ -86,6 +85,7 @@ public class S3Bucket extends BaseS3Object {
      * @return
      * the bucket's owner, or null if it is unknown.
      */
+    @Override
     public S3Owner getOwner() {
         return (S3Owner) getMetadata(METADATA_HEADER_OWNER);
     }
@@ -98,59 +98,6 @@ public class S3Bucket extends BaseS3Object {
      */
     public void setOwner(S3Owner owner) {
         addMetadata(METADATA_HEADER_OWNER, owner);
-    }
-
-    /**
-     * @return
-     * the bucket's creation date, or null if it is unknown.
-     */
-    public Date getCreationDate() {
-        return (Date) getMetadata(METADATA_HEADER_CREATION_DATE);
-    }
-
-    /**
-     * Sets the bucket's creation date in S3 - this should only be used internally by JetS3t
-     * methods that retrieve information directly from S3.
-     *
-     * @param creationDate
-     */
-    public void setCreationDate(Date creationDate) {
-        addMetadata(METADATA_HEADER_CREATION_DATE, creationDate);
-    }
-
-    /**
-     * @return
-     * the bucket's Access Control List, or null if it is unknown.
-     */
-    public AccessControlList getAcl() {
-        return acl;
-    }
-
-    /**
-     * Sets the bucket's Access Control List in S3 - this should only be used internally by J3tS3t
-     * methods that retrieve information directly from S3.
-     *
-     * @param acl
-     */
-    public void setAcl(AccessControlList acl) {
-        this.acl = acl;
-    }
-
-    /**
-     * @return
-     * the name of the bucket.
-     */
-    public String getName() {
-        return name;
-    }
-
-    /**
-     * Set the name of the bucket. All buckets in S3 share a single namespace,
-     * so choose a unique name for your bucket.
-     * @param name the name for the bucket
-     */
-    public void setName(String name) {
-        this.name = name;
     }
 
     /**
@@ -223,6 +170,14 @@ public class S3Bucket extends BaseS3Object {
      */
     public boolean isRequesterPays() {
         return requesterPays;
+    }
+
+    public static S3Bucket[] cast(StorageBucket[] buckets) {
+        List<S3Bucket> results = new ArrayList<S3Bucket>();
+        for (StorageBucket bucket: buckets) {
+            results.add((S3Bucket)bucket);
+        }
+        return results.toArray(new S3Bucket[results.size()]);
     }
 
 }

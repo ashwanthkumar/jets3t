@@ -18,8 +18,8 @@
  */
 package org.jets3t.service.mx;
 
-import org.jets3t.service.model.S3Bucket;
-import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.StorageBucket;
+import org.jets3t.service.model.StorageObject;
 
 public interface MxInterface {
 
@@ -31,22 +31,22 @@ public interface MxInterface {
 
     public abstract void registerS3ServiceExceptionEvent(String s3ErrorCode);
 
-    public abstract void registerS3BucketMBeans(S3Bucket[] buckets);
+    public abstract void registerStorageBucketMBeans(StorageBucket[] buckets);
 
-    public abstract void registerS3BucketListEvent(String bucketName);
+    public abstract void registerStorageBucketListEvent(String bucketName);
 
-    public abstract void registerS3ObjectMBean(String bucketName,
-        S3Object[] objects);
+    public abstract void registerStorageObjectMBean(String bucketName,
+        StorageObject[] objects);
 
-    public abstract void registerS3ObjectPutEvent(String bucketName, String key);
+    public abstract void registerStorageObjectPutEvent(String bucketName, String key);
 
-    public abstract void registerS3ObjectGetEvent(String bucketName, String key);
+    public abstract void registerStorageObjectGetEvent(String bucketName, String key);
 
-    public abstract void registerS3ObjectHeadEvent(String bucketName, String key);
+    public abstract void registerStorageObjectHeadEvent(String bucketName, String key);
 
-    public abstract void registerS3ObjectDeleteEvent(String bucketName,
+    public abstract void registerStorageObjectDeleteEvent(String bucketName,
         String key);
 
-    public abstract void registerS3ObjectCopyEvent(String bucketName, String key);
+    public abstract void registerStorageObjectCopyEvent(String bucketName, String key);
 
 }

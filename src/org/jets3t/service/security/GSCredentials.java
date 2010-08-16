@@ -19,13 +19,13 @@
 package org.jets3t.service.security;
 
 /**
- * Class to contain the Google Storage (GS) credentials of a user. 
+ * Class to contain the Google Storage (GS) credentials of a user.
  *
  * @author Google developers
  */
 public class GSCredentials extends ProviderCredentials {
     protected static final String GS_TYPE_NAME = "gs";
-  
+
     /**
      * Construct credentials.
      *
@@ -56,7 +56,14 @@ public class GSCredentials extends ProviderCredentials {
      * @return
      * string representing this credential type's name (for serialization)
      */
+    @Override
     protected String getTypeName() {
         return GS_TYPE_NAME;
     }
+
+    @Override
+    public String getVersionPrefix() {
+        return "jets3t AWS Credentials, version: ";
+    }
+
 }

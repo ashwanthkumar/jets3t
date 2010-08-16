@@ -24,15 +24,15 @@ package org.jets3t.service.model;
  *
  * @author James Murty
  */
-public class S3Owner extends StorageItemOwner {
+public class GSOwner extends StorageItemOwner {
 
-    private static final long serialVersionUID = 3895047011353549858L;
+    private static final long serialVersionUID = -6140130132644547321L;
 
-    public S3Owner() {
+    public GSOwner() {
         super();
     }
 
-    public S3Owner(String id, String displayName) {
+    public GSOwner(String id, String displayName) {
         super(id, displayName);
     }
 

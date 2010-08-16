@@ -20,8 +20,8 @@ package org.jets3t.service.mx;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jets3t.service.model.S3Bucket;
-import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.StorageBucket;
+import org.jets3t.service.model.StorageObject;
 
 public class MxDelegate implements MxInterface {
     private static final Log log = LogFactory.getLog(MxDelegate.class);
@@ -119,51 +119,51 @@ public class MxDelegate implements MxInterface {
         }
     }
 
-    public void registerS3BucketMBeans(S3Bucket[] buckets) {
+    public void registerStorageBucketMBeans(StorageBucket[] buckets) {
         if (handler != null) {
-            handler.registerS3BucketMBeans(buckets);
+            handler.registerStorageBucketMBeans(buckets);
         }
     }
 
-    public void registerS3BucketListEvent(String bucketName) {
+    public void registerStorageBucketListEvent(String bucketName) {
         if (handler != null) {
-            handler.registerS3BucketListEvent(bucketName);
+            handler.registerStorageBucketListEvent(bucketName);
         }
     }
 
-    public void registerS3ObjectMBean(String bucketName, S3Object[] objects) {
+    public void registerStorageObjectMBean(String bucketName, StorageObject[] objects) {
         if (handler != null) {
-            handler.registerS3ObjectMBean(bucketName, objects);
+            handler.registerStorageObjectMBean(bucketName, objects);
         }
     }
 
-    public void registerS3ObjectPutEvent(String bucketName, String key) {
+    public void registerStorageObjectPutEvent(String bucketName, String key) {
         if (handler != null) {
-            handler.registerS3ObjectPutEvent(bucketName, key);
+            handler.registerStorageObjectPutEvent(bucketName, key);
         }
     }
 
-    public void registerS3ObjectGetEvent(String bucketName, String key) {
+    public void registerStorageObjectGetEvent(String bucketName, String key) {
         if (handler != null) {
-            handler.registerS3ObjectGetEvent(bucketName, key);
+            handler.registerStorageObjectGetEvent(bucketName, key);
         }
     }
 
-    public void registerS3ObjectHeadEvent(String bucketName, String key) {
+    public void registerStorageObjectHeadEvent(String bucketName, String key) {
         if (handler != null) {
-            handler.registerS3ObjectHeadEvent(bucketName, key);
+            handler.registerStorageObjectHeadEvent(bucketName, key);
         }
     }
 
-    public void registerS3ObjectDeleteEvent(String bucketName, String key) {
+    public void registerStorageObjectDeleteEvent(String bucketName, String key) {
         if (handler != null) {
-            handler.registerS3ObjectDeleteEvent(bucketName, key);
+            handler.registerStorageObjectDeleteEvent(bucketName, key);
         }
     }
 
-    public void registerS3ObjectCopyEvent(String bucketName, String key) {
+    public void registerStorageObjectCopyEvent(String bucketName, String key) {
         if (handler != null) {
-            handler.registerS3ObjectCopyEvent(bucketName, key);
+            handler.registerStorageObjectCopyEvent(bucketName, key);
         }
     }
 

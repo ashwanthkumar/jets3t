@@ -18,9 +18,11 @@
  */
 package org.jets3t.tests;
 
-import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
+import org.jets3t.service.impl.rest.httpclient.RestStorageService;
+import org.jets3t.service.model.GSObject;
+import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.security.GSCredentials;
 import org.jets3t.service.security.ProviderCredentials;
 
@@ -37,6 +39,11 @@ public class TestGoogleStorageService extends BaseStorageServiceTests {
     }
 
     @Override
+    protected String getTargetService() {
+        return TARGET_SERVICE_GS;
+    }
+
+    @Override
     protected ProviderCredentials getCredentials() {
         return new GSCredentials(
             testProperties.getProperty("gsservice.accesskey"),
@@ -44,8 +51,18 @@ public class TestGoogleStorageService extends BaseStorageServiceTests {
     }
 
     @Override
-    protected S3Service getStorageService(ProviderCredentials credentials) throws S3ServiceException {
+    protected RestStorageService getStorageService(ProviderCredentials credentials) throws S3ServiceException {
         return new GoogleStorageService(credentials);
+    }
+
+    @Override
+    protected StorageObject buildStorageObject(String name, String data) throws Exception {
+        return new GSObject(name, data);
+    }
+
+    @Override
+    protected StorageObject buildStorageObject(String name) throws Exception {
+        return new GSObject(name);
     }
 
 }

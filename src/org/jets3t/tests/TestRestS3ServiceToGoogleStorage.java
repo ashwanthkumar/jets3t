@@ -18,16 +18,23 @@
  */
 package org.jets3t.tests;
 
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
+import org.jets3t.service.impl.rest.httpclient.RestStorageService;
+import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.StorageBucket;
+import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.security.GSCredentials;
 import org.jets3t.service.security.ProviderCredentials;
 
 /**
- * Test the RestS3Service against the Google Storage endpoint.
+ * Test the S3-targetted RestS3Service against the Google Storage endpoint.
  *
  * @author James Murty
  */
@@ -38,6 +45,11 @@ public class TestRestS3ServiceToGoogleStorage extends BaseStorageServiceTests {
     }
 
     @Override
+    protected String getTargetService() {
+        return TARGET_SERVICE_GS;
+    }
+
+    @Override
     protected ProviderCredentials getCredentials() {
         return new GSCredentials(
             testProperties.getProperty("gsservice.accesskey"),
@@ -45,10 +57,50 @@ public class TestRestS3ServiceToGoogleStorage extends BaseStorageServiceTests {
     }
 
     @Override
-    protected S3Service getStorageService(ProviderCredentials credentials) throws S3ServiceException {
+    protected RestStorageService getStorageService(ProviderCredentials credentials) throws S3ServiceException {
         Jets3tProperties properties = new Jets3tProperties();
         properties.setProperty("s3service.s3-endpoint", Constants.GS_DEFAULT_HOSTNAME);
         return new RestS3Service(credentials, null, null, properties);
     }
+
+    @Override
+    protected StorageObject buildStorageObject(String name, String data) throws Exception {
+        return new S3Object(name, data);
+    }
+
+    @Override
+    protected StorageObject buildStorageObject(String name) throws Exception {
+        return new S3Object(name);
+    }
+
+    /*
+     * S3 Features supported by Google Storage
+     */
+
+    public void testS3RestCannedACL() throws Exception {
+        RestStorageService service = getStorageService(getCredentials());
+        StorageBucket bucket = createBucketForTest("testRestCannedACL");
+
+        try {
+            // Try to create REST canned public object.
+            String publicKey = "PublicObject";
+            StorageObject object = buildStorageObject(publicKey);
+            object.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ);
+            object.setOwner(bucket.getOwner());
+
+            try {
+                service.putObject(bucket.getName(), object);
+                URL url = new URL("https://" + service.getEndpoint()
+                    + "/" + bucket.getName() + "/" + publicKey);
+                assertEquals("Expected public access (200)",
+                        200, ((HttpURLConnection)url.openConnection()).getResponseCode());
+            } finally {
+                service.deleteObject(bucket.getName(), object.getKey());
+            }
+        } finally {
+            cleanupBucketForTest("testRestCannedACL");
+        }
+    }
+
 
 }

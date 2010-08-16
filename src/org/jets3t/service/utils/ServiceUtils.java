@@ -280,16 +280,14 @@ public class ServiceUtils {
      * @return
      * metadata map with HTTP-connection-specific items removed.
      */
-    public static Map cleanRestMetadataMap(Map metadata) {
+    public static Map<String, Object> cleanRestMetadataMap(Map<String, Object> metadata) {
         if (log.isDebugEnabled()) {
             log.debug("Cleaning up REST metadata items");
         }
-        HashMap cleanMap = new HashMap();
+        Map<String, Object> cleanMap = new HashMap<String, Object>();
         if (metadata != null) {
-            Iterator metadataIter = metadata.entrySet().iterator();
-            while (metadataIter.hasNext()) {
-                Map.Entry entry = (Map.Entry) metadataIter.next();
-                Object key = entry.getKey();
+            for (Map.Entry<String, Object> entry: metadata.entrySet()) {
+                String key = entry.getKey();
                 Object value = entry.getValue();
 
                 // Trim prefixes from keys.

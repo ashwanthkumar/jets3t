@@ -38,6 +38,16 @@ public class AWSDevPayCredentials extends AWSCredentials {
         super(awsAccessKey, awsSecretAccessKey, friendlyName);
     }
 
+    @Override
+    protected String getTypeName() {
+        return "devpay";
+    }
+
+    @Override
+    public String getVersionPrefix() {
+        return "jets3t AWS Credentials, version: ";
+    }
+
     /**
      * Construct credentials.
      *
@@ -96,22 +106,16 @@ public class AWSDevPayCredentials extends AWSCredentials {
      * @return
      * a string summarizing these credentials
      */
+    @Override
     public String getLogString() {
         return super.getLogString() + " : " + getUserToken() + " : " + getProductToken();
     }
 
     /**
      * @return
-     * string representing this credential type's name (for serialization)
-     */
-    protected String getTypeName() {
-        return DEVPAY_TYPE_NAME;
-    }
-
-    /**
-     * @return
      * the string of data that needs to be encrypted (for serialization)
      */
+    @Override
     protected String getDataToEncrypt() {
         return getAccessKey() + V3_KEYS_DELIMITER +
             getSecretKey() + V3_KEYS_DELIMITER +

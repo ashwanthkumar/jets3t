@@ -20,8 +20,8 @@ package contribs.mx;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jets3t.service.model.S3Bucket;
-import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.StorageBucket;
+import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.mx.MxDelegate;
 import org.jets3t.service.mx.MxInterface;
 
@@ -34,7 +34,7 @@ public class MxImpl implements MxInterface {
             + ", S3ObjectMx enabled? " + S3ObjectMx.isEnabled);
     }
 
-    // MBean registrations and events are all delegated to the implemtation classes.
+    // MBean registrations and events are all delegated to the implementation classes.
 
     public void registerS3ServiceMBean() {
         S3ServiceMx.registerMBean();
@@ -52,35 +52,35 @@ public class MxImpl implements MxInterface {
         S3ServiceExceptionMx.increment(s3ErrorCode);
     }
 
-    public void registerS3BucketMBeans(S3Bucket[] buckets) {
+    public void registerStorageBucketMBeans(StorageBucket[] buckets) {
         S3BucketMx.registerMBeans(buckets);
     }
 
-    public void registerS3BucketListEvent(String bucketName) {
+    public void registerStorageBucketListEvent(String bucketName) {
         S3BucketMx.list(bucketName);
     }
 
-    public void registerS3ObjectMBean(String bucketName, S3Object[] objects) {
+    public void registerStorageObjectMBean(String bucketName, StorageObject[] objects) {
         S3ObjectMx.registerMBeans(bucketName, objects);
     }
 
-    public void registerS3ObjectPutEvent(String bucketName, String key) {
+    public void registerStorageObjectPutEvent(String bucketName, String key) {
         S3ObjectMx.put(bucketName, key);
     }
 
-    public void registerS3ObjectGetEvent(String bucketName, String key) {
+    public void registerStorageObjectGetEvent(String bucketName, String key) {
         S3ObjectMx.get(bucketName, key);
     }
 
-    public void registerS3ObjectHeadEvent(String bucketName, String key) {
+    public void registerStorageObjectHeadEvent(String bucketName, String key) {
         S3ObjectMx.head(bucketName, key);
     }
 
-    public void registerS3ObjectDeleteEvent(String bucketName, String key) {
+    public void registerStorageObjectDeleteEvent(String bucketName, String key) {
         S3ObjectMx.delete(bucketName, key);
     }
 
-    public void registerS3ObjectCopyEvent(String bucketName, String key) {
+    public void registerStorageObjectCopyEvent(String bucketName, String key) {
         S3ObjectMx.copy(bucketName, key);
     }
 

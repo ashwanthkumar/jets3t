@@ -20,15 +20,15 @@ package org.jets3t.samples;
 
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3ServiceException;
-import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.Permission;
 import org.jets3t.service.acl.gs.AllUsersGrantee;
+import org.jets3t.service.acl.gs.GSAccessControlList;
 import org.jets3t.service.acl.gs.GroupByDomainGrantee;
 import org.jets3t.service.acl.gs.UserByEmailAddressGrantee;
 import org.jets3t.service.acl.gs.UserByIdGrantee;
 import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
-import org.jets3t.service.model.S3Bucket;
-import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.GSBucket;
+import org.jets3t.service.model.GSObject;
 import org.jets3t.service.security.GSCredentials;
 import org.jets3t.service.utils.ServiceUtils;
 
@@ -73,7 +73,7 @@ public class GSCodeSamples {
         // A good test to see if your GoogleStorageService can connect to GS is to list all the buckets you own.
         // If a bucket listing produces no exceptions, all is well.
 
-        S3Bucket[] myBuckets = gsService.listAllBuckets();
+        GSBucket[] myBuckets = gsService.listAllBuckets();
         System.out.println("How many buckets to I have in GS? " + myBuckets.length);
 
         /*
@@ -82,7 +82,7 @@ public class GSCodeSamples {
 
         // To store data in GS you must first create a bucket, a container for objects.
 
-        S3Bucket testBucket = gsService.createBucket(BUCKET_NAME);
+        GSBucket testBucket = gsService.createBucket(BUCKET_NAME);
         System.out.println("Created test bucket: " + testBucket.getName());
 
         // If you try using a common name, you will probably not be able to create the
@@ -92,49 +92,49 @@ public class GSCodeSamples {
          * Uploading data objects
          */
 
-        // We use S3Object classes to represent data objects in Google Storage. To store some
+        // We use GSObject classes to represent data objects in Google Storage. To store some
         // information in our new test bucket, we must first create an object with a key/name then
-        // tell our GSService to upload it to GS.
+        // tell our GoogleStorageService to upload it to GS.
 
-        // In the example below, we print out information about the S3Object before and after
-        // uploading it to GS. These print-outs demonstrate that the S3Object returned by the
+        // In the example below, we print out information about the GSObject before and after
+        // uploading it to GS. These print-outs demonstrate that the GSObject returned by the
         // putObject method contains extra information provided by GS, such as the date the
         // object was last modified on a GS server.
 
         // Create an empty object with a key/name, and print the object's details.
-        S3Object object = new S3Object("object");
-        System.out.println("S3Object before upload: " + object);
+        GSObject object = new GSObject("object");
+        System.out.println("GSObject before upload: " + object);
 
         // Upload the object to our test bucket in GS.
-        object = gsService.putObject(testBucket, object);
+        object = gsService.putObject(BUCKET_NAME, object);
 
         // Print the details about the uploaded object, which contains more information.
-        System.out.println("S3Object after upload: " + object);
+        System.out.println("GSObject after upload: " + object);
 
         // The example above will create an empty object in GS, which isn't very useful.
         // To include data in the object you must provide some data for the object.
         // If you know the Content/Mime type of the data (e.g. text/plain) you should set this too.
 
-        // S3Object's can contain any data available from an input stream, but JetS3t provides two
+        // GSObject's can contain any data available from an input stream, but JetS3t provides two
         // convenient object types to hold File or String data. These convenient constructors
         // automatically set the Content-Type and Content-Length of the object.
 
-        // Create an S3Object based on a string, with Content-Length set automatically and
+        // Create an GSObject based on a string, with Content-Length set automatically and
         // Content-Type set to "text/plain"
         String stringData = "Hello World!";
-        S3Object stringObject = new S3Object(TEST_OBJECT_NAME, stringData);
+        GSObject stringObject = new GSObject(TEST_OBJECT_NAME, stringData);
 
-        // Create an S3Object based on a file, with Content-Length set automatically and
+        // Create an GSObject based on a file, with Content-Length set automatically and
         // Content-Type set based on the file's extension (using the Mimetypes utility class)
         File fileData = new File("src/org/jets3t/samples/GSCodeSamples.java");
-        S3Object fileObject = new S3Object(fileData);
+        GSObject fileObject = new GSObject(fileData);
 
         // If your data isn't a File or String you can use any input stream as a data source,
         // but you must manually set the Content-Length.
 
         // Create an object containing a greeting string as input stream data.
         String greeting = "Hello World!";
-        S3Object helloWorldObject = new S3Object("HelloWorld2.txt");
+        GSObject helloWorldObject = new GSObject("HelloWorld2.txt");
         ByteArrayInputStream greetingIS = new ByteArrayInputStream(
             greeting.getBytes(Constants.DEFAULT_ENCODING));
         helloWorldObject.setDataInputStream(greetingIS);
@@ -143,12 +143,12 @@ public class GSCodeSamples {
         helloWorldObject.setContentType("text/plain");
 
         // Upload the data objects.
-        gsService.putObject(testBucket, stringObject);
-        gsService.putObject(testBucket, fileObject);
-        gsService.putObject(testBucket, helloWorldObject);
+        gsService.putObject(BUCKET_NAME, stringObject);
+        gsService.putObject(BUCKET_NAME, fileObject);
+        gsService.putObject(BUCKET_NAME, helloWorldObject);
 
         // Print details about the uploaded object.
-        System.out.println("S3Object with data: " + helloWorldObject);
+        System.out.println("GSObject with data: " + helloWorldObject);
 
         /*
          * Verifying Uploads
@@ -161,9 +161,9 @@ public class GSCodeSamples {
         // The easiest way to do this is to specify your data's hash value
         // in the Content-MD5 header before you upload the object. JetS3t will
         // do this for you automatically when you use the File- or String-based
-        // S3Object constructors:
+        // GSObject constructors:
 
-        S3Object objectWithHash = new S3Object(TEST_OBJECT_NAME, stringData);
+        GSObject objectWithHash = new GSObject(TEST_OBJECT_NAME, stringData);
         System.out.println("Hash value: " + objectWithHash.getMd5HashAsHex());
 
         // If you do not use these constructors, you should *always* set the
@@ -176,7 +176,7 @@ public class GSCodeSamples {
         byte[] md5Hash = ServiceUtils.computeMD5Hash(dataIS);
         dataIS.reset();
 
-        S3Object hashObject = new S3Object("MyData");
+        GSObject hashObject = new GSObject("MyData");
         hashObject.setDataInputStream(dataIS);
         hashObject.setMd5Hash(md5Hash);
 
@@ -184,7 +184,7 @@ public class GSCodeSamples {
          * Downloading data objects
          */
 
-        // To download data from GS you retrieve an S3Object through the GSService.
+        // To download data from GS you retrieve an GSObject through the GSService.
         // You may retrieve an object in one of two ways, with the data contents or without.
 
         // If you just want to know some details about an object and you don't need its contents,
@@ -193,16 +193,16 @@ public class GSCodeSamples {
         // metadata associated with it such as the Content Type.
 
         // Retrieve the HEAD of the data object we created previously.
-        S3Object objectDetailsOnly = gsService.getObjectDetails(testBucket, TEST_OBJECT_NAME);
-        System.out.println("S3Object, details only: " + objectDetailsOnly);
+        GSObject objectDetailsOnly = gsService.getObjectDetails(BUCKET_NAME, TEST_OBJECT_NAME);
+        System.out.println("GSObject, details only: " + objectDetailsOnly);
 
         // If you need the data contents of the object, the getObject method will return all the
         // object's details and will also set the object's DataInputStream variable from which
         // the object's data can be read.
 
         // Retrieve the whole data object we created previously
-        S3Object objectComplete = gsService.getObject(testBucket, TEST_OBJECT_NAME);
-        System.out.println("S3Object, complete: " + objectComplete);
+        GSObject objectComplete = gsService.getObject(BUCKET_NAME, TEST_OBJECT_NAME);
+        System.out.println("GSObject, complete: " + objectComplete);
 
         // Read the data from the object's DataInputStream using a loop, and print it out.
         System.out.println("Greeting:");
@@ -224,7 +224,7 @@ public class GSCodeSamples {
         // JetS3t provides convenient methods for verifying data that has been
         // downloaded to a File, byte array or InputStream.
 
-        S3Object downloadedObject = gsService.getObject(testBucket, TEST_OBJECT_NAME);
+        GSObject downloadedObject = gsService.getObject(BUCKET_NAME, TEST_OBJECT_NAME);
         String textData = ServiceUtils.readInputStreamToString(
             downloadedObject.getDataInputStream(), "UTF-8");
         boolean valid = downloadedObject.verifyData(textData.getBytes("UTF-8"));
@@ -240,14 +240,14 @@ public class GSCodeSamples {
         // include the size of each object
 
         // List all your buckets.
-        S3Bucket[] buckets = gsService.listAllBuckets();
+        GSBucket[] buckets = gsService.listAllBuckets();
 
         // List the object contents of each bucket.
         for (int b = 0; b < buckets.length; b++) {
             System.out.println("Bucket '" + buckets[b].getName() + "' contains:");
 
             // List the objects in this bucket.
-            S3Object[] objects = gsService.listObjects(buckets[b]);
+            GSObject[] objects = gsService.listObjects(buckets[b].getName());
 
             // Print out each object's key and size.
             for (int o = 0; o < objects.length; o++) {
@@ -262,7 +262,7 @@ public class GSCodeSamples {
         // List only objects whose keys match a prefix.
         String prefix = "Reports";
         String delimiter = null; // Refer to the S3 guide for more information on delimiters
-        S3Object[] filteredObjects = gsService.listObjects(testBucket, prefix, delimiter);
+        GSObject[] filteredObjects = gsService.listObjects(BUCKET_NAME, prefix, delimiter);
 
         /*
          * Copying objects
@@ -270,10 +270,10 @@ public class GSCodeSamples {
 
         // Objects can be copied within the same bucket and between buckets.
 
-        // Create a target S3Object
-        S3Object targetObject = new S3Object("target-object-with-sources-metadata");
+        // Create a target GSObject
+        GSObject targetObject = new GSObject("target-object-with-sources-metadata");
 
-        // Copy an existing source object to the target S3Object
+        // Copy an existing source object to the target GSObject
         // This will copy the source's object data and metadata to the target object.
         boolean replaceMetadata = false;
         gsService.copyObject(BUCKET_NAME, TEST_OBJECT_NAME, "target-bucket", targetObject, replaceMetadata);
@@ -281,8 +281,8 @@ public class GSCodeSamples {
         // You can also copy an object and update its metadata at the same time. Perform a
         // copy-in-place  (with the same bucket and object names for source and destination)
         // to update an object's metadata while leaving the object's data unchanged.
-        targetObject = new S3Object(TEST_OBJECT_NAME);
-        targetObject.addMetadata(S3Object.METADATA_HEADER_CONTENT_TYPE, "text/html");
+        targetObject = new GSObject(TEST_OBJECT_NAME);
+        targetObject.addMetadata(GSObject.METADATA_HEADER_CONTENT_TYPE, "text/html");
         replaceMetadata = true;
         gsService.copyObject(BUCKET_NAME, TEST_OBJECT_NAME, BUCKET_NAME, targetObject, replaceMetadata);
 
@@ -300,7 +300,7 @@ public class GSCodeSamples {
         gsService.moveObject(BUCKET_NAME, TEST_OBJECT_NAME, "target-bucket", targetObject, false);
 
         // You can move an object to a new name in the same bucket. This is essentially a rename operation.
-        gsService.moveObject(BUCKET_NAME, TEST_OBJECT_NAME, BUCKET_NAME, new S3Object("newname.txt"), false);
+        gsService.moveObject(BUCKET_NAME, TEST_OBJECT_NAME, BUCKET_NAME, new GSObject("newname.txt"), false);
 
         // To make renaming easier, JetS3t has a shortcut method especially for this purpose.
         gsService.renameObject(BUCKET_NAME, TEST_OBJECT_NAME, targetObject);
@@ -316,20 +316,20 @@ public class GSCodeSamples {
         // If you try to delete your bucket before it is empty, it will fail.
         try {
             // This will fail if the bucket isn't empty.
-            gsService.deleteBucket(testBucket.getName());
+            gsService.deleteBucket(BUCKET_NAME);
         } catch (S3ServiceException e) {
             e.printStackTrace();
         }
 
         // Delete all the objects in the bucket
-        gsService.deleteObject(testBucket, object.getKey());
-        gsService.deleteObject(testBucket, helloWorldObject.getKey());
-        gsService.deleteObject(testBucket, stringObject.getKey());
-        gsService.deleteObject(testBucket, fileObject.getKey());
+        gsService.deleteObject(BUCKET_NAME, object.getKey());
+        gsService.deleteObject(BUCKET_NAME, helloWorldObject.getKey());
+        gsService.deleteObject(BUCKET_NAME, stringObject.getKey());
+        gsService.deleteObject(BUCKET_NAME, fileObject.getKey());
 
         // Now that the bucket is empty, you can delete it.
-        gsService.deleteBucket(testBucket.getName());
-        System.out.println("Deleted bucket " + testBucket.getName());
+        gsService.deleteBucket(BUCKET_NAME);
+        System.out.println("Deleted bucket " + BUCKET_NAME);
 
         /*
          * Manage Access Control Lists
@@ -349,12 +349,13 @@ public class GSCodeSamples {
         // access settings, then making it public.
 
         // Create a bucket in S3.
-        S3Bucket publicBucket = new S3Bucket(BUCKET_NAME + "-public");
-        gsService.createBucket(publicBucket);
+        String publicBucketName = BUCKET_NAME + "-public";
+        GSBucket publicBucket = new GSBucket(publicBucketName);
+        gsService.createBucket(publicBucketName);
 
         // Retrieve the bucket's ACL and modify it to grant public access,
         // ie READ access to the ALL_USERS group.
-        AccessControlList bucketAcl = gsService.getBucketAcl(publicBucket);
+        GSAccessControlList bucketAcl = gsService.getBucketAcl(publicBucketName);
         bucketAcl.grantPermission(new AllUsersGrantee(), Permission.PERMISSION_READ);
 
         // Update the bucket's ACL. Now anyone can view the list of objects in this bucket.
@@ -367,15 +368,15 @@ public class GSCodeSamples {
         // ACL's Owner information which is only readily available from an existing ACL.
 
         // Create a public object in GS. Anyone can download this object.
-        S3Object publicObject = new S3Object("publicObject.txt", "This object is public");
+        GSObject publicObject = new GSObject("publicObject.txt", "This object is public");
         publicObject.setAcl(bucketAcl);
-        gsService.putObject(publicBucket, publicObject);
+        gsService.putObject(publicBucketName, publicObject);
 
         // The ALL_USERS Group is particularly useful, but there are also other grantee types
         // that can be used with AccessControlList. Please see Google Storage technical documentation
         // for a fuller discussion of these settings.
 
-        AccessControlList acl = new AccessControlList();
+        GSAccessControlList acl = new GSAccessControlList();
 
         // Grant access by email address. Note that this only works email address of GS members.
         acl.grantPermission(new UserByEmailAddressGrantee("someone@somewhere.com"),

@@ -57,7 +57,7 @@ import org.jets3t.service.acl.GrantAndPermission;
 import org.jets3t.service.acl.GranteeInterface;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
-import org.jets3t.service.model.BaseS3Object;
+import org.jets3t.service.model.BaseStorageItem;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Owner;
@@ -156,7 +156,7 @@ public class AccessControlDialog extends JDialog implements ActionListener {
      * @param s3Items   May be a single <code>S3Bucket</code>, or one or more <code>S3Object</code>s
      * @param accessControlList the initial ACL settings to represent in the dialog.
      */
-    protected void initData(BaseS3Object[] s3Items, AccessControlList accessControlList) {
+    protected void initData(BaseStorageItem[] s3Items, AccessControlList accessControlList) {
         this.originalAccessControlList = accessControlList;
 
         // Item(s) description.
@@ -406,7 +406,7 @@ public class AccessControlDialog extends JDialog implements ActionListener {
      * @param accessControlList the original ACL settings for the S3Bucket or S3Objects provided
      * @return  the update ACL settings if the user applies changes, null if the dialog is cancelled.
      */
-    public static AccessControlList showDialog(Frame owner, BaseS3Object[] s3Items,
+    public static AccessControlList showDialog(Frame owner, BaseStorageItem[] s3Items,
         AccessControlList accessControlList, HyperlinkActivatedListener hyperlinkListener)
     {
         if (accessControlDialog == null) {

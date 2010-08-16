@@ -58,6 +58,7 @@ import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.AWSDevPayCredentials;
+import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.ServiceUtils;
 
 import com.centerkey.utils.BareBonesBrowserLaunch;
@@ -398,9 +399,9 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
             return;
         }
 
-        final AWSCredentials awsCredentials =
+        final ProviderCredentials awsCredentials =
             AWSCredentialsDialog.showDialog(ownerFrame,
-                (loginMode == LOGIN_MODE_LOCAL_FOLDER), hyperlinkListener);
+                (loginMode == LOGIN_MODE_LOCAL_FOLDER), myProperties, hyperlinkListener);
         if (awsCredentials == null) {
             return;
         }
@@ -504,8 +505,8 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
             password = "";
         }
 
-        AWSCredentials awsCredentials =
-            AWSCredentialsDialog.showDialog(ownerFrame, true, hyperlinkListener);
+        ProviderCredentials awsCredentials =
+            AWSCredentialsDialog.showDialog(ownerFrame, true, myProperties, hyperlinkListener);
         if (awsCredentials == null) {
             return;
         }
