@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jets3t.service.acl;
+package org.jets3t.service.acl.gs;
 
 import com.jamesmurty.utils.XMLBuilder;
 
@@ -24,35 +24,26 @@ import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 
+import org.jets3t.service.acl.GroupGrantee;
+
 /**
- * Represents a grantee identified by their canonical Google ID, which is something along the lines
- * of a Google-internal ID specific to a user. For example, Google can map a grantee identified
- * by an email address to a canonical ID.
- * <p>
- * Canonical grantees may have an associated Display Name, which is a human-friendly name that
- * Google has linked to the canonical ID (eg the user's login name).
+ * Represents an Group By Domain Grantee, that is a group identified by their domain address.
  *
  * @author Google Developers
  *
  */
-public class UserByIdGrantee extends CanonicalGrantee {
-
-    /**
-     * Default constructor.
-     * <p>
-     * <b>Warning!</b> If created with this constructor this class will not
-     * represent a valid grantee until the identifier is set.
-     */
-    public UserByIdGrantee() {
+public class GroupByDomainGrantee extends GroupGrantee {
+    public GroupByDomainGrantee() {
       super();
     }
 
     /**
-     * Constructs a grantee with the given canonical ID.
-     * @param identifier
+     * Constructs a group grantee object using the given domain address as an identifier.
+     *
+     * @param domain
      */
-    public UserByIdGrantee(String identifier) {
-        super(identifier);
+    public GroupByDomainGrantee(String domain) {
+      super(domain);
     }
 
     @Override
@@ -60,24 +51,21 @@ public class UserByIdGrantee extends CanonicalGrantee {
         ParserConfigurationException, FactoryConfigurationError
     {
         return (XMLBuilder.create("Scope")
-            .attr("type", "UserById")
-            .element("ID").text(id)
+            .attr("type", "GroupByDomain")
+            .element("Domain").text(id)
             );
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof UserByIdGrantee) {
-            UserByIdGrantee canonicalGrantee = (UserByIdGrantee) obj;
-            return id.equals(canonicalGrantee.id);
+        if (obj instanceof GroupByDomainGrantee) {
+            return id.equals(((GroupByDomainGrantee)obj).id);
         }
         return false;
     }
 
     @Override
     public String toString() {
-        return "UserById [id=" + id
-            + (displayName != null ? ", Name=" + displayName : "")
-            + "]";
+        return "GroupByDomain [" + id + "]";
     }
 }

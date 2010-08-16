@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jets3t.service.acl;
+package org.jets3t.service.acl.gs;
 
 import com.jamesmurty.utils.XMLBuilder;
 
@@ -24,24 +24,28 @@ import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 
+import org.jets3t.service.acl.GroupGrantee;
+
 /**
- * Represents an Group By Domain Grantee, that is a group identified by their domain address.
+ * Represents a Group grantee.
  *
  * @author Google Developers
  *
  */
-public class GroupByDomainGrantee extends GroupGrantee {
-    public GroupByDomainGrantee() {
+public class GroupByIdGrantee extends GroupGrantee {
+    private String id = null;
+
+    public GroupByIdGrantee() {
       super();
     }
 
     /**
-     * Constructs a group grantee object using the given domain address as an identifier.
+     * Constructs a group grantee object using the given group id as an identifier.
      *
-     * @param domain
+     * @param id
      */
-    public GroupByDomainGrantee(String domain) {
-      super(domain);
+    public GroupByIdGrantee(String id) {
+        super(id);
     }
 
     @Override
@@ -49,21 +53,21 @@ public class GroupByDomainGrantee extends GroupGrantee {
         ParserConfigurationException, FactoryConfigurationError
     {
         return (XMLBuilder.create("Scope")
-            .attr("type", "GroupByDomain")
-            .element("Domain").text(id)
+            .attr("type", "GroupById")
+            .element("ID").text(id)
             );
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof GroupByDomainGrantee) {
-            return id.equals(((GroupByDomainGrantee)obj).id);
+        if (obj instanceof GroupByIdGrantee) {
+            return id.equals(((GroupByIdGrantee)obj).id);
         }
         return false;
     }
 
     @Override
     public String toString() {
-        return "GroupByDomain [" + id + "]";
+        return "GroupById [" + id + "]";
     }
 }

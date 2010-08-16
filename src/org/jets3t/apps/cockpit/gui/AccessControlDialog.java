@@ -86,7 +86,7 @@ import org.jets3t.service.model.S3Owner;
 public class AccessControlDialog extends JDialog implements ActionListener {
     private static final long serialVersionUID = -6621927508514378546L;
 
-    private GuiUtils guiUtils = new GuiUtils();
+    private final GuiUtils guiUtils = new GuiUtils();
     private static AccessControlDialog accessControlDialog = null;
 
     private HyperlinkActivatedListener hyperlinkListener = null;
@@ -176,9 +176,7 @@ public class AccessControlDialog extends JDialog implements ActionListener {
         emailGranteeTableModel.removeAllGrantAndPermissions();
         groupGranteeTableModel.removeAllGrantAndPermissions();
 
-        Iterator grantIter = originalAccessControlList.getGrants().iterator();
-        while (grantIter.hasNext()) {
-            GrantAndPermission gap = (GrantAndPermission) grantIter.next();
+        for (GrantAndPermission gap: originalAccessControlList.getGrantAndPermissions()) {
             GranteeInterface grantee = gap.getGrantee();
             Permission permission = gap.getPermission();
             if (grantee instanceof CanonicalGrantee) {
@@ -443,6 +441,7 @@ public class AccessControlDialog extends JDialog implements ActionListener {
             setDefaultRenderer(GroupGrantee.class, new DefaultTableCellRenderer() {
                 private static final long serialVersionUID = 4938391147702620699L;
 
+                @Override
                 public Component getTableCellRendererComponent(JTable arg0, Object value, boolean arg2, boolean arg3, int arg4, int arg5) {
                     GroupGrantee groupGrantee = (GroupGrantee) value;
                     return super.getTableCellRendererComponent(arg0, groupGrantee.getIdentifier(), arg2, arg3, arg4, arg5);
@@ -453,6 +452,7 @@ public class AccessControlDialog extends JDialog implements ActionListener {
             setDefaultEditor(Permission.class, permissionCellEditor);
         }
 
+        @Override
         public int getSelectedRow() {
             int tableIndex = super.getSelectedRow();
             return sorter.modelIndex(tableIndex);
@@ -544,16 +544,19 @@ public class AccessControlDialog extends JDialog implements ActionListener {
             }
         }
 
+        @Override
         public boolean isCellEditable(int row, int column) {
             return (column == 0 || column == permissionColumn);
         }
 
+        @Override
         public Class getColumnClass(int columnIndex) {
             if (columnIndex == 0) {
-                if (GroupGrantee.class.equals(granteeClass))
+                if (GroupGrantee.class.equals(granteeClass)) {
                     return GroupGrantee.class;
-                else
+                } else {
                     return String.class;
+                }
             } else if (columnIndex == permissionColumn) {
                 return Permission.class;
             } else {

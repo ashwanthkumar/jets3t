@@ -75,10 +75,7 @@ public class CodeSamples {
 
         AWSCredentials awsCredentials = SamplesUtils.loadAWSCredentials();
 
-        // To communicate with S3, create a class that implements an S3Service.
-        // We will use the REST/HTTP implementation based on HttpClient, as this is the most
-        // robust implementation provided with JetS3t.
-
+        // To communicate with S3 use the RestS3Service.
         RestS3Service s3Service = new RestS3Service(awsCredentials);
 
         // A good test to see if your S3Service can connect to S3 is to list all the buckets you own.

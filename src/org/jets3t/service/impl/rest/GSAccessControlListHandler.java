@@ -19,16 +19,16 @@
 package org.jets3t.service.impl.rest;
 
 import org.jets3t.service.acl.AccessControlList;
-import org.jets3t.service.acl.AllAuthenticatedUsersGrantee;
-import org.jets3t.service.acl.AllUsersGrantee;
 import org.jets3t.service.acl.CanonicalGrantee;
-import org.jets3t.service.acl.GSAccessControlList;
-import org.jets3t.service.acl.GroupByDomainGrantee;
-import org.jets3t.service.acl.GroupByEmailAddressGrantee;
-import org.jets3t.service.acl.GroupByIdGrantee;
 import org.jets3t.service.acl.Permission;
-import org.jets3t.service.acl.UserByEmailAddressGrantee;
-import org.jets3t.service.acl.UserByIdGrantee;
+import org.jets3t.service.acl.gs.AllAuthenticatedUsersGrantee;
+import org.jets3t.service.acl.gs.AllUsersGrantee;
+import org.jets3t.service.acl.gs.GSAccessControlList;
+import org.jets3t.service.acl.gs.GroupByDomainGrantee;
+import org.jets3t.service.acl.gs.GroupByEmailAddressGrantee;
+import org.jets3t.service.acl.gs.GroupByIdGrantee;
+import org.jets3t.service.acl.gs.UserByEmailAddressGrantee;
+import org.jets3t.service.acl.gs.UserByIdGrantee;
 import org.jets3t.service.model.S3Owner;
 import org.xml.sax.Attributes;
 

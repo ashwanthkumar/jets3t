@@ -284,6 +284,7 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
             objectMetadataTableModel = new DefaultTableModel(new Object[] {"Name", "Value" }, 0) {
                 private static final long serialVersionUID = -3762866886166776851L;
 
+                @Override
                 public boolean isCellEditable(int row, int column) {
                     return false;
                 }
@@ -300,6 +301,7 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
         grantsTableModel = new DefaultTableModel(new Object[] {"Grantee", "Permission" }, 0) {
             private static final long serialVersionUID = -5882427163845726770L;
 
+            @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
@@ -416,9 +418,7 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
                 grantsTableModel.removeRow(0);
             }
             AccessControlList acl = bucket.getAcl();
-            Iterator iter = acl.getGrants().iterator();
-            while (iter.hasNext()) {
-                GrantAndPermission gap = (GrantAndPermission) iter.next();
+            for (GrantAndPermission gap: acl.getGrantAndPermissions()) {
                 grantsTableModel.addRow(new Object[] {
                     gap.getGrantee().getIdentifier(), gap.getPermission().toString()});
             }

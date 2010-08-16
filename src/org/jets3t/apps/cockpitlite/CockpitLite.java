@@ -195,9 +195,9 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     /**
      * Stores the active ProgressPanel objects that track event progress.
      */
-    private Map progressPanelMap = new HashMap();
+    private final Map progressPanelMap = new HashMap();
 
-    private Object lock = new Object();
+    private final Object lock = new Object();
 
     /**
      * Multi-threaded S3 service used by the application.
@@ -319,6 +319,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      * Prepares application to run as a GUI by finding/creating a root owner JFrame, creating an
      * un-authenticated {@link RestS3Service} and loading properties files.
      */
+    @Override
     public void init() {
         super.init();
 
@@ -521,6 +522,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         objectsTable.setDefaultRenderer(Long.class, new DefaultTableCellRenderer() {
             private static final long serialVersionUID = 7229656175879985698L;
 
+            @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 String formattedSize = byteFormatter.formatByteSize(((Long)value).longValue());
                 return super.getTableCellRendererComponent(table, formattedSize, isSelected, hasFocus, row, column);
@@ -529,6 +531,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         objectsTable.setDefaultRenderer(Date.class, new DefaultTableCellRenderer() {
             private static final long serialVersionUID = -4983176028291916397L;
 
+            @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 Date date = (Date) value;
                 return super.getTableCellRendererComponent(table, yearAndTimeSDF.format(date), isSelected, hasFocus, row, column);
@@ -694,6 +697,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                             DataFlavor.javaFileListFlavor);
                         if (fileList != null && fileList.size() > 0) {
                             new Thread() {
+                                @Override
                                 public void run() {
                                     prepareForFilesUpload((File[]) fileList.toArray(new File[fileList.size()]));
                                 }
@@ -846,6 +850,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     public void actionPerformed(ActionEvent event) {
         if (event.getSource().equals(loginButton)) {
             new Thread() {
+                @Override
                 public void run() {
                     listObjects();
                 }
@@ -857,12 +862,14 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             listObjectProperties();
         } else if ("RefreshObjects".equals(event.getActionCommand())) {
             new Thread() {
+                @Override
                 public void run() {
                     listObjects();
                 }
             }.start();
         } else if ("TogglePublicPrivate".equals(event.getActionCommand())) {
             new Thread() {
+                @Override
                 public void run() {
                     S3Object object = getSelectedObjects()[0];
                     String aclStatus = objectTableModel.getObjectAclStatus(object);
@@ -927,6 +934,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             fileChoosersLastUploadDirectory = uploadFiles[0].getParentFile();
 
             new Thread() {
+                @Override
                 public void run() {
                     prepareForFilesUpload(uploadFiles);
                 }
@@ -1182,6 +1190,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      */
     private void lookupObjectsAccessControlLists(final S3Object[] objects) {
         (new Thread() {
+            @Override
             public void run() {
                 try {
                     SignatureRequest[] signatureRequests = requestSignedRequests(
@@ -1259,6 +1268,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      */
     private void updateObjectsAccessControlLists(final S3Object[] objectsToUpdate, final AccessControlList acl) {
         (new Thread() {
+            @Override
             public void run() {
                 try {
                     SignatureRequest[] signatureRequests = requestSignedRequests(
@@ -1401,6 +1411,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             final S3Object[] clashingObjects = (S3Object[])
                 potentialClashingObjects.toArray(new S3Object[potentialClashingObjects.size()]);
             (new Thread() {
+                @Override
                 public void run() {
                     isDownloadingObjects = true;
                     retrieveObjectsDetails(clashingObjects);
@@ -1439,6 +1450,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                 // Retrieve details of potential clashes.
                 final S3Object[] clashingObjects = existingObjects;
                 (new Thread() {
+                    @Override
                     public void run() {
                         isUploadingFiles = true;
                         retrieveObjectsDetails(clashingObjects);
@@ -1474,6 +1486,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
                     // Monitor generation of MD5 hash, and provide feedback via the progress bar.
                     BytesProgressWatcher progressWatcher = new BytesProgressWatcher(filesSizeTotal[0]) {
+                        @Override
                         public void updateBytesTransferred(long byteCount) {
                             super.updateBytesTransferred(byteCount);
 
@@ -1531,6 +1544,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         final S3Object[] incompleteObjects = (S3Object[]) s3ObjectsIncompleteList
             .toArray(new S3Object[s3ObjectsIncompleteList.size()]);
         (new Thread() {
+            @Override
             public void run() {
                 try {
                     SignatureRequest[] signatureRequests = requestSignedRequests(
@@ -1633,6 +1647,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             }
 
             (new Thread() {
+                @Override
                 public void run() {
                     try {
                         SignatureRequest[] signedRequests = requestSignedRequests(
@@ -1860,6 +1875,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             }
 
             BytesProgressWatcher progressWatcher = new BytesProgressWatcher(bytesToProcess) {
+                @Override
                 public void updateBytesTransferred(long byteCount) {
                     super.updateBytesTransferred(byteCount);
 
@@ -2021,9 +2037,9 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                 hostAndBucket = userVanityHost;
             } else {
                 boolean disableDnsBuckets = false;
-                
+
                 String s3Endpoint = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-                    .getStringProperty("s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);        
+                    .getStringProperty("s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
                 hostAndBucket = ServiceUtils.generateS3HostnameForBucket(
                     userBucketName, disableDnsBuckets, s3Endpoint);
 
@@ -2082,6 +2098,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         }
 
         new Thread() {
+            @Override
             public void run() {
                 try {
                     SignatureRequest[] signatureRequests = requestSignedRequests(
@@ -2371,9 +2388,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             return ACL_UNKNOWN_DESCRIPTION;
         }
 
-        Iterator iter = acl.getGrants().iterator();
-        while (iter.hasNext()) {
-            GrantAndPermission gap = (GrantAndPermission) iter.next();
+        for (GrantAndPermission gap: acl.getGrantAndPermissions()) {
             if (GroupGrantee.ALL_USERS.equals(gap.getGrantee())
                 && Permission.PERMISSION_READ.equals(gap.getPermission()))
             {
@@ -2387,10 +2402,12 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     }
 
     private class ContextMenuListener extends MouseAdapter {
+        @Override
         public void mousePressed(MouseEvent e) {
             showContextMenu(e);
         }
 
+        @Override
         public void mouseReleased(MouseEvent e) {
             showContextMenu(e);
         }

@@ -305,6 +305,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * Prepares application to run as a GUI by finding/creating a root owner JFrame, creating an
      * un-authenticated {@link RestS3Service} and loading properties files.
      */
+    @Override
     public void init() {
         super.init();
 
@@ -480,6 +481,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         objectsTable.setDefaultRenderer(Long.class, new DefaultTableCellRenderer() {
             private static final long serialVersionUID = 301092191828910402L;
 
+            @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 String formattedSize = byteFormatter.formatByteSize(((Long)value).longValue());
                 return super.getTableCellRendererComponent(table, formattedSize, isSelected, hasFocus, row, column);
@@ -488,6 +490,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         objectsTable.setDefaultRenderer(Date.class, new DefaultTableCellRenderer() {
             private static final long serialVersionUID = 7285511556343895652L;
 
+            @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 Date date = (Date) value;
                 return super.getTableCellRendererComponent(table, yearAndTimeSDF.format(date), isSelected, hasFocus, row, column);
@@ -1927,7 +1930,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                         AccessControlList mergedACL = new AccessControlList();
                         for (int i = 0; i < selectedObjects.length; i++) {
                             AccessControlList objectACL = selectedObjects[i].getAcl();
-                            mergedACL.grantAllPermissions(objectACL.getGrants());
+                            mergedACL.grantAllPermissions(objectACL.getGrantAndPermissions());
 
                             // BEWARE! Here we assume that all the objects have the same owner...
                             if (mergedACL.getOwner() == null) {
@@ -2198,6 +2201,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
             // Monitor generation of MD5 hash, and provide feedback via the progress bar.
             BytesProgressWatcher progressWatcher = new BytesProgressWatcher(filesSizeTotal[0]) {
+                @Override
                 public void updateBytesTransferred(long byteCount) {
                     super.updateBytesTransferred(byteCount);
 
@@ -2465,6 +2469,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
 
         BytesProgressWatcher progressWatcher = new BytesProgressWatcher(bytesToProcess) {
+            @Override
             public void updateBytesTransferred(long byteCount) {
                 super.updateBytesTransferred(byteCount);
 
@@ -3033,10 +3038,12 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     }
 
     private class ContextMenuListener extends MouseAdapter {
+        @Override
         public void mousePressed(MouseEvent e) {
             showContextMenu(e);
         }
 
+        @Override
         public void mouseReleased(MouseEvent e) {
             showContextMenu(e);
         }

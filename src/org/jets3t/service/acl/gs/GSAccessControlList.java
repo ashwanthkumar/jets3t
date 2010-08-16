@@ -16,11 +16,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jets3t.service.acl;
+package org.jets3t.service.acl.gs;
 
 import com.jamesmurty.utils.XMLBuilder;
 
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.acl.AccessControlList;
+import org.jets3t.service.acl.GrantAndPermission;
+import org.jets3t.service.acl.GranteeInterface;
+import org.jets3t.service.acl.Permission;
 
 import java.util.Iterator;
 
@@ -39,13 +43,14 @@ import javax.xml.transform.TransformerException;
  *
  */
 public class GSAccessControlList extends AccessControlList {
+    private static final long serialVersionUID = 5090337024246721422L;
 
     /**
      * Returns a string representation of the ACL contents, useful for debugging.
      */
     @Override
     public String toString() {
-        return "GSAccessControlList [owner=" + owner + ", grants=" + getGrants() + "]";
+        return "GSAccessControlList [owner=" + owner + ", grants=" + getGrantAndPermissions() + "]";
     }
 
     @Override

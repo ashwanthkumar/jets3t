@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jets3t.service.acl;
+package org.jets3t.service.acl.gs;
 
 import com.jamesmurty.utils.XMLBuilder;
 
@@ -24,42 +24,57 @@ import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 
+import org.jets3t.service.acl.CanonicalGrantee;
+
 /**
- * Represents a grant to all authenticated users.
+ * Represents an User By Email Grantee, that is a grantee identified by their email address.
  *
  * @author Google Developers
  *
  */
-public class AllAuthenticatedUsersGrantee implements GranteeInterface {
-    private String id = null;
+public class UserByEmailAddressGrantee extends CanonicalGrantee {
 
-    public String toXml() throws TransformerException,
-        ParserConfigurationException, FactoryConfigurationError
-    {
-        return toXMLBuilder().asString();
+    /**
+     * Default constructor.
+     * <p>
+     * <b>Warning!</b> If created with this constructor this class will not
+     * represent a valid grantee until the identifier is set.
+     */
+    public UserByEmailAddressGrantee() {
+      super();
     }
 
+    /**
+     * Constructs a grantee with the given email.
+     * @param email
+     */
+    public UserByEmailAddressGrantee(String email) {
+        super(email);
+    }
+
+    @Override
     public XMLBuilder toXMLBuilder() throws TransformerException,
         ParserConfigurationException, FactoryConfigurationError
     {
         return (XMLBuilder.create("Scope")
-            .attr("type", "AllAuthenticatedUsers")
+            .attr("type", "UserByEmail")
+            .element("EmailAddress").text(id)
             );
     }
 
+    @Override
     public boolean equals(Object obj) {
-        return (obj instanceof AllAuthenticatedUsersGrantee);
+        if (obj instanceof UserByEmailAddressGrantee) {
+            UserByEmailAddressGrantee canonicalGrantee = (UserByEmailAddressGrantee) obj;
+            return id.equals(canonicalGrantee.id);
+        }
+        return false;
     }
 
-    public void setIdentifier(String id) {
-        this.id = id;
-    }
-
-    public String getIdentifier() {
-        return id;
-    }
-
+    @Override
     public String toString() {
-        return "AllAuthenticatedUsers";
+        return "UserByEmail [email=" + id
+            + (displayName != null ? ", Name=" + displayName : "")
+            + "]";
     }
 }

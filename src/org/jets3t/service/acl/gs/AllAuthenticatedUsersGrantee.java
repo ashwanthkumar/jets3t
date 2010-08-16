@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jets3t.service.acl;
+package org.jets3t.service.acl.gs;
 
 import com.jamesmurty.utils.XMLBuilder;
 
@@ -24,47 +24,44 @@ import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 
+import org.jets3t.service.acl.GranteeInterface;
+
 /**
- * Represents an Group By Email Grantee, that is a group identified by their email address.
+ * Represents a grant to all authenticated users.
  *
  * @author Google Developers
  *
  */
-public class GroupByEmailAddressGrantee extends GroupGrantee {
+public class AllAuthenticatedUsersGrantee implements GranteeInterface {
+    private String id = null;
 
-    public GroupByEmailAddressGrantee() {
-      super();
+    public String toXml() throws TransformerException,
+        ParserConfigurationException, FactoryConfigurationError
+    {
+        return toXMLBuilder().asString();
     }
 
-    /**
-     * Constructs a group grantee object using the given email address as an identifier.
-     *
-     * @param email
-     */
-    public GroupByEmailAddressGrantee(String email) {
-        super(email);
-    }
-
-    @Override
     public XMLBuilder toXMLBuilder() throws TransformerException,
         ParserConfigurationException, FactoryConfigurationError
     {
         return (XMLBuilder.create("Scope")
-            .attr("type", "GroupByEmail")
-            .element("EmailAddress").text(id)
+            .attr("type", "AllAuthenticatedUsers")
             );
     }
 
-    @Override
     public boolean equals(Object obj) {
-        if (obj instanceof GroupByEmailAddressGrantee) {
-            return id.equals(((GroupByEmailAddressGrantee)obj).id);
-        }
-        return false;
+        return (obj instanceof AllAuthenticatedUsersGrantee);
     }
 
-    @Override
+    public void setIdentifier(String id) {
+        this.id = id;
+    }
+
+    public String getIdentifier() {
+        return id;
+    }
+
     public String toString() {
-        return "GroupByEmail [" + id + "]";
+        return "AllAuthenticatedUsers";
     }
 }

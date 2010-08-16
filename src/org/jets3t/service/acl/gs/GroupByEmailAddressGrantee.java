@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jets3t.service.acl;
+package org.jets3t.service.acl.gs;
 
 import com.jamesmurty.utils.XMLBuilder;
 
@@ -24,26 +24,27 @@ import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 
+import org.jets3t.service.acl.GroupGrantee;
+
 /**
- * Represents a Group grantee.
+ * Represents an Group By Email Grantee, that is a group identified by their email address.
  *
  * @author Google Developers
  *
  */
-public class GroupByIdGrantee extends GroupGrantee {
-    private String id = null;
+public class GroupByEmailAddressGrantee extends GroupGrantee {
 
-    public GroupByIdGrantee() {
+    public GroupByEmailAddressGrantee() {
       super();
     }
 
     /**
-     * Constructs a group grantee object using the given group id as an identifier.
+     * Constructs a group grantee object using the given email address as an identifier.
      *
-     * @param id
+     * @param email
      */
-    public GroupByIdGrantee(String id) {
-        super(id);
+    public GroupByEmailAddressGrantee(String email) {
+        super(email);
     }
 
     @Override
@@ -51,21 +52,21 @@ public class GroupByIdGrantee extends GroupGrantee {
         ParserConfigurationException, FactoryConfigurationError
     {
         return (XMLBuilder.create("Scope")
-            .attr("type", "GroupById")
-            .element("ID").text(id)
+            .attr("type", "GroupByEmail")
+            .element("EmailAddress").text(id)
             );
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof GroupByIdGrantee) {
-            return id.equals(((GroupByIdGrantee)obj).id);
+        if (obj instanceof GroupByEmailAddressGrantee) {
+            return id.equals(((GroupByEmailAddressGrantee)obj).id);
         }
         return false;
     }
 
     @Override
     public String toString() {
-        return "GroupById [" + id + "]";
+        return "GroupByEmail [" + id + "]";
     }
 }

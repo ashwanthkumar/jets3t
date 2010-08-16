@@ -18,21 +18,20 @@
  */
 package org.jets3t.service.acl;
 
-import com.jamesmurty.utils.XMLBuilder;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+
+import javax.xml.parsers.FactoryConfigurationError;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
 
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.model.S3Owner;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
-
-import javax.xml.parsers.FactoryConfigurationError;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerException;
+import com.jamesmurty.utils.XMLBuilder;
 
 /**
  * Represents an Amazon S3 Access Control List (ACL), including the ACL's set of grantees and the
@@ -45,7 +44,7 @@ import javax.xml.transform.TransformerException;
  *
  */
 public class AccessControlList implements Serializable {
-    private static final long serialVersionUID = 8095040648034788376L;
+    private static final long serialVersionUID = 1523885775877708689L;
 
     /**
      * A pre-canned REST ACL to set an object's permissions to Private (only owner can read/write)
@@ -76,8 +75,9 @@ public class AccessControlList implements Serializable {
     /**
      * Returns a string representation of the ACL contents, useful for debugging.
      */
+    @Override
     public String toString() {
-        return "AccessControlList [owner=" + owner + ", grants=" + getGrants() + "]";
+        return "AccessControlList [owner=" + owner + ", grants=" + getGrantAndPermissions() + "]";
     }
 
     public S3Owner getOwner() {
@@ -99,23 +99,6 @@ public class AccessControlList implements Serializable {
      */
     public void grantPermission(GranteeInterface grantee, Permission permission) {
         grants.add(new GrantAndPermission(grantee, permission));
-    }
-
-    /**
-     * Adds a set of grantee/permission pairs to the ACL, where each item in the set is a
-     * {@link GrantAndPermission} object.
-     *
-     * @deprecated Version 0.7.4, use type-safe
-     * {@link #grantAllPermissions(GrantAndPermission[])} instead.
-     *
-     * @param grants
-     * a set of {@link GrantAndPermission} objects
-     */
-    public void grantAllPermissions(Set grants) {
-        for (Iterator iter = grants.iterator(); iter.hasNext();) {
-            GrantAndPermission gap = (GrantAndPermission) iter.next();
-            grantPermission(gap.getGrantee(), gap.getPermission());
-        }
     }
 
     /**
@@ -147,17 +130,6 @@ public class AccessControlList implements Serializable {
             }
         }
         grants.removeAll(grantsToRemove);
-    }
-
-    /**
-     * @deprecated Version 0.7.4, use type-safe
-     * {@link #getGrantAndPermissions()} instead
-     *
-     * @return
-     * the set of {@link GrantAndPermission} objects in this ACL.
-     */
-    public Set getGrants() {
-        return grants;
     }
 
     /**

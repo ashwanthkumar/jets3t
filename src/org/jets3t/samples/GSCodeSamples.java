@@ -21,11 +21,11 @@ package org.jets3t.samples;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
-import org.jets3t.service.acl.AllUsersGrantee;
-import org.jets3t.service.acl.GroupByDomainGrantee;
 import org.jets3t.service.acl.Permission;
-import org.jets3t.service.acl.UserByEmailAddressGrantee;
-import org.jets3t.service.acl.UserByIdGrantee;
+import org.jets3t.service.acl.gs.AllUsersGrantee;
+import org.jets3t.service.acl.gs.GroupByDomainGrantee;
+import org.jets3t.service.acl.gs.UserByEmailAddressGrantee;
+import org.jets3t.service.acl.gs.UserByIdGrantee;
 import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
@@ -67,10 +67,7 @@ public class GSCodeSamples {
 
         GSCredentials gsCredentials = SamplesUtils.loadGSCredentials();
 
-        // To communicate with S3, create a class that implements an S3Service.
-        // We will use the REST/HTTP implementation based on HttpClient, as this is the most
-        // robust implementation provided with jets3t.
-
+        // To communicate with Google Storage use the GoogleStorageService.
         GoogleStorageService gsService = new GoogleStorageService(gsCredentials);
 
         // A good test to see if your GoogleStorageService can connect to GS is to list all the buckets you own.
@@ -95,9 +92,9 @@ public class GSCodeSamples {
          * Uploading data objects
          */
 
-        // We use S3Object classes to represent data objects in S3. To store some information in our
-        // new test bucket, we must first create an object with a key/name then tell our
-        // GSService to upload it to GS.
+        // We use S3Object classes to represent data objects in Google Storage. To store some
+        // information in our new test bucket, we must first create an object with a key/name then
+        // tell our GSService to upload it to GS.
 
         // In the example below, we print out information about the S3Object before and after
         // uploading it to GS. These print-outs demonstrate that the S3Object returned by the

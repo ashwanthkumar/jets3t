@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jets3t.service.acl;
+package org.jets3t.service.acl.gs;
 
 import com.jamesmurty.utils.XMLBuilder;
 
@@ -24,13 +24,20 @@ import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 
+import org.jets3t.service.acl.CanonicalGrantee;
+
 /**
- * Represents an User By Email Grantee, that is a grantee identified by their email address.
+ * Represents a grantee identified by their canonical Google ID, which is something along the lines
+ * of a Google-internal ID specific to a user. For example, Google can map a grantee identified
+ * by an email address to a canonical ID.
+ * <p>
+ * Canonical grantees may have an associated Display Name, which is a human-friendly name that
+ * Google has linked to the canonical ID (eg the user's login name).
  *
  * @author Google Developers
  *
  */
-public class UserByEmailAddressGrantee extends CanonicalGrantee {
+public class UserByIdGrantee extends CanonicalGrantee {
 
     /**
      * Default constructor.
@@ -38,16 +45,16 @@ public class UserByEmailAddressGrantee extends CanonicalGrantee {
      * <b>Warning!</b> If created with this constructor this class will not
      * represent a valid grantee until the identifier is set.
      */
-    public UserByEmailAddressGrantee() {
+    public UserByIdGrantee() {
       super();
     }
 
     /**
-     * Constructs a grantee with the given email.
-     * @param email
+     * Constructs a grantee with the given canonical ID.
+     * @param identifier
      */
-    public UserByEmailAddressGrantee(String email) {
-        super(email);
+    public UserByIdGrantee(String identifier) {
+        super(identifier);
     }
 
     @Override
@@ -55,15 +62,15 @@ public class UserByEmailAddressGrantee extends CanonicalGrantee {
         ParserConfigurationException, FactoryConfigurationError
     {
         return (XMLBuilder.create("Scope")
-            .attr("type", "UserByEmail")
-            .element("EmailAddress").text(id)
+            .attr("type", "UserById")
+            .element("ID").text(id)
             );
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof UserByEmailAddressGrantee) {
-            UserByEmailAddressGrantee canonicalGrantee = (UserByEmailAddressGrantee) obj;
+        if (obj instanceof UserByIdGrantee) {
+            UserByIdGrantee canonicalGrantee = (UserByIdGrantee) obj;
             return id.equals(canonicalGrantee.id);
         }
         return false;
@@ -71,7 +78,7 @@ public class UserByEmailAddressGrantee extends CanonicalGrantee {
 
     @Override
     public String toString() {
-        return "UserByEmail [email=" + id
+        return "UserById [id=" + id
             + (displayName != null ? ", Name=" + displayName : "")
             + "]";
     }
