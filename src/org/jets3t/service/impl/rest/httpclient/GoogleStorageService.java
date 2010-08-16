@@ -23,6 +23,8 @@ import org.apache.commons.httpclient.auth.CredentialsProvider;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.impl.rest.AccessControlListHandler;
+import org.jets3t.service.impl.rest.GSAccessControlListHandler;
 import org.jets3t.service.security.ProviderCredentials;
 
 /**
@@ -137,7 +139,7 @@ public class GoogleStorageService extends RestStorageService {
      */
     @Override
     public String getEndpoint() {
-    	return this.jets3tProperties.getStringProperty(
+        return this.jets3tProperties.getStringProperty(
                 "gsservice.gs-endpoint", Constants.GS_DEFAULT_HOSTNAME);
     }
 
@@ -147,7 +149,7 @@ public class GoogleStorageService extends RestStorageService {
      */
     @Override
     protected String getVirtualPath() {
-    	return this.jets3tProperties.getStringProperty(
+        return this.jets3tProperties.getStringProperty(
                 "gsservice.gs-endpoint-virtual-path", "");
     }
 
@@ -157,7 +159,7 @@ public class GoogleStorageService extends RestStorageService {
      */
     @Override
     protected String getSignatureIdentifier() {
-    	return GOOGLE_SIGNATURE_IDENTIFIER;
+        return GOOGLE_SIGNATURE_IDENTIFIER;
     }
 
     /**
@@ -166,7 +168,7 @@ public class GoogleStorageService extends RestStorageService {
      */
     @Override
     public String getRestHeaderPrefix() {
-    	return GOOGLE_REST_HEADER_PREFIX;
+        return GOOGLE_REST_HEADER_PREFIX;
     }
 
     /**
@@ -175,7 +177,7 @@ public class GoogleStorageService extends RestStorageService {
      */
     @Override
     public String getRestMetadataPrefix() {
-    	return GOOGLE_REST_METADATA_PREFIX;
+        return GOOGLE_REST_METADATA_PREFIX;
     }
 
     /**
@@ -223,6 +225,15 @@ public class GoogleStorageService extends RestStorageService {
     @Override
     protected boolean getEnableStorageClasses() {
       return false;
+    }
+
+    /**
+     * @return
+     * instance of the GS-specific AccessControlListHandler
+     */
+    @Override
+    protected AccessControlListHandler getAccessControlListHandler() {
+      return new GSAccessControlListHandler();
     }
 
 }

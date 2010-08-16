@@ -25,19 +25,17 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 
 /**
- * Represents a grantee identified by their canonical Amazon ID, which is something along the lines
- * of an Amazon-internal ID specific to a user. For example, Amazon can map a grantee identified
+ * Represents a grantee identified by their canonical Google ID, which is something along the lines
+ * of a Google-internal ID specific to a user. For example, Google can map a grantee identified
  * by an email address to a canonical ID.
  * <p>
  * Canonical grantees may have an associated Display Name, which is a human-friendly name that
- * Amazon has linked to the canonical ID (eg the user's login name).
+ * Google has linked to the canonical ID (eg the user's login name).
  *
- * @author James Murty
+ * @author Google Developers
  *
  */
-public class CanonicalGrantee implements GranteeInterface {
-    protected String id = null;
-    protected String displayName = null;
+public class UserByIdGrantee extends CanonicalGrantee {
 
     /**
      * Default constructor.
@@ -45,65 +43,41 @@ public class CanonicalGrantee implements GranteeInterface {
      * <b>Warning!</b> If created with this constructor this class will not
      * represent a valid grantee until the identifier is set.
      */
-    public CanonicalGrantee() {
+    public UserByIdGrantee() {
+      super();
     }
 
     /**
      * Constructs a grantee with the given canonical ID.
      * @param identifier
      */
-    public CanonicalGrantee(String identifier) {
-        this.setIdentifier(identifier);
+    public UserByIdGrantee(String identifier) {
+        super(identifier);
     }
 
-    public String toXml() throws TransformerException,
-        ParserConfigurationException, FactoryConfigurationError
-    {
-        return toXMLBuilder().asString();
-    }
-
+    @Override
     public XMLBuilder toXMLBuilder() throws TransformerException,
         ParserConfigurationException, FactoryConfigurationError
     {
-        return (XMLBuilder.create("Grantee")
-            .attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
-            .attr("xsi:type", "CanonicalUser")
+        return (XMLBuilder.create("Scope")
+            .attr("type", "UserById")
             .element("ID").text(id)
             );
     }
 
-    public void setIdentifier(String id) {
-        this.id = id;
-    }
-
-    public String getIdentifier() {
-        return id;
-    }
-
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
-    }
-
-    public String getDisplayName() {
-        return this.displayName;
-    }
-
+    @Override
     public boolean equals(Object obj) {
-        if (obj instanceof CanonicalGrantee) {
-            CanonicalGrantee canonicalGrantee = (CanonicalGrantee) obj;
+        if (obj instanceof UserByIdGrantee) {
+            UserByIdGrantee canonicalGrantee = (UserByIdGrantee) obj;
             return id.equals(canonicalGrantee.id);
         }
         return false;
     }
 
-    public int hashCode() {
-        return id.hashCode();
-    }
-
+    @Override
     public String toString() {
-        return "CanonicalGrantee [id=" + id
-            + (displayName != null ? ", displayName=" + displayName : "")
+        return "UserById [id=" + id
+            + (displayName != null ? ", Name=" + displayName : "")
             + "]";
     }
-
 }

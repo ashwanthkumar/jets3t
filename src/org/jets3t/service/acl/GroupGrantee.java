@@ -18,15 +18,11 @@
  */
 package org.jets3t.service.acl;
 
+import com.jamesmurty.utils.XMLBuilder;
+
 import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.jets3t.service.CloudFrontService;
-
-import com.jamesmurty.utils.XMLBuilder;
 
 /**
  * Represents a Group grantee.
@@ -58,7 +54,7 @@ public class GroupGrantee implements GranteeInterface {
      */
     public static final GroupGrantee LOG_DELIVERY = new GroupGrantee("http://acs.amazonaws.com/groups/s3/LogDelivery");
 
-    private String uri = null;
+    protected String id = null;
 
     public GroupGrantee() {
     }
@@ -72,7 +68,7 @@ public class GroupGrantee implements GranteeInterface {
      * @param groupUri
      */
     public GroupGrantee(String groupUri) {
-        this.uri = groupUri;
+        this.id = groupUri;
     }
 
     public String toXml() throws TransformerException,
@@ -87,7 +83,7 @@ public class GroupGrantee implements GranteeInterface {
         return (XMLBuilder.create("Grantee")
             .attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
             .attr("xsi:type", "Group")
-            .element("URI").text(uri)
+            .element("URI").text(id)
             );
     }
 
@@ -95,29 +91,29 @@ public class GroupGrantee implements GranteeInterface {
      * Set the group grantee's URI.
      */
     public void setIdentifier(String uri) {
-        this.uri = uri;
+        this.id = uri;
     }
 
     /**
      * Returns the group grantee's URI.
      */
     public String getIdentifier() {
-        return uri;
+        return id;
     }
 
     public String toString() {
-        return "GroupGrantee [" + uri + "]";
+        return "GroupGrantee [" + id + "]";
     }
 
     public boolean equals(Object obj) {
         if (obj instanceof GroupGrantee) {
-            return uri.equals(((GroupGrantee)obj).uri);
+            return id.equals(((GroupGrantee)obj).id);
         }
         return false;
     }
 
     public int hashCode() {
-        return uri.hashCode();
+        return id.hashCode();
     }
 
 }

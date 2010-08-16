@@ -26,6 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.impl.rest.AccessControlListHandler;
 import org.jets3t.service.security.AWSDevPayCredentials;
 import org.jets3t.service.security.ProviderCredentials;
 
@@ -369,6 +370,15 @@ public class RestS3Service extends RestStorageService {
     @Override
     protected boolean getEnableStorageClasses() {
       return this.jets3tProperties.getBoolProperty("s3service.enable-storage-classes", false);
+    }
+
+    /**
+     * @return
+     * instance of the S3-specific AccessControlListHandler
+     */
+    @Override
+    protected AccessControlListHandler getAccessControlListHandler() {
+      return new AccessControlListHandler();
     }
 
 }

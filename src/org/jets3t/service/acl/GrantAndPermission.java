@@ -46,7 +46,7 @@ public class GrantAndPermission {
 
     public boolean equals(Object obj) {
         return (obj instanceof GrantAndPermission
-            && this.getGrantee().getIdentifier().equals(((GrantAndPermission)obj).getGrantee().getIdentifier())
+            && this.getGrantee().equals(((GrantAndPermission)obj).getGrantee())
             && this.getPermission().equals(((GrantAndPermission)obj).getPermission())
             );
     }

@@ -217,13 +217,13 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
     protected void shutdownImpl() throws S3ServiceException {
         HttpConnectionManager manager = this.getHttpConnectionManager();
         if (manager instanceof SimpleHttpConnectionManager) {
-        	((SimpleHttpConnectionManager) manager).shutdown();
+            ((SimpleHttpConnectionManager) manager).shutdown();
         } else if (manager instanceof MultiThreadedHttpConnectionManager) {
-        	((MultiThreadedHttpConnectionManager) manager).shutdown();
+            ((MultiThreadedHttpConnectionManager) manager).shutdown();
         } else {
-        	manager.closeIdleConnections(0);
-        	// Not much else we can do hear, since the HttpConnectionManager
-        	// interface doesn't have a #shutdown method.
+            manager.closeIdleConnections(0);
+            // Not much else we can do hear, since the HttpConnectionManager
+            // interface doesn't have a #shutdown method.
         }
     }
 
@@ -404,19 +404,19 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
                 boolean didReceiveExpectedResponseCode = false;
                 for (int i = 0; i < expectedResponseCodes.length && !didReceiveExpectedResponseCode; i++) {
                     if (responseCode == expectedResponseCodes[i]) {
-                    	didReceiveExpectedResponseCode = true;
+                        didReceiveExpectedResponseCode = true;
                     }
                 }
 
                 if (!didReceiveExpectedResponseCode) {
                     if (log.isWarnEnabled()) {
                         String requestDescription =
-                        	httpMethod.getName()
-                    		+ " '" + httpMethod.getPath() + "'"
-                    		+ " -- ResponseCode: " + httpMethod.getStatusCode()
-                    		+ ", ResponseStatus: " + httpMethod.getStatusText()
-                        	+ ", Request Headers: [" + ServiceUtils.join(httpMethod.getRequestHeaders(), ", ") + "]"
-                        	+ ", Response Headers: [" + ServiceUtils.join(httpMethod.getResponseHeaders(), ", ") + "]";
+                            httpMethod.getName()
+                            + " '" + httpMethod.getPath() + "'"
+                            + " -- ResponseCode: " + httpMethod.getStatusCode()
+                            + ", ResponseStatus: " + httpMethod.getStatusText()
+                            + ", Request Headers: [" + ServiceUtils.join(httpMethod.getRequestHeaders(), ", ") + "]"
+                            + ", Response Headers: [" + ServiceUtils.join(httpMethod.getResponseHeaders(), ", ") + "]";
                         requestDescription = requestDescription.replaceAll("[\\n\\r\\f]", "");  // Remove any newlines.
 
                         log.warn("Error Response: " + requestDescription);
@@ -453,7 +453,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
                             new S3ServiceException("S3 Error Message.", sb.toString());
 
                         exception.setResponseHeaders(RestUtils.convertHeadersToMap(
-                            	httpMethod.getResponseHeaders()));
+                                httpMethod.getResponseHeaders()));
 
                         if ("RequestTimeout".equals(exception.getS3ErrorCode())) {
                             int retryMaxCount = jets3tProperties.getIntProperty("httpclient.retry-max", 5);
@@ -509,13 +509,13 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
                         } else {
                             // Throw exception containing the HTTP error fields.
                             HttpException httpException = new HttpException(
-                            		httpMethod.getStatusCode(), httpMethod.getStatusText());
+                                    httpMethod.getStatusCode(), httpMethod.getStatusText());
                             S3ServiceException exception =
                                 new S3ServiceException("Request Error"
-                            		+ (responseText != null ? " [" + responseText + "]." : "."),
-                                	httpException);
+                                    + (responseText != null ? " [" + responseText + "]." : "."),
+                                    httpException);
                             exception.setResponseHeaders(RestUtils.convertHeadersToMap(
-                                	httpMethod.getResponseHeaders()));
+                                    httpMethod.getResponseHeaders()));
                             throw exception;
                         }
                     }
@@ -555,12 +555,12 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
             // Add S3 request and host IDs from HTTP headers to exception, if they are available
             // and have not already been populated by parsing an XML error response.
             if (!s3ServiceException.isParsedFromXmlMessage()
-            	&& httpMethod.getResponseHeader(Constants.AMZ_REQUEST_ID_1) != null
-            	&& httpMethod.getResponseHeader(Constants.AMZ_REQUEST_ID_2) != null)
+                && httpMethod.getResponseHeader(Constants.AMZ_REQUEST_ID_1) != null
+                && httpMethod.getResponseHeader(Constants.AMZ_REQUEST_ID_2) != null)
             {
                 s3ServiceException.setS3RequestAndHostIds(
-                	httpMethod.getResponseHeader(Constants.AMZ_REQUEST_ID_1).getValue(),
-                	httpMethod.getResponseHeader(Constants.AMZ_REQUEST_ID_2).getValue());
+                    httpMethod.getResponseHeader(Constants.AMZ_REQUEST_ID_1).getValue(),
+                    httpMethod.getResponseHeader(Constants.AMZ_REQUEST_ID_2).getValue());
             }
             s3ServiceException.setRequestVerb(httpMethod.getName());
             s3ServiceException.setRequestPath(httpMethod.getPath());
@@ -572,11 +572,11 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
             }
             if (httpMethod.getRequestHeader("Host") != null) {
                 s3ServiceException.setRequestHost(
-            		httpMethod.getRequestHeader("Host").getValue());
+                    httpMethod.getRequestHeader("Host").getValue());
             }
             if (httpMethod.getResponseHeader("Date") != null) {
                 s3ServiceException.setResponseDate(
-            		httpMethod.getResponseHeader("Date").getValue());
+                    httpMethod.getResponseHeader("Date").getValue());
             }
             throw s3ServiceException;
         }
@@ -748,7 +748,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
      * @throws org.jets3t.service.S3ServiceException
      */
     protected void addMetadataToHeaders(HttpMethodBase httpMethod, Map metadata)
-        	throws S3ServiceException
+            throws S3ServiceException
     {
         HashMap headersAlreadySeenMap = new HashMap(metadata.size());
 
@@ -769,22 +769,22 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
             boolean validAscii = false;
             UnsupportedEncodingException encodingException = null;
             try {
-            	byte[] asciiBytes = key.getBytes("ASCII");
-            	byte[] utf8Bytes = key.getBytes("UTF-8");
-            	validAscii = Arrays.equals(asciiBytes, utf8Bytes);
+                byte[] asciiBytes = key.getBytes("ASCII");
+                byte[] utf8Bytes = key.getBytes("UTF-8");
+                validAscii = Arrays.equals(asciiBytes, utf8Bytes);
             } catch (UnsupportedEncodingException e) {
-            	// Shouldn't ever happen
-            	encodingException = e;
+                // Shouldn't ever happen
+                encodingException = e;
             }
             if (!validAscii) {
-            	String message =
-        			"User metadata name is incompatible with the S3 REST interface, " +
-        			"only ASCII characters are allowed in HTTP headers: " + key;
-            	if (encodingException == null) {
-            		throw new S3ServiceException(message);
-            	} else {
-            		throw new S3ServiceException(message, encodingException);
-            	}
+                String message =
+                    "User metadata name is incompatible with the S3 REST interface, " +
+                    "only ASCII characters are allowed in HTTP headers: " + key;
+                if (encodingException == null) {
+                    throw new S3ServiceException(message);
+                } else {
+                    throw new S3ServiceException(message, encodingException);
+                }
             }
 
             // Fail early if user-supplied metadata cannot be represented as valid HTTP headers,
@@ -792,17 +792,17 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
             // NOTE: These checks are very much incomplete.
             if (value.indexOf('\n') >= 0 || value.indexOf('\r') >= 0) {
                 throw new S3ServiceException("The value of metadata item " + key
-            		+ " cannot be represented as an HTTP header for the REST S3 interface: "
-            		+ value);
+                    + " cannot be represented as an HTTP header for the REST S3 interface: "
+                    + value);
             }
 
             // Ensure each AMZ header is uniquely identified according to the lowercase name.
             String duplicateValue = (String) headersAlreadySeenMap.get(key.toLowerCase());
             if (duplicateValue != null && !duplicateValue.equals(value)) {
-            	throw new S3ServiceException(
-        			"HTTP header name occurs multiple times in request with different values, " +
-        			"probably due to mismatched capitalization when setting metadata names. " +
-        			"Duplicate metadata name: '" + key + "', All metadata: " + metadata);
+                throw new S3ServiceException(
+                    "HTTP header name occurs multiple times in request with different values, " +
+                    "probably due to mismatched capitalization when setting metadata names. " +
+                    "Duplicate metadata name: '" + key + "', All metadata: " + metadata);
             }
 
             httpMethod.setRequestHeader(key, value);
@@ -819,7 +819,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
      * @throws org.jets3t.service.S3ServiceException
      */
     protected void verifyExpectedAndActualETagValues(String expectedETag, S3Object uploadedObject)
-    	throws S3ServiceException
+        throws S3ServiceException
     {
         // Compare our locally-calculated hash with the ETag returned by S3.
         if (!expectedETag.equals(uploadedObject.getETag())) {
@@ -967,16 +967,16 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
      * @throws org.jets3t.service.S3ServiceException
      */
     protected HttpMethodBase performRestDelete(String bucketName, String objectKey,
-    	Map requestParameters, String multiFactorSerialNumber,
-    	String multiFactorAuthCode) throws S3ServiceException
+        Map requestParameters, String multiFactorSerialNumber,
+        String multiFactorAuthCode) throws S3ServiceException
     {
         HttpMethodBase httpMethod = setupConnection("DELETE",
-        	bucketName, objectKey, requestParameters);
+            bucketName, objectKey, requestParameters);
 
         // Set Multi-Factor Serial Number and Authentication code if provided.
         if (multiFactorSerialNumber != null || multiFactorAuthCode != null) {
             httpMethod.setRequestHeader(Constants.AMZ_MULTI_FACTOR_AUTH_CODE,
-            	multiFactorSerialNumber + " " + multiFactorAuthCode);
+                multiFactorSerialNumber + " " + multiFactorAuthCode);
         }
 
         performRequest(httpMethod, new int[] {204, 200});
@@ -991,26 +991,26 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
     }
 
     protected HttpMethodAndByteCount performRestPutWithXmlBuilder(String bucketName,
-    	String objectKey, Map metadata, Map requestParameters, XMLBuilder builder)
+        String objectKey, Map metadata, Map requestParameters, XMLBuilder builder)
         throws S3ServiceException
     {
         try {
-        	if (metadata == null) {
-        		metadata = new HashMap();
-        	}
-        	if (!metadata.containsKey("content-type")) {
-        		metadata.put("Content-Type", "text/plain");
-        	}
-        	String xml = builder.asString(null);
+            if (metadata == null) {
+                metadata = new HashMap();
+            }
+            if (!metadata.containsKey("content-type")) {
+                metadata.put("Content-Type", "text/plain");
+            }
+            String xml = builder.asString(null);
             return performRestPut(bucketName, objectKey, metadata, requestParameters,
                 new StringRequestEntity(xml, "text/plain", Constants.DEFAULT_ENCODING), true);
-    	} catch (Exception e) {
-    		if (e instanceof S3ServiceException) {
-    			throw (S3ServiceException) e;
-    		} else {
-    			throw new S3ServiceException("Failed to PUT request containing an XML document", e);
-    		}
-    	}
+        } catch (Exception e) {
+            if (e instanceof S3ServiceException) {
+                throw (S3ServiceException) e;
+            } else {
+                throw new S3ServiceException("Failed to PUT request containing an XML document", e);
+            }
+        }
     }
 
     /**
@@ -1028,7 +1028,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
      * @throws org.jets3t.service.S3ServiceException
      */
     protected HttpMethodBase setupConnection(String method, String bucketName, String objectKey,
-    	Map requestParameters) throws S3ServiceException
+        Map requestParameters) throws S3ServiceException
     {
         if (bucketName == null) {
             throw new S3ServiceException("Cannot connect to S3 Service with a null path");
@@ -1041,14 +1041,14 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         // Allow for non-standard virtual directory paths on the server-side
         String virtualPath = this.getVirtualPath();
 
-    	// Determine the resource string (ie the item's path in S3, including the bucket name)
+        // Determine the resource string (ie the item's path in S3, including the bucket name)
         String resourceString = "/";
         if (hostname.equals(s3Endpoint) && bucketName.length() > 0) {
             resourceString += bucketName + "/";
         }
         resourceString += (objectKey != null? RestUtils.encodeUrlString(objectKey) : "");
 
-    	// Construct a URL representing a connection for the S3 resource.
+        // Construct a URL representing a connection for the S3 resource.
         String url = null;
         if (isHttpsOnly()) {
             int securePort = this.getHttpsPort();
@@ -1230,16 +1230,16 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         long maxListingLength) throws S3ServiceException
     {
         return listObjectsInternal(bucketName, prefix, delimiter,
-        	maxListingLength, true, null, null).getObjects();
+            maxListingLength, true, null, null).getObjects();
     }
 
     @Override
     protected BaseVersionOrDeleteMarker[] listVersionedObjectsImpl(String bucketName,
-    	String prefix, String delimiter, String keyMarker, String versionMarker,
-    	long maxListingLength) throws S3ServiceException
+        String prefix, String delimiter, String keyMarker, String versionMarker,
+        long maxListingLength) throws S3ServiceException
     {
         return listVersionedObjectsInternal(bucketName, prefix, delimiter,
-        	maxListingLength, true, keyMarker, versionMarker).getItems();
+            maxListingLength, true, keyMarker, versionMarker).getItems();
     }
 
     @Override
@@ -1247,21 +1247,21 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         long maxListingLength, String priorLastKey, boolean completeListing) throws S3ServiceException
     {
         return listObjectsInternal(bucketName, prefix, delimiter,
-        	maxListingLength, completeListing, priorLastKey, null);
+            maxListingLength, completeListing, priorLastKey, null);
     }
 
     @Override
     protected VersionOrDeleteMarkersChunk listVersionedObjectsChunkedImpl(String bucketName,
-    	String prefix, String delimiter, long maxListingLength, String priorLastKey,
-    	String priorLastVersion, boolean completeListing) throws S3ServiceException
+        String prefix, String delimiter, long maxListingLength, String priorLastKey,
+        String priorLastVersion, boolean completeListing) throws S3ServiceException
     {
         return listVersionedObjectsInternal(bucketName, prefix, delimiter,
-        	maxListingLength, completeListing, priorLastKey, priorLastVersion);
+            maxListingLength, completeListing, priorLastKey, priorLastVersion);
     }
 
     protected S3ObjectsChunk listObjectsInternal(
-    	String bucketName, String prefix, String delimiter, long maxListingLength,
-    	boolean automaticallyMergeChunks, String priorLastKey, String priorLastVersion)
+        String bucketName, String prefix, String delimiter, long maxListingLength,
+        boolean automaticallyMergeChunks, String priorLastKey, String priorLastVersion)
         throws S3ServiceException
     {
         HashMap parameters = new HashMap();
@@ -1354,8 +1354,8 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
     }
 
     protected VersionOrDeleteMarkersChunk listVersionedObjectsInternal(
-    	String bucketName, String prefix, String delimiter, long maxListingLength,
-    	boolean automaticallyMergeChunks, String nextKeyMarker, String nextVersionIdMarker)
+        String bucketName, String prefix, String delimiter, long maxListingLength,
+        boolean automaticallyMergeChunks, String nextKeyMarker, String nextVersionIdMarker)
         throws S3ServiceException
     {
         HashMap parameters = new HashMap();
@@ -1455,15 +1455,15 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
 
     @Override
     protected void deleteObjectImpl(String bucketName, String objectKey,
-    	String versionId, String multiFactorSerialNumber, String multiFactorAuthCode)
+        String versionId, String multiFactorSerialNumber, String multiFactorAuthCode)
         throws S3ServiceException
     {
         Map requestParameters = new HashMap();
         if (versionId != null) {
-        	requestParameters.put("versionId", versionId);
+            requestParameters.put("versionId", versionId);
         }
         performRestDelete(bucketName, objectKey, requestParameters,
-        	multiFactorSerialNumber, multiFactorAuthCode);
+            multiFactorSerialNumber, multiFactorAuthCode);
     }
 
     protected AccessControlList getObjectAclImpl(String bucketName, String objectKey)
@@ -1471,7 +1471,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
     {
         if (log.isDebugEnabled()) {
             log.debug("Retrieving Access Control List for bucketName="
-            	+ bucketName + ", objectKey=" + objectKey);
+                + bucketName + ", objectKey=" + objectKey);
         }
 
         HashMap requestParameters = new HashMap();
@@ -1485,17 +1485,17 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
 
     @Override
     protected AccessControlList getObjectAclImpl(String bucketName, String objectKey,
-    	String versionId) throws S3ServiceException
+        String versionId) throws S3ServiceException
     {
         if (log.isDebugEnabled()) {
             log.debug("Retrieving versioned Access Control List for bucketName="
-            	+ bucketName + ", objectKey=" + objectKey);
+                + bucketName + ", objectKey=" + objectKey);
         }
 
         HashMap requestParameters = new HashMap();
         requestParameters.put("acl","");
         if (versionId != null) {
-        	requestParameters.put("versionId", versionId);
+            requestParameters.put("versionId", versionId);
         }
 
         HttpMethodBase httpMethod = performRestGet(bucketName, objectKey, requestParameters, null);
@@ -1521,7 +1521,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
 
     @Override
     protected void putObjectAclImpl(String bucketName, String objectKey, AccessControlList acl,
-    	String versionId) throws S3ServiceException
+        String versionId) throws S3ServiceException
     {
         putAclImpl(bucketName, objectKey, acl, versionId);
     }
@@ -1599,31 +1599,31 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
 
     @Override
     protected void updateBucketVersioningStatusImpl(String bucketName,
-    	boolean enabled, boolean multiFactorAuthDeleteEnabled,
-    	String multiFactorSerialNumber, String multiFactorAuthCode)
+        boolean enabled, boolean multiFactorAuthDeleteEnabled,
+        String multiFactorSerialNumber, String multiFactorAuthCode)
         throws S3ServiceException
     {
         if (log.isDebugEnabled()) {
             log.debug( (enabled ? "Enabling" : "Suspending")
-            	+ " versioning for bucket " + bucketName
-            	+ (multiFactorAuthDeleteEnabled ? " with Multi-Factor Auth enabled" : ""));
+                + " versioning for bucket " + bucketName
+                + (multiFactorAuthDeleteEnabled ? " with Multi-Factor Auth enabled" : ""));
         }
-    	try {
-    		XMLBuilder builder = XMLBuilder
-    			.create("VersioningConfiguration").a("xmlns", Constants.XML_NAMESPACE)
-    				.e("Status").t( (enabled ? "Enabled" : "Suspended") ).up()
-    			    .e("MfaDelete").t( (multiFactorAuthDeleteEnabled ? "Enabled" : "Disabled"));
-    		Map requestParams = new HashMap();
-    		requestParams.put("versioning", null);
-    		Map metadata = new HashMap();
-    		if (multiFactorSerialNumber != null || multiFactorAuthCode != null) {
-    			metadata.put(Constants.AMZ_MULTI_FACTOR_AUTH_CODE,
-    				multiFactorSerialNumber + " " + multiFactorAuthCode);
-    		}
+        try {
+            XMLBuilder builder = XMLBuilder
+                .create("VersioningConfiguration").a("xmlns", Constants.XML_NAMESPACE)
+                    .e("Status").t( (enabled ? "Enabled" : "Suspended") ).up()
+                    .e("MfaDelete").t( (multiFactorAuthDeleteEnabled ? "Enabled" : "Disabled"));
+            Map requestParams = new HashMap();
+            requestParams.put("versioning", null);
+            Map metadata = new HashMap();
+            if (multiFactorSerialNumber != null || multiFactorAuthCode != null) {
+                metadata.put(Constants.AMZ_MULTI_FACTOR_AUTH_CODE,
+                    multiFactorSerialNumber + " " + multiFactorAuthCode);
+            }
             performRestPutWithXmlBuilder(bucketName, null, metadata, requestParams, builder);
-    	} catch (ParserConfigurationException e) {
-    		throw new S3ServiceException("Failed to build XML document for request", e);
-    	}
+        } catch (ParserConfigurationException e) {
+            throw new S3ServiceException("Failed to build XML document for request", e);
+        }
     }
 
     @Override
@@ -1633,8 +1633,8 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
         if (log.isDebugEnabled()) {
             log.debug( "Checking status of versioning for bucket " + bucketName);
         }
-    	Map requestParams = new HashMap();
-    	requestParams.put("versioning", null);
+        Map requestParams = new HashMap();
+        requestParams.put("versioning", null);
         HttpMethodBase method = performRestGet(bucketName, null, requestParams, null);
         return (new XmlResponsesSaxParser(this.jets3tProperties))
             .parseVersioningConfigurationResponse(new HttpMethodReleaseInputStream(method));
@@ -1918,8 +1918,8 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
 
     @Override
     protected S3Object getObjectDetailsImpl(String bucketName, String objectKey,
-    	Calendar ifModifiedSince, Calendar ifUnmodifiedSince,
-    	String[] ifMatchTags, String[] ifNoneMatchTags, String versionId)
+        Calendar ifModifiedSince, Calendar ifUnmodifiedSince,
+        String[] ifMatchTags, String[] ifNoneMatchTags, String versionId)
         throws S3ServiceException
     {
         return getObjectImpl(true, bucketName, objectKey,
@@ -1929,9 +1929,9 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
 
     @Override
     protected S3Object getObjectImpl(String bucketName, String objectKey,
-    	Calendar ifModifiedSince, Calendar ifUnmodifiedSince,
-    	String[] ifMatchTags, String[] ifNoneMatchTags,
-    	Long byteRangeStart, Long byteRangeEnd, String versionId)
+        Calendar ifModifiedSince, Calendar ifUnmodifiedSince,
+        String[] ifMatchTags, String[] ifNoneMatchTags,
+        Long byteRangeStart, Long byteRangeEnd, String versionId)
         throws S3ServiceException
     {
         return getObjectImpl(false, bucketName, objectKey, ifModifiedSince, ifUnmodifiedSince,
@@ -1945,7 +1945,7 @@ public abstract class RestStorageService extends S3Service implements SignedUrlH
     {
         if (log.isDebugEnabled()) {
             log.debug("Retrieving " + (headOnly? "Head" : "All")
-            	+ " information for bucket " + bucketName + " and object " + objectKey);
+                + " information for bucket " + bucketName + " and object " + objectKey);
         }
 
         HashMap requestHeaders = new HashMap();

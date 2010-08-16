@@ -18,6 +18,12 @@
  */
 package org.jets3t.service.acl;
 
+import com.jamesmurty.utils.XMLBuilder;
+
+import org.jets3t.service.Constants;
+import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.model.S3Owner;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -27,12 +33,6 @@ import java.util.Set;
 import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
-
-import org.jets3t.service.Constants;
-import org.jets3t.service.S3ServiceException;
-import org.jets3t.service.model.S3Owner;
-
-import com.jamesmurty.utils.XMLBuilder;
 
 /**
  * Represents an Amazon S3 Access Control List (ACL), including the ACL's set of grantees and the
@@ -70,8 +70,8 @@ public class AccessControlList implements Serializable {
      */
     public static final AccessControlList REST_CANNED_AUTHENTICATED_READ = new AccessControlList();
 
-    private final HashSet grants = new HashSet();
-    private S3Owner owner = null;
+    protected final HashSet grants = new HashSet();
+    protected S3Owner owner = null;
 
     /**
      * Returns a string representation of the ACL contents, useful for debugging.

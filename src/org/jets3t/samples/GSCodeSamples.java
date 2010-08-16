@@ -20,6 +20,12 @@ package org.jets3t.samples;
 
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.acl.AccessControlList;
+import org.jets3t.service.acl.AllUsersGrantee;
+import org.jets3t.service.acl.GroupByDomainGrantee;
+import org.jets3t.service.acl.Permission;
+import org.jets3t.service.acl.UserByEmailAddressGrantee;
+import org.jets3t.service.acl.UserByIdGrantee;
 import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
@@ -273,7 +279,7 @@ public class GSCodeSamples {
         // Copy an existing source object to the target S3Object
         // This will copy the source's object data and metadata to the target object.
         boolean replaceMetadata = false;
-        gsService.copyObject(BUCKET_NAME, TEST_OBJECT_NAME, "cherutest", targetObject, replaceMetadata);
+        gsService.copyObject(BUCKET_NAME, TEST_OBJECT_NAME, "target-bucket", targetObject, replaceMetadata);
 
         // You can also copy an object and update its metadata at the same time. Perform a
         // copy-in-place  (with the same bucket and object names for source and destination)
@@ -294,7 +300,7 @@ public class GSCodeSamples {
         // operation fails, the object will exist in both the source and destination locations.
 
         // Here is a command that moves an object from one bucket to another.
-        gsService.moveObject(BUCKET_NAME, TEST_OBJECT_NAME, "cherutest", targetObject, false);
+        gsService.moveObject(BUCKET_NAME, TEST_OBJECT_NAME, "target-bucket", targetObject, false);
 
         // You can move an object to a new name in the same bucket. This is essentially a rename operation.
         gsService.moveObject(BUCKET_NAME, TEST_OBJECT_NAME, BUCKET_NAME, new S3Object("newname.txt"), false);
@@ -328,6 +334,63 @@ public class GSCodeSamples {
         gsService.deleteBucket(testBucket.getName());
         System.out.println("Deleted bucket " + testBucket.getName());
 
+        /*
+         * Manage Access Control Lists
+         */
+
+        // GS uses Access Control Lists to control who has access to buckets and objects in GS.
+        // By default, any bucket or object you create will belong to you and will not be accessible
+        // to anyone else. You can use JetS3t's support for access control lists to make buckets or
+        // objects publicly accessible, or to allow other GS members to access or manage your objects.
+
+        // The ACL capabilities of GS are quite involved, so to understand this subject fully please
+        // consult Google's documentation. The code examples below show how to put your understanding
+        // of the GS ACL mechanism into practice.
+
+        // ACL settings may be provided with a bucket or object when it is created, or the ACL of
+        // existing items may be updated. Let's start by creating a bucket with default (i.e. private)
+        // access settings, then making it public.
+
+        // Create a bucket in S3.
+        S3Bucket publicBucket = new S3Bucket(BUCKET_NAME + "-public");
+        gsService.createBucket(publicBucket);
+
+        // Retrieve the bucket's ACL and modify it to grant public access,
+        // ie READ access to the ALL_USERS group.
+        AccessControlList bucketAcl = gsService.getBucketAcl(publicBucket);
+        bucketAcl.grantPermission(new AllUsersGrantee(), Permission.PERMISSION_READ);
+
+        // Update the bucket's ACL. Now anyone can view the list of objects in this bucket.
+        publicBucket.setAcl(bucketAcl);
+        gsService.putBucketAcl(publicBucket);
+
+        // Now let's create an object that is public from scratch. Note that we will use the bucket's
+        // public ACL object created above, this works fine. Although it is possible to create an
+        // AccessControlList object from scratch, this is more involved as you need to set the
+        // ACL's Owner information which is only readily available from an existing ACL.
+
+        // Create a public object in GS. Anyone can download this object.
+        S3Object publicObject = new S3Object("publicObject.txt", "This object is public");
+        publicObject.setAcl(bucketAcl);
+        gsService.putObject(publicBucket, publicObject);
+
+        // The ALL_USERS Group is particularly useful, but there are also other grantee types
+        // that can be used with AccessControlList. Please see Google Storage technical documentation
+        // for a fuller discussion of these settings.
+
+        AccessControlList acl = new AccessControlList();
+
+        // Grant access by email address. Note that this only works email address of GS members.
+        acl.grantPermission(new UserByEmailAddressGrantee("someone@somewhere.com"),
+            Permission.PERMISSION_FULL_CONTROL);
+
+        // Grant Read access by Goodle ID.
+        acl.grantPermission(new UserByIdGrantee("Google member's ID"),
+            Permission.PERMISSION_READ);
+
+        // Grant Write access to a group by domain.
+        acl.grantPermission(new GroupByDomainGrantee("yourdomain.com"),
+            Permission.PERMISSION_WRITE);
     }
 
 }

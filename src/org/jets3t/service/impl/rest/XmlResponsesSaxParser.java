@@ -18,6 +18,29 @@
  */
 package org.jets3t.service.impl.rest;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.jets3t.service.Constants;
+import org.jets3t.service.Jets3tProperties;
+import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.acl.CanonicalGrantee;
+import org.jets3t.service.acl.EmailAddressGrantee;
+import org.jets3t.service.acl.GrantAndPermission;
+import org.jets3t.service.acl.GranteeInterface;
+import org.jets3t.service.acl.GroupGrantee;
+import org.jets3t.service.acl.Permission;
+import org.jets3t.service.model.BaseVersionOrDeleteMarker;
+import org.jets3t.service.model.S3Bucket;
+import org.jets3t.service.model.S3BucketLoggingStatus;
+import org.jets3t.service.model.S3BucketVersioningStatus;
+import org.jets3t.service.model.S3DeleteMarker;
+import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.S3Owner;
+import org.jets3t.service.model.S3Version;
+import org.jets3t.service.utils.ServiceUtils;
+import org.xml.sax.InputSource;
+import org.xml.sax.XMLReader;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -28,34 +51,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.jets3t.service.Constants;
-import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.S3ServiceException;
-import org.jets3t.service.acl.AccessControlList;
-import org.jets3t.service.acl.CanonicalGrantee;
-import org.jets3t.service.acl.EmailAddressGrantee;
-import org.jets3t.service.acl.GrantAndPermission;
-import org.jets3t.service.acl.GranteeInterface;
-import org.jets3t.service.acl.GroupGrantee;
-import org.jets3t.service.acl.Permission;
-import org.jets3t.service.model.S3Bucket;
-import org.jets3t.service.model.S3BucketLoggingStatus;
-import org.jets3t.service.model.S3BucketVersioningStatus;
-import org.jets3t.service.model.S3DeleteMarker;
-import org.jets3t.service.model.S3Object;
-import org.jets3t.service.model.S3Owner;
-import org.jets3t.service.model.BaseVersionOrDeleteMarker;
-import org.jets3t.service.model.S3Version;
-import org.jets3t.service.utils.ServiceUtils;
-import org.xml.sax.Attributes;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
-import org.xml.sax.helpers.DefaultHandler;
-import org.xml.sax.helpers.XMLReaderFactory;
 
 /**
  * XML Sax parser to read XML documents returned by S3 via the REST interface, converting these
@@ -91,7 +86,7 @@ public class XmlResponsesSaxParser {
      * @throws S3ServiceException
      *        any parsing, IO or other exceptions are wrapped in an S3ServiceException.
      */
-    protected void parseXmlInputStream(MyDefaultHandler handler, InputStream inputStream)
+    protected void parseXmlInputStream(DefaultXmlHandler handler, InputStream inputStream)
         throws S3ServiceException
     {
         try {
@@ -116,7 +111,7 @@ public class XmlResponsesSaxParser {
         }
     }
 
-    protected InputStream sanitizeXmlDocument(MyDefaultHandler handler, InputStream inputStream)
+    protected InputStream sanitizeXmlDocument(DefaultXmlHandler handler, InputStream inputStream)
         throws S3ServiceException
     {
         if (!properties.getBoolProperty("xmlparser.sanitize-listings", true)) {
@@ -213,6 +208,25 @@ public class XmlResponsesSaxParser {
         throws S3ServiceException
     {
         AccessControlListHandler handler = new AccessControlListHandler();
+        return parseAccessControlListResponse(inputStream, handler);
+    }
+
+    /**
+     * Parses an AccessControlListHandler response XML document from an input stream.
+     *
+     * @param inputStream
+     * XML data input stream.
+     * @param handler
+     * the instance of AccessControlListHandler to be used.
+     * @return
+     * the XML handler object populated with data parsed from the XML stream.
+     *
+     * @throws S3ServiceException
+     */
+    public AccessControlListHandler parseAccessControlListResponse(InputStream inputStream,
+        AccessControlListHandler handler)
+        throws S3ServiceException
+    {
         parseXmlInputStream(handler, inputStream);
         return handler;
     }
@@ -300,7 +314,7 @@ public class XmlResponsesSaxParser {
      * Handler for ListBucket response XML documents.
      * The document is parsed into {@link S3Object}s available via the {@link #getObjects()} method.
      */
-    public class ListBucketHandler extends MyDefaultHandler {
+    public class ListBucketHandler extends DefaultXmlHandler {
         private S3Object currentObject = null;
         private S3Owner currentOwner = null;
         private boolean insideCommonPrefixes = false;
@@ -470,7 +484,7 @@ public class XmlResponsesSaxParser {
      * @author James Murty
      *
      */
-    public class ListAllMyBucketsHandler extends MyDefaultHandler {
+    public class ListAllMyBucketsHandler extends DefaultXmlHandler {
         private S3Owner bucketsOwner = null;
         private S3Bucket currentBucket = null;
 
@@ -530,70 +544,6 @@ public class XmlResponsesSaxParser {
     }
 
     /**
-     * Handler for AccessControlList response XML documents.
-     * The document is parsed into an {@link AccessControlList} object available via the
-     * {@link #getAccessControlList()} method.
-     *
-     * @author James Murty
-     *
-     */
-    public class AccessControlListHandler extends MyDefaultHandler {
-        private AccessControlList accessControlList = null;
-
-        private S3Owner owner = null;
-        private GranteeInterface currentGrantee = null;
-        private Permission currentPermission = null;
-
-        private boolean insideACL = false;
-
-        /**
-         * @return
-         * an object representing the ACL document.
-         */
-        public AccessControlList getAccessControlList() {
-            return accessControlList;
-        }
-
-        public void startElement(String name) {
-            if (name.equals("Owner")) {
-                owner = new S3Owner();
-            } else if (name.equals("AccessControlList")) {
-                accessControlList = new AccessControlList();
-                accessControlList.setOwner(owner);
-                insideACL = true;
-            }
-        }
-
-        public void endElement(String name, String elementText) {
-            // Owner details.
-            if (name.equals("ID") && !insideACL) {
-                owner.setId(elementText);
-            } else if (name.equals("DisplayName") && !insideACL) {
-                owner.setDisplayName(elementText);
-            }
-            // ACL details.
-            else if (name.equals("ID")) {
-                currentGrantee = new CanonicalGrantee();
-                currentGrantee.setIdentifier(elementText);
-            } else if (name.equals("EmailAddress")) {
-                currentGrantee = new EmailAddressGrantee();
-                currentGrantee.setIdentifier(elementText);
-            } else if (name.equals("URI")) {
-                currentGrantee = new GroupGrantee();
-                currentGrantee.setIdentifier(elementText);
-            } else if (name.equals("DisplayName")) {
-                ((CanonicalGrantee) currentGrantee).setDisplayName(elementText);
-            } else if (name.equals("Permission")) {
-                currentPermission = Permission.parsePermission(elementText);
-            } else if (name.equals("Grant")) {
-                accessControlList.grantPermission(currentGrantee, currentPermission);
-            } else if (name.equals("AccessControlList")) {
-                insideACL = false;
-            }
-        }
-    }
-
-    /**
      * Handler for LoggingStatus response XML documents for a bucket.
      * The document is parsed into an {@link S3BucketLoggingStatus} object available via the
      * {@link #getBucketLoggingStatus()} method.
@@ -601,7 +551,7 @@ public class XmlResponsesSaxParser {
      * @author James Murty
      *
      */
-    public class BucketLoggingStatusHandler extends MyDefaultHandler {
+    public class BucketLoggingStatusHandler extends DefaultXmlHandler {
         private S3BucketLoggingStatus bucketLoggingStatus = null;
 
         private String targetBucket = null;
@@ -662,7 +612,7 @@ public class XmlResponsesSaxParser {
      * @author James Murty
      *
      */
-    public class BucketLocationHandler extends MyDefaultHandler {
+    public class BucketLocationHandler extends DefaultXmlHandler {
         private String location = null;
 
         /**
@@ -685,7 +635,7 @@ public class XmlResponsesSaxParser {
     }
 
 
-    public class CopyObjectResultHandler extends MyDefaultHandler {
+    public class CopyObjectResultHandler extends DefaultXmlHandler {
         // Data items for successful copy
         private String etag = null;
         private Date lastModified = null;
@@ -764,7 +714,7 @@ public class XmlResponsesSaxParser {
      *
      * @author James Murty
      */
-    public class RequestPaymentConfigurationHandler extends MyDefaultHandler {
+    public class RequestPaymentConfigurationHandler extends DefaultXmlHandler {
         private String payer = null;
 
         /**
@@ -783,7 +733,7 @@ public class XmlResponsesSaxParser {
         }
     }
 
-    public class VersioningConfigurationHandler extends MyDefaultHandler {
+    public class VersioningConfigurationHandler extends DefaultXmlHandler {
         private S3BucketVersioningStatus versioningStatus = null;
         private String status = null;
         private String mfaStatus = null;
@@ -805,7 +755,7 @@ public class XmlResponsesSaxParser {
         }
     }
 
-    public class ListVersionsResultsHandler extends MyDefaultHandler {
+    public class ListVersionsResultsHandler extends DefaultXmlHandler {
         private List items = new ArrayList();
         private List commonPrefixes = new ArrayList();
 
@@ -961,31 +911,4 @@ public class XmlResponsesSaxParser {
             }
         }
     }
-
-    public class MyDefaultHandler extends DefaultHandler {
-        private StringBuffer currText = null;
-
-        public void startDocument() {}
-
-        public void endDocument() {}
-
-        public void startElement(String uri, String name, String qName, Attributes attrs) {
-            this.currText = new StringBuffer();
-            this.startElement(name);
-        }
-
-        public void startElement(String name) { }
-
-        public void endElement(String uri, String name, String qName) {
-            String elementText = this.currText.toString();
-            this.endElement(name, elementText);
-        }
-
-        public void endElement(String name, String content) { }
-
-        public void characters(char ch[], int start, int length) {
-            this.currText.append(ch, start, length);
-        }
-    }
-
 }
