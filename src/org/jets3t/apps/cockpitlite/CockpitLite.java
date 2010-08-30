@@ -1664,7 +1664,9 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
                                 // Create local directories corresponding to objects flagged as dirs.
                                 if (object.isDirectoryPlaceholder()) {
-                                    file = new File(downloadDirectory, objects[i].getDirectoryPlaceholderKey());
+                                    file = new File(downloadDirectory,
+                                        ObjectUtils.convertDirPlaceholderKeyNameToDirName(
+                                            objects[i].getKey()));
                                     file.mkdirs();
                                 }
 

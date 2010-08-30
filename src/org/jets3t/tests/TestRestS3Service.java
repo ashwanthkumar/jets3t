@@ -20,11 +20,14 @@ package org.jets3t.tests;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Map;
 
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
@@ -36,12 +39,15 @@ import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
+import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.ProviderCredentials;
+import org.jets3t.service.utils.FileComparer;
+import org.jets3t.service.utils.FileComparerResults;
 import org.jets3t.service.utils.RestUtils;
 
 /**
@@ -233,6 +239,91 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
             service.deleteObject(bucketName, object.getKey());
         } finally {
             cleanupBucketForTest("testUrlSigning");
+        }
+    }
+
+    public void testFileComparer() throws Exception {
+        RestStorageService service = getStorageService(getCredentials());
+        StorageBucket bucket = createBucketForTest("testFileComparer");
+        String bucketName = bucket.getName();
+        try {
+            // Create temporary files
+            File dummy = File.createTempFile("dummy-", ".txt");
+            File parentDir = new File(dummy.getParentFile(), "jets3t-test-" + dummy.getName());
+            parentDir.mkdirs();
+            File local1 = File.createTempFile("one", ".txt", parentDir);
+            File local2 = File.createTempFile("two", ".txt", parentDir);
+            File local3 = File.createTempFile("three", " ثلاثة.txt", parentDir);
+
+            FileComparer comparer = new FileComparer(new Jets3tProperties());
+
+            // Build a file map of local files
+            Map<String, File> fileMap = comparer.buildFileMap(
+                new File[] {local1, local2, local3}, true);
+            assertEquals(3, fileMap.size());
+            assertTrue(fileMap.keySet().contains(local3.getName()));
+
+            // Upload local files to storage service
+            service.putObject(bucketName, buildStorageObject(local1.getName()));
+            service.putObject(bucketName, buildStorageObject(local2.getName()));
+            service.putObject(bucketName, buildStorageObject(local3.getName()));
+
+            // Build a map of objects in storage service
+            Map<String, StorageObject> objectMap = comparer.buildS3ObjectMap(
+                (S3Service)service, new S3Bucket(bucket.getName()), "", false, null);
+            assertEquals(3, fileMap.size());
+            assertTrue(objectMap.keySet().contains(local3.getName()));
+
+            // Compare local and remote objects -- should be identical
+            FileComparerResults comparerResults =
+                comparer.buildDiscrepancyLists(fileMap, objectMap);
+            assertEquals(3, comparerResults.alreadySynchronisedKeys.size());
+            assertEquals(0, comparerResults.onlyOnClientKeys.size());
+            assertEquals(0, comparerResults.onlyOnServerKeys.size());
+            assertEquals(0, comparerResults.updatedOnClientKeys.size());
+            assertEquals(0, comparerResults.updatedOnServerKeys.size());
+
+            // Update 1 local and 1 remote file, then confirm discrepancies
+            new FileOutputStream(local1).write("Updated local file".getBytes("UTF-8"));
+            StorageObject remoteObject = buildStorageObject(local3.getName());
+            remoteObject.setDataInputStream(
+                new ByteArrayInputStream("Updated Remote File".getBytes("UTF-8")));
+            service.putObject(bucketName, remoteObject);
+
+            objectMap = comparer.buildS3ObjectMap(
+                (S3Service)service, new S3Bucket(bucket.getName()), "", false, null);
+
+            comparerResults =
+                comparer.buildDiscrepancyLists(fileMap, objectMap);
+            assertEquals(1, comparerResults.alreadySynchronisedKeys.size());
+            assertEquals(0, comparerResults.onlyOnClientKeys.size());
+            assertEquals(0, comparerResults.onlyOnServerKeys.size());
+            assertEquals(1, comparerResults.updatedOnClientKeys.size());
+            assertEquals(1, comparerResults.updatedOnServerKeys.size());
+
+            // Create new local and remote objects, then confirm discrepancies
+            File local4 = File.createTempFile("four", ".txt", parentDir);
+            remoteObject = buildStorageObject("five.txt");
+            service.putObject(bucketName, remoteObject);
+
+            fileMap = comparer.buildFileMap(
+                new File[] {local1, local2, local3, local4}, true);
+            objectMap = comparer.buildS3ObjectMap(
+                (S3Service)service, new S3Bucket(bucket.getName()), "", false, null);
+
+            comparerResults = comparer.buildDiscrepancyLists(fileMap, objectMap);
+            assertEquals(1, comparerResults.alreadySynchronisedKeys.size());
+            assertTrue(comparerResults.alreadySynchronisedKeys.contains(local2.getName()));
+            assertEquals(1, comparerResults.onlyOnClientKeys.size());
+            assertTrue(comparerResults.onlyOnClientKeys.contains(local4.getName()));
+            assertEquals(1, comparerResults.onlyOnServerKeys.size());
+            assertTrue(comparerResults.onlyOnServerKeys.contains("five.txt"));
+            assertEquals(1, comparerResults.updatedOnClientKeys.size());
+            assertTrue(comparerResults.updatedOnClientKeys.contains(local1.getName()));
+            assertEquals(1, comparerResults.updatedOnServerKeys.size());
+            assertTrue(comparerResults.updatedOnServerKeys.contains(local3.getName()));
+        } finally {
+            cleanupBucketForTest("testFileComparer", true);
         }
     }
 
