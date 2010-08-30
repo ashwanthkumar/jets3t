@@ -41,41 +41,47 @@ import java.util.Set;
  * @author James Murty
  */
 public class FileComparerResults {
-    public Set onlyOnServerKeys, updatedOnServerKeys, updatedOnClientKeys, onlyOnClientKeys, alreadySynchronisedKeys;
+    public Set onlyOnServerKeys, updatedOnServerKeys, updatedOnClientKeys, onlyOnClientKeys,
+        alreadySynchronisedKeys, alreadySynchronisedLocalPaths;
 
     public FileComparerResults(Set onlyOnServerKeys, Set updatedOnServerKeys,
-        Set updatedOnClientKeys, Set onlyOnClientKeys, Set alreadySynchronisedKeys) {
+        Set updatedOnClientKeys, Set onlyOnClientKeys, Set alreadySynchronisedKeys,
+        Set alreadySynchronisedLocalPaths) {
         this.onlyOnServerKeys = onlyOnServerKeys;
         this.updatedOnServerKeys = updatedOnServerKeys;
         this.updatedOnClientKeys = updatedOnClientKeys;
         this.onlyOnClientKeys = onlyOnClientKeys;
         this.alreadySynchronisedKeys = alreadySynchronisedKeys;
+        this.alreadySynchronisedLocalPaths = alreadySynchronisedLocalPaths;
     }
 
     public FileComparerResults() {
-        this (new HashSet(), new HashSet(), new HashSet(), new HashSet(), new HashSet());
+        this(new HashSet(), new HashSet(), new HashSet(), new HashSet(), new HashSet(), new HashSet());
     }
 
     public void merge(FileComparerResults resultsToAdd) {
         this.updatedOnServerKeys.addAll(resultsToAdd.updatedOnServerKeys);
         this.updatedOnClientKeys.addAll(resultsToAdd.updatedOnClientKeys);
         this.alreadySynchronisedKeys.addAll(resultsToAdd.alreadySynchronisedKeys);
+        this.alreadySynchronisedLocalPaths.addAll(resultsToAdd.alreadySynchronisedLocalPaths);
 
         this.onlyOnServerKeys.addAll(resultsToAdd.onlyOnServerKeys);
 
         // Only keys present on S3 and no-where else should remain in server keys list.
         onlyOnServerKeys.removeAll(updatedOnServerKeys);
         onlyOnServerKeys.removeAll(updatedOnClientKeys);
-        onlyOnServerKeys.removeAll(alreadySynchronisedKeys);
         onlyOnServerKeys.removeAll(onlyOnClientKeys);
+        onlyOnServerKeys.removeAll(alreadySynchronisedKeys);
+        onlyOnServerKeys.removeAll(alreadySynchronisedLocalPaths);
 
         this.onlyOnClientKeys.addAll(resultsToAdd.onlyOnClientKeys);
 
         // Only keys present on client and no-where else should remain in client keys list.
         onlyOnClientKeys.removeAll(updatedOnServerKeys);
         onlyOnClientKeys.removeAll(updatedOnClientKeys);
-        onlyOnClientKeys.removeAll(alreadySynchronisedKeys);
         onlyOnClientKeys.removeAll(onlyOnServerKeys);
+        onlyOnClientKeys.removeAll(alreadySynchronisedKeys);
+        onlyOnServerKeys.removeAll(alreadySynchronisedLocalPaths);
     }
 
 }

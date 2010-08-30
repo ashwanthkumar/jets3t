@@ -52,6 +52,7 @@ import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.multithread.GetObjectHeadsEvent;
 import org.jets3t.service.multithread.ListObjectsEvent;
 import org.jets3t.service.multithread.S3ServiceEventAdaptor;
@@ -123,14 +124,14 @@ public class FileComparer {
      * a list of Pattern objects representing the paths in the ignore file. If there is no ignore
      * file, or if it has no contents, the list returned will be empty.
      */
-    protected List buildIgnoreRegexpList(File directory, List parentIgnorePatternList) {
-        ArrayList ignorePatternList = new ArrayList();
+    protected List<Pattern> buildIgnoreRegexpList(File directory, List<Pattern> parentIgnorePatternList) {
+        List<Pattern> ignorePatternList = new ArrayList<Pattern>();
 
         // Add any applicable ignore patterns found in ancestor directories
         if (parentIgnorePatternList != null) {
-            Iterator parentIgnorePatternIter = parentIgnorePatternList.iterator();
+            Iterator<Pattern> parentIgnorePatternIter = parentIgnorePatternList.iterator();
             while (parentIgnorePatternIter.hasNext()) {
-                Pattern parentPattern = (Pattern) parentIgnorePatternIter.next();
+                Pattern parentPattern = parentIgnorePatternIter.next();
                 String parentIgnorePatternString = parentPattern.pattern();
 
                 // If parent ignore pattern contains a slash, it is eligible for inclusion.
@@ -227,7 +228,7 @@ public class FileComparer {
      * @return
      * true if the file should be ignored, false otherwise.
      */
-    protected boolean isIgnored(List ignorePatternList, File file) {
+    protected boolean isIgnored(List<Pattern> ignorePatternList, File file) {
         if (jets3tProperties.getBoolProperty("filecomparer.skip-symlinks", false)) {
             /*
              * Check whether this file is actually a symlink/alias, and skip it if so.
@@ -252,9 +253,9 @@ public class FileComparer {
             }
         }
 
-        Iterator patternIter = ignorePatternList.iterator();
+        Iterator<Pattern> patternIter = ignorePatternList.iterator();
         while (patternIter.hasNext()) {
-            Pattern pattern = (Pattern) patternIter.next();
+            Pattern pattern = patternIter.next();
 
             if (pattern.matcher(file.getName()).matches()) {
                 if (log.isDebugEnabled()) {
@@ -280,18 +281,19 @@ public class FileComparer {
      * the set of files/directories to include in the file map.
      * @param includeDirectories
      * If true all directories, including empty ones, will be included in the Map. These directories
-     * will be mere place-holder objects with the content type {@link Mimetypes#MIMETYPE_JETS3T_DIRECTORY}.
+     * will be mere place-holder objects with a trailing slash (/) character in the name and the
+     * content type {@link Mimetypes#MIMETYPE_BINARY_OCTET_STREAM}.
      * If this variable is false directory objects will not be included in the Map, and it will not
      * be possible to store empty directories in S3.
      *
      * @return
      * a Map of file path keys to File objects.
      */
-    public Map buildFileMap(File[] files, boolean includeDirectories) {
+    public Map<String, File> buildFileMap(File[] files, boolean includeDirectories) {
         // Build map of files proposed for upload or download.
-        HashMap fileMap = new HashMap();
-        List ignorePatternList = null;
-        List ignorePatternListForCurrentDir = null;
+        Map<String, File> fileMap = new HashMap<String, File>();
+        List<Pattern> ignorePatternList = null;
+        List<Pattern> ignorePatternListForCurrentDir = null;
 
         for (int i = 0; i < files.length; i++) {
             File file = files[i];
@@ -311,10 +313,11 @@ public class FileComparer {
                 if (!file.exists()) {
                     continue;
                 }
-                if (!file.isDirectory() || includeDirectories) {
+                if (!file.isDirectory()) {
                     fileMap.put(file.getName(), file);
                 }
-                if (file.isDirectory()) {
+                if (file.isDirectory() && includeDirectories) {
+                    fileMap.put(file.getName() + Constants.FILE_PATH_DELIM, file);
                     buildFileMapImpl(file, file.getName() + Constants.FILE_PATH_DELIM,
                         fileMap, includeDirectories, ignorePatternList);
                 }
@@ -343,15 +346,18 @@ public class FileComparer {
      * or empty, no prefix is used.
      * @param includeDirectories
      * If true all directories, including empty ones, will be included in the Map. These directories
-     * will be mere place-holder objects with the content type {@link Mimetypes#MIMETYPE_JETS3T_DIRECTORY}.
+     * will be mere place-holder objects with a trailing slash (/) character in the name and the
+     * content type {@link Mimetypes#MIMETYPE_BINARY_OCTET_STREAM}.
      * If this variable is false directory objects will not be included in the Map, and it will not
      * be possible to store empty directories in S3.
      *
      * @return A Map of file path keys to File objects.
      */
-    public Map buildFileMap(File rootDirectory, String fileKeyPrefix, boolean includeDirectories) {
-        HashMap fileMap = new HashMap();
-        List ignorePatternList = buildIgnoreRegexpList(rootDirectory, null);
+    public Map<String, File> buildFileMap(File rootDirectory, String fileKeyPrefix,
+        boolean includeDirectories)
+    {
+        Map<String, File> fileMap = new HashMap<String, File>();
+        List<Pattern> ignorePatternList = buildIgnoreRegexpList(rootDirectory, null);
 
         if (!isIgnored(ignorePatternList, rootDirectory)) {
             if (fileKeyPrefix == null || fileKeyPrefix.length() == 0) {
@@ -384,7 +390,8 @@ public class FileComparer {
      * a map of path keys to File objects, that this method adds items to.
      * @param includeDirectories
      * If true all directories, including empty ones, will be included in the Map. These directories
-     * will be mere place-holder objects with the content type {@link Mimetypes#MIMETYPE_JETS3T_DIRECTORY}.
+     * will be mere place-holder objects with a trailing slash (/) character in the name and the
+     * content type {@link Mimetypes#MIMETYPE_BINARY_OCTET_STREAM}.
      * If this variable is false directory objects will not be included in the Map, and it will not
      * be possible to store empty directories in S3.
      * @param parentIgnorePatternList
@@ -393,19 +400,24 @@ public class FileComparer {
      * See {@link #buildIgnoreRegexpList(File, List)} for more information.
      * If this parameter is null, no parent ignore patterns are applied.
      */
-    protected void buildFileMapImpl(File directory, String fileKeyPrefix, Map fileMap,
-        boolean includeDirectories, List parentIgnorePatternList)
+    protected void buildFileMapImpl(File directory, String fileKeyPrefix,
+        Map<String, File> fileMap, boolean includeDirectories, List<Pattern> parentIgnorePatternList)
     {
-        List ignorePatternList = buildIgnoreRegexpList(directory, parentIgnorePatternList);
+        List<Pattern> ignorePatternList = buildIgnoreRegexpList(directory, parentIgnorePatternList);
 
         File children[] = directory.listFiles();
         for (int i = 0; children != null && i < children.length; i++) {
             if (!isIgnored(ignorePatternList, children[i])) {
-                if (!children[i].isDirectory() || includeDirectories) {
+                if (children[i].isDirectory() && includeDirectories) {
+                    fileMap.put(
+                        fileKeyPrefix + children[i].getName() + Constants.FILE_PATH_DELIM,
+                        children[i]);
+                } else if (!children[i].isDirectory()) {
                     fileMap.put(fileKeyPrefix + children[i].getName(), children[i]);
                 }
                 if (children[i].isDirectory()) {
-                    buildFileMapImpl(children[i], fileKeyPrefix + children[i].getName() + "/",
+                    buildFileMapImpl(
+                        children[i], fileKeyPrefix + children[i].getName() + Constants.FILE_PATH_DELIM,
                         fileMap, includeDirectories, ignorePatternList);
                 }
             }
@@ -447,12 +459,14 @@ public class FileComparer {
      *
      * @throws S3ServiceException
      */
-    public S3Object[] listObjectsThreaded(S3Service s3Service,
+    public StorageObject[] listObjectsThreaded(S3Service s3Service,
         final String bucketName, String targetPath, final String delimiter, int toDepth)
         throws S3ServiceException
     {
-        final List allObjects = Collections.synchronizedList(new ArrayList());
-        final List lastCommonPrefixes = Collections.synchronizedList(new ArrayList());
+        final List<StorageObject> allObjects =
+            Collections.synchronizedList(new ArrayList<StorageObject>());
+        final List<String> lastCommonPrefixes =
+            Collections.synchronizedList(new ArrayList<String>());
         final S3ServiceException s3ServiceExceptions[] = new S3ServiceException[1];
 
         /*
@@ -463,9 +477,9 @@ public class FileComparer {
             @Override
             public void s3ServiceEventPerformed(ListObjectsEvent event) {
                 if (ListObjectsEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
-                    Iterator chunkIter = event.getChunkList().iterator();
+                    Iterator<S3ObjectsChunk> chunkIter = event.getChunkList().iterator();
                     while (chunkIter.hasNext()) {
-                        S3ObjectsChunk chunk = (S3ObjectsChunk) chunkIter.next();
+                        S3ObjectsChunk chunk = chunkIter.next();
 
                         if (log.isDebugEnabled()) {
                             log.debug("Listed " + chunk.getObjects().length
@@ -521,13 +535,13 @@ public class FileComparer {
 
             // We use the common prefix paths identified in the last listing
             // iteration, if any, to identify partitions for follow-up listings.
-            prefixesToList = (String[]) lastCommonPrefixes
+            prefixesToList = lastCommonPrefixes
                 .toArray(new String[lastCommonPrefixes.size()]);
 
             currentDepth++;
         }
 
-        return (S3Object[]) allObjects.toArray(new S3Object[allObjects.size()]);
+        return allObjects.toArray(new S3Object[allObjects.size()]);
     }
 
 
@@ -564,7 +578,7 @@ public class FileComparer {
      *
      * @throws S3ServiceException
      */
-    public S3Object[] listObjectsThreaded(S3Service s3Service,
+    public StorageObject[] listObjectsThreaded(S3Service s3Service,
         final String bucketName, String targetPath) throws S3ServiceException
     {
         String delimiter = null;
@@ -605,12 +619,12 @@ public class FileComparer {
      * mapping of keys/S3Objects
      * @throws S3ServiceException
      */
-    public Map buildS3ObjectMap(S3Service s3Service, S3Bucket bucket, String targetPath,
-        boolean skipMetadata, S3ServiceEventListener s3ServiceEventListener)
+    public Map<String, StorageObject> buildS3ObjectMap(S3Service s3Service, S3Bucket bucket,
+        String targetPath, boolean skipMetadata, S3ServiceEventListener s3ServiceEventListener)
         throws S3ServiceException
     {
         String prefix = (targetPath.length() > 0 ? targetPath : null);
-        S3Object[] s3ObjectsIncomplete = this.listObjectsThreaded(
+        StorageObject[] s3ObjectsIncomplete = this.listObjectsThreaded(
             s3Service, bucket.getName(), prefix);
         return buildS3ObjectMap(s3Service, bucket, targetPath, s3ObjectsIncomplete,
             skipMetadata, s3ServiceEventListener);
@@ -653,7 +667,7 @@ public class FileComparer {
         throws S3ServiceException
     {
         String prefix = (targetPath.length() > 0 ? targetPath : null);
-        S3Object[] objects = null;
+        StorageObject[] objects = null;
         String resultPriorLastKey = null;
         if (completeListing) {
             objects = listObjectsThreaded(s3Service, bucket.getName(), prefix);
@@ -665,7 +679,7 @@ public class FileComparer {
             resultPriorLastKey = chunk.getPriorLastKey();
         }
 
-        Map objectsMap = buildS3ObjectMap(s3Service, bucket, targetPath,
+        Map<String, StorageObject> objectsMap = buildS3ObjectMap(s3Service, bucket, targetPath,
             objects, skipMetadata, s3ServiceEventListener);
         return new PartialObjectListing(objectsMap, resultPriorLastKey);
     }
@@ -687,18 +701,19 @@ public class FileComparer {
      * mapping of keys/S3Objects
      * @throws S3ServiceException
      */
-    public Map buildS3ObjectMap(S3Service s3Service, S3Bucket bucket,  String targetPath,
-        S3Object[] s3ObjectsIncomplete, boolean skipMetadata,
+    public Map<String, StorageObject> buildS3ObjectMap(S3Service s3Service, S3Bucket bucket,
+        String targetPath, StorageObject[] s3ObjectsIncomplete, boolean skipMetadata,
         S3ServiceEventListener s3ServiceEventListener)
         throws S3ServiceException
     {
-        S3Object[] s3Objects = null;
+        StorageObject[] s3Objects = null;
 
         if (skipMetadata) {
             s3Objects = s3ObjectsIncomplete;
         } else {
             // Retrieve the complete information about all objects listed via GetObjectsHeads.
-            final ArrayList s3ObjectsCompleteList = new ArrayList(s3ObjectsIncomplete.length);
+            final List<StorageObject> s3ObjectsCompleteList =
+                new ArrayList<StorageObject>(s3ObjectsIncomplete.length);
             final S3ServiceException s3ServiceExceptions[] = new S3ServiceException[1];
             S3ServiceMulti s3ServiceMulti = new S3ServiceMulti(s3Service, new S3ServiceEventAdaptor() {
                 @Override
@@ -718,11 +733,11 @@ public class FileComparer {
             if (s3ServiceEventListener != null) {
                 s3ServiceMulti.addServiceEventListener(s3ServiceEventListener);
             }
-            s3ServiceMulti.getObjectsHeads(bucket, s3ObjectsIncomplete);
+            s3ServiceMulti.getObjectsHeads(bucket, S3Object.cast(s3ObjectsIncomplete));
             if (s3ServiceExceptions[0] != null) {
                 throw s3ServiceExceptions[0];
             }
-            s3Objects = (S3Object[]) s3ObjectsCompleteList
+            s3Objects = s3ObjectsCompleteList
                 .toArray(new S3Object[s3ObjectsCompleteList.size()]);
         }
 
@@ -738,8 +753,8 @@ public class FileComparer {
      * @return
      * a map of key/S3Object pairs.
      */
-    public Map populateS3ObjectMap(String targetPath, S3Object[] s3Objects) {
-        HashMap map = new HashMap();
+    public Map<String, StorageObject> populateS3ObjectMap(String targetPath, StorageObject[] s3Objects) {
+        Map<String, StorageObject> map = new HashMap<String, StorageObject>();
         for (int i = 0; i < s3Objects.length; i++) {
             String relativeKey = s3Objects[i].getKey();
             if (targetPath.length() > 0) {
@@ -786,7 +801,8 @@ public class FileComparer {
      * @throws IOException
      * @throws ParseException
      */
-    public FileComparerResults buildDiscrepancyLists(Map filesMap, Map s3ObjectsMap)
+    public FileComparerResults buildDiscrepancyLists(Map<String, File> filesMap,
+        Map<String, StorageObject> s3ObjectsMap)
         throws NoSuchAlgorithmException, FileNotFoundException, IOException, ParseException
     {
         return buildDiscrepancyLists(filesMap, s3ObjectsMap, null);
@@ -812,15 +828,16 @@ public class FileComparer {
      * @throws IOException
      * @throws ParseException
      */
-    public FileComparerResults buildDiscrepancyLists(Map filesMap, Map s3ObjectsMap,
-        BytesProgressWatcher progressWatcher)
+    public FileComparerResults buildDiscrepancyLists(Map<String, File> filesMap,
+        Map<String, StorageObject> s3ObjectsMap, BytesProgressWatcher progressWatcher)
         throws NoSuchAlgorithmException, FileNotFoundException, IOException, ParseException
     {
-        Set onlyOnServerKeys = new HashSet();
-        Set updatedOnServerKeys = new HashSet();
-        Set updatedOnClientKeys = new HashSet();
-        Set alreadySynchronisedKeys = new HashSet();
-        Set onlyOnClientKeys = new HashSet();
+        Set<String> onlyOnServerKeys = new HashSet<String>();
+        Set<String> updatedOnServerKeys = new HashSet<String>();
+        Set<String> updatedOnClientKeys = new HashSet<String>();
+        Set<String> alreadySynchronisedKeys = new HashSet<String>();
+        Set<String> onlyOnClientKeys = new HashSet<String>();
+        Set<String> alreadySynchronisedLocalPaths = new HashSet<String>();
 
         // Read property settings for file comparison.
         boolean useMd5Files = jets3tProperties
@@ -842,245 +859,205 @@ public class FileComparer {
         }
 
         // Check files on server against local client files.
-        Iterator s3ObjectsMapIter = s3ObjectsMap.entrySet().iterator();
+        Iterator<Map.Entry<String, StorageObject>> s3ObjectsMapIter = s3ObjectsMap.entrySet().iterator();
         while (s3ObjectsMapIter.hasNext()) {
-            Map.Entry entry = (Map.Entry) s3ObjectsMapIter.next();
-            String keyPath = (String) entry.getKey();
-            S3Object s3Object = (S3Object) entry.getValue();
+            Map.Entry<String, StorageObject> entry = s3ObjectsMapIter.next();
+            String keyPath = entry.getKey();
+            StorageObject storageObject = entry.getValue();
 
-            // A special-case check to identify objects created by Panic's
-            // Transmit application that serve as directory placehoders -
-            // a similar concept to the placeholders JetS3t uses but sadly
-            // these look different.
-            if (keyPath.endsWith("/")
-                && s3Object.getContentLength() == 0
-                && "binary/octet-stream".equals(s3Object.getContentType()))
-            {
-                boolean ignorePanicDirPlaceholders =
-                    jets3tProperties.getBoolProperty(
-                        "filecomparer.ignore-panic-dir-placeholders", true);
+            for (String localPath: splitFilePathIntoDirPaths(storageObject)) {
+                // Check whether local file is already on server
+                if (filesMap.containsKey(localPath)) {
+                    // File has been backed up in the past, is it still up-to-date?
+                    File file = filesMap.get(localPath);
 
-                if (ignorePanicDirPlaceholders) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Ignoring object that looks like a directory " +
-                        "placeholder created by Panic's Transmit application: " + keyPath);
-                    }
-                    // Convert placeholder object into something JetS3t tools will recognize.
-                    String originalKey = s3Object.getKey();
-                    s3Object.setKey(originalKey.substring(0, originalKey.length()-1));
-                    s3Object.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
-                    alreadySynchronisedKeys.add(s3Object.getKey());
-                    continue;
-                } else {
-                    if (log.isWarnEnabled()) {
-                        log.warn("Identified an object that looks like a directory " +
-                        "placeholder created by Panic's Transmit application. " +
-                        "If this object was indeed created by Transmit, it will not " +
-                        "be handled properly unless the JetS3t property " +
-                        "\"filecomparer.ignore-panic-dir-placeholders\" is set to " +
-                        "true. " + s3Object);
-                    }
-                }
-            }
-
-            // Another special-case check, this time for directory placeholder objects
-            // created by the S3 Organizer Firefox extension.
-            if (keyPath.endsWith("_$folder$") && s3Object.getContentLength() == 0) {
-                boolean ignoreS3FoxDirPlaceholders =
-                    jets3tProperties.getBoolProperty(
-                        "filecomparer.ignore-s3organizer-dir-placeholders", true);
-
-                if (ignoreS3FoxDirPlaceholders) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Ignoring object that looks like a directory " +
-                        "placeholder created by the S3 Organizer Firefox add-on: " + keyPath);
-                    }
-                    // Convert placeholder object into something JetS3t tools will recognize.
-                    String originalKey = s3Object.getKey();
-                    int suffixPos = originalKey.indexOf("_$");
-                    s3Object.setKey(originalKey.substring(0, suffixPos));
-                    s3Object.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
-                    alreadySynchronisedKeys.add(s3Object.getKey());
-                    continue;
-                } else {
-                    if (log.isWarnEnabled()) {
-                        log.warn("Identified an object that looks like a directory " +
-                        "placeholder created by the S3 Organizer Firefox add-on. " +
-                        "If this object was indeed created by S3 Organizer, it will not " +
-                        "be handled properly unless the JetS3t property " +
-                        "\"filecomparer.ignore-s3organizer-dir-placeholders\" is set to " +
-                        "true. " + s3Object);
-                    }
-                }
-            }
-
-            // Check whether local file is already on server
-            if (filesMap.containsKey(keyPath)) {
-                // File has been backed up in the past, is it still up-to-date?
-                File file = (File) filesMap.get(keyPath);
-
-                if (file.isDirectory()) {
-                    // We don't care about directory date changes, as long as it's present.
-                    alreadySynchronisedKeys.add(keyPath);
-                } else {
-                    // Compare file hashes.
-                    byte[] computedHash = null;
-
-                    // Check whether a pre-computed MD5 hash file is available
-                    File computedHashFile = (md5FilesRootDirectory != null
-                        ? new File(md5FilesRootDirectory, keyPath + ".md5")
-                        : new File(file.getPath() + ".md5"));
-                    if (useMd5Files
-                        && computedHashFile.canRead()
-                        && computedHashFile.lastModified() > file.lastModified())
-                    {
-                        BufferedReader br = null;
-                        try {
-                            // A pre-computed MD5 hash file is available, try to read this hash value
-                            br = new BufferedReader(new FileReader(computedHashFile));
-                            computedHash = ServiceUtils.fromHex(br.readLine().split("\\s")[0]);
-                        } catch (Exception e) {
-                            if (log.isWarnEnabled()) {
-                                log.warn("Unable to read hash from computed MD5 file", e);
-                            }
-                        } finally {
-                            if (br != null) {
-                                br.close();
-                            }
-                        }
-                    }
-
-                    if (computedHash == null) {
-                        // A pre-computed hash file was not available, or could not be read.
-                        // Calculate the hash value anew.
-                        InputStream hashInputStream = null;
-                        if (progressWatcher != null) {
-                            hashInputStream = new ProgressMonitoredInputStream( // Report on MD5 hash progress.
-                                new FileInputStream(file), progressWatcher);
-                        } else {
-                            hashInputStream = new FileInputStream(file);
-                        }
-                        computedHash = ServiceUtils.computeMD5Hash(hashInputStream);
-                    }
-
-                    String fileHashAsBase64 = ServiceUtils.toBase64(computedHash);
-
-                    if (generateMd5Files && !file.getName().endsWith(".md5") &&
-                        (!computedHashFile.exists()
-                        || computedHashFile.lastModified() < file.lastModified()))
-                    {
-                        // Create parent directory for new hash file if necessary
-                        File parentDir = computedHashFile.getParentFile();
-                        if (parentDir != null && !parentDir.exists()) {
-                            parentDir.mkdirs();
-                        }
-
-                        // Create or update a pre-computed MD5 hash file.
-                        FileWriter fw = null;
-                        try {
-                            fw = new FileWriter(computedHashFile);
-                            fw.write(ServiceUtils.toHex(computedHash));
-                        } catch (Exception e) {
-                            if (log.isWarnEnabled()) {
-                                log.warn("Unable to write computed MD5 hash to a file", e);
-                            }
-                        } finally {
-                            if (fw != null) {
-                                fw.close();
-                            }
-                        }
-                    }
-
-                    // Get the S3 object's Base64 hash.
-                    String objectHash = null;
-                    if (s3Object.containsMetadata(S3Object.METADATA_HEADER_ORIGINAL_HASH_MD5)) {
-                        // Use the object's *original* hash, as it is an encoded version of a local file.
-                        objectHash = (String) s3Object.getMetadata(
-                            S3Object.METADATA_HEADER_ORIGINAL_HASH_MD5);
-                        if (log.isDebugEnabled()) {
-                            log.debug("Object in S3 is encoded, using the object's original hash value for: "
-                            + s3Object.getKey());
-                        }
-                    } else {
-                        // The object wasn't altered when uploaded, so use its current hash.
-                        objectHash = s3Object.getMd5HashAsBase64();
-                    }
-
-                    if (fileHashAsBase64.equals(objectHash)) {
-                        // Hashes match so file is already synchronised.
+                    if (file.isDirectory()) {
+                        // We don't care about directory date changes, as long as it's present.
                         alreadySynchronisedKeys.add(keyPath);
+                        alreadySynchronisedLocalPaths.add(localPath);
                     } else {
-                        // File is out-of-synch. Check which version has the latest date.
-                        Date s3ObjectLastModified = null;
-                        String metadataLocalFileDate = (String) s3Object.getMetadata(
-                            Constants.METADATA_JETS3T_LOCAL_FILE_DATE);
+                        // Compare file hashes.
+                        byte[] computedHash = null;
 
-                        if (metadataLocalFileDate == null) {
-                            // This is risky as local file times and S3 times don't match!
-                            if (!assumeLocalLatestInMismatch && log.isWarnEnabled()) {
-                                log.warn("Using S3 last modified date as file date. This is not reliable "
-                                + "as the time according to S3 can differ from your local system time. "
-                                + "Please use the metadata item "
-                                + Constants.METADATA_JETS3T_LOCAL_FILE_DATE);
-                            }
-                            s3ObjectLastModified = s3Object.getLastModifiedDate();
-                        } else {
-                            s3ObjectLastModified = ServiceUtils
-                                .parseIso8601Date(metadataLocalFileDate);
-                        }
-                        if (s3ObjectLastModified.getTime() > file.lastModified()) {
-                            updatedOnServerKeys.add(keyPath);
-                        } else if (s3ObjectLastModified.getTime() < file.lastModified()) {
-                            updatedOnClientKeys.add(keyPath);
-                        } else {
-                            // Local file date and S3 object date values match exactly, yet the
-                            // local file has a different hash. This shouldn't ever happen, but
-                            // sometimes does with Excel files.
-                            if (assumeLocalLatestInMismatch) {
+                        // Check whether a pre-computed MD5 hash file is available
+                        File computedHashFile = (md5FilesRootDirectory != null
+                            ? new File(md5FilesRootDirectory, localPath + ".md5")
+                            : new File(file.getPath() + ".md5"));
+                        if (useMd5Files
+                            && computedHashFile.canRead()
+                            && computedHashFile.lastModified() > file.lastModified())
+                        {
+                            BufferedReader br = null;
+                            try {
+                                // A pre-computed MD5 hash file is available, try to read this hash value
+                                br = new BufferedReader(new FileReader(computedHashFile));
+                                computedHash = ServiceUtils.fromHex(br.readLine().split("\\s")[0]);
+                            } catch (Exception e) {
                                 if (log.isWarnEnabled()) {
-                                    log.warn("Backed-up S3Object " + s3Object.getKey()
-                                    + " and local file " + file.getName()
-                                    + " have the same date but different hash values. "
-                                    + "Assuming local file is the latest version.");
+                                    log.warn("Unable to read hash from computed MD5 file", e);
                                 }
+                            } finally {
+                                if (br != null) {
+                                    br.close();
+                                }
+                            }
+                        }
+
+                        if (computedHash == null) {
+                            // A pre-computed hash file was not available, or could not be read.
+                            // Calculate the hash value anew.
+                            InputStream hashInputStream = null;
+                            if (progressWatcher != null) {
+                                hashInputStream = new ProgressMonitoredInputStream( // Report on MD5 hash progress.
+                                    new FileInputStream(file), progressWatcher);
+                            } else {
+                                hashInputStream = new FileInputStream(file);
+                            }
+                            computedHash = ServiceUtils.computeMD5Hash(hashInputStream);
+                        }
+
+                        String fileHashAsBase64 = ServiceUtils.toBase64(computedHash);
+
+                        if (generateMd5Files && !file.getName().endsWith(".md5") &&
+                            (!computedHashFile.exists()
+                            || computedHashFile.lastModified() < file.lastModified()))
+                        {
+                            // Create parent directory for new hash file if necessary
+                            File parentDir = computedHashFile.getParentFile();
+                            if (parentDir != null && !parentDir.exists()) {
+                                parentDir.mkdirs();
+                            }
+
+                            // Create or update a pre-computed MD5 hash file.
+                            FileWriter fw = null;
+                            try {
+                                fw = new FileWriter(computedHashFile);
+                                fw.write(ServiceUtils.toHex(computedHash));
+                            } catch (Exception e) {
+                                if (log.isWarnEnabled()) {
+                                    log.warn("Unable to write computed MD5 hash to a file", e);
+                                }
+                            } finally {
+                                if (fw != null) {
+                                    fw.close();
+                                }
+                            }
+                        }
+
+                        // Get the S3 object's Base64 hash.
+                        String objectHash = null;
+                        if (storageObject.containsMetadata(S3Object.METADATA_HEADER_ORIGINAL_HASH_MD5)) {
+                            // Use the object's *original* hash, as it is an encoded version of a local file.
+                            objectHash = (String) storageObject.getMetadata(
+                                S3Object.METADATA_HEADER_ORIGINAL_HASH_MD5);
+                            if (log.isDebugEnabled()) {
+                                log.debug("Object in S3 is encoded, using the object's original hash value for: "
+                                + storageObject.getKey());
+                            }
+                        } else {
+                            // The object wasn't altered when uploaded, so use its current hash.
+                            objectHash = storageObject.getMd5HashAsBase64();
+                        }
+
+                        if (fileHashAsBase64.equals(objectHash)) {
+                            // Hashes match so file is already synchronised.
+                            alreadySynchronisedKeys.add(keyPath);
+                            alreadySynchronisedLocalPaths.add(localPath);
+                        } else {
+                            // File is out-of-synch. Check which version has the latest date.
+                            Date s3ObjectLastModified = null;
+                            String metadataLocalFileDate = (String) storageObject.getMetadata(
+                                Constants.METADATA_JETS3T_LOCAL_FILE_DATE);
+
+                            if (metadataLocalFileDate == null) {
+                                // This is risky as local file times and S3 times don't match!
+                                if (!assumeLocalLatestInMismatch && log.isWarnEnabled()) {
+                                    log.warn("Using S3 last modified date as file date. This is not reliable "
+                                    + "as the time according to S3 can differ from your local system time. "
+                                    + "Please use the metadata item "
+                                    + Constants.METADATA_JETS3T_LOCAL_FILE_DATE);
+                                }
+                                s3ObjectLastModified = storageObject.getLastModifiedDate();
+                            } else {
+                                s3ObjectLastModified = ServiceUtils
+                                    .parseIso8601Date(metadataLocalFileDate);
+                            }
+                            if (s3ObjectLastModified.getTime() > file.lastModified()) {
+                                updatedOnServerKeys.add(keyPath);
+                            } else if (s3ObjectLastModified.getTime() < file.lastModified()) {
                                 updatedOnClientKeys.add(keyPath);
                             } else {
-                                throw new IOException("Backed-up S3Object " + s3Object.getKey()
-                                    + " and local file " + file.getName()
-                                    + " have the same date but different hash values. "
-                                    + "This shouldn't happen!");
-                            }
+                                // Local file date and S3 object date values match exactly, yet the
+                                // local file has a different hash. This shouldn't ever happen, but
+                                // sometimes does with Excel files.
+                                if (assumeLocalLatestInMismatch) {
+                                    if (log.isWarnEnabled()) {
+                                        log.warn("Backed-up S3Object " + storageObject.getKey()
+                                        + " and local file " + file.getName()
+                                        + " have the same date but different hash values. "
+                                        + "Assuming local file is the latest version.");
+                                    }
+                                    updatedOnClientKeys.add(keyPath);
+                                } else {
+                                    throw new IOException("Backed-up S3Object " + storageObject.getKey()
+                                        + " and local file " + file.getName()
+                                        + " have the same date but different hash values. "
+                                        + "This shouldn't happen!");
+                                }
 
+                            }
                         }
                     }
+                } else {
+                    // File is not in local file system, so it's only on the S3
+                    // server.
+                    onlyOnServerKeys.add(keyPath);
                 }
-            } else {
-                // File is not in local file system, so it's only on the S3
-                // server.
-                onlyOnServerKeys.add(keyPath);
             }
         }
 
         // Any local files not already put into another list only exist locally.
         onlyOnClientKeys.addAll(filesMap.keySet());
         onlyOnClientKeys.removeAll(updatedOnClientKeys);
-        onlyOnClientKeys.removeAll(alreadySynchronisedKeys);
         onlyOnClientKeys.removeAll(updatedOnServerKeys);
+        onlyOnClientKeys.removeAll(alreadySynchronisedKeys);
+        onlyOnClientKeys.removeAll(alreadySynchronisedLocalPaths);
 
         return new FileComparerResults(onlyOnServerKeys, updatedOnServerKeys, updatedOnClientKeys,
-            onlyOnClientKeys, alreadySynchronisedKeys);
+            onlyOnClientKeys, alreadySynchronisedKeys, alreadySynchronisedLocalPaths);
+    }
+
+    private Set<String> splitFilePathIntoDirPaths(StorageObject object) {
+        Set<String> dirPathsSet = new HashSet<String>();
+        String path = null;
+        if (object.isDirectoryPlaceholder()) {
+            path = object.getDirectoryPlaceholderKey();
+        } else {
+            path = object.getKey();
+        }
+        String[] pathComponents = path.split(Constants.FILE_PATH_DELIM);
+        String myPath = "";
+        for (int i = 0; i < pathComponents.length; i++) {
+            String pathComponent = pathComponents[i];
+            myPath = myPath + pathComponent;
+            if (i < pathComponents.length - 1 || object.isDirectoryPlaceholder()) {
+                myPath += Constants.FILE_PATH_DELIM;
+            }
+            dirPathsSet.add(myPath);
+        }
+        return dirPathsSet;
     }
 
     public class PartialObjectListing {
-        private Map objectsMap = null;
+        private Map<String, StorageObject> objectsMap = null;
         private String priorLastKey = null;
 
-        public PartialObjectListing(Map objectsMap, String priorLastKey) {
+        public PartialObjectListing(Map<String, StorageObject> objectsMap, String priorLastKey) {
             this.objectsMap = objectsMap;
             this.priorLastKey = priorLastKey;
         }
 
-        public Map getObjectsMap() {
+        public Map<String, StorageObject> getObjectsMap() {
             return objectsMap;
         }
 

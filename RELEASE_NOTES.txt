@@ -6,10 +6,14 @@ TOOLKIT
 
   * General
 
-- Compatibility with JDK 1.4 is no longer a project goal, any users
-  of Java 1.4 will need to upgrade to continue running JetS3t.
+- No long compatible with JDK 1.4. JDK 1.5+ is now required.
 - Removed antiquated and unsupported SOAP S3 service implementation
   from toolkit.
+- FileComparer tool, and therefore all JetS3t apps, now uses a trailing
+  slash to denote directory placeholder objects in S3 instead of
+  the custom "application/x-directory" content-type. This should
+  improve compatibility with other storage management tools, especially
+  Amazon's AWS Console.
 
   * GoogleStorageService
 

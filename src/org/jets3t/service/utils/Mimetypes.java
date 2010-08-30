@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.StringTokenizer;
 
 import org.apache.commons.logging.Log;
@@ -65,6 +66,10 @@ public class Mimetypes {
      */
     public static final String MIMETYPE_OCTET_STREAM = "application/octet-stream";
     /**
+     * A binary mimetype: binary/octet-stream
+     */
+    public static final String MIMETYPE_BINARY_OCTET_STREAM = "binary/octet-stream";
+    /**
      * The default gzip mimetype: application/x-gzip
      */
     public static final String MIMETYPE_GZIP = "application/x-gzip";
@@ -73,7 +78,9 @@ public class Mimetypes {
     /**
      * A JetS3t-specific mimetype used to indicate that an S3 object actually represents
      * a directory on the local file system.
+     * @deprecated 0.8.0
      */
+    @Deprecated
     public static final String MIMETYPE_JETS3T_DIRECTORY = "application/x-directory";
 
     private static Mimetypes mimetypes = null;
@@ -81,7 +88,7 @@ public class Mimetypes {
     /**
      * Map that stores file extensions as keys, and the corresponding mimetype as values.
      */
-    private HashMap extensionToMimetypeMap = new HashMap();
+    private final Map<String, String> extensionToMimetypeMap = new HashMap<String, String>();
 
     private Mimetypes() {
     }
@@ -174,7 +181,7 @@ public class Mimetypes {
         if (lastPeriodIndex > 0 && lastPeriodIndex + 1 < fileName.length()) {
             String ext = fileName.substring(lastPeriodIndex + 1);
             if (extensionToMimetypeMap.keySet().contains(ext)) {
-                String mimetype = (String) extensionToMimetypeMap.get(ext);
+                String mimetype = extensionToMimetypeMap.get(ext);
                 if (log.isDebugEnabled()) {
                     log.debug("Recognised extension '" + ext + "', mimetype is: '" + mimetype + "'");
                 }

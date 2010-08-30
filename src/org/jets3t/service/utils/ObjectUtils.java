@@ -37,6 +37,7 @@ import org.jets3t.service.io.GZipDeflatingInputStream;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.io.TempFile;
 import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.multithread.DownloadPackage;
 import org.jets3t.service.security.EncryptionUtil;
 
@@ -56,14 +57,14 @@ public class ObjectUtils {
      * <p>
      * The file will have the following metadata items added:
      * <ul>
-     * <li><i>Constants.METADATA_JETS3T_LOCAL_FILE_DATE</i> : The local file's last modified date
+     * <li>{@link Constants#METADATA_JETS3T_LOCAL_FILE_DATE}: The local file's last modified date
      *     in ISO 8601 format</li>
      * <li><tt>Content-Type</tt> : A content type guessed from the file's extension, or
-     *     </i>Mimetypes.MIMETYPE_JETS3T_DIRECTORY</i> if the file is a directory</li>
+     *     {@link Mimetypes#MIMETYPE_BINARY_OCTET_STREAM} if the file is a directory</li>
      * <li><tt>Content-Length</tt> : The size of the file</li>
      * <li><tt>MD5-Hash</tt> : An MD5 hash of the file's data</li>
-     * <li><i>S3Object.METADATA_HEADER_ORIGINAL_HASH_MD5</i> : An MD5 hash of the original file's
-     *     data (added if gzipping or encryption is applied)</li>
+     * <li>{@link StorageObject#METADATA_HEADER_ORIGINAL_HASH_MD5}: An MD5 hash of the
+     *     original file's data (added if gzipping or encryption is applied)</li>
      * </ul>
      *
      * @param objectKey
@@ -86,7 +87,8 @@ public class ObjectUtils {
      * exceptions could include IO failures, gzipping and encryption failures.
      */
     public static S3Object createObjectForUpload(String objectKey, File dataFile,
-        EncryptionUtil encryptionUtil, boolean gzipFile, BytesProgressWatcher progressWatcher) throws Exception
+        EncryptionUtil encryptionUtil, boolean gzipFile, BytesProgressWatcher progressWatcher)
+        throws Exception
     {
         S3Object s3Object = new S3Object(objectKey);
 
@@ -98,7 +100,7 @@ public class ObjectUtils {
 
         if (dataFile.isDirectory()) {
             s3Object.setContentLength(0);
-            s3Object.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
+            s3Object.setContentType(Mimetypes.MIMETYPE_BINARY_OCTET_STREAM);
         } else {
             s3Object.setContentType(Mimetypes.getInstance().getMimetype(dataFile));
             File uploadFile = transformUploadFile(dataFile, s3Object, encryptionUtil,
@@ -135,13 +137,13 @@ public class ObjectUtils {
      * <p>
      * The file will have the following metadata items added:
      * <ul>
-     * <li><i>Constants.METADATA_JETS3T_LOCAL_FILE_DATE</i> : The local file's last modified date
+     * <li>{@link Constants#METADATA_JETS3T_LOCAL_FILE_DATE}: The local file's last modified date
      *     in ISO 8601 format</li>
      * <li><tt>Content-Type</tt> : A content type guessed from the file's extension, or
-     *     </i>Mimetypes.MIMETYPE_JETS3T_DIRECTORY</i> if the file is a directory</li>
+     *     {@link Mimetypes#MIMETYPE_BINARY_OCTET_STREAM} if the file is a directory</li>
      * <li><tt>Content-Length</tt> : The size of the file</li>
      * <li><tt>MD5-Hash</tt> : An MD5 hash of the file's data</li>
-     * <li><i>S3Object.METADATA_HEADER_ORIGINAL_HASH_MD5</i> : An MD5 hash of the original file's
+     * <li>{@link StorageObject#METADATA_HEADER_ORIGINAL_HASH_MD5}: An MD5 hash of the original file's
      *     data (added if gzipping or encryption is applied)</li>
      * </ul>
      *
@@ -290,9 +292,11 @@ public class ObjectUtils {
     public static DownloadPackage createPackageForDownload(S3Object object, File fileTarget,
         boolean automaticUnzip, boolean automaticDecrypt, String encryptionPassword) throws Exception
     {
-        if (Mimetypes.MIMETYPE_JETS3T_DIRECTORY.equals(object.getContentType())) {
+        // Recognize directory place-holder objects and ignore them
+        if (object.isDirectoryPlaceholder()) {
             return null;
-        } else {
+        }
+        else {
             boolean isZipped = false;
             EncryptionUtil encryptionUtil = null;
 

@@ -290,7 +290,7 @@ public class Synchronize {
      * <li>The object's key name</li>
      * <li>Content-Length: The size of the uploaded file. This will be 0 for directories, and will
      *     differ from the original file if gzip or encryption options are set.</li>
-     * <li>Content-Type: {@link Mimetypes#MIMETYPE_JETS3T_DIRECTORY} for directories, otherwise a
+     * <li>Content-Type: {@link Mimetypes#MIMETYPE_BINARY_OCTET_STREAM} for directories, otherwise a
      *     mimetype determined by {@link Mimetypes#getMimetype} <b>unless</b> the gzip option is
      *     set, in which case the Content-Type is set to application/x-gzip.
      * </ul>
@@ -398,7 +398,9 @@ public class Synchronize {
                 } else if (discrepancyResults.updatedOnClientKeys.contains(relativeKeyPath)) {
                     printOutputLine("U " + targetKey, REPORT_LEVEL_ACTIONS);
                     objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
-                } else if (discrepancyResults.alreadySynchronisedKeys.contains(relativeKeyPath)) {
+                } else if (discrepancyResults.alreadySynchronisedKeys.contains(relativeKeyPath)
+                           || discrepancyResults.alreadySynchronisedLocalPaths.contains(relativeKeyPath))
+                {
                     if (isForce) {
                         printOutputLine("F " + targetKey, REPORT_LEVEL_ACTIONS);
                         objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
@@ -630,7 +632,7 @@ public class Synchronize {
             while (s3KeyIter.hasNext()) {
                 String originalKeyPath = (String) s3KeyIter.next();
                 S3Object s3Object = (S3Object) s3ObjectsMap.get(originalKeyPath);
-                String keyPath = s3Object.getKey();
+                String localPath = s3Object.getKey();
 
                 // If object metadata is not available, skip zero-byte objects as
                 // we cannot tell whether they are directory placeholders or normal
@@ -639,46 +641,47 @@ public class Synchronize {
                     continue;
                 }
 
-                File fileTarget = new File(localDirectory, keyPath);
-
+                File fileTarget = new File(localDirectory, s3Object.getKey());
                 // Create local directories corresponding to objects flagged as dirs.
-                if (Mimetypes.MIMETYPE_JETS3T_DIRECTORY.equals(s3Object.getContentType())) {
+                if (s3Object.isDirectoryPlaceholder()) {
+                    localPath = s3Object.getDirectoryPlaceholderKey();
+                    fileTarget = new File(localDirectory, localPath);
                     if (doAction) {
                         fileTarget.mkdirs();
                     }
                 }
 
-                if (discrepancyResults.onlyOnServerKeys.contains(keyPath)) {
-                    printOutputLine("N " + keyPath, REPORT_LEVEL_ACTIONS);
+                if (discrepancyResults.onlyOnServerKeys.contains(s3Object.getKey())) {
+                    printOutputLine("N " + localPath, REPORT_LEVEL_ACTIONS);
                     DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
                         s3Object, fileTarget, isGzipEnabled, isEncryptionEnabled, cryptoPassword);
                     if (downloadPackage != null) {
                         downloadPackagesList.add(downloadPackage);
                     }
-                } else if (discrepancyResults.updatedOnServerKeys.contains(keyPath)) {
-                    printOutputLine("U " + keyPath, REPORT_LEVEL_ACTIONS);
+                } else if (discrepancyResults.updatedOnServerKeys.contains(s3Object.getKey())) {
+                    printOutputLine("U " + localPath, REPORT_LEVEL_ACTIONS);
                     DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
                         s3Object, fileTarget, isGzipEnabled, isEncryptionEnabled, cryptoPassword);
                     if (downloadPackage != null) {
                         downloadPackagesList.add(downloadPackage);
                     }
-                } else if (discrepancyResults.alreadySynchronisedKeys.contains(keyPath)) {
+                } else if (discrepancyResults.alreadySynchronisedKeys.contains(s3Object.getKey())) {
                     if (isForce) {
-                        printOutputLine("F " + keyPath, REPORT_LEVEL_ACTIONS);
+                        printOutputLine("F " + localPath, REPORT_LEVEL_ACTIONS);
                         DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
                             s3Object, fileTarget, isGzipEnabled, isEncryptionEnabled, cryptoPassword);
                         if (downloadPackage != null) {
                             downloadPackagesList.add(downloadPackage);
                         }
                     } else {
-                        printOutputLine("- " + keyPath, REPORT_LEVEL_ALL);
+                        printOutputLine("- " + localPath, REPORT_LEVEL_ALL);
                     }
-                } else if (discrepancyResults.updatedOnClientKeys.contains(keyPath)) {
+                } else if (discrepancyResults.updatedOnClientKeys.contains(s3Object.getKey())) {
                     // This file has been updated on the client-side.
                     if (isKeepFiles) {
-                        printOutputLine("r " + keyPath, REPORT_LEVEL_DIFFERENCES);
+                        printOutputLine("r " + localPath, REPORT_LEVEL_DIFFERENCES);
                     } else {
-                        printOutputLine("R " + keyPath, REPORT_LEVEL_ACTIONS);
+                        printOutputLine("R " + localPath, REPORT_LEVEL_ACTIONS);
                         DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
                             s3Object, fileTarget, isGzipEnabled, isEncryptionEnabled, cryptoPassword);
                         if (downloadPackage != null) {
@@ -688,7 +691,7 @@ public class Synchronize {
                 } else {
                     // Uh oh, program error here. The safest thing to do is abort!
                     throw new SynchronizeException("Invalid discrepancy comparison details for S3 object "
-                        + keyPath
+                        + localPath
                         + ". Sorry, this is a program error - aborting to keep your data safe");
                 }
             }
@@ -904,7 +907,7 @@ public class Synchronize {
 
         // Compare contents of local directory with contents of S3 path and identify any disrepancies.
         printProgressLine("Listing files in local file system");
-        Map filesMap = null;
+        Map<String, File> filesMap = null;
         if ("UP".equals(actionCommand)) {
             File[] files = (File[]) fileList.toArray(new File[fileList.size()]);
             for (int i = 0; i < files.length; i++) {
@@ -920,7 +923,7 @@ public class Synchronize {
 
         // Calculate total files size.
         final long filesSizeTotal[] = new long[] { 0 };
-        File[] files = (File[]) filesMap.values().toArray(new File[filesMap.size()]);
+        File[] files = filesMap.values().toArray(new File[filesMap.size()]);
         for (int i = 0; i < files.length; i++) {
             filesSizeTotal[0] += files[i].length();
         }

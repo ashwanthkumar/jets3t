@@ -18,15 +18,14 @@
  */
 package org.jets3t.tests;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -42,10 +41,7 @@ import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
-import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
-import org.jets3t.service.model.S3Bucket;
-import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Owner;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
@@ -278,26 +274,8 @@ public abstract class BaseStorageServiceTests extends TestCase {
             } catch (S3ServiceException e) {
             }
 
-            // Update/overwrite object to be a 'directory' object which has a
-            // specific content type and no data.
-            String contentType = Mimetypes.MIMETYPE_JETS3T_DIRECTORY;
-            object.setContentType(contentType);
-            StorageObject directoryObject = service.putObject(bucketName, object);
-            // TODO: Google Storage bug: Content type returned on initial PUT is always "text/html"
-            if (TARGET_SERVICE_GS.equals(getTargetService())) {
-                directoryObject = service.getObject(bucketName, object.getKey());
-            }
-            assertEquals("Unexpected content type", contentType, directoryObject.getContentType());
-
-            // Retrieve object to ensure it was correctly created.
-            directoryObject = service.getObject(bucketName, object.getKey());
-            assertEquals("Unexpected default content type", contentType, directoryObject
-                .getContentType());
-            assertEquals("Unexpected size for 'empty' object", 0, directoryObject.getContentLength());
-            basicObject.closeDataInputStream();
-
             // Update/overwrite object with real data content and some metadata.
-            contentType = "text/plain";
+            String contentType = "text/plain";
             String objectData = "Just some rubbish text to include as data";
             String dataMd5HashAsHex = ServiceUtils.toHex(
                 ServiceUtils.computeMD5Hash(objectData.getBytes()));
@@ -444,6 +422,101 @@ public abstract class BaseStorageServiceTests extends TestCase {
 
         } finally {
             cleanupBucketForTest("testObjectManagement", true);
+        }
+    }
+
+    public void testDirectoryPlaceholderObjects() throws Exception {
+        String bucketName = createBucketForTest("testDirectoryPlaceholderObjects").getName();
+        RestStorageService service = getStorageService(getCredentials());
+
+        try {
+            // Create new-style place-holder object (compatible with Amazon's AWS Console
+            // and Panic's Transmit) -- note trailing slash
+            StorageObject requestObject = buildStorageObject("DirPlaceholderObject/");
+            requestObject.setContentLength(0);
+            requestObject.setContentType(Mimetypes.MIMETYPE_BINARY_OCTET_STREAM);
+            service.putObject(bucketName, requestObject);
+            StorageObject resultObject = service.getObjectDetails(bucketName, requestObject.getKey());
+            assertTrue(resultObject.isDirectoryPlaceholder());
+
+            // Create legacy-style place-holder object (compatible with objects stored using
+            // JetS3t applications prior to version 0.8.0) -- note content type
+            requestObject = buildStorageObject("LegacyDirPlaceholderObject");
+            requestObject.setContentLength(0);
+            requestObject.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
+            service.putObject(bucketName, requestObject);
+            resultObject = service.getObjectDetails(bucketName, requestObject.getKey());
+            assertTrue(resultObject.isDirectoryPlaceholder());
+
+            // Create place-holder object compatible with the S3 Organizer Firefox extension
+            // -- note object name suffix.
+            requestObject = buildStorageObject("S3OrganizerDirPlaceholderObject_$folder$");
+            requestObject.setContentLength(0);
+            service.putObject(bucketName, requestObject);
+            resultObject = service.getObjectDetails(bucketName, requestObject.getKey());
+            assertTrue(resultObject.isDirectoryPlaceholder());
+        } finally {
+            cleanupBucketForTest("testDirectoryPlaceholderObjects", true);
+        }
+    }
+
+    public void testUnicodeData() throws Exception {
+        String bucketName = createBucketForTest("testUnicodeData").getName();
+        RestStorageService service = getStorageService(getCredentials());
+
+        try {
+            // Unicode object name
+            String unicodeText = "テストオブジェクト";
+            StorageObject requestObject = buildStorageObject("1." + unicodeText);
+            service.putObject(bucketName, requestObject);
+            StorageObject resultObject = service.getObjectDetails(bucketName, requestObject.getKey());
+            assertEquals("1." + unicodeText, resultObject.getKey());
+
+            // Unicode data content
+            requestObject = buildStorageObject("2." + unicodeText, unicodeText);
+            service.putObject(bucketName, requestObject);
+            resultObject = service.getObject(bucketName, requestObject.getKey());
+            String data = ServiceUtils.readInputStreamToString(
+                resultObject.getDataInputStream(), "UTF-8");
+            assertEquals(unicodeText, data);
+
+            // Unicode metadata values are not supported
+            requestObject = buildStorageObject("3." + unicodeText);
+            requestObject.addMetadata("testing", unicodeText);
+            try {
+                service.putObject(bucketName, requestObject);
+            } catch (S3ServiceException e) {
+            }
+
+            // Unicode metadata values can be encoded
+            requestObject = buildStorageObject("4." + unicodeText);
+            requestObject.addMetadata("testing", URLEncoder.encode(unicodeText, "UTF-8"));
+            service.putObject(bucketName, requestObject);
+            resultObject = service.getObjectDetails(bucketName, requestObject.getKey());
+            assertEquals(unicodeText, URLDecoder.decode(
+                (String) resultObject.getMetadata("testing"), "UTF-8"));
+
+            // Unicode metadata names are not possible with HTTP
+            requestObject = buildStorageObject("5." + unicodeText);
+            requestObject.addMetadata(unicodeText, "value");
+            try {
+                service.putObject(bucketName, requestObject);
+                fail("Illegal to use non-ASCII characters in HTTP headers");
+            } catch (S3ServiceException e) {
+            }
+
+            // Unicode HTTP headers (via RFC 5987 encoding) -- not working...
+            /*
+            requestObject = buildStorageObject("6." + unicodeText);
+            requestObject.setContentDisposition(
+                "attachment; filename*=UTF-8''" + RestUtils.encodeUrlString(unicodeText + ".txt"));
+            service.putObject(bucketName, requestObject);
+            resultObject = service.getObjectDetails(bucketName, requestObject.getKey());
+            assertEquals(
+                "attachment; filename=" + unicodeText + "", resultObject.getContentDisposition());
+            */
+        } finally {
+            cleanupBucketForTest("testUnicodeData", true);
         }
     }
 
