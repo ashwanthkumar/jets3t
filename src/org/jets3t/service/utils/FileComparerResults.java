@@ -84,4 +84,14 @@ public class FileComparerResults {
         onlyOnServerKeys.removeAll(alreadySynchronisedLocalPaths);
     }
 
+    @Override
+    public String toString() {
+        return "onlyOnServerKeys: " + onlyOnServerKeys
+            + ", updatedOnServerKeys: " + updatedOnServerKeys
+            + ", updatedOnClientKeys: " + updatedOnClientKeys
+            + ", onlyOnClientKeys: " + onlyOnClientKeys
+            + ", alreadySynchronisedKeys: " + alreadySynchronisedKeys
+            + ", alreadySynchronisedLocalPaths: " + alreadySynchronisedLocalPaths;
+    }
+
 }

@@ -590,8 +590,7 @@ public abstract class StorageObject extends BaseStorageItem implements Cloneable
         // Recognize "standard" directory place-holder indications used by
         // Amazon's AWS Console and Panic's Transmit.
         if (this.getKey().endsWith("/")
-            && this.getContentLength() == 0
-            && Mimetypes.MIMETYPE_BINARY_OCTET_STREAM.equals(this.getContentType()))
+            && this.getContentLength() == 0)
         {
             return true;
         }
@@ -609,21 +608,6 @@ public abstract class StorageObject extends BaseStorageItem implements Cloneable
             return true;
         }
         return false;
-    }
-
-    public String getDirectoryPlaceholderKey() {
-        if (this.isDirectoryPlaceholder()) {
-            String dirPlaceholderKey = this.getKey();
-            if (dirPlaceholderKey.endsWith("_$folder$")) {
-                int suffixPos = dirPlaceholderKey.indexOf("_$");
-                dirPlaceholderKey = dirPlaceholderKey.substring(0, suffixPos);
-            }
-            if (!dirPlaceholderKey.endsWith(Constants.FILE_PATH_DELIM)) {
-                dirPlaceholderKey = dirPlaceholderKey + Constants.FILE_PATH_DELIM;
-            }
-            return dirPlaceholderKey;
-        }
-        return this.getKey();
     }
 
     /**

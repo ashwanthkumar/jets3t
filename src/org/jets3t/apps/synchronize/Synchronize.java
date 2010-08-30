@@ -630,42 +630,45 @@ public class Synchronize {
             List downloadPackagesList = new ArrayList();
             Iterator s3KeyIter = sortedS3ObjectKeys.iterator();
             while (s3KeyIter.hasNext()) {
-                String originalKeyPath = (String) s3KeyIter.next();
-                S3Object s3Object = (S3Object) s3ObjectsMap.get(originalKeyPath);
-                String localPath = s3Object.getKey();
+                String keyPath = (String) s3KeyIter.next();
+                S3Object s3Object = (S3Object) s3ObjectsMap.get(keyPath);
+                String localPath = keyPath;
 
-                // If object metadata is not available, skip zero-byte objects as
-                // we cannot tell whether they are directory placeholders or normal
-                // files.
-                if (!s3Object.isMetadataComplete() && s3Object.getContentLength() == 0) {
+                // If object metadata is not available, skip zero-byte objects that
+                // are not definitively directory place-holders, since we can't tell
+                // whether they are directory place-holders or normal empty files.
+                if (!s3Object.isMetadataComplete()
+                    && s3Object.getContentLength() == 0
+                    && !s3Object.isDirectoryPlaceholder())
+                {
                     continue;
                 }
 
-                File fileTarget = new File(localDirectory, s3Object.getKey());
+                File fileTarget = new File(localDirectory, keyPath);
                 // Create local directories corresponding to objects flagged as dirs.
                 if (s3Object.isDirectoryPlaceholder()) {
-                    localPath = s3Object.getDirectoryPlaceholderKey();
+                    localPath = ObjectUtils.convertDirPlaceholderKeyNameToDirName(keyPath);
                     fileTarget = new File(localDirectory, localPath);
                     if (doAction) {
                         fileTarget.mkdirs();
                     }
                 }
 
-                if (discrepancyResults.onlyOnServerKeys.contains(s3Object.getKey())) {
+                if (discrepancyResults.onlyOnServerKeys.contains(keyPath)) {
                     printOutputLine("N " + localPath, REPORT_LEVEL_ACTIONS);
                     DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
                         s3Object, fileTarget, isGzipEnabled, isEncryptionEnabled, cryptoPassword);
                     if (downloadPackage != null) {
                         downloadPackagesList.add(downloadPackage);
                     }
-                } else if (discrepancyResults.updatedOnServerKeys.contains(s3Object.getKey())) {
+                } else if (discrepancyResults.updatedOnServerKeys.contains(keyPath)) {
                     printOutputLine("U " + localPath, REPORT_LEVEL_ACTIONS);
                     DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
                         s3Object, fileTarget, isGzipEnabled, isEncryptionEnabled, cryptoPassword);
                     if (downloadPackage != null) {
                         downloadPackagesList.add(downloadPackage);
                     }
-                } else if (discrepancyResults.alreadySynchronisedKeys.contains(s3Object.getKey())) {
+                } else if (discrepancyResults.alreadySynchronisedKeys.contains(keyPath)) {
                     if (isForce) {
                         printOutputLine("F " + localPath, REPORT_LEVEL_ACTIONS);
                         DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
@@ -676,7 +679,7 @@ public class Synchronize {
                     } else {
                         printOutputLine("- " + localPath, REPORT_LEVEL_ALL);
                     }
-                } else if (discrepancyResults.updatedOnClientKeys.contains(s3Object.getKey())) {
+                } else if (discrepancyResults.updatedOnClientKeys.contains(keyPath)) {
                     // This file has been updated on the client-side.
                     if (isKeepFiles) {
                         printOutputLine("r " + localPath, REPORT_LEVEL_DIFFERENCES);

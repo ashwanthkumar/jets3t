@@ -331,4 +331,16 @@ public class ObjectUtils {
         }
     }
 
+    public static String convertDirPlaceholderKeyNameToDirName(String objectKey) {
+        String dirPlaceholderKey = objectKey;
+        if (dirPlaceholderKey.endsWith("_$folder$")) {
+            int suffixPos = dirPlaceholderKey.indexOf("_$");
+            dirPlaceholderKey = dirPlaceholderKey.substring(0, suffixPos);
+        }
+        if (!dirPlaceholderKey.endsWith(Constants.FILE_PATH_DELIM)) {
+            dirPlaceholderKey = dirPlaceholderKey + Constants.FILE_PATH_DELIM;
+        }
+        return dirPlaceholderKey;
+    }
+
 }

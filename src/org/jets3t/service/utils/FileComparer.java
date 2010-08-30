@@ -835,8 +835,8 @@ public class FileComparer {
         Set<String> onlyOnServerKeys = new HashSet<String>();
         Set<String> updatedOnServerKeys = new HashSet<String>();
         Set<String> updatedOnClientKeys = new HashSet<String>();
-        Set<String> alreadySynchronisedKeys = new HashSet<String>();
         Set<String> onlyOnClientKeys = new HashSet<String>();
+        Set<String> alreadySynchronisedKeys = new HashSet<String>();
         Set<String> alreadySynchronisedLocalPaths = new HashSet<String>();
 
         // Read property settings for file comparison.
@@ -865,7 +865,8 @@ public class FileComparer {
             String keyPath = entry.getKey();
             StorageObject storageObject = entry.getValue();
 
-            for (String localPath: splitFilePathIntoDirPaths(storageObject)) {
+            for (String localPath: splitFilePathIntoDirPaths(keyPath, storageObject.isDirectoryPlaceholder()))
+            {
                 // Check whether local file is already on server
                 if (filesMap.containsKey(localPath)) {
                     // File has been backed up in the past, is it still up-to-date?
@@ -1027,20 +1028,14 @@ public class FileComparer {
             onlyOnClientKeys, alreadySynchronisedKeys, alreadySynchronisedLocalPaths);
     }
 
-    private Set<String> splitFilePathIntoDirPaths(StorageObject object) {
+    private Set<String> splitFilePathIntoDirPaths(String path, boolean isDirectoryPlaceholder) {
         Set<String> dirPathsSet = new HashSet<String>();
-        String path = null;
-        if (object.isDirectoryPlaceholder()) {
-            path = object.getDirectoryPlaceholderKey();
-        } else {
-            path = object.getKey();
-        }
         String[] pathComponents = path.split(Constants.FILE_PATH_DELIM);
         String myPath = "";
         for (int i = 0; i < pathComponents.length; i++) {
             String pathComponent = pathComponents[i];
             myPath = myPath + pathComponent;
-            if (i < pathComponents.length - 1 || object.isDirectoryPlaceholder()) {
+            if (i < pathComponents.length - 1 || isDirectoryPlaceholder) {
                 myPath += Constants.FILE_PATH_DELIM;
             }
             dirPathsSet.add(myPath);
