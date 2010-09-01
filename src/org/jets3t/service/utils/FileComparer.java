@@ -27,6 +27,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.NoSuchAlgorithmException;
+import java.text.Normalizer;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -270,6 +271,24 @@ public class FileComparer {
     }
 
     /**
+     * Normalize string into "Normalization Form Canonical Decomposition" (NFD).
+     *
+     * References:
+     * http://stackoverflow.com/questions/3610013
+     * http://en.wikipedia.org/wiki/Unicode_equivalence
+     *
+     * @param str
+     * @return string normalized into NFC form.
+     */
+    protected String normalizeUnicode(String str) {
+        Normalizer.Form form = Normalizer.Form.NFD;
+        if (!Normalizer.isNormalized(str, form)) {
+            return Normalizer.normalize(str, form);
+        }
+        return str;
+    }
+
+    /**
      * Builds a File Map containing the given files. If any of the given files are actually
      * directories, the contents of the directory are included.
      * <p>
@@ -314,12 +333,12 @@ public class FileComparer {
                     continue;
                 }
                 if (!file.isDirectory()) {
-                    fileMap.put(file.getName(), file);
+                    fileMap.put(normalizeUnicode(file.getName()), file);
                 }
                 if (file.isDirectory() && includeDirectories) {
-                    fileMap.put(file.getName() + Constants.FILE_PATH_DELIM, file);
-                    buildFileMapImpl(file, file.getName() + Constants.FILE_PATH_DELIM,
-                        fileMap, includeDirectories, ignorePatternList);
+                    String fileName = normalizeUnicode(file.getName() + Constants.FILE_PATH_DELIM);
+                    fileMap.put(fileName, file);
+                    buildFileMapImpl(file, fileName, fileMap, includeDirectories, ignorePatternList);
                 }
             }
         }
@@ -408,16 +427,15 @@ public class FileComparer {
         File children[] = directory.listFiles();
         for (int i = 0; children != null && i < children.length; i++) {
             if (!isIgnored(ignorePatternList, children[i])) {
+                String filePath = normalizeUnicode(fileKeyPrefix + children[i].getName());
                 if (children[i].isDirectory() && includeDirectories) {
-                    fileMap.put(
-                        fileKeyPrefix + children[i].getName() + Constants.FILE_PATH_DELIM,
-                        children[i]);
+                    fileMap.put(filePath + Constants.FILE_PATH_DELIM, children[i]);
                 } else if (!children[i].isDirectory()) {
-                    fileMap.put(fileKeyPrefix + children[i].getName(), children[i]);
+                    fileMap.put(filePath, children[i]);
                 }
                 if (children[i].isDirectory()) {
                     buildFileMapImpl(
-                        children[i], fileKeyPrefix + children[i].getName() + Constants.FILE_PATH_DELIM,
+                        children[i], filePath + Constants.FILE_PATH_DELIM,
                         fileMap, includeDirectories, ignorePatternList);
                 }
             }
@@ -777,7 +795,7 @@ public class FileComparer {
                 }
             }
             if (relativeKey.length() > 0) {
-                map.put(relativeKey, s3Objects[i]);
+                map.put(normalizeUnicode(relativeKey), s3Objects[i]);
             }
         }
         return map;
