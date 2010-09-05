@@ -18,7 +18,6 @@
  */
 package org.jets3t.service.model;
 
-import java.io.Serializable;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -29,7 +28,7 @@ import java.util.Map;
  *
  * @author James Murty
  */
-public abstract class BaseStorageItem implements Serializable {
+public abstract class BaseStorageItem {
 
     /*
      * Standard HTTP metadata/header names.
@@ -79,7 +78,7 @@ public abstract class BaseStorageItem implements Serializable {
 
     /**
      * @return
-     * an <b>immutable</b> map containing all the metadata associated with this S3 object.
+     * an <b>immutable</b> map containing all the metadata associated with this object.
      */
     public Map<String, Object> getMetadataMap() {
         return Collections.unmodifiableMap(metadata);
@@ -132,7 +131,7 @@ public abstract class BaseStorageItem implements Serializable {
     }
 
     /**
-     * Adds an S3Owner metadata item to the object.
+     * Adds an owner metadata item to the object.
      *
      * @param name
      * the metadata item name.
@@ -181,7 +180,7 @@ public abstract class BaseStorageItem implements Serializable {
      * this object's owner, or null if the owner is not available.
      */
     public StorageItemOwner getOwner() {
-        return (S3Owner) getMetadata(METADATA_HEADER_OWNER);
+        return (StorageItemOwner) getMetadata(METADATA_HEADER_OWNER);
     }
 
     /**

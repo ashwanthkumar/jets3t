@@ -1092,11 +1092,11 @@ public abstract class RestStorageService extends StorageService implements AWSRe
 
         HttpMethodBase httpMethod = null;
 
-        // This request may return an XML document that we're not interested in. Clean this up.
         try {
             // Ensure bucket exists and is accessible by performing a HEAD request
             httpMethod = performRestHead(bucketName, null, null, null);
 
+            // This request may return an XML document that we're not interested in. Clean this up.
             if (httpMethod.getResponseBodyAsStream() != null) {
                 httpMethod.getResponseBodyAsStream().close();
             }

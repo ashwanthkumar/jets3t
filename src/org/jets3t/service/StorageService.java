@@ -1189,6 +1189,49 @@ public abstract class StorageService {
     }
 
     /**
+     * Applies access control settings to a bucket. The ACL settings must be included
+     * inside the bucket.
+     *
+     * This method can be performed by anonymous services, but can only succeed if the
+     * bucket's existing ACL already allows write access by the anonymous user.
+     * In general, you can only access the ACL of a bucket if the ACL already in place
+     * for that bucket (in S3) allows you to do so. See
+     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
+     * the S3 documentation on ACLs</a> for more details on access to ACLs.
+     *
+     * @param bucketName
+     * a name of the bucket with ACL settings to apply.
+     * @throws S3ServiceException
+     */
+    public void putBucketAcl(String bucketName, AccessControlList acl) throws S3ServiceException {
+        if (acl == null) {
+            throw new S3ServiceException("The bucket '" + bucketName +
+                "' does not include ACL information");
+        }
+        putBucketAclImpl(bucketName, acl);
+    }
+
+    /**
+     * Applies access control settings to a bucket. The ACL settings must be included
+     * inside the bucket.
+     *
+     * This method can be performed by anonymous services, but can only succeed if the
+     * bucket's existing ACL already allows write access by the anonymous user.
+     * In general, you can only access the ACL of a bucket if the ACL already in place
+     * for that bucket (in S3) allows you to do so. See
+     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
+     * the S3 documentation on ACLs</a> for more details on access to ACLs.
+     *
+     * @param bucket
+     * a bucket with ACL settings to apply.
+     * @throws S3ServiceException
+     */
+    public void putBucketAcl(S3Bucket bucket) throws S3ServiceException {
+        assertValidBucket(bucket, "Put Bucket Access Control List");
+        putBucketAcl(bucket.getName(), bucket.getAcl());
+    }
+
+    /**
      * Retrieves the access control settings of a bucket.
      *
      * This method can be performed by anonymous services, but can only succeed if the

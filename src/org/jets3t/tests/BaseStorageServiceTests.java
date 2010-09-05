@@ -42,8 +42,8 @@ import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
-import org.jets3t.service.model.S3Owner;
 import org.jets3t.service.model.StorageBucket;
+import org.jets3t.service.model.StorageItemOwner;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.Mimetypes;
@@ -550,7 +550,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
 
             // Get ACL details for private object so we can determine the bucket owner.
             AccessControlList bucketACL = service.getBucketAcl(bucketName);
-            S3Owner bucketOwner = bucketACL.getOwner();
+            StorageItemOwner bucketOwner = bucketACL.getOwner();
 
             // TODO: Google Storage bug: GS doesn't support the ALL_USERS public ACL grantee
             if (TARGET_SERVICE_GS.equals(getTargetService())) {

@@ -29,16 +29,13 @@ import javax.xml.transform.TransformerException;
 
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3ServiceException;
-import org.jets3t.service.model.S3Owner;
+import org.jets3t.service.model.StorageItemOwner;
 
 import com.jamesmurty.utils.XMLBuilder;
 
 /**
  * Represents an Amazon S3 Access Control List (ACL), including the ACL's set of grantees and the
  * permissions assigned to each grantee.
- * <p>
- *
- * </p>
  *
  * @author James Murty
  *
@@ -70,7 +67,7 @@ public class AccessControlList implements Serializable {
     public static final AccessControlList REST_CANNED_AUTHENTICATED_READ = new AccessControlList();
 
     protected final HashSet grants = new HashSet();
-    protected S3Owner owner = null;
+    protected StorageItemOwner owner = null;
 
     /**
      * Returns a string representation of the ACL contents, useful for debugging.
@@ -80,11 +77,11 @@ public class AccessControlList implements Serializable {
         return "AccessControlList [owner=" + owner + ", grants=" + getGrantAndPermissions() + "]";
     }
 
-    public S3Owner getOwner() {
+    public StorageItemOwner getOwner() {
         return owner;
     }
 
-    public void setOwner(S3Owner owner) {
+    public void setOwner(StorageItemOwner owner) {
         this.owner = owner;
     }
 
@@ -145,7 +142,7 @@ public class AccessControlList implements Serializable {
         FactoryConfigurationError, TransformerException
     {
         if (owner == null) {
-            throw new S3ServiceException("Invalid AccessControlList: missing an S3Owner");
+            throw new S3ServiceException("Invalid AccessControlList: missing an owner");
         }
         XMLBuilder builder = XMLBuilder.create("AccessControlPolicy")
             .attr("xmlns", Constants.XML_NAMESPACE)
@@ -170,7 +167,8 @@ public class AccessControlList implements Serializable {
 
     /**
      * @return
-     * an XML representation of the Access Control List object, suitable to send in a request to S3.
+     * an XML representation of the Access Control List object, suitable to send to
+     * a storage service in the request body.
      */
     public String toXml() throws S3ServiceException {
         try {
