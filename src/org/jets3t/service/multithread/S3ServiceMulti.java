@@ -40,6 +40,7 @@ import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.StorageObjectsChunk;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.io.InterruptableInputStream;
@@ -1833,7 +1834,7 @@ public class S3ServiceMulti {
                     }
                     result = s3Object;
                 } else {
-                    SignedUrlHandler handler = (SignedUrlHandler) s3Service;
+                    SignedUrlHandler handler = s3Service;
                     handler.putObjectAclWithSignedUrl(signedUrl, signedUrlAcl);
                     URL url = new URL(signedUrl);
                     S3Object object = ServiceUtils.buildObjectFromUrl(
@@ -1887,7 +1888,7 @@ public class S3ServiceMulti {
                     object.setAcl(acl);
                     result = object;
                 } else {
-                    SignedUrlHandler handler = (SignedUrlHandler) s3Service;
+                    SignedUrlHandler handler = s3Service;
                     AccessControlList acl = handler.getObjectAclWithSignedUrl(signedAclUrl);
                     URL url = new URL(signedAclUrl);
                     object = ServiceUtils.buildObjectFromUrl(
@@ -1941,7 +1942,7 @@ public class S3ServiceMulti {
                     s3Service.deleteObject(bucket, object.getKey());
                     result = object;
                 } else {
-                    SignedUrlHandler handler = (SignedUrlHandler) s3Service;
+                    SignedUrlHandler handler = s3Service;
                     handler.deleteObjectWithSignedUrl(signedDeleteUrl);
                     URL url = new URL(signedDeleteUrl);
                     result = ServiceUtils.buildObjectFromUrl(
@@ -2070,7 +2071,7 @@ public class S3ServiceMulti {
                 List allCommonPrefixes = new ArrayList();
 
                 do {
-                    S3ObjectsChunk chunk = s3Service.listObjectsChunked(
+                    StorageObjectsChunk chunk = s3Service.listObjectsChunked(
                         bucketName, prefix, delimiter, maxListingLength, priorLastKey);
                     priorLastKey = chunk.getPriorLastKey();
 
@@ -2224,14 +2225,14 @@ public class S3ServiceMulti {
                     if (signedGetOrHeadUrl == null) {
                         result = s3Service.getObjectDetails(bucket, objectKey);
                     } else {
-                        SignedUrlHandler handler = (SignedUrlHandler) s3Service;
+                        SignedUrlHandler handler = s3Service;
                         result = handler.getObjectDetailsWithSignedUrl(signedGetOrHeadUrl);
                     }
                 } else {
                     if (signedGetOrHeadUrl == null) {
                         result = s3Service.getObject(bucket, objectKey);
                     } else {
-                        SignedUrlHandler handler = (SignedUrlHandler) s3Service;
+                        SignedUrlHandler handler = s3Service;
                         result = handler.getObjectWithSignedUrl(signedGetOrHeadUrl);
                     }
                 }
@@ -2293,7 +2294,7 @@ public class S3ServiceMulti {
                 if (!downloadPackage.isSignedDownload()) {
                     object = s3Service.getObject(bucket, objectKey);
                 } else {
-                    SignedUrlHandler handler = (SignedUrlHandler) s3Service;
+                    SignedUrlHandler handler = s3Service;
                     object = handler.getObjectWithSignedUrl(downloadPackage.getSignedUrl());
                 }
 
@@ -2442,7 +2443,7 @@ public class S3ServiceMulti {
                         interruptableInputStream, progressMonitor);
                     signedUrlAndObject.getObject().setDataInputStream(pmInputStream);
                 }
-                SignedUrlHandler signedPutUploader = (SignedUrlHandler) s3Service;
+                SignedUrlHandler signedPutUploader = s3Service;
                 result = signedPutUploader.putObjectWithSignedUrl(
                     signedUrlAndObject.getSignedUrl(), signedUrlAndObject.getObject());
 

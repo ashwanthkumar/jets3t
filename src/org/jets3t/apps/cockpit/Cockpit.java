@@ -120,6 +120,7 @@ import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.StorageObjectsChunk;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.io.BytesProgressWatcher;
@@ -1579,11 +1580,11 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     final ArrayList allObjects = new ArrayList();
                     String priorLastKey = null;
                     do {
-                        S3ObjectsChunk chunk = s3ServiceMulti.getS3Service().listObjectsChunked(
+                        StorageObjectsChunk chunk = s3ServiceMulti.getS3Service().listObjectsChunked(
                             currentSelectedBucket.getName(), prefix, delimiter,
                             BUCKET_LIST_CHUNKING_SIZE, priorLastKey);
 
-                        final S3Object[] objects = chunk.getObjects();
+                        final S3Object[] objects = S3Object.cast(chunk.getObjects());
                         for (int i = 0; i < objects.length; i++) {
                             objects[i].setOwner(currentSelectedBucket.getOwner());
                         }

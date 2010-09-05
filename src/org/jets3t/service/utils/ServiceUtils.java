@@ -273,14 +273,16 @@ public class ServiceUtils {
     }
 
     /**
-     * From a map of metadata returned from a REST Get Object or Get Object Head request, returns a map
+     * From a map of metadata returned from a REST GET or HEAD request, returns a map
      * of metadata with the HTTP-connection-specific metadata items removed.
      *
      * @param metadata
      * @return
      * metadata map with HTTP-connection-specific items removed.
      */
-    public static Map<String, Object> cleanRestMetadataMap(Map<String, Object> metadata) {
+    public static Map<String, Object> cleanRestMetadataMap(
+        Map<String, Object> metadata, String headerPrefix, String metadataPrefix)
+    {
         if (log.isDebugEnabled()) {
             log.debug("Cleaning up REST metadata items");
         }
@@ -292,17 +294,18 @@ public class ServiceUtils {
 
                 // Trim prefixes from keys.
                 String keyStr = (key != null ? key.toString() : "");
-                if (keyStr.startsWith(Constants.REST_METADATA_PREFIX)) {
+                if (keyStr.startsWith(metadataPrefix)) {
                     key = keyStr
-                        .substring(Constants.REST_METADATA_PREFIX.length(), keyStr.length());
+                        .substring(metadataPrefix.length(), keyStr.length());
                     if (log.isDebugEnabled()) {
-                        log.debug("Removed Amazon meatadata header prefix from key: " + keyStr
-                            + "=>" + key);
+                        log.debug("Removed meatadata header prefix "
+                            + headerPrefix + " from key: " + keyStr + "=>" + key);
                     }
-                } else if (keyStr.startsWith(Constants.REST_HEADER_PREFIX)) {
-                    key = keyStr.substring(Constants.REST_HEADER_PREFIX.length(), keyStr.length());
+                } else if (keyStr.startsWith(headerPrefix)) {
+                    key = keyStr.substring(headerPrefix.length(), keyStr.length());
                     if (log.isDebugEnabled()) {
-                        log.debug("Removed Amazon header prefix from key: " + keyStr + "=>" + key);
+                        log.debug("Removed Amazon header prefix "
+                            + headerPrefix + " from key: " + keyStr + "=>" + key);
                     }
                 } else if (RestUtils.HTTP_HEADER_METADATA_NAMES.contains(keyStr.toLowerCase(Locale.getDefault()))) {
                     key = keyStr;

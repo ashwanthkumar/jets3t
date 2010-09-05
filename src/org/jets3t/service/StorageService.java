@@ -630,12 +630,12 @@ public abstract class StorageService {
      * the set of objects contained in a bucket whose keys start with the given prefix.
      * @throws S3ServiceException
      */
-    public S3ObjectsChunk listObjectsChunked(String bucketName, String prefix, String delimiter,
+    public StorageObjectsChunk listObjectsChunked(String bucketName, String prefix, String delimiter,
         long maxListingLength, String priorLastKey) throws S3ServiceException
     {
         MxDelegate.getInstance().registerStorageBucketListEvent(bucketName);
-        S3ObjectsChunk chunk = listObjectsChunkedImpl(bucketName, prefix, delimiter, maxListingLength,
-            priorLastKey, false);
+        StorageObjectsChunk chunk = listObjectsChunkedImpl(
+            bucketName, prefix, delimiter, maxListingLength, priorLastKey, false);
         MxDelegate.getInstance().registerStorageObjectMBean(bucketName, chunk.getObjects());
         return chunk;
     }
@@ -672,12 +672,12 @@ public abstract class StorageService {
      * the set of objects contained in a bucket whose keys start with the given prefix.
      * @throws S3ServiceException
      */
-    public S3ObjectsChunk listObjectsChunked(String bucketName, String prefix, String delimiter,
+    public StorageObjectsChunk listObjectsChunked(String bucketName, String prefix, String delimiter,
         long maxListingLength, String priorLastKey, boolean completeListing) throws S3ServiceException
     {
         MxDelegate.getInstance().registerStorageBucketListEvent(bucketName);
-        S3ObjectsChunk chunk = listObjectsChunkedImpl(bucketName, prefix, delimiter,
-            maxListingLength, priorLastKey, completeListing);
+        StorageObjectsChunk chunk = listObjectsChunkedImpl(
+            bucketName, prefix, delimiter, maxListingLength, priorLastKey, completeListing);
         MxDelegate.getInstance().registerStorageObjectMBean(bucketName, chunk.getObjects());
         return chunk;
     }
@@ -1400,7 +1400,7 @@ public abstract class StorageService {
      * @param completeListing
      * @throws S3ServiceException
      */
-    protected abstract S3ObjectsChunk listObjectsChunkedImpl(String bucketName, String prefix,
+    protected abstract StorageObjectsChunk listObjectsChunkedImpl(String bucketName, String prefix,
         String delimiter, long maxListingLength, String priorLastKey, boolean completeListing)
         throws S3ServiceException;
 

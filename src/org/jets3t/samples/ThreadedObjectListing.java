@@ -26,6 +26,7 @@ import java.util.List;
 import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.StorageObjectsChunk;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.multithread.ListObjectsEvent;
 import org.jets3t.service.multithread.S3ServiceEventAdaptor;
@@ -68,7 +69,8 @@ public class ThreadedObjectListing {
         long startTime = System.currentTimeMillis();
 
         // Find all the objects and common prefixes at the top level.
-        S3ObjectsChunk initialChunk = restService.listObjectsChunked(bucketName, null, delimiter, 1000, null, true);
+        StorageObjectsChunk initialChunk = restService.listObjectsChunked(
+            bucketName, null, delimiter, 1000, null, true);
 
         long totalElapsedTime = System.currentTimeMillis() - startTime;
 
@@ -84,11 +86,12 @@ public class ThreadedObjectListing {
              * ListObjectsEvent notifications and populates a complete object listing.
              */
             final S3ServiceMulti s3Multi = new S3ServiceMulti(restService, new S3ServiceEventAdaptor() {
+                @Override
                 public void s3ServiceEventPerformed(ListObjectsEvent event) {
                     if (ListObjectsEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
                         Iterator chunkIter = event.getChunkList().iterator();
                         while (chunkIter.hasNext()) {
-                            S3ObjectsChunk chunk = (S3ObjectsChunk) chunkIter.next();
+                            StorageObjectsChunk chunk = (StorageObjectsChunk) chunkIter.next();
 
                             System.out.println("Listed " + chunk.getObjects().length
                                 + " objects for sub-listing with prefix: '"
@@ -111,6 +114,7 @@ public class ThreadedObjectListing {
              * will be used as the prefix for a separate listing thread.
              */
             (new Thread() {
+                @Override
                 public void run() {
                     s3Multi.listObjects(bucketName, commonPrefixes, null, 1000);
                 };

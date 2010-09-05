@@ -35,9 +35,9 @@ import java.util.TimeZone;
 import junit.framework.TestCase;
 
 import org.jets3t.service.Constants;
-import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.StorageObjectsChunk;
 import org.jets3t.service.StorageService;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.GroupGrantee;
@@ -658,7 +658,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             int chunkedIterationsCount = 0;
             String priorLastKey = null;
             do {
-                S3ObjectsChunk chunk = service.listObjectsChunked(
+                StorageObjectsChunk chunk = service.listObjectsChunked(
                     bucketName, null, null, 2, priorLastKey);
                 priorLastKey = chunk.getPriorLastKey();
                 chunkedObjectsCount += chunk.getObjects().length;
@@ -670,7 +670,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
                 (objectsList.size() + 1) / 2, chunkedIterationsCount);
 
             // List objects with a prefix and delimiter to check common prefixes.
-            S3ObjectsChunk chunk = service.listObjectsChunked(
+            StorageObjectsChunk chunk = service.listObjectsChunked(
                 bucketName, "dir1/", "/", 100, null);
             assertEquals("Chunked bucket listing with prefix and delimiter retreived incorrect number of objects",
                 3, chunk.getObjects().length);

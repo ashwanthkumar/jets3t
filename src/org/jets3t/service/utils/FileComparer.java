@@ -49,6 +49,7 @@ import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.StorageObjectsChunk;
 import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.model.S3Bucket;
@@ -690,8 +691,8 @@ public class FileComparer {
         if (completeListing) {
             objects = listObjectsThreaded(s3Service, bucket.getName(), prefix);
         } else {
-            S3ObjectsChunk chunk = s3Service.listObjectsChunked(bucket.getName(),
-                prefix, null, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE,
+            StorageObjectsChunk chunk = s3Service.listObjectsChunked(
+                bucket.getName(), prefix, null, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE,
                 priorLastKey, completeListing);
             objects = chunk.getObjects();
             resultPriorLastKey = chunk.getPriorLastKey();

@@ -51,8 +51,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.StorageObjectsChunk;
 import org.jets3t.service.StorageService;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.HttpException;
@@ -1225,14 +1225,14 @@ public abstract class RestStorageService extends StorageService implements AWSRe
     }
 
     @Override
-    protected S3ObjectsChunk listObjectsChunkedImpl(String bucketName, String prefix, String delimiter,
+    protected StorageObjectsChunk listObjectsChunkedImpl(String bucketName, String prefix, String delimiter,
         long maxListingLength, String priorLastKey, boolean completeListing) throws S3ServiceException
     {
         return listObjectsInternal(bucketName, prefix, delimiter,
             maxListingLength, completeListing, priorLastKey, null);
     }
 
-    protected S3ObjectsChunk listObjectsInternal(
+    protected StorageObjectsChunk listObjectsInternal(
         String bucketName, String prefix, String delimiter, long maxListingLength,
         boolean automaticallyMergeChunks, String priorLastKey, String priorLastVersion)
         throws S3ServiceException
@@ -1312,15 +1312,15 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             if (log.isDebugEnabled()) {
                 log.debug("Found " + objects.size() + " objects in total");
             }
-            return new S3ObjectsChunk(
+            return new StorageObjectsChunk(
                 prefix, delimiter,
-                objects.toArray(new S3Object[objects.size()]),
+                objects.toArray(new StorageObject[objects.size()]),
                 commonPrefixes.toArray(new String[commonPrefixes.size()]),
                 null);
         } else {
-            return new S3ObjectsChunk(
+            return new StorageObjectsChunk(
                 prefix, delimiter,
-                objects.toArray(new S3Object[objects.size()]),
+                objects.toArray(new StorageObject[objects.size()]),
                 commonPrefixes.toArray(new String[commonPrefixes.size()]),
                 priorLastKey);
         }
@@ -1617,7 +1617,8 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         map.putAll(metadata); // Keep existing metadata.
         map.putAll(convertHeadersToMap(httpMethod.getResponseHeaders()));
         map.put(StorageObject.METADATA_HEADER_CONTENT_LENGTH, String.valueOf(methodAndByteCount.getByteCount()));
-        map = ServiceUtils.cleanRestMetadataMap(map);
+        map = ServiceUtils.cleanRestMetadataMap(
+            map, this.getRestHeaderPrefix(), this.getRestMetadataPrefix());
 
         if (putNonStandardAcl) {
             if (log.isDebugEnabled()) {
@@ -1739,7 +1740,8 @@ public abstract class RestStorageService extends StorageService implements AWSRe
 
         // Include response headers in result map.
         map.putAll(convertHeadersToMap(methodAndByteCount.getHttpMethod().getResponseHeaders()));
-        map = ServiceUtils.cleanRestMetadataMap(map);
+        map = ServiceUtils.cleanRestMetadataMap(
+            map, this.getRestHeaderPrefix(), this.getRestMetadataPrefix());
 
         if (putNonStandardAcl) {
             if (log.isDebugEnabled()) {
@@ -1840,10 +1842,9 @@ public abstract class RestStorageService extends StorageService implements AWSRe
 
         StorageObject responseObject = newObject();
         responseObject.setKey(objectKey);
-        if (responseObject instanceof S3Object) {
-            ((S3Object)responseObject).setBucketName(bucketName);
-        }
-        responseObject.replaceAllMetadata(ServiceUtils.cleanRestMetadataMap(map));
+        responseObject.setBucketName(bucketName);
+        responseObject.replaceAllMetadata(ServiceUtils.cleanRestMetadataMap(
+            map, this.getRestHeaderPrefix(), this.getRestMetadataPrefix()));
         responseObject.setMetadataComplete(true); // Flag this object as having the complete metadata set.
         if (!headOnly) {
             HttpMethodReleaseInputStream releaseIS = new HttpMethodReleaseInputStream(httpMethod);
@@ -1928,7 +1929,8 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             // Add all metadata returned by S3 to uploaded object.
             Map<String, Object> map = new HashMap<String, Object>();
             map.putAll(convertHeadersToMap(putMethod.getResponseHeaders()));
-            uploadedObject.replaceAllMetadata(ServiceUtils.cleanRestMetadataMap(map));
+            uploadedObject.replaceAllMetadata(ServiceUtils.cleanRestMetadataMap(
+                map, this.getRestHeaderPrefix(), this.getRestMetadataPrefix()));
 
             // Confirm that the data was not corrupted in transit by checking S3's calculated
             // hash value with the locally computed value. This is only necessary if the user
@@ -2107,7 +2109,8 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             throw new S3ServiceException("Unable to determine name of object created with signed PUT", e);
         }
 
-        responseObject.replaceAllMetadata(ServiceUtils.cleanRestMetadataMap(map));
+        responseObject.replaceAllMetadata(ServiceUtils.cleanRestMetadataMap(
+            map, this.getRestHeaderPrefix(), this.getRestMetadataPrefix()));
         responseObject.setMetadataComplete(true); // Flag this object as having the complete metadata set.
         if (!headOnly) {
             HttpMethodReleaseInputStream releaseIS = new HttpMethodReleaseInputStream(httpMethod);
