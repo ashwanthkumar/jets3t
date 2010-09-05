@@ -765,4 +765,20 @@ public abstract class BaseStorageServiceTests extends TestCase {
         }
     }
 
+    public void testIsObjectInBucket() throws Exception {
+        RestStorageService service = getStorageService(getCredentials());
+        StorageBucket bucket = createBucketForTest("testIsObjecInBucket");
+        String bucketName = bucket.getName();
+
+        try {
+            service.putObject(bucketName, buildStorageObject("does-exist"));
+
+            assertTrue(service.isObjectInBucket(bucketName, "does-exist"));
+
+            assertFalse(service.isObjectInBucket(bucketName, "does-not-exist"));
+        } finally {
+            cleanupBucketForTest("testIsObjecInBucket", true);
+        }
+    }
+
 }

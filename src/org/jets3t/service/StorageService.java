@@ -463,7 +463,8 @@ public abstract class StorageService {
         try {
             getObjectDetails(bucketName, objectKey);
         } catch (S3ServiceException e) {
-            if ("NoSuchKey".equals(e.getS3ErrorCode())
+            if (404 == e.getResponseCode()
+                || "NoSuchKey".equals(e.getS3ErrorCode())
                 || "NoSuchBucket".equals(e.getS3ErrorCode()))
             {
                 return false;
