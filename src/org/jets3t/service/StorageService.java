@@ -1317,17 +1317,22 @@ public abstract class StorageService {
     public abstract boolean isBucketAccessible(String bucketName) throws S3ServiceException;
 
     /**
-     * Find out the status of an S3 bucket with the given name. This method is only implemented
-     * in the {@link org.jets3t.service.impl.rest.httpclient.RestS3Service} client.
+     * Find out the status of an S3 bucket with the given name.
      * <p>
-     * <b>Warning!</b> S3 can act strangely when you use this method in some circumstances.
-     * If you check the status of a bucket and find that it does not exist, then create
-     * the bucket, S3 will continue to tell you the bucket does not exists for up to 30
-     * seconds. This problem has something to do with connection caching (I think).
-     * <p>
-     * This S3 quirk makes it a bad idea to use this method to check for a bucket's
+     * <b>Caveats:</b>
+     * <ul>
+     * <li>If someone else owns the bucket but has made it public, this method will
+     * mistakenly return {@link #BUCKET_STATUS__MY_BUCKET}.</li>
+     * <li><p>S3 can act strangely when you use this method in some circumstances.
+     * If you check the status of a bucket and find that it does not exist, then create the
+     * bucket, the service will continue to tell you the bucket does not exists for up to 30
+     * seconds. This problem has something to do with connection caching (I think).</p>
+     * <p>This S3 quirk makes it a bad idea to use this method to check for a bucket's
      * existence before creating that bucket. Use the {@link #getOrCreateBucket(String)}
-     * method for this purpose instead.
+     * method for this purpose instead.</p>
+     * </li>
+     * </ul>
+     * </p>
      *
      * @param bucketName
      * @return

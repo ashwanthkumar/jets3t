@@ -1143,7 +1143,8 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         } catch (S3ServiceException e) {
             if (e.getResponseCode() == 403) {
                 if (log.isDebugEnabled()) {
-                    log.debug("Bucket named '" + bucketName + "' already belongs to another S3 user");
+                    log.debug("Bucket named '" + bucketName + "' exists but is inaccessible, "
+                        + "probably belongs to another user");
                 }
                 return BUCKET_STATUS__ALREADY_CLAIMED;
             } else if (e.getResponseCode() == 404) {

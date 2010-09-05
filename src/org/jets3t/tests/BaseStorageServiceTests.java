@@ -227,7 +227,9 @@ public abstract class BaseStorageServiceTests extends TestCase {
         assertEquals(S3Service.BUCKET_STATUS__DOES_NOT_EXIST, status);
 
         // Bucket is owned by someone else
-        status = service.checkBucketStatus("test");
+        // NOTE: This test will fail if you actually own the "testing" bucket,
+        // or if it is owned by someone else but has been made publicly readable.
+        status = service.checkBucketStatus("testing");
         assertEquals(S3Service.BUCKET_STATUS__ALREADY_CLAIMED, status);
 
         try {
