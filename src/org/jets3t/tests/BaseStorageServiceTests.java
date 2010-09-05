@@ -38,6 +38,7 @@ import org.jets3t.service.Constants;
 import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.StorageService;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
@@ -106,7 +107,24 @@ public abstract class BaseStorageServiceTests extends TestCase {
 
     protected StorageBucket createBucketForTest(String testName) throws Exception {
         String bucketName = getBucketNameForTest(testName);
-        return getStorageService(getCredentials()).createBucket(bucketName);
+        StorageService service = getStorageService(getCredentials());
+        if (!service.isBucketAccessible(bucketName)) {
+            return service.createBucket(bucketName);
+        } else {
+            return service.getBucket(bucketName);
+        }
+    }
+
+    protected void deleteAllObjectsInBucket(String bucketName) {
+        try {
+            RestStorageService service = getStorageService(getCredentials());
+            for (StorageObject o: service.listObjects(bucketName)) {
+                service.deleteObject(bucketName, o.getKey());
+            }
+        } catch (Exception e) {
+            // This shouldn't happen, but if it does don't ruin the test
+            e.printStackTrace();
+        }
     }
 
     protected void cleanupBucketForTest(String testName, boolean deleteAllObjects) {
@@ -115,9 +133,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             String bucketName = getBucketNameForTest(testName);
 
             if (deleteAllObjects) {
-                for (StorageObject o: service.listObjects(bucketName)) {
-                    service.deleteObject(bucketName, o.getKey());
-                }
+                deleteAllObjectsInBucket(bucketName);
             }
 
             service.deleteBucket(bucketName);
