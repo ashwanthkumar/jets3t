@@ -29,25 +29,20 @@ import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.security.EncryptionUtil;
 
 /**
- * A simple container object to associate one of an {@link StorageObject} or a signed URL string
- * with an output file or output stream to which the object's data will be written.
- * <p>
- * This class is used by
- * {@link StorageServiceMulti#downloadObjects(DownloadPackage[])}
- * to download objects.
+ * A simple container object to associate a {@link StorageObject} with an
+ * output file or output stream to which the object's data will be written.
  *
  * @author James Murty
  */
 public class DownloadPackage {
     private static final Log log = LogFactory.getLog(DownloadPackage.class);
 
-    private StorageObject object = null;
-    private String signedUrl = null;
+    protected StorageObject object = null;
 
-    private File outputFile = null;
-    private OutputStream outputStream = null;
-    private boolean isUnzipping = false;
-    private EncryptionUtil encryptionUtil = null;
+    protected File outputFile = null;
+    protected OutputStream outputStream = null;
+    protected boolean isUnzipping = false;
+    protected EncryptionUtil encryptionUtil = null;
 
     private boolean appendToFile = false;
 
@@ -64,15 +59,6 @@ public class DownloadPackage {
         this.encryptionUtil = encryptionUtil;
     }
 
-    public DownloadPackage(String signedUrl, File outputFile, boolean isUnzipping,
-        EncryptionUtil encryptionUtil)
-    {
-        this.signedUrl = signedUrl;
-        this.outputFile = outputFile;
-        this.isUnzipping = isUnzipping;
-        this.encryptionUtil = encryptionUtil;
-    }
-
     public DownloadPackage(StorageObject object, OutputStream outputStream) {
         this(object, outputStream, false, null);
     }
@@ -81,15 +67,6 @@ public class DownloadPackage {
         EncryptionUtil encryptionUtil)
     {
         this.object = object;
-        this.outputStream = outputStream;
-        this.isUnzipping = isUnzipping;
-        this.encryptionUtil = encryptionUtil;
-    }
-
-    public DownloadPackage(String signedUrl, OutputStream outputStream, boolean isUnzipping,
-        EncryptionUtil encryptionUtil)
-    {
-        this.signedUrl = signedUrl;
         this.outputStream = outputStream;
         this.isUnzipping = isUnzipping;
         this.encryptionUtil = encryptionUtil;
@@ -109,18 +86,6 @@ public class DownloadPackage {
      */
     public File getDataFile() {
         return outputFile;
-    }
-
-    public String getSignedUrl() {
-        return signedUrl;
-    }
-
-    public void setSignedUrl(String url) {
-        signedUrl = url;
-    }
-
-    public boolean isSignedDownload() {
-        return signedUrl != null;
     }
 
     public boolean isAppendToFile() {

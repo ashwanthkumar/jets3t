@@ -38,6 +38,22 @@ import org.jets3t.service.security.EncryptionUtil;
 @Deprecated
 public class DownloadPackage extends org.jets3t.service.multi.DownloadPackage {
 
+    private String signedUrl = null;
+
+    public DownloadPackage(String signedUrl, File outputFile, boolean isUnzipping,
+        EncryptionUtil encryptionUtil)
+    {
+        super(null, outputFile, isUnzipping, encryptionUtil);
+        this.signedUrl = signedUrl;
+    }
+
+    public DownloadPackage(String signedUrl, OutputStream outputStream, boolean isUnzipping,
+        EncryptionUtil encryptionUtil)
+    {
+        super(null, outputStream, isUnzipping, encryptionUtil);
+        this.signedUrl = signedUrl;
+    }
+
     public DownloadPackage(S3Object object, File outputFile) {
         this(object, outputFile, false, null);
     }
@@ -46,12 +62,6 @@ public class DownloadPackage extends org.jets3t.service.multi.DownloadPackage {
         EncryptionUtil encryptionUtil)
     {
         super(object, outputFile, isUnzipping, encryptionUtil);
-    }
-
-    public DownloadPackage(String signedUrl, File outputFile, boolean isUnzipping,
-        EncryptionUtil encryptionUtil)
-    {
-        super(signedUrl, outputFile, isUnzipping, encryptionUtil);
     }
 
     public DownloadPackage(S3Object object, OutputStream outputStream) {
@@ -64,10 +74,16 @@ public class DownloadPackage extends org.jets3t.service.multi.DownloadPackage {
         super(object, outputStream, isUnzipping, encryptionUtil);
     }
 
-    public DownloadPackage(String signedUrl, OutputStream outputStream, boolean isUnzipping,
-        EncryptionUtil encryptionUtil)
-    {
-        super(signedUrl, outputStream, isUnzipping, encryptionUtil);
+    public String getSignedUrl() {
+        return signedUrl;
+    }
+
+    public void setSignedUrl(String url) {
+        signedUrl = url;
+    }
+
+    public boolean isSignedDownload() {
+        return signedUrl != null;
     }
 
     @Override
