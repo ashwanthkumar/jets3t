@@ -69,11 +69,8 @@ public class UserByIdGrantee extends CanonicalGrantee {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof UserByIdGrantee) {
-            UserByIdGrantee canonicalGrantee = (UserByIdGrantee) obj;
-            return id.equals(canonicalGrantee.id);
-        }
-        return false;
+        return (obj instanceof UserByIdGrantee
+                && ((UserByIdGrantee)obj).getIdentifier() == this.getIdentifier());
     }
 
     @Override

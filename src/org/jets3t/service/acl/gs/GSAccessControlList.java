@@ -18,7 +18,9 @@
  */
 package org.jets3t.service.acl.gs;
 
-import com.jamesmurty.utils.XMLBuilder;
+import javax.xml.parsers.FactoryConfigurationError;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
 
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.AccessControlList;
@@ -26,11 +28,7 @@ import org.jets3t.service.acl.GrantAndPermission;
 import org.jets3t.service.acl.GranteeInterface;
 import org.jets3t.service.acl.Permission;
 
-import java.util.Iterator;
-
-import javax.xml.parsers.FactoryConfigurationError;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerException;
+import com.jamesmurty.utils.XMLBuilder;
 
 /**
  * Represents a Google Storage Access Control List (ACL), including the ACL's set of grantees and the
@@ -60,20 +58,17 @@ public class GSAccessControlList extends AccessControlList {
         if (owner == null) {
             throw new S3ServiceException("Invalid AccessControlList: missing an S3Owner");
         }
-        XMLBuilder builder = XMLBuilder.create("AccessControlList")
-            .elem("Owner")
-                .elem("ID").text(owner.getId()).up();
+        XMLBuilder builder = XMLBuilder.create("AccessControlList");
 
+        // Owner
+        XMLBuilder ownerBuilder = builder.elem("Owner");
+        ownerBuilder.elem("ID").text(owner.getId()).up();
         if (owner.getDisplayName() != null) {
-          builder.elem("DisplayName").text(owner.getDisplayName()).up();
+            ownerBuilder.elem("Name").text(owner.getDisplayName());
         }
 
-        builder.up();
-
         XMLBuilder accessControlList = builder.elem("Entries");
-        Iterator grantIter = grants.iterator();
-        while (grantIter.hasNext()) {
-            GrantAndPermission gap = (GrantAndPermission) grantIter.next();
+        for (GrantAndPermission gap: grants) {
             GranteeInterface grantee = gap.getGrantee();
             Permission permission = gap.getPermission();
             accessControlList

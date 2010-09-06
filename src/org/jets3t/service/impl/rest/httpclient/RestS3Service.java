@@ -389,15 +389,6 @@ public class RestS3Service extends S3Service {
       return this.jets3tProperties.getBoolProperty("s3service.enable-storage-classes", false);
     }
 
-    /**
-     * @return
-     * instance of the S3-specific AccessControlListHandler
-     */
-    @Override
-    protected AccessControlListHandler getAccessControlListHandler() {
-      return new AccessControlListHandler();
-    }
-
     @Override
     protected BaseVersionOrDeleteMarker[] listVersionedObjectsImpl(String bucketName,
         String prefix, String delimiter, String keyMarker, String versionMarker,

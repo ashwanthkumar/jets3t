@@ -64,11 +64,8 @@ public class UserByEmailAddressGrantee extends CanonicalGrantee {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof UserByEmailAddressGrantee) {
-            UserByEmailAddressGrantee canonicalGrantee = (UserByEmailAddressGrantee) obj;
-            return id.equals(canonicalGrantee.id);
-        }
-        return false;
+        return (obj instanceof UserByEmailAddressGrantee
+                && ((UserByEmailAddressGrantee)obj).getIdentifier() == this.getIdentifier());
     }
 
     @Override

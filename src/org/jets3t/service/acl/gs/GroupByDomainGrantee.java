@@ -58,10 +58,8 @@ public class GroupByDomainGrantee extends GroupGrantee {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof GroupByDomainGrantee) {
-            return id.equals(((GroupByDomainGrantee)obj).id);
-        }
-        return false;
+        return (obj instanceof GroupByDomainGrantee
+                && ((GroupByDomainGrantee)obj).getIdentifier() == this.getIdentifier());
     }
 
     @Override

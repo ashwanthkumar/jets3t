@@ -73,6 +73,11 @@ public class TestRestS3ServiceToGoogleStorage extends BaseStorageServiceTests {
         return new S3Object(name);
     }
 
+    @Override
+    protected AccessControlList buildAccessControlList() {
+        return new AccessControlList();
+    }
+
     /*
      * S3 Features supported by Google Storage
      */
@@ -101,6 +106,5 @@ public class TestRestS3ServiceToGoogleStorage extends BaseStorageServiceTests {
             cleanupBucketForTest("testRestCannedACL");
         }
     }
-
 
 }

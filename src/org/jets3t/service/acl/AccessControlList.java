@@ -21,7 +21,7 @@ package org.jets3t.service.acl;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
+import java.util.List;
 
 import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
@@ -66,7 +66,7 @@ public class AccessControlList implements Serializable {
      */
     public static final AccessControlList REST_CANNED_AUTHENTICATED_READ = new AccessControlList();
 
-    protected final HashSet grants = new HashSet();
+    protected final HashSet<GrantAndPermission> grants = new HashSet<GrantAndPermission>();
     protected StorageItemOwner owner = null;
 
     /**
@@ -83,6 +83,43 @@ public class AccessControlList implements Serializable {
 
     public void setOwner(StorageItemOwner owner) {
         this.owner = owner;
+    }
+
+    /**
+     * @param grantee
+     * @return list of permissions assigned to the given grantee in this ACL
+     */
+    public List<Permission> getPermissionsForGrantee(GranteeInterface grantee) {
+        List<Permission> permissions = new ArrayList<Permission>();
+        for (GrantAndPermission gap: grants) {
+            if (gap.getGrantee().equals(grantee)) {
+                permissions.add(gap.getPermission());
+            }
+        }
+        return permissions;
+    }
+
+    /**
+     * @param permission
+     * @return list of grantees assigned the given permission in this ACL
+     */
+    public List<GranteeInterface> getGranteesWithPermission(Permission permission) {
+        List<GranteeInterface> grantees = new ArrayList<GranteeInterface>();
+        for (GrantAndPermission gap: grants) {
+            if (gap.getPermission().equals(permission)) {
+                grantees.add(gap.getGrantee());
+            }
+        }
+        return grantees;
+    }
+
+    /**
+     * @param grantee
+     * @param permission
+     * @return true if the given grantee has the given permission in this ACL
+     */
+    public boolean hasGranteeAndPermission(GranteeInterface grantee, Permission permission) {
+        return getPermissionsForGrantee(grantee).contains(permission);
     }
 
     /**
@@ -119,9 +156,8 @@ public class AccessControlList implements Serializable {
      *        the grantee to remove from this ACL.
      */
     public void revokeAllPermissions(GranteeInterface grantee) {
-        ArrayList grantsToRemove = new ArrayList();
-        for (Iterator iter = grants.iterator(); iter.hasNext();) {
-            GrantAndPermission gap = (GrantAndPermission) iter.next();
+        List<GrantAndPermission> grantsToRemove = new ArrayList<GrantAndPermission>();
+        for (GrantAndPermission gap: grants) {
             if (gap.getGrantee().equals(grantee)) {
                 grantsToRemove.add(gap);
             }
@@ -134,7 +170,7 @@ public class AccessControlList implements Serializable {
      * the grant and permission collections in this ACL.
      */
     public GrantAndPermission[] getGrantAndPermissions() {
-        return (GrantAndPermission[]) grants.toArray(
+        return grants.toArray(
             new GrantAndPermission[grants.size()]);
     }
 
@@ -152,9 +188,7 @@ public class AccessControlList implements Serializable {
             .up();
 
         XMLBuilder accessControlList = builder.elem("AccessControlList");
-        Iterator grantIter = grants.iterator();
-        while (grantIter.hasNext()) {
-            GrantAndPermission gap = (GrantAndPermission) grantIter.next();
+        for (GrantAndPermission gap: grants) {
             GranteeInterface grantee = gap.getGrantee();
             Permission permission = gap.getPermission();
             accessControlList

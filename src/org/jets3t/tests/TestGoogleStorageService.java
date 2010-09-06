@@ -19,6 +19,8 @@
 package org.jets3t.tests;
 
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.acl.AccessControlList;
+import org.jets3t.service.acl.gs.GSAccessControlList;
 import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
 import org.jets3t.service.model.GSObject;
@@ -64,5 +66,14 @@ public class TestGoogleStorageService extends BaseStorageServiceTests {
     protected StorageObject buildStorageObject(String name) throws Exception {
         return new GSObject(name);
     }
+
+    @Override
+    protected AccessControlList buildAccessControlList() {
+        return new GSAccessControlList();
+    }
+
+    /*
+     * Features specific to Google Storage
+     */
 
 }

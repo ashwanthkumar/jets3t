@@ -241,7 +241,13 @@ public class XmlResponsesSaxParser {
     public AccessControlListHandler parseAccessControlListResponse(InputStream inputStream)
         throws S3ServiceException
     {
-        AccessControlListHandler handler = new AccessControlListHandler();
+        AccessControlListHandler handler = null;
+        if (this.isGoogleStorageMode) {
+            handler = new GSAccessControlListHandler();
+        } else {
+            handler = new AccessControlListHandler();
+        }
+
         return parseAccessControlListResponse(inputStream, handler);
     }
 

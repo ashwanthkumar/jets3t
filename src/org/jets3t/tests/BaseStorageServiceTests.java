@@ -40,8 +40,13 @@ import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.StorageObjectsChunk;
 import org.jets3t.service.StorageService;
 import org.jets3t.service.acl.AccessControlList;
+import org.jets3t.service.acl.CanonicalGrantee;
+import org.jets3t.service.acl.GranteeInterface;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
+import org.jets3t.service.acl.gs.AllUsersGrantee;
+import org.jets3t.service.acl.gs.UserByIdGrantee;
+import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageItemOwner;
@@ -92,6 +97,8 @@ public abstract class BaseStorageServiceTests extends TestCase {
     protected StorageObject buildStorageObject() throws Exception {
         return buildStorageObject(null);
     }
+
+    protected abstract AccessControlList buildAccessControlList();
 
     /**
      * @param testName
@@ -539,8 +546,6 @@ public abstract class BaseStorageServiceTests extends TestCase {
     }
 
     public void testACLManagement() throws Exception {
-        String s3Url = "https://s3.amazonaws.com";
-
         // Access public-readable third-party bucket: jets3t
         RestStorageService anonymousS3Service = getStorageService(null);
         boolean jets3tBucketAvailable = anonymousS3Service.isBucketAccessible("jets3t");
@@ -548,73 +553,100 @@ public abstract class BaseStorageServiceTests extends TestCase {
 
         RestStorageService service = getStorageService(getCredentials());
 
+        // Use Google- or S3-specific URL endpoint to lookup objects, depending on the target service
+        String linkUrlPrefix = null;
+        if (TARGET_SERVICE_GS.equals(getTargetService())) {
+            linkUrlPrefix = "https://commondatastorage.googleapis.com";
+        } else {
+            linkUrlPrefix = "https://s3.amazonaws.com";
+        }
+        // Use Google- or S3-specific ACL elements depending on which service class we're using
+        GranteeInterface allUsersGrantee = null;
+        if (service instanceof GoogleStorageService) {
+            allUsersGrantee = new AllUsersGrantee();
+        } else {
+            allUsersGrantee = GroupGrantee.ALL_USERS;
+        }
+
         StorageBucket bucket = createBucketForTest("testACLManagement");
         String bucketName = bucket.getName();
         StorageObject object = null;
 
         try {
             // Create private object (default permissions).
-            String privateKey = "Private Object #1";
+            String privateKey = "Private Object - " + System.currentTimeMillis();
             object = buildStorageObject(privateKey, "Private object sample text");
             service.putObject(bucketName, object);
-            URL url = new URL(s3Url + "/" + bucketName + "/" + RestUtils.encodeUrlString(privateKey));
-            // TODO: Google Storage bug: Returns 404 for private object?
-            if (TARGET_SERVICE_GS.equals(getTargetService())) {
-                assertEquals(404, ((HttpURLConnection) url.openConnection()).getResponseCode());
-            } else {
-                assertEquals("Expected denied access (403) error", 403, ((HttpURLConnection) url
-                    .openConnection()).getResponseCode());
-            }
+            URL url = new URL(linkUrlPrefix + "/" + bucketName + "/" + RestUtils.encodeUrlString(privateKey));
+            assertEquals("Expected denied access (403) error", 403, ((HttpURLConnection) url
+                .openConnection()).getResponseCode());
 
             // Get ACL details for private object so we can determine the bucket owner.
             AccessControlList bucketACL = service.getBucketAcl(bucketName);
             StorageItemOwner bucketOwner = bucketACL.getOwner();
 
-            // TODO: Google Storage bug: GS doesn't support the ALL_USERS public ACL grantee
-            if (TARGET_SERVICE_GS.equals(getTargetService())) {
-                return;
-            }
-
             // Create a public object.
-            String publicKey = "Public Object #1";
+            String publicKey = "Public Object - " + System.currentTimeMillis();
             object = buildStorageObject(publicKey, "Public object sample text");
-            AccessControlList acl = new AccessControlList();
+            AccessControlList acl = buildAccessControlList();
             acl.setOwner(bucketOwner);
-            acl.grantPermission(GroupGrantee.ALL_USERS, Permission.PERMISSION_READ);
+            acl.grantPermission(allUsersGrantee, Permission.PERMISSION_READ);
+            // TODO: Google Storage quirk: Must *always* explicitly grant owner full control in ACL
+            if (TARGET_SERVICE_GS.equals(getTargetService())) {
+                // Apply S3 or GS ACL object, depending on the service type we're using
+                if (service instanceof GoogleStorageService) {
+                    acl.grantPermission(
+                        new UserByIdGrantee(bucketOwner.getId()), Permission.PERMISSION_FULL_CONTROL);
+                } else {
+                    acl.grantPermission(
+                        new CanonicalGrantee(bucketOwner.getId()), Permission.PERMISSION_FULL_CONTROL);
+                }
+            }
             object.setAcl(acl);
             service.putObject(bucketName, object);
-            url = new URL(s3Url + "/" + bucketName + "/" + RestUtils.encodeUrlString(publicKey));
+            url = new URL(linkUrlPrefix + "/" + bucketName + "/" + RestUtils.encodeUrlString(publicKey));
             assertEquals("Expected access (200)",
                     200, ((HttpURLConnection)url.openConnection()).getResponseCode());
 
             // Update ACL to make private object public.
             AccessControlList privateToPublicACL = service.getObjectAcl(bucketName, privateKey);
-            privateToPublicACL.grantPermission(GroupGrantee.ALL_USERS, Permission.PERMISSION_READ);
+            privateToPublicACL.grantPermission(allUsersGrantee, Permission.PERMISSION_READ);
             object.setKey(privateKey);
             object.setAcl(privateToPublicACL);
             service.putObjectAcl(bucketName, object);
-            url = new URL(s3Url + "/" + bucketName + "/" + RestUtils.encodeUrlString(privateKey));
+            url = new URL(linkUrlPrefix + "/" + bucketName + "/" + RestUtils.encodeUrlString(privateKey));
             assertEquals("Expected access (200)", 200, ((HttpURLConnection) url.openConnection())
                 .getResponseCode());
 
             // Create a non-standard uncanned public object.
-            String publicKey2 = "Public Object #2";
+            String publicKey2 = "Public Object - " + System.currentTimeMillis();
             object = buildStorageObject(publicKey2);
             object.setAcl(privateToPublicACL); // This ACL has ALL_USERS READ permission set above.
             service.putObject(bucketName, object);
-            url = new URL(s3Url + "/" + bucketName + "/" + RestUtils.encodeUrlString(publicKey2));
+            url = new URL(linkUrlPrefix + "/" + bucketName + "/" + RestUtils.encodeUrlString(publicKey2));
             assertEquals("Expected access (200)", 200, ((HttpURLConnection) url.openConnection())
                 .getResponseCode());
 
             // Update ACL to make public object private.
             AccessControlList publicToPrivateACL = service.getObjectAcl(bucketName, publicKey);
-            publicToPrivateACL.revokeAllPermissions(GroupGrantee.ALL_USERS);
+            publicToPrivateACL.revokeAllPermissions(allUsersGrantee);
             object.setKey(publicKey);
             object.setAcl(publicToPrivateACL);
             service.putObjectAcl(bucketName, object);
-            url = new URL(s3Url + "/" + bucketName + "/" + RestUtils.encodeUrlString(publicKey));
-            assertEquals("Expected denied access (403) error", 403, ((HttpURLConnection) url
-                .openConnection()).getResponseCode());
+            // TODO: Google Storage quirk: It may take some time for public object to become private again
+            if (TARGET_SERVICE_GS.equals(getTargetService())) {
+                // Confirm changes were applied on object's ACL, because we don't know
+                // how long to wait until the object will really become private again.
+                AccessControlList updatedAcl = service.getObjectAcl(bucketName, object.getKey());
+                assertFalse(updatedAcl.hasGranteeAndPermission(
+                    allUsersGrantee, Permission.PERMISSION_READ));
+                assertEquals(0, updatedAcl.getPermissionsForGrantee(allUsersGrantee).size());
+            } else {
+                // In S3, objects are made private immediately.
+                url = new URL(linkUrlPrefix + "/" + bucketName + "/" + RestUtils.encodeUrlString(publicKey));
+                assertEquals("Expected denied access (403) error", 403, ((HttpURLConnection) url
+                    .openConnection()).getResponseCode());
+            }
 
             // Clean-up.
             service.deleteObject(bucketName, privateKey);

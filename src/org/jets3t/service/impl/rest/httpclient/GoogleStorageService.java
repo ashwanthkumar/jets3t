@@ -232,15 +232,6 @@ public class GoogleStorageService extends RestStorageService {
       return false;
     }
 
-    /**
-     * @return
-     * instance of the GS-specific AccessControlListHandler
-     */
-    @Override
-    protected AccessControlListHandler getAccessControlListHandler() {
-      return new GSAccessControlListHandler();
-    }
-
     ////////////////////////////////////////////////////////////
     // Methods below this point perform actions in GoogleStorage
     ////////////////////////////////////////////////////////////

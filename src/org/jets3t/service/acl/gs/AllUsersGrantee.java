@@ -49,8 +49,10 @@ public class AllUsersGrantee implements GranteeInterface {
             );
     }
 
+    @Override
     public boolean equals(Object obj) {
-        return (obj instanceof AllUsersGrantee);
+        return (obj instanceof AllUsersGrantee
+                && ((AllUsersGrantee)obj).getIdentifier() == this.getIdentifier());
     }
 
     public void setIdentifier(String id) {
@@ -61,6 +63,7 @@ public class AllUsersGrantee implements GranteeInterface {
         return id;
     }
 
+    @Override
     public String toString() {
         return "AllUsers";
     }

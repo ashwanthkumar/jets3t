@@ -28,7 +28,10 @@ import org.jets3t.service.model.S3Object;
  * call to the method {@link S3Service#listObjectsChunked(String, String, String, long, String)}.
  *
  * @author James Murty
+ *
+ * @deprecated 0.8.0 use {@link StorageObjectsChunk} instead.
  */
+@Deprecated
 public class S3ObjectsChunk extends StorageObjectsChunk {
 
     public S3ObjectsChunk(String prefix, String delimiter, S3Object[] objects,

@@ -27,7 +27,6 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.acl.AccessControlList;
-import org.jets3t.service.impl.rest.AccessControlListHandler;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser;
 import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
 import org.jets3t.service.model.GSBucket;
@@ -1505,5 +1504,5 @@ public abstract class StorageService {
     protected abstract boolean getHttpsOnly();
     protected abstract boolean getDisableDnsBuckets();
     protected abstract boolean getEnableStorageClasses();
-    protected abstract AccessControlListHandler getAccessControlListHandler();
+
 }

@@ -33,7 +33,7 @@ import org.jets3t.service.acl.GroupGrantee;
  *
  */
 public class GroupByIdGrantee extends GroupGrantee {
-    private String id = null;
+    private final String id = null;
 
     public GroupByIdGrantee() {
       super();
@@ -60,10 +60,8 @@ public class GroupByIdGrantee extends GroupGrantee {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof GroupByIdGrantee) {
-            return id.equals(((GroupByIdGrantee)obj).id);
-        }
-        return false;
+        return (obj instanceof GroupByIdGrantee
+                && ((GroupByIdGrantee)obj).getIdentifier() == this.getIdentifier());
     }
 
     @Override
