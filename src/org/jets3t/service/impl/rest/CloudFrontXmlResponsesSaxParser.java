@@ -351,6 +351,7 @@ public class CloudFrontXmlResponsesSaxParser {
         private boolean trustedSignerSelf = false;
         private List trustedSignerAwsAccountNumberList = new ArrayList();
         private List requiredProtocols = new ArrayList();
+        private String defaultRootObject = null;
 
         public DistributionConfig getDistributionConfig() {
             return distributionConfig;
@@ -404,6 +405,10 @@ public class CloudFrontXmlResponsesSaxParser {
             this.requiredProtocols.add(text);
         }
 
+        public void endDefaultRootObject(String text) {
+            this.defaultRootObject = text;
+        }
+
         public void endDistributionConfig(String text) {
             this.distributionConfig = new DistributionConfig(
                 origin, callerReference,
@@ -412,7 +417,8 @@ public class CloudFrontXmlResponsesSaxParser {
                 (String[]) trustedSignerAwsAccountNumberList.toArray(
                     new String[trustedSignerAwsAccountNumberList.size()]),
                 (String[]) requiredProtocols.toArray(
-                    new String[requiredProtocols.size()])
+                    new String[requiredProtocols.size()]),
+                    defaultRootObject
                 );
             returnControlToParentHandler();
         }

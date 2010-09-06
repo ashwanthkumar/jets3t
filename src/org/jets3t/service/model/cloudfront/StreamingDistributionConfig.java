@@ -29,14 +29,14 @@ public class StreamingDistributionConfig extends DistributionConfig {
     {
         super(origin, callerReference, cnames, comment, enabled, loggingStatus,
             originAccessIdentity, trustedSignerSelf, trustedSignerAwsAccountNumbers,
-            requiredProtocols);
+            requiredProtocols, null);
     }
 
     public StreamingDistributionConfig(String origin, String callerReference,
         String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus)
     {
         super(origin, callerReference, cnames, comment, enabled, loggingStatus,
-            null, false, null, null);
+            null, false, null, null, null);
     }
 
 }

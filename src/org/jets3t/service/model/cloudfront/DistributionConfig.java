@@ -37,12 +37,13 @@ public class DistributionConfig {
     private boolean trustedSignerSelf = false;
     private String[] trustedSignerAwsAccountNumbers = new String[0];
     private String[] requiredProtocols = new String[0];
+    private String defaultRootObject = null;
 
     public DistributionConfig(String origin, String callerReference,
         String[] cnames, String comment, boolean enabled,
         LoggingStatus loggingStatus, String originAccessIdentity,
         boolean trustedSignerSelf, String[] trustedSignerAwsAccountNumbers,
-        String[] requiredProtocols)
+        String[] requiredProtocols, String defaultRootObject)
     {
         this.origin = origin;
         this.callerReference = callerReference;
@@ -60,6 +61,7 @@ public class DistributionConfig {
         this.trustedSignerSelf = trustedSignerSelf;
         this.trustedSignerAwsAccountNumbers = trustedSignerAwsAccountNumbers;
         this.requiredProtocols = requiredProtocols;
+        this.defaultRootObject = defaultRootObject;
     }
 
     public DistributionConfig(String origin, String callerReference,
@@ -67,7 +69,7 @@ public class DistributionConfig {
             LoggingStatus loggingStatus)
     {
         this(origin, callerReference, cnames, comment, enabled,
-                loggingStatus, null, false, null, null);
+                loggingStatus, null, false, null, null, null);
     }
 
     public String getOrigin() {
@@ -158,6 +160,10 @@ public class DistributionConfig {
         }
     }
 
+    public String getDefaultRootObject() {
+        return defaultRootObject;
+    }
+
     public String toString() {
         return
             (isStreamingDistributionConfig()
@@ -184,7 +190,8 @@ public class DistributionConfig {
             (getRequiredProtocols() == null || getRequiredProtocols().length == 0
                 ? ""
                 : ", RequiredProtocols=" + Arrays.asList(getRequiredProtocols())) +
-            ", CNAMEs=" + Arrays.asList(cnames);
+            ", CNAMEs=" + Arrays.asList(cnames) +
+                ", DefaultRootObject=" + defaultRootObject;
     }
 
 }

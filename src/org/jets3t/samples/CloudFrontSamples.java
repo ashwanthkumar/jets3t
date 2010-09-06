@@ -92,7 +92,8 @@ public class CloudFrontSamples {
             null, // Origin Access Identity to make distribution private
             false, // URLs self-signing disabled
             null,  // No other AWS users can sign URLs
-            new String[] {"https"} // RequiredProtocols with HTTPS protocol
+            new String[] {"https"}, // RequiredProtocols with HTTPS protocol
+            "index.html" // Default Root Object
         );
         System.out.println("HTTPS only distribution Config: " + updatedDistributionConfig);
 
@@ -166,7 +167,8 @@ public class CloudFrontSamples {
             originAccessIdentityId, // Origin Access Identity to make distribution private
             false, // URLs self-signing disabled
             null,  // No other AWS users can sign URLs
-            null   // No required protocols
+            null,   // No required protocols
+            null // No default root object
         );
         System.out.println("New Private Distribution: " + privateDistribution);
 
@@ -180,8 +182,9 @@ public class CloudFrontSamples {
             originAccessIdentityId, // Origin Access Identity ID
             true, // URLs can be self-signed
             null, // No other AWS users can sign URLs
-            null  // No required protocols
-            );
+            null,  // No required protocols
+            "index.html" //Default Root Object
+        );
         System.out.println("Made distribution private: " + updatedDistributionConfig);
 
 

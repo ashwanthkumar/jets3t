@@ -78,7 +78,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     private static final Log log = LogFactory.getLog(CloudFrontService.class);
 
     public static final String ENDPOINT = "https://cloudfront.amazonaws.com/";
-    public static final String VERSION = "2010-06-01";
+    public static final String VERSION = "2010-07-15";
     public static final String XML_NAMESPACE = "http://cloudfront.amazonaws.com/doc/" + VERSION + "/";
     public static final String DEFAULT_BUCKET_SUFFIX = ".s3.amazonaws.com";
     public static final String ORIGIN_ACCESS_IDENTITY_URI_PATH = "/origin-access-identity/cloudfront";
@@ -524,7 +524,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     protected String buildDistributionConfigXmlDocument(boolean isStreamingDistribution,
         String origin, String callerReference, String[] cnames, String comment, boolean enabled,
         LoggingStatus loggingStatus, String originAccessIdentityId, boolean trustedSignerSelf,
-        String[] trustedSignerAwsAccountNumbers, String[] requiredProtocols)
+        String[] trustedSignerAwsAccountNumbers, String[] requiredProtocols, String defaultRootObject)
         throws TransformerException, ParserConfigurationException, FactoryConfigurationError
     {
         XMLBuilder builder = XMLBuilder.create(
@@ -538,6 +538,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         builder
             .e("Comment").t(comment).up()
             .e("Enabled").t("" + enabled);
+        if (defaultRootObject != null) {
+            builder.e("DefaultRootObject").t(defaultRootObject).up();
+        }
         if (originAccessIdentityId != null) {
             builder.e("OriginAccessIdentity")
                 .t(ORIGIN_ACCESS_IDENTITY_PREFIX + originAccessIdentityId)
@@ -597,7 +600,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         boolean isStreaming, String origin, String callerReference,
         String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus,
         String originAccessIdentityId, boolean trustedSignerSelf,
-        String[] trustedSignerAwsAccountNumbers, String[] requiredProtocols)
+        String[] trustedSignerAwsAccountNumbers, String[] requiredProtocols, String defaultRootObject)
         throws CloudFrontServiceException
     {
         if (log.isDebugEnabled()) {
@@ -625,7 +628,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             String distributionConfigXml = buildDistributionConfigXmlDocument(
                 isStreaming, origin, callerReference, cnames, comment, enabled,
                 loggingStatus, originAccessIdentityId, trustedSignerSelf,
-                trustedSignerAwsAccountNumbers, requiredProtocols);
+                trustedSignerAwsAccountNumbers, requiredProtocols, defaultRootObject);
 
             httpMethod.setRequestEntity(
                 new StringRequestEntity(distributionConfigXml, "text/xml", Constants.DEFAULT_ENCODING));
@@ -697,12 +700,12 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     public Distribution createDistribution(String origin, String callerReference,
         String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus,
         String originAccessIdentityId, boolean trustedSignerSelf,
-        String[] trustedSignerAwsAccountNumbers, String[] requiredProtocols)
+        String[] trustedSignerAwsAccountNumbers, String[] requiredProtocols, String defaultRootObject)
         throws CloudFrontServiceException
     {
         return createDistributionImpl(false, origin, callerReference, cnames, comment,
             enabled, loggingStatus, originAccessIdentityId, trustedSignerSelf,
-            trustedSignerAwsAccountNumbers, requiredProtocols);
+            trustedSignerAwsAccountNumbers, requiredProtocols, defaultRootObject);
     }
 
     /**
@@ -757,7 +760,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         throws CloudFrontServiceException
     {
         return createDistribution(origin, callerReference, cnames, comment, enabled,
-                loggingStatus, null, false, null, null);
+                loggingStatus, null, false, null, null, null);
     }
 
      /**
@@ -781,7 +784,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             config.getLoggingStatus(), config.getOrigin(),
             config.isTrustedSignerSelf(),
             config.getTrustedSignerAwsAccountNumbers(),
-            config.getRequiredProtocols());
+            config.getRequiredProtocols(),
+            config.getDefaultRootObject());
     }
 
     /**
@@ -836,7 +840,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     {
         return (StreamingDistribution) createDistributionImpl(true, origin, callerReference,
             cnames, comment, enabled, loggingStatus, originAccessIdentityId,
-            trustedSignerSelf, trustedSignerAwsAccountNumbers, null);
+            trustedSignerSelf, trustedSignerAwsAccountNumbers, null, null);
     }
 
     /**
@@ -872,7 +876,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         throws CloudFrontServiceException
     {
         return (StreamingDistribution) createDistributionImpl(true, origin, callerReference,
-            cnames, comment, enabled, loggingStatus, null, false, null, null);
+            cnames, comment, enabled, loggingStatus, null, false, null, null, null);
     }
 
     /**
@@ -1045,7 +1049,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         String comment, boolean enabled, LoggingStatus loggingStatus,
         String originAccessIdentityId, boolean trustedSignerSelf,
         String[] trustedSignerAwsAccountNumbers,
-        String[] requiredProtocols)
+        String[] requiredProtocols, String defaultRootObject)
         throws CloudFrontServiceException
     {
         if (log.isDebugEnabled()) {
@@ -1074,7 +1078,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             String distributionConfigXml = buildDistributionConfigXmlDocument(isStreaming,
                     oldConfig.getOrigin(), oldConfig.getCallerReference(), cnames, comment, enabled,
                     loggingStatus, originAccessIdentityId, trustedSignerSelf,
-                    trustedSignerAwsAccountNumbers, requiredProtocols);
+                    trustedSignerAwsAccountNumbers, requiredProtocols, defaultRootObject);
 
             httpMethod.setRequestEntity(
                 new StringRequestEntity(distributionConfigXml, "text/xml", Constants.DEFAULT_ENCODING));
@@ -1153,12 +1157,12 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     public DistributionConfig updateDistributionConfig(String id, String[] cnames,
         String comment, boolean enabled, LoggingStatus loggingStatus,
         String originAccessIdentityId, boolean trustedSignerSelf,
-        String[] trustedSignerAwsAccountNumbers, String[] requiredProtocols)
+        String[] trustedSignerAwsAccountNumbers, String[] requiredProtocols, String defaultRootObject)
         throws CloudFrontServiceException
     {
         return updateDistributionConfigImpl(false, id, cnames, comment, enabled, loggingStatus,
             originAccessIdentityId, trustedSignerSelf, trustedSignerAwsAccountNumbers,
-            requiredProtocols);
+            requiredProtocols, defaultRootObject);
     }
 
     /**
@@ -1198,7 +1202,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         throws CloudFrontServiceException
     {
         return (StreamingDistributionConfig) updateDistributionConfigImpl(
-            true, id, cnames, comment, enabled, loggingStatus, null, false, null, null);
+            true, id, cnames, comment, enabled, loggingStatus, null, false, null, null, null);
     }
 
     /**
@@ -1256,7 +1260,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     {
         return (StreamingDistributionConfig) updateDistributionConfigImpl(
             true, id, cnames, comment, enabled, loggingStatus, originAccessIdentityId,
-            trustedSignerSelf, trustedSignerAwsAccountNumbers, null);
+            trustedSignerSelf, trustedSignerAwsAccountNumbers, null, null);
     }
 
     /**
@@ -1296,7 +1300,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         throws CloudFrontServiceException
     {
         return updateDistributionConfig(id, cnames, comment, enabled, loggingStatus,
-            null, false, null, null);
+            null, false, null, null, null);
     }
 
      /**
@@ -1327,7 +1331,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         return updateDistributionConfig(id, config.getCNAMEs(), config.getComment(),
             config.isEnabled(), config.getLoggingStatus(), config.getOriginAccessIdentity(),
             config.isTrustedSignerSelf(), config.getTrustedSignerAwsAccountNumbers(),
-            config.getRequiredProtocols());
+            config.getRequiredProtocols(), config.getDefaultRootObject());
     }
 
     /**

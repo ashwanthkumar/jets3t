@@ -496,7 +496,8 @@ public class ManageDistributionsDialog extends JDialog
                             null,  // originAccessIdentityId
                             false, // trustedSignerSelf
                             null,  // trustedSignerAwsAccountNumbers
-                            requiredProtocols);
+                            requiredProtocols,
+                            null);
                         refreshDistributions();
                     } catch (Exception e) {
                         SwingUtilities.invokeLater(new Runnable() {
@@ -558,7 +559,8 @@ public class ManageDistributionsDialog extends JDialog
                             null,  // originAccessIdentityId
                             false, // trustedSignerSelf
                             null,  // trustedSignerAwsAccountNumbers
-                            requiredProtocols);
+                            requiredProtocols,
+                            null);
                         refreshDistributions();
                     } catch (Exception e) {
                         SwingUtilities.invokeLater(new Runnable() {
