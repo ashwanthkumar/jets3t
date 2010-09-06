@@ -52,7 +52,7 @@ import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Owner;
 import org.jets3t.service.model.S3Version;
 import org.jets3t.service.model.StorageBucket;
-import org.jets3t.service.model.StorageItemOwner;
+import org.jets3t.service.model.StorageOwner;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.utils.ServiceUtils;
 import org.xml.sax.InputSource;
@@ -103,7 +103,7 @@ public class XmlResponsesSaxParser {
         }
     }
 
-    protected StorageItemOwner newOwner() {
+    protected StorageOwner newOwner() {
         if (isGoogleStorageMode) {
             return new GSOwner();
         } else {
@@ -356,7 +356,7 @@ public class XmlResponsesSaxParser {
      */
     public class ListBucketHandler extends DefaultXmlHandler {
         private StorageObject currentObject = null;
-        private StorageItemOwner currentOwner = null;
+        private StorageOwner currentOwner = null;
         private boolean insideCommonPrefixes = false;
 
         private final List<StorageObject> objects = new ArrayList<StorageObject>();
@@ -529,7 +529,7 @@ public class XmlResponsesSaxParser {
      *
      */
     public class ListAllMyBucketsHandler extends DefaultXmlHandler {
-        private StorageItemOwner bucketsOwner = null;
+        private StorageOwner bucketsOwner = null;
         private StorageBucket currentBucket = null;
 
         private final List<StorageBucket> buckets = new ArrayList<StorageBucket>();
@@ -546,7 +546,7 @@ public class XmlResponsesSaxParser {
          * @return
          * the owner of the buckets.
          */
-        public StorageItemOwner getOwner() {
+        public StorageOwner getOwner() {
             return bucketsOwner;
         }
 
@@ -817,7 +817,7 @@ public class XmlResponsesSaxParser {
         private String versionId = null;
         private boolean isLatest = false;
         private Date lastModified = null;
-        private StorageItemOwner owner = null;
+        private StorageOwner owner = null;
 
         private String etag = null;
         private long size = 0;

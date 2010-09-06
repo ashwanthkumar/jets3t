@@ -29,7 +29,7 @@ import javax.xml.transform.TransformerException;
 
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3ServiceException;
-import org.jets3t.service.model.StorageItemOwner;
+import org.jets3t.service.model.StorageOwner;
 
 import com.jamesmurty.utils.XMLBuilder;
 
@@ -67,7 +67,7 @@ public class AccessControlList implements Serializable {
     public static final AccessControlList REST_CANNED_AUTHENTICATED_READ = new AccessControlList();
 
     protected final HashSet<GrantAndPermission> grants = new HashSet<GrantAndPermission>();
-    protected StorageItemOwner owner = null;
+    protected StorageOwner owner = null;
 
     /**
      * Returns a string representation of the ACL contents, useful for debugging.
@@ -77,11 +77,11 @@ public class AccessControlList implements Serializable {
         return "AccessControlList [owner=" + owner + ", grants=" + getGrantAndPermissions() + "]";
     }
 
-    public StorageItemOwner getOwner() {
+    public StorageOwner getOwner() {
         return owner;
     }
 
-    public void setOwner(StorageItemOwner owner) {
+    public void setOwner(StorageOwner owner) {
         this.owner = owner;
     }
 

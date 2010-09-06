@@ -24,7 +24,7 @@ package org.jets3t.service.model;
  *
  * @author James Murty
  */
-public class S3Owner extends StorageItemOwner {
+public class S3Owner extends StorageOwner {
 
     private static final long serialVersionUID = 3895047011353549858L;
 

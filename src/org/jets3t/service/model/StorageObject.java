@@ -44,9 +44,7 @@ import org.jets3t.service.utils.ServiceUtils;
  *
  * @author James Murty
  */
-public abstract class StorageObject extends BaseStorageItem implements Cloneable {
-
-    private static final long serialVersionUID = -6709410284921684957L;
+public class StorageObject extends BaseStorageItem implements Cloneable {
 
     private static final Log log = LogFactory.getLog(StorageObject.class);
 
@@ -137,10 +135,23 @@ public abstract class StorageObject extends BaseStorageItem implements Cloneable
     }
 
     @Override
-    public abstract Object clone();
+    public Object clone() {
+        StorageObject clone = new StorageObject(getKey());
+        clone.dataInputStream = dataInputStream;
+        clone.acl = acl;
+        clone.isMetadataComplete = isMetadataComplete;
+        clone.dataInputFile = dataInputFile;
+        clone.setOwner(this.getOwner());
+        clone.addAllMetadata(getMetadataMap());
+        return clone;
+    }
 
     @Override
-    public abstract String toString();
+    public String toString() {
+        return "StorageObject [key=" + getKey()
+            + ", lastModified=" + getLastModifiedDate() + ", dataInputStream=" + dataInputStream
+            + ", Metadata=" + getMetadataMap() + "]";
+    }
 
     /**
      * Create an object without any associated information whatsoever.
@@ -580,7 +591,6 @@ public abstract class StorageObject extends BaseStorageItem implements Cloneable
         objectMetadata.remove(METADATA_HEADER_DATE);
         objectMetadata.remove(METADATA_HEADER_ETAG);
         objectMetadata.remove(METADATA_HEADER_LAST_MODIFIED_DATE);
-        objectMetadata.remove(METADATA_HEADER_OWNER);
         objectMetadata.remove("id-2"); // HTTP request-specific information
         objectMetadata.remove("request-id"); // HTTP request-specific information
         return objectMetadata;

@@ -21,18 +21,12 @@ package org.jets3t.service.model;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.jets3t.service.acl.AccessControlList;
-
 /**
  * Represents an S3 bucket.
  *
  * @author James Murty
  */
 public class S3Bucket extends StorageBucket {
-    private static final long serialVersionUID = 1007160640382133920L;
-
-    public static final String METADATA_HEADER_OWNER = "Owner";
-
     public static final String LOCATION_US = null;
     public static final String LOCATION_US_STANDARD = null;
     public static final String LOCATION_US_WEST = "us-west-1";
@@ -48,6 +42,7 @@ public class S3Bucket extends StorageBucket {
      * Create a bucket without any name or location specified
      */
     public S3Bucket() {
+        super();
     }
 
     /**
@@ -79,25 +74,6 @@ public class S3Bucket extends StorageBucket {
             ",location=" + getLocation() +
             ",creationDate=" + getCreationDate() + ",owner=" + getOwner()
             + "] Metadata=" + getMetadataMap();
-    }
-
-    /**
-     * @return
-     * the bucket's owner, or null if it is unknown.
-     */
-    @Override
-    public S3Owner getOwner() {
-        return (S3Owner) getMetadata(METADATA_HEADER_OWNER);
-    }
-
-    /**
-     * Sets the bucket's owner in S3 - this should only be used internally by JetS3t
-     * methods that retrieve information directly from S3.
-     *
-     * @param owner
-     */
-    public void setOwner(S3Owner owner) {
-        addMetadata(METADATA_HEADER_OWNER, owner);
     }
 
     /**

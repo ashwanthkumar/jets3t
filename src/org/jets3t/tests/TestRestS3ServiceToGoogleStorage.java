@@ -64,16 +64,6 @@ public class TestRestS3ServiceToGoogleStorage extends BaseStorageServiceTests {
     }
 
     @Override
-    protected StorageObject buildStorageObject(String name, String data) throws Exception {
-        return new S3Object(name, data);
-    }
-
-    @Override
-    protected StorageObject buildStorageObject(String name) throws Exception {
-        return new S3Object(name);
-    }
-
-    @Override
     protected AccessControlList buildAccessControlList() {
         return new AccessControlList();
     }

@@ -62,7 +62,7 @@ import org.jets3t.service.model.CreateBucketConfiguration;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
-import org.jets3t.service.model.StorageItemOwner;
+import org.jets3t.service.model.StorageOwner;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.mx.MxDelegate;
 import org.jets3t.service.security.ProviderCredentials;
@@ -1196,7 +1196,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
     }
 
     @Override
-    protected StorageItemOwner getAccountOwnerImpl() throws S3ServiceException {
+    protected StorageOwner getAccountOwnerImpl() throws S3ServiceException {
         if (log.isDebugEnabled()) {
             log.debug("Looking up owner of S3 account via the ListAllBuckets response: "
                 + getProviderCredentials().getAccessKey());
@@ -1211,7 +1211,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                 contentType);
         }
 
-        StorageItemOwner owner = getXmlResponseSaxParser()
+        StorageOwner owner = getXmlResponseSaxParser()
             .parseListMyBucketsResponse(
                 new HttpMethodReleaseInputStream(httpMethod)).getOwner();
         return owner;

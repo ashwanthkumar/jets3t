@@ -24,7 +24,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.gs.GSAccessControlList;
 import org.jets3t.service.utils.Mimetypes;
 
@@ -34,7 +33,6 @@ import org.jets3t.service.utils.Mimetypes;
  * @author James Murty
  */
 public class GSObject extends StorageObject implements Cloneable {
-    private static final long serialVersionUID = -2017527310562087881L;
 
     private GSAccessControlList acl = null;
 
@@ -120,17 +118,6 @@ public class GSObject extends StorageObject implements Cloneable {
      * Set the object's ACL.
      *
      * @param acl
-     * a GSAccessControlList is required.
-     */
-    @Override
-    public void setAcl(AccessControlList acl) {
-        this.setAcl((GSAccessControlList) acl);
-    }
-
-    /**
-     * Set the object's ACL.
-     *
-     * @param acl
      */
     public void setAcl(GSAccessControlList acl) {
         this.acl = acl;
@@ -143,6 +130,7 @@ public class GSObject extends StorageObject implements Cloneable {
         clone.acl = acl;
         clone.isMetadataComplete = isMetadataComplete;
         clone.dataInputFile = dataInputFile;
+        clone.setOwner(this.getOwner());
         clone.addAllMetadata(getMetadataMap());
         return clone;
     }

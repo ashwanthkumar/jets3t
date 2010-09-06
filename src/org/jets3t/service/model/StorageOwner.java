@@ -18,24 +18,21 @@
  */
 package org.jets3t.service.model;
 
-import java.io.Serializable;
 
 /**
  * Represents an owner object with a canonical ID and, optionally, a display name.
  *
  * @author James Murty
  */
-public abstract class StorageItemOwner implements Serializable {
-
-    private static final long serialVersionUID = 1911768138618396582L;
+public class StorageOwner {
 
     private String displayName;
     private String id;
 
-    public StorageItemOwner() {
+    public StorageOwner() {
     }
 
-    public StorageItemOwner(String id, String displayName) {
+    public StorageOwner(String id, String displayName) {
         this.id = id;
         this.displayName = displayName;
     }

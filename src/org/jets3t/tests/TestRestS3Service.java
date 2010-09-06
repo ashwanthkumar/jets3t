@@ -80,16 +80,6 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
         return new RestS3Service(credentials, null, null, properties);
     }
 
-    @Override
-    protected StorageObject buildStorageObject(String name, String data) throws Exception {
-        return new S3Object(name, data);
-    }
-
-    @Override
-    protected StorageObject buildStorageObject(String name) throws Exception {
-        return new S3Object(name);
-    }
-
     public void testBucketLogging() throws Exception {
         S3Service s3Service = (S3Service) getStorageService(getCredentials());
         StorageBucket bucket = createBucketForTest("testBucketLogging");
@@ -154,7 +144,7 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
         try {
             // Create test object, with private ACL
             String dataString = "Text for the URL Signing test object...";
-            S3Object object = (S3Object) buildStorageObject("Testing URL Signing", dataString);
+            S3Object object = new S3Object("Testing URL Signing", dataString);
             object.setContentType("text/html");
             object.addMetadata(service.getRestMetadataPrefix() + "example-header", "example-value");
             object.setAcl(AccessControlList.REST_CANNED_PRIVATE);
@@ -264,9 +254,9 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
             assertTrue(fileMap.keySet().contains(local3.getName()));
 
             // Upload local files to storage service
-            service.putObject(bucketName, buildStorageObject(local1.getName()));
-            service.putObject(bucketName, buildStorageObject(local2.getName()));
-            service.putObject(bucketName, buildStorageObject(local3.getName()));
+            service.putObject(bucketName, new StorageObject(local1.getName()));
+            service.putObject(bucketName, new StorageObject(local2.getName()));
+            service.putObject(bucketName, new StorageObject(local3.getName()));
 
             // Build a map of objects in storage service
             Map<String, StorageObject> objectMap = comparer.buildS3ObjectMap(
@@ -285,7 +275,7 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
 
             // Update 1 local and 1 remote file, then confirm discrepancies
             new FileOutputStream(local1).write("Updated local file".getBytes("UTF-8"));
-            StorageObject remoteObject = buildStorageObject(local3.getName());
+            StorageObject remoteObject = new StorageObject(local3.getName());
             remoteObject.setDataInputStream(
                 new ByteArrayInputStream("Updated Remote File".getBytes("UTF-8")));
             service.putObject(bucketName, remoteObject);
@@ -303,7 +293,7 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
 
             // Create new local and remote objects, then confirm discrepancies
             File local4 = File.createTempFile("four", ".txt", parentDir);
-            remoteObject = buildStorageObject("five.txt");
+            remoteObject = new StorageObject("five.txt");
             service.putObject(bucketName, remoteObject);
 
             fileMap = comparer.buildFileMap(

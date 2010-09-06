@@ -492,7 +492,6 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
         objectMetadata.remove(S3Object.METADATA_HEADER_DATE);
         objectMetadata.remove(S3Object.METADATA_HEADER_ETAG);
         objectMetadata.remove(S3Object.METADATA_HEADER_LAST_MODIFIED_DATE);
-        objectMetadata.remove(S3Object.METADATA_HEADER_OWNER);
         objectMetadata.remove("id-2"); // HTTP request-specific information
         objectMetadata.remove("request-id"); // HTTP request-specific information
 

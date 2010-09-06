@@ -29,7 +29,6 @@ import java.util.Map;
  * @author James Murty
  */
 public abstract class BaseStorageItem {
-
     /*
      * Standard HTTP metadata/header names.
      */
@@ -47,11 +46,15 @@ public abstract class BaseStorageItem {
     /*
      * Metadata names common to S3 and Google Storage.
      */
-    public static final String METADATA_HEADER_OWNER = "Owner";
 
     private String name = null;
-    // Map to metadata associated with this object.
+    private StorageOwner owner = null;
+
+    /**
+     *  Map to metadata associated with this object.
+     */
     private final Map<String, Object> metadata = new HashMap<String, Object>();
+
 
     protected BaseStorageItem(String name) {
         this.name = name;
@@ -138,7 +141,7 @@ public abstract class BaseStorageItem {
      * @param value
      * the metadata item's owner value.
      */
-    public void addMetadata(String name, StorageItemOwner value) {
+    public void addMetadata(String name, StorageOwner value) {
         this.metadata.put(name, value);
     }
 
@@ -179,8 +182,8 @@ public abstract class BaseStorageItem {
      * @return
      * this object's owner, or null if the owner is not available.
      */
-    public StorageItemOwner getOwner() {
-        return (StorageItemOwner) getMetadata(METADATA_HEADER_OWNER);
+    public StorageOwner getOwner() {
+        return this.owner;
     }
 
     /**
@@ -189,8 +192,8 @@ public abstract class BaseStorageItem {
      *
      * @param owner
      */
-    public void setOwner(StorageItemOwner owner) {
-        addMetadata(METADATA_HEADER_OWNER, owner);
+    public void setOwner(StorageOwner owner) {
+        this.owner = owner;
     }
 
 }

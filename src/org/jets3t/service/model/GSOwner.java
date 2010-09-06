@@ -24,9 +24,7 @@ package org.jets3t.service.model;
  *
  * @author James Murty
  */
-public class GSOwner extends StorageItemOwner {
-
-    private static final long serialVersionUID = -6140130132644547321L;
+public class GSOwner extends StorageOwner {
 
     public GSOwner() {
         super();

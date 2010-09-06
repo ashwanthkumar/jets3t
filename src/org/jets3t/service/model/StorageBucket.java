@@ -27,10 +27,7 @@ import org.jets3t.service.acl.AccessControlList;
  *
  * @author James Murty
  */
-public abstract class StorageBucket extends BaseStorageItem {
-
-    private static final long serialVersionUID = 6507178248414983005L;
-
+public class StorageBucket extends BaseStorageItem {
     private AccessControlList acl = null;
 
     /**
@@ -48,7 +45,9 @@ public abstract class StorageBucket extends BaseStorageItem {
     }
 
     @Override
-    public abstract String toString();
+    public String toString() {
+        return "StorageBucket [name=" + getName() + "] Metadata=" + getMetadataMap();
+    }
 
     /**
      * @return

@@ -58,16 +58,6 @@ public class TestGoogleStorageService extends BaseStorageServiceTests {
     }
 
     @Override
-    protected StorageObject buildStorageObject(String name, String data) throws Exception {
-        return new GSObject(name, data);
-    }
-
-    @Override
-    protected StorageObject buildStorageObject(String name) throws Exception {
-        return new GSObject(name);
-    }
-
-    @Override
     protected AccessControlList buildAccessControlList() {
         return new GSAccessControlList();
     }

@@ -29,8 +29,6 @@ import org.jets3t.service.acl.gs.GSAccessControlList;
  * @author James Murty
  */
 public class GSBucket extends StorageBucket {
-    private static final long serialVersionUID = 728626536413524443L;
-
     private GSAccessControlList acl = null;
 
     /**
@@ -57,6 +55,7 @@ public class GSBucket extends StorageBucket {
      * @return
      * the bucket's Access Control List, or null if it is unknown.
      */
+    @Override
     public GSAccessControlList getAcl() {
         return acl;
     }

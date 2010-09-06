@@ -50,7 +50,7 @@ import org.jets3t.service.acl.gs.UserByIdGrantee;
 import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
 import org.jets3t.service.model.StorageBucket;
-import org.jets3t.service.model.StorageItemOwner;
+import org.jets3t.service.model.StorageOwner;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.Mimetypes;
@@ -90,14 +90,6 @@ public abstract class BaseStorageServiceTests extends TestCase {
     protected abstract RestStorageService getStorageService(ProviderCredentials credentials) throws Exception;
 
     protected abstract String getTargetService();
-
-    protected abstract StorageObject buildStorageObject(String name, String data) throws Exception;
-
-    protected abstract StorageObject buildStorageObject(String name) throws Exception;
-
-    protected StorageObject buildStorageObject() throws Exception {
-        return buildStorageObject(null);
-    }
 
     protected abstract AccessControlList buildAccessControlList();
 
@@ -256,7 +248,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
         RestStorageService service = getStorageService(getCredentials());
 
         try {
-            StorageObject object = buildStorageObject("TestObject");
+            StorageObject object = new StorageObject("TestObject");
 
             try {
                 service.putObject((String) null, null);
@@ -271,7 +263,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             }
 
             try {
-                service.putObject(bucketName, buildStorageObject());
+                service.putObject(bucketName, new StorageObject());
                 fail("Cannot create an object without a valid object");
             } catch (S3ServiceException e) {
             }
@@ -430,7 +422,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             // Create object with tricky key.
             String trickyKey = "http://example.site.com/some/path/document name.html?param1=a@b#c$d&param2=(089)";
             StorageObject trickyObject = service.putObject(bucketName,
-                buildStorageObject(trickyKey, "Some test data"));
+                new StorageObject(trickyKey, "Some test data"));
             assertEquals("Tricky key name mistmatch", trickyKey, trickyObject.getKey());
 
             // Make sure the tricky named object really exists with its full name.
@@ -458,26 +450,32 @@ public abstract class BaseStorageServiceTests extends TestCase {
         try {
             // Create new-style place-holder object (compatible with Amazon's AWS Console
             // and Panic's Transmit) -- note trailing slash
-            StorageObject requestObject = buildStorageObject("DirPlaceholderObject/");
+            StorageObject requestObject = new StorageObject("DirPlaceholderObject/");
             requestObject.setContentLength(0);
             requestObject.setContentType(Mimetypes.MIMETYPE_BINARY_OCTET_STREAM);
+            assertTrue(requestObject.isDirectoryPlaceholder());
+
             service.putObject(bucketName, requestObject);
             StorageObject resultObject = service.getObjectDetails(bucketName, requestObject.getKey());
             assertTrue(resultObject.isDirectoryPlaceholder());
 
             // Create legacy-style place-holder object (compatible with objects stored using
             // JetS3t applications prior to version 0.8.0) -- note content type
-            requestObject = buildStorageObject("LegacyDirPlaceholderObject");
+            requestObject = new StorageObject("LegacyDirPlaceholderObject");
             requestObject.setContentLength(0);
             requestObject.setContentType(Mimetypes.MIMETYPE_JETS3T_DIRECTORY);
+            assertTrue(requestObject.isDirectoryPlaceholder());
+
             service.putObject(bucketName, requestObject);
             resultObject = service.getObjectDetails(bucketName, requestObject.getKey());
             assertTrue(resultObject.isDirectoryPlaceholder());
 
             // Create place-holder object compatible with the S3 Organizer Firefox extension
             // -- note object name suffix.
-            requestObject = buildStorageObject("S3OrganizerDirPlaceholderObject_$folder$");
+            requestObject = new StorageObject("S3OrganizerDirPlaceholderObject_$folder$");
             requestObject.setContentLength(0);
+            assertTrue(requestObject.isDirectoryPlaceholder());
+
             service.putObject(bucketName, requestObject);
             resultObject = service.getObjectDetails(bucketName, requestObject.getKey());
             assertTrue(resultObject.isDirectoryPlaceholder());
@@ -493,13 +491,13 @@ public abstract class BaseStorageServiceTests extends TestCase {
         try {
             // Unicode object name
             String unicodeText = "テストオブジェクト";
-            StorageObject requestObject = buildStorageObject("1." + unicodeText);
+            StorageObject requestObject = new StorageObject("1." + unicodeText);
             service.putObject(bucketName, requestObject);
             StorageObject resultObject = service.getObjectDetails(bucketName, requestObject.getKey());
             assertEquals("1." + unicodeText, resultObject.getKey());
 
             // Unicode data content
-            requestObject = buildStorageObject("2." + unicodeText, unicodeText);
+            requestObject = new StorageObject("2." + unicodeText, unicodeText);
             service.putObject(bucketName, requestObject);
             resultObject = service.getObject(bucketName, requestObject.getKey());
             String data = ServiceUtils.readInputStreamToString(
@@ -507,7 +505,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             assertEquals(unicodeText, data);
 
             // Unicode metadata values are not supported
-            requestObject = buildStorageObject("3." + unicodeText);
+            requestObject = new StorageObject("3." + unicodeText);
             requestObject.addMetadata("testing", unicodeText);
             try {
                 service.putObject(bucketName, requestObject);
@@ -515,7 +513,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             }
 
             // Unicode metadata values can be encoded
-            requestObject = buildStorageObject("4." + unicodeText);
+            requestObject = new StorageObject("4." + unicodeText);
             requestObject.addMetadata("testing", URLEncoder.encode(unicodeText, "UTF-8"));
             service.putObject(bucketName, requestObject);
             resultObject = service.getObjectDetails(bucketName, requestObject.getKey());
@@ -523,7 +521,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
                 (String) resultObject.getMetadata("testing"), "UTF-8"));
 
             // Unicode metadata names are not possible with HTTP
-            requestObject = buildStorageObject("5." + unicodeText);
+            requestObject = new StorageObject("5." + unicodeText);
             requestObject.addMetadata(unicodeText, "value");
             try {
                 service.putObject(bucketName, requestObject);
@@ -533,7 +531,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
 
             // Unicode HTTP headers (via RFC 5987 encoding) -- not working...
             /*
-            requestObject = buildStorageObject("6." + unicodeText);
+            requestObject = new StorageObject("6." + unicodeText);
             requestObject.setContentDisposition(
                 "attachment; filename*=UTF-8''" + RestUtils.encodeUrlString(unicodeText + ".txt"));
             service.putObject(bucketName, requestObject);
@@ -576,7 +574,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
         try {
             // Create private object (default permissions).
             String privateKey = "Private Object - " + System.currentTimeMillis();
-            object = buildStorageObject(privateKey, "Private object sample text");
+            object = new StorageObject(privateKey, "Private object sample text");
             service.putObject(bucketName, object);
             URL url = new URL(linkUrlPrefix + "/" + bucketName + "/" + RestUtils.encodeUrlString(privateKey));
             assertEquals("Expected denied access (403) error", 403, ((HttpURLConnection) url
@@ -584,11 +582,11 @@ public abstract class BaseStorageServiceTests extends TestCase {
 
             // Get ACL details for private object so we can determine the bucket owner.
             AccessControlList bucketACL = service.getBucketAcl(bucketName);
-            StorageItemOwner bucketOwner = bucketACL.getOwner();
+            StorageOwner bucketOwner = bucketACL.getOwner();
 
             // Create a public object.
             String publicKey = "Public Object - " + System.currentTimeMillis();
-            object = buildStorageObject(publicKey, "Public object sample text");
+            object = new StorageObject(publicKey, "Public object sample text");
             AccessControlList acl = buildAccessControlList();
             acl.setOwner(bucketOwner);
             acl.grantPermission(allUsersGrantee, Permission.PERMISSION_READ);
@@ -621,7 +619,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
 
             // Create a non-standard uncanned public object.
             String publicKey2 = "Public Object - " + System.currentTimeMillis();
-            object = buildStorageObject(publicKey2);
+            object = new StorageObject(publicKey2);
             object.setAcl(privateToPublicACL); // This ACL has ALL_USERS READ permission set above.
             service.putObject(bucketName, object);
             url = new URL(linkUrlPrefix + "/" + bucketName + "/" + RestUtils.encodeUrlString(publicKey2));
@@ -672,7 +670,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
         try {
             // Try to create public object using HTTP header ACL settings.
             String publicKey = "PublicObject";
-            StorageObject object = buildStorageObject(publicKey);
+            StorageObject object = new StorageObject(publicKey);
             object.setAcl(publicHeaderAcl);
             object.setOwner(bucket.getOwner());
 
@@ -698,13 +696,13 @@ public abstract class BaseStorageServiceTests extends TestCase {
         try {
             // Represent a directory structure in S3.
             List<StorageObject> objectsList = new ArrayList<StorageObject>();
-            objectsList.add(buildStorageObject("dir1"));
-            objectsList.add(buildStorageObject("dir1/doc1Level1"));
-            objectsList.add(buildStorageObject("dir1/doc2level1"));
-            objectsList.add(buildStorageObject("dir1/dir1Level1"));
-            objectsList.add(buildStorageObject("dir1/dir1Level1/doc1Level2"));
-            objectsList.add(buildStorageObject("dir1/dir1Level1/dir1Level2"));
-            objectsList.add(buildStorageObject("dir1/dir1Level1/dir1Level2/doc1Level3"));
+            objectsList.add(new StorageObject("dir1"));
+            objectsList.add(new StorageObject("dir1/doc1Level1"));
+            objectsList.add(new StorageObject("dir1/doc2level1"));
+            objectsList.add(new StorageObject("dir1/dir1Level1"));
+            objectsList.add(new StorageObject("dir1/dir1Level1/doc1Level2"));
+            objectsList.add(new StorageObject("dir1/dir1Level1/dir1Level2"));
+            objectsList.add(new StorageObject("dir1/dir1Level1/dir1Level2/doc1Level3"));
 
             // Create objects
             for (StorageObject object: objectsList) {
@@ -795,7 +793,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
         try {
             // Create test object with an MD5 hash of the data.
             String dataString = "Text for MD5 hashing...";
-            StorageObject object = buildStorageObject("Testing MD5 Hashing", dataString);
+            StorageObject object = new StorageObject("Testing MD5 Hashing", dataString);
             object.setContentType("text/plain");
 
             // Calculate hash data for object.
@@ -812,7 +810,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
                     || "BadDigest".equals(e.getS3ErrorCode())   // GS error code
                     );
             }
-            object = buildStorageObject("Testing MD5 Hashing", dataString);
+            object = new StorageObject("Testing MD5 Hashing", dataString);
 
             // Ensure that using the wrong hash value fails.
             try {
@@ -825,7 +823,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             } catch (S3ServiceException e) {
                 assertEquals("Expected error code indicating invalid md5 hash", "BadDigest", e.getS3ErrorCode());
             }
-            object = buildStorageObject("Testing MD5 Hashing", dataString);
+            object = new StorageObject("Testing MD5 Hashing", dataString);
 
             // Ensure that correct hash value succeeds.
             object.setMd5Hash(md5Hash);
@@ -854,7 +852,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
         String bucketName = bucket.getName();
 
         try {
-            service.putObject(bucketName, buildStorageObject("does-exist"));
+            service.putObject(bucketName, new StorageObject("does-exist"));
 
             assertTrue(service.isObjectInBucket(bucketName, "does-exist"));
 

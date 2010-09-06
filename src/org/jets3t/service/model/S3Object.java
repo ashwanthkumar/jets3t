@@ -34,8 +34,6 @@ import org.jets3t.service.utils.Mimetypes;
  * @author James Murty
  */
 public class S3Object extends StorageObject implements Cloneable {
-    private static final long serialVersionUID = 3530860872843173888L;
-
     public static final String STORAGE_CLASS_STANDARD = "STANDARD";
     public static final String STORAGE_CLASS_REDUCED_REDUNDANCY = "REDUCED_REDUNDANCY";
 
@@ -217,6 +215,7 @@ public class S3Object extends StorageObject implements Cloneable {
         clone.isMetadataComplete = isMetadataComplete;
         clone.dataInputFile = dataInputFile;
         clone.storageClass = storageClass;
+        clone.setOwner(this.getOwner());
         clone.addAllMetadata(getMetadataMap());
         return clone;
     }

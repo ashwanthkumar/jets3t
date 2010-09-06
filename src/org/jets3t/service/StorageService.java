@@ -34,7 +34,7 @@ import org.jets3t.service.model.GSObject;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
-import org.jets3t.service.model.StorageItemOwner;
+import org.jets3t.service.model.StorageOwner;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.mx.MxDelegate;
 import org.jets3t.service.security.ProviderCredentials;
@@ -551,7 +551,7 @@ public abstract class StorageService {
      * the owner of the S3 account.
      * @throws S3ServiceException
      */
-    public StorageItemOwner getAccountOwner() throws S3ServiceException {
+    public StorageOwner getAccountOwner() throws S3ServiceException {
         assertAuthenticatedConnection("List all buckets to find account owner");
         return getAccountOwnerImpl();
 
@@ -1356,7 +1356,7 @@ public abstract class StorageService {
      * the owner of an S3 account.
      * @throws S3ServiceException
      */
-    protected abstract StorageItemOwner getAccountOwnerImpl() throws S3ServiceException;
+    protected abstract StorageOwner getAccountOwnerImpl() throws S3ServiceException;
 
     /**
      * Lists objects in a bucket.
