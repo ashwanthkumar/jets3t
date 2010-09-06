@@ -31,8 +31,8 @@ import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
 
 /**
- * A panel for prompting a user to provide a passphrase and password used to store or access their
- * AWS credentials in S3.
+ * A panel for prompting a user to provide a passphrase and password used to store
+ * or access their credentials in a storage service.
  *
  * @author James Murty
  */
@@ -56,9 +56,10 @@ public class LoginPassphrasePanel extends JPanel {
         // Textual information.
         String descriptionText =
             "<html><center>" +
-            "Your AWS Credentials are stored in an encrypted object in your S3 account. " +
-            "To access your credentials you must provide your unique passphrase and a password." +
-            "<br><font size=\"-2\">You need to store your AWS credentials before you can use this login method.</font>" +
+            "Your credentials are stored in an encrypted object in your online storage account. " +
+            "To access your credentials you must provide your unique passphrase and password." +
+            "<br><br>" +
+            "<font size=\"-2\">You need to store your credentials before you can use this login method.</font>" +
             "</center></html>";
 
         String passphraseLabelText =

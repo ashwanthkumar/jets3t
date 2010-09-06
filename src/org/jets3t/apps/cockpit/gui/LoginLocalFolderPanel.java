@@ -46,7 +46,7 @@ import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
 import org.jets3t.service.Constants;
-import org.jets3t.service.security.AWSCredentials;
+import org.jets3t.service.security.ProviderCredentials;
 
 /**
  * A panel for displaying a user's login credentials where those credentials are stored
@@ -67,7 +67,7 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
 
     private JTextField folderPathTextField = null;
     private JTable accountNicknameTable = null;
-    private AWSCredentialsFileTableModel nicknamesTableModel = null;
+    private ProviderCredentialsFileTableModel nicknamesTableModel = null;
     private JPasswordField passwordPasswordField = null;
 
     public LoginLocalFolderPanel(Frame ownerFrame, HyperlinkActivatedListener hyperlinkListener)
@@ -89,12 +89,12 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
         // Textual information.
         String descriptionText =
             "<html><center>" +
-            "Your AWS Credentials are stored in encrypted files in a folder on " +
+            "Your credentials are stored in encrypted files in a folder on " +
             "your computer. Each stored login has a nickname." +
-            "<br><font size=\"-2\">You need to store your AWS credentials before you can use this login method.</font>" +
+            "<br><font size=\"-2\">You need to store your credentials before you can use this login method.</font>" +
             "</center></html>";
         String folderTooltipText =
-            "The folder containing your AWS Credentials";
+            "The folder containing your credentials";
         String browseButtonText =
             "Change Folder";
         String accountNicknameText =
@@ -116,7 +116,7 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
         JButton browseButton = new JButton(browseButtonText);
         browseButton.addActionListener(this);
         JHtmlLabel accountNicknamesLabel = new JHtmlLabel(accountNicknameText, hyperlinkListener);
-        nicknamesTableModel = new AWSCredentialsFileTableModel();
+        nicknamesTableModel = new ProviderCredentialsFileTableModel();
         accountNicknameTable = new JTable(nicknamesTableModel);
         accountNicknameTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         accountNicknameTable.setShowHorizontalLines(true);
@@ -145,7 +145,7 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
     }
 
     /**
-     * Refreshes the table of stored AWS credentials by finding <tt>*.enc</tt> files in the
+     * Refreshes the table of stored credentials by finding <tt>*.enc</tt> files in the
      * directory specified as the Cockpit home folder.
      *
      */
@@ -157,13 +157,13 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
                 File candidateFile = files[i];
                 if (candidateFile.getName().endsWith(".enc")) {
                     // Load partial details from credentials file.
-                    AWSCredentials credentials = AWSCredentials.load(null, candidateFile);
-                    nicknamesTableModel.addAWSCredentialsFile(
+                    ProviderCredentials credentials = ProviderCredentials.load(null, candidateFile);
+                    nicknamesTableModel.addCredentialsFile(
                         credentials, candidateFile);
                 }
             }
         } catch (Exception e) {
-            String message = "Unable to find AWS Credential files in the folder "
+            String message = "Unable to find credential files in the folder "
                 + cockpitHomeFolder.getAbsolutePath();
             log.error(message, e);
             ErrorDialog.showDialog(ownerFrame, hyperlinkListener, message, e);
@@ -203,19 +203,19 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
 
     /**
      * @return
-     * the AWS Credentials encrypted file chosen by the user.
+     * the credentials encrypted file chosen by the user.
      */
-    public File getAWSCredentialsFile() {
+    public File getCredentialsFile() {
         int selectedNicknameIndex = accountNicknameTable.getSelectedRow();
         if (selectedNicknameIndex < 0) {
             return null;
         }
-        return nicknamesTableModel.getAWSCredentialsFile(selectedNicknameIndex);
+        return nicknamesTableModel.getCredentialsFile(selectedNicknameIndex);
     }
 
     /**
      * @return
-     * the password the user provided to unlock their encrypted AWS Credentials file.
+     * the password the user provided to unlock their encrypted credentials file.
      */
     public String getPassword() {
         return new String(passwordPasswordField.getPassword());
@@ -228,38 +228,38 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
         passwordPasswordField.setText("");
     }
 
-    private class AWSCredentialsFileTableModel extends DefaultTableModel {
+    private class ProviderCredentialsFileTableModel extends DefaultTableModel {
         private static final long serialVersionUID = 8560515388653630790L;
 
-        ArrayList awsCredentialsList = new ArrayList();
+        ArrayList credentialsList = new ArrayList();
         ArrayList credentialFileList = new ArrayList();
 
-        public AWSCredentialsFileTableModel() {
+        public ProviderCredentialsFileTableModel() {
             super(new String[] {""}, 0);
         }
 
-        public int addAWSCredentialsFile(AWSCredentials awsCredentials, File credentialsFile) {
+        public int addCredentialsFile(ProviderCredentials credentials, File credentialsFile) {
             int insertRow =
-                Collections.binarySearch(awsCredentialsList, awsCredentials, new Comparator() {
+                Collections.binarySearch(credentialsList, credentials, new Comparator() {
                     public int compare(Object o1, Object o2) {
-                        String name1 = ((AWSCredentials)o1).getFriendlyName();
-                        String name2 = ((AWSCredentials)o2).getFriendlyName();
+                        String name1 = ((ProviderCredentials)o1).getFriendlyName();
+                        String name2 = ((ProviderCredentials)o2).getFriendlyName();
                         int result =  name1.compareToIgnoreCase(name2);
                         return result;
                     }
                 });
             if (insertRow >= 0) {
                 // We already have an item with this key, replace it.
-                awsCredentialsList.remove(insertRow);
+                credentialsList.remove(insertRow);
                 credentialFileList.remove(insertRow);
                 this.removeRow(insertRow);
             } else {
                 insertRow = (-insertRow) - 1;
             }
             // New object to insert.
-            awsCredentialsList.add(insertRow, awsCredentials);
+            credentialsList.add(insertRow, credentials);
             credentialFileList.add(insertRow, credentialsFile);
-            this.insertRow(insertRow, new Object[] {awsCredentials.getFriendlyName()});
+            this.insertRow(insertRow, new Object[] {credentials.getFriendlyName()});
             return insertRow;
         }
 
@@ -269,13 +269,14 @@ public class LoginLocalFolderPanel extends JPanel implements ActionListener {
                 this.removeRow(0);
             }
             credentialFileList.clear();
-            awsCredentialsList.clear();
+            credentialsList.clear();
         }
 
-        public File getAWSCredentialsFile(int row) {
+        public File getCredentialsFile(int row) {
             return (File) credentialFileList.get(row);
         }
 
+        @Override
         public boolean isCellEditable(int row, int column) {
             return false;
         }

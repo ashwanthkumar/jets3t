@@ -38,8 +38,8 @@ import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
 
 /**
- * A panel for obtaining a user's AWS Credentials. The panel prompts for an AWS Access Key and
- * an AWS Secret Key, and optionally for a Friendly name for an AWS account.
+ * A panel for obtaining a user's credentials. The panel prompts for an Access Key and
+ * an Secret Key, and optionally for a Friendly name for an account.
  *
  * @author James Murty
  * @author Nikolas Coukouma
@@ -51,8 +51,8 @@ public class LoginCredentialsPanel extends JPanel implements ItemListener {
     private final Insets insetsZero = new Insets(0, 0, 0, 0);
 
     private HyperlinkActivatedListener hyperlinkListener = null;
-    private JTextField awsAccessKeyTextField = null;
-    private JPasswordField awsSecretKeyPasswordField = null;
+    private JTextField accessKeyTextField = null;
+    private JPasswordField secretKeyPasswordField = null;
     private JCheckBox useDevPayCheckBox = null;
     private JTextField awsUserTokenTextField = null;
     private AWSDevPayProductPanel awsProductPanel = null;
@@ -79,16 +79,16 @@ public class LoginCredentialsPanel extends JPanel implements ItemListener {
             "Nickname";
         String friendlyNameTooltipText =
             "A nickname for your stored account";
-        String awsAccessKeyLabelText =
-            "AWS Access Key";
-        String awsAccessKeyTooltipText =
-            "Your Amazon Web Services access key";
-        String awsSecretKeyLabelText =
-            "AWS Secret Key";
-        String awsSecretKeyTooltipText =
-            "Your Amazon Web Services secret key";
+        String accessKeyLabelText =
+            "Access Key";
+        String accessKeyTooltipText =
+            "Your access key";
+        String secretKeyLabelText =
+            "Secret Key";
+        String secretKeyTooltipText =
+            "Your secret key";
         String useDevPayButtonText =
-            "Use DevPay";
+            "Use AWS DevPay";
         String awsUserTokenLabelText =
             "DevPay User Token";
         String awsUserTokenTooltipText =
@@ -100,12 +100,12 @@ public class LoginCredentialsPanel extends JPanel implements ItemListener {
         JHtmlLabel friendlyNameLabel = new JHtmlLabel(friendlyNameLabelText, hyperlinkListener);
         friendlyNameTextField = new JTextField();
         friendlyNameTextField.setToolTipText(friendlyNameTooltipText);
-        JHtmlLabel awsAccessKeyLabel = new JHtmlLabel(awsAccessKeyLabelText, hyperlinkListener);
-        awsAccessKeyTextField = new JTextField();
-        awsAccessKeyTextField.setToolTipText(awsAccessKeyTooltipText);
-        JHtmlLabel awsSecretKeyLabel = new JHtmlLabel(awsSecretKeyLabelText, hyperlinkListener);
-        awsSecretKeyPasswordField = new JPasswordField();
-        awsSecretKeyPasswordField.setToolTipText(awsSecretKeyTooltipText);
+        JHtmlLabel accessKeyLabel = new JHtmlLabel(accessKeyLabelText, hyperlinkListener);
+        accessKeyTextField = new JTextField();
+        accessKeyTextField.setToolTipText(accessKeyTooltipText);
+        JHtmlLabel secretKeyLabel = new JHtmlLabel(secretKeyLabelText, hyperlinkListener);
+        secretKeyPasswordField = new JPasswordField();
+        secretKeyPasswordField.setToolTipText(secretKeyTooltipText);
 
         useDevPayCheckBox = new JCheckBox(useDevPayButtonText);
         useDevPayCheckBox.setSelected(false);
@@ -126,13 +126,13 @@ public class LoginCredentialsPanel extends JPanel implements ItemListener {
             add(friendlyNameTextField, new GridBagConstraints(0, row++,
                 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         }
-        add(awsAccessKeyLabel, new GridBagConstraints(0, row++,
+        add(accessKeyLabel, new GridBagConstraints(0, row++,
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        add(awsAccessKeyTextField, new GridBagConstraints(0, row++,
+        add(accessKeyTextField, new GridBagConstraints(0, row++,
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        add(awsSecretKeyLabel, new GridBagConstraints(0, row++,
+        add(secretKeyLabel, new GridBagConstraints(0, row++,
             1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
-        add(awsSecretKeyPasswordField, new GridBagConstraints(0, row++,
+        add(secretKeyPasswordField, new GridBagConstraints(0, row++,
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         add(useDevPayCheckBox, new GridBagConstraints(0, row++,
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
@@ -169,18 +169,18 @@ public class LoginCredentialsPanel extends JPanel implements ItemListener {
 
     /**
      * @return
-     * the AWS Access Key provided by the user.
+     * the Access Key provided by the user.
      */
-    public String getAWSAccessKey() {
-        return awsAccessKeyTextField.getText().trim();
+    public String getAccessKey() {
+        return accessKeyTextField.getText().trim();
     }
 
     /**
      * @return
-     * the AWS Secret Key provided by the user.
+     * the Secret Key provided by the user.
      */
-    public String getAWSSecretKey() {
-        return new String(awsSecretKeyPasswordField.getPassword()).trim();
+    public String getSecretKey() {
+        return new String(secretKeyPasswordField.getPassword()).trim();
     }
 
     /**
@@ -193,7 +193,7 @@ public class LoginCredentialsPanel extends JPanel implements ItemListener {
 
     /**
      * @return
-     * the AWS Secret Key provided by the user.
+     * the user token provided by the user.
      */
     public String getAWSUserToken() {
         return awsUserTokenTextField.getText().trim();
@@ -227,11 +227,11 @@ public class LoginCredentialsPanel extends JPanel implements ItemListener {
     public String[] checkForInputErrors() {
         ArrayList errors = new ArrayList();
 
-        if (getAWSAccessKey().trim().length() == 0) {
+        if (getAccessKey().trim().length() == 0) {
             errors.add("Access Key must be provided");
         }
 
-        if (getAWSSecretKey().trim().length() == 0) {
+        if (getSecretKey().trim().length() == 0) {
             errors.add("Secret Key must be provided");
         }
 

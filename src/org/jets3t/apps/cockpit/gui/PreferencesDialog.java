@@ -268,7 +268,7 @@ public class PreferencesDialog extends JDialog implements ActionListener, Change
         rememberPreferencesCheckBox.setHorizontalAlignment(JCheckBox.CENTER);
         String rememberPreferencesExplanation =
             "<html><font size=\"-2\">" +
-            "Your encryption password will <b>not</b> be remembered." +
+            "Your encryption password will <b>never</b> be remembered." +
             "</font></html>";
         JHtmlLabel rememberPreferencesLabel =
             new JHtmlLabel(rememberPreferencesExplanation, hyperlinkListener);

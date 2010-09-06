@@ -31,12 +31,14 @@ import java.io.File;
 import java.net.URL;
 
 import javax.swing.AbstractAction;
+import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JRadioButton;
 import javax.swing.JTabbedPane;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
@@ -50,22 +52,22 @@ import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.ProgressDialog;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.StorageService;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
-import org.jets3t.service.model.S3Bucket;
-import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.AWSDevPayCredentials;
+import org.jets3t.service.security.GSCredentials;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.ServiceUtils;
 
 import com.centerkey.utils.BareBonesBrowserLaunch;
 
 /**
- * Dialog box for obtaining a user's AWS Credentials, and performing other startup tasks such as
- * loading properties files.
+ * Dialog box for obtaining a user's service credentials, and performing other startup
+ * tasks such as loading properties files.
  * <p>
  *
  * @author James Murty
@@ -82,8 +84,10 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
     private HyperlinkActivatedListener hyperlinkListener = null;
     private Jets3tProperties myProperties = null;
 
-    private AWSCredentials awsCredentials = null;
+    private ProviderCredentials credentials = null;
 
+    private JRadioButton targetS3 = null;
+    private JRadioButton targetGS = null;
     private JButton okButton = null;
     private JButton cancelButton = null;
     private JButton storeCredentialsButton = null;
@@ -156,23 +160,59 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         loginLocalFolderPanel = new LoginLocalFolderPanel(ownerFrame, hyperlinkListener);
         loginCredentialsPanel = new LoginCredentialsPanel(false, hyperlinkListener);
 
+        // Target storage service selection
+        targetS3 = new JRadioButton("Amazon S3");
+        targetS3.setSelected(true);
+        targetGS = new JRadioButton("Google Storage");
+
+        ButtonGroup targetButtonGroup = new ButtonGroup();
+        targetButtonGroup.add(targetS3);
+        targetButtonGroup.add(targetGS);
+
+        JPanel targetServicePanel = new JPanel(new GridBagLayout());
+        targetServicePanel.add(targetS3, new GridBagConstraints(0, 0,
+            1, 1, 1, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsZero, 0, 0));
+        targetServicePanel.add(targetGS, new GridBagConstraints(1, 0,
+            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsZero, 0, 0));
+
         // Tabbed Pane.
         tabbedPane = new JTabbedPane();
         tabbedPane.addChangeListener(this);
-        tabbedPane.add(loginPassphrasePanel, "S3 Online");
+        tabbedPane.add(loginPassphrasePanel, "Online");
         tabbedPane.add(loginLocalFolderPanel, "Local Folder");
         tabbedPane.add(loginCredentialsPanel, "Direct Login");
 
         int row = 0;
         this.getContentPane().setLayout(new GridBagLayout());
+        this.getContentPane().add(targetServicePanel, new GridBagConstraints(0, row++,
+            2, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         this.getContentPane().add(tabbedPane, new GridBagConstraints(0, row++,
             2, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
         this.getContentPane().add(buttonsPanel, new GridBagConstraints(0, row++,
             2, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
 
         this.pack();
-        this.setSize(500, 400);
+        this.setSize(500, 430);
         this.setLocationRelativeTo(this.getOwner());
+    }
+
+    public boolean isTargetS3() {
+        return targetS3.isSelected();
+    }
+
+    protected StorageService getStorageService()
+        throws S3ServiceException
+    {
+        if (targetS3.isSelected()) {
+            return new RestS3Service(credentials);
+        } else {
+            // Override endpoint property in JetS3t properties
+            Jets3tProperties gsProperties = Jets3tProperties.getInstance(
+                Constants.JETS3T_PROPERTIES_FILENAME);
+            gsProperties.setProperty(
+                "s3service.s3-endpoint", Constants.GS_DEFAULT_HOSTNAME);
+            return new RestS3Service(credentials, null, null, gsProperties);
+        }
     }
 
     /**
@@ -181,11 +221,11 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
     public void actionPerformed(ActionEvent e) {
         if (e.getSource().equals(okButton)) {
             if (loginMode == LOGIN_MODE_PASSPHRASE) {
-                retrieveCredentialsFromS3(
+                retrieveCredentialsFromStorageService(
                     loginPassphrasePanel.getPassphrase(), loginPassphrasePanel.getPassword());
             } else if (loginMode == LOGIN_MODE_LOCAL_FOLDER) {
                 retrieveCredentialsFromDirectory(loginLocalFolderPanel.getHomeFolder(),
-                    loginLocalFolderPanel.getAWSCredentialsFile(), loginLocalFolderPanel.getPassword());
+                    loginLocalFolderPanel.getCredentialsFile(), loginLocalFolderPanel.getPassword());
             } else if (loginMode == LOGIN_MODE_DIRECT) {
                 String[] inputErrors = loginCredentialsPanel.checkForInputErrors();
                 if (inputErrors.length > 0) {
@@ -198,33 +238,40 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
                     ErrorDialog.showDialog(this, null, errorMessages, null);
                 } else {
                     if (loginCredentialsPanel.getUsingDevPay()) {
-                        this.awsCredentials = new AWSDevPayCredentials(
-                            loginCredentialsPanel.getAWSAccessKey(),
-                            loginCredentialsPanel.getAWSSecretKey(),
+                        this.credentials = new AWSDevPayCredentials(
+                            loginCredentialsPanel.getAccessKey(),
+                            loginCredentialsPanel.getSecretKey(),
                             loginCredentialsPanel.getAWSUserToken(),
                             loginCredentialsPanel.getAWSProductToken(),
                             loginCredentialsPanel.getFriendlyName());
                     } else {
-                        this.awsCredentials = new AWSCredentials(
-                            loginCredentialsPanel.getAWSAccessKey(),
-                            loginCredentialsPanel.getAWSSecretKey(),
-                            loginCredentialsPanel.getFriendlyName());
+                        if (targetS3.isSelected()) {
+                            this.credentials = new AWSCredentials(
+                                loginCredentialsPanel.getAccessKey(),
+                                loginCredentialsPanel.getSecretKey(),
+                                loginCredentialsPanel.getFriendlyName());
+                        } else {
+                            this.credentials = new GSCredentials(
+                                loginCredentialsPanel.getAccessKey(),
+                                loginCredentialsPanel.getSecretKey(),
+                                loginCredentialsPanel.getFriendlyName());
+                        }
                     }
                     this.setVisible(false);
                 }
             }
         } else if (e.getSource().equals(storeCredentialsButton)) {
             if (loginMode == LOGIN_MODE_PASSPHRASE) {
-                storeCredentialsInS3(
+                storeCredentialsInStorageService(
                     loginPassphrasePanel.getPassphrase(), loginPassphrasePanel.getPassword());
             } else if (loginMode == LOGIN_MODE_LOCAL_FOLDER) {
                 storeCredentialsInDirectory(
                     loginLocalFolderPanel.getHomeFolder(), loginLocalFolderPanel.getPassword());
             } else if (loginMode == LOGIN_MODE_DIRECT) {
-                throw new IllegalStateException("Cannot store AWS credentials from Direct Login panel");
+                throw new IllegalStateException("Cannot store credentials from Direct Login panel");
             }
         } else if (e.getSource().equals(cancelButton)) {
-            this.awsCredentials = null;
+            this.credentials = null;
             this.setVisible(false);
         }
     }
@@ -310,7 +357,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         return true;
     }
 
-    private void retrieveCredentialsFromS3(String passphrase, final String password) {
+    private void retrieveCredentialsFromStorageService(String passphrase, final String password) {
         if (!validPassphraseInputs(passphrase, password)) {
             return;
         }
@@ -329,23 +376,24 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         }
 
         final ProgressDialog progressDialog = new ProgressDialog(
-            ownerFrame, "Retrieving AWS Credentials", null);
+            ownerFrame, "Retrieving credentials", null);
         final StartupDialog myself = this;
 
         (new Thread(new Runnable() {
             public void run() {
                 SwingUtilities.invokeLater(new Runnable() {
                     public void run() {
-                        progressDialog.startDialog("Downloading your AWS Credentials", "", 0, 0, null, null);
+                        progressDialog.startDialog("Downloading your credentials", "", 0, 0, null, null);
                     }
                  });
 
-                S3Object encryptedCredentialsObject = null;
+                StorageObject encryptedCredentialsObject = null;
 
                 try {
-                    S3Service s3Service = new RestS3Service(null);
-                    encryptedCredentialsObject = s3Service.getObject(
-                        new S3Bucket(bucketName[0]), credentialObjectKey[0]);
+                    credentials = null;
+                    StorageService service = getStorageService();
+                    encryptedCredentialsObject = service.getObject(
+                        bucketName[0], credentialObjectKey[0]);
                 } catch (S3ServiceException e) {
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
@@ -353,7 +401,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
                         }
                      });
 
-                    String errorMessage = "<html><center>Unable to find your AWS Credentials in S3"
+                    String errorMessage = "<html><center>Unable to find your credentials online"
                         + "<br><br>Please check your passphrase and password</center></html>";
                     log.error(errorMessage, e);
                     ErrorDialog.showDialog(myself, hyperlinkListener, errorMessage, null);
@@ -362,13 +410,18 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
 
                 SwingUtilities.invokeLater(new Runnable() {
                     public void run() {
-                        progressDialog.updateDialog("Decrypting your AWS Credentials", null, 0);
+                        progressDialog.updateDialog("Decrypting your credentials", null, 0);
                     }
                  });
 
                 try {
-                    myself.awsCredentials = AWSCredentials.load(password,
-                        new BufferedInputStream(encryptedCredentialsObject.getDataInputStream()));
+                    if (targetS3.isSelected()) {
+                        myself.credentials = AWSCredentials.load(password,
+                            new BufferedInputStream(encryptedCredentialsObject.getDataInputStream()));
+                    } else {
+                        myself.credentials = GSCredentials.load(password,
+                            new BufferedInputStream(encryptedCredentialsObject.getDataInputStream()));
+                    }
 
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
@@ -384,7 +437,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
                      });
 
                     String errorMessage =
-                        "<html><center>Unable to load your AWS Credentials from S3: "
+                        "<html><center>Unable to load your online credentials"
                         + "<br><br>Please check your password</center></html>";
                     log.error(errorMessage, e);
                     ErrorDialog.showDialog(myself, hyperlinkListener, errorMessage, null);
@@ -394,15 +447,17 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         })).start();
     }
 
-    private void storeCredentialsInS3(String passphrase, String password) {
+    private void storeCredentialsInStorageService(String passphrase, String password) {
         if (!validPassphraseInputs(passphrase, password)) {
             return;
         }
 
-        final ProviderCredentials awsCredentials =
-            AWSCredentialsDialog.showDialog(ownerFrame,
-                (loginMode == LOGIN_MODE_LOCAL_FOLDER), myProperties, hyperlinkListener);
-        if (awsCredentials == null) {
+        final ProviderCredentials credentials =
+            CredentialsDialog.showDialog(ownerFrame,
+                (loginMode == LOGIN_MODE_LOCAL_FOLDER),
+                this.isTargetS3(),
+                myProperties, hyperlinkListener);
+        if (credentials == null) {
             return;
         }
 
@@ -421,42 +476,42 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
 
         final ByteArrayInputStream[] bais = new ByteArrayInputStream[1];
         try {
-            // Convert AWS Credentials into a readable input stream.
+            // Convert credentials into a readable input stream.
             String algorithm = myProperties.getStringProperty("crypto.algorithm", "PBEWithMD5AndDES");
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            awsCredentials.save(password, baos, algorithm);
+            credentials.save(password, baos, algorithm);
             bais[0] = new ByteArrayInputStream(baos.toByteArray());
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            String message = "Unable to encrypt your AWS Credentials";
+            String message = "Unable to encrypt your credentials";
             log.error(message, e);
             ErrorDialog.showDialog(this, hyperlinkListener, message, e);
             return;
         }
 
         final ProgressDialog progressDialog = new ProgressDialog(
-            ownerFrame, "Storing AWS Credentials", null);
+            ownerFrame, "Storing credentials", null);
         final StartupDialog myself = this;
 
         (new Thread(new Runnable() {
             public void run() {
                 SwingUtilities.invokeLater(new Runnable() {
                     public void run() {
-                        progressDialog.startDialog("Uploading your AWS Credentials", null, 0, 0, null, null);
+                        progressDialog.startDialog("Uploading your credentials", null, 0, 0, null, null);
                     }
                  });
 
                 try {
-                    S3Bucket bucket = new S3Bucket(bucketName[0]);
-                    S3Object encryptedCredentialsObject = new S3Object(credentialObjectKey[0]);
+                    StorageObject encryptedCredentialsObject =
+                        new StorageObject(credentialObjectKey[0]);
                     encryptedCredentialsObject.setDataInputStream(bais[0]);
                     encryptedCredentialsObject.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ);
 
                     // Store credentials
-                    S3Service s3Service = new RestS3Service(awsCredentials);
-                    s3Service.createBucket(bucketName[0]);
-                    s3Service.putObject(bucket, encryptedCredentialsObject);
+                    StorageService service = getStorageService();
+                    service.createBucket(bucketName[0]);
+                    service.putObject(bucketName[0], encryptedCredentialsObject);
 
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
@@ -464,8 +519,10 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
                         }
                      });
 
-                    JOptionPane.showMessageDialog(ownerFrame, "Your AWS Credentials have been stored in your " +
-                        "S3 account\n\nBucket name: " + bucketName[0] + "\nObject key: " + credentialObjectKey[0]);
+                    JOptionPane.showMessageDialog(ownerFrame,
+                        "Your credentials have been stored online"
+                        + "\n\nBucket name: " + bucketName[0]
+                        + "\nObject key: " + credentialObjectKey[0]);
                 } catch (S3ServiceException e) {
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
@@ -473,7 +530,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
                         }
                      });
 
-                    String message = "Unable to store your AWS Credentials in S3";
+                    String message = "Unable to store your credentials online";
                     log.error(message, e);
                     ErrorDialog.showDialog(myself, hyperlinkListener, message, e);
                 }
@@ -487,10 +544,10 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         }
 
         try {
-            this.awsCredentials = AWSCredentials.load(password, credentialsFile);
+            this.credentials = ProviderCredentials.load(password, credentialsFile);
             this.setVisible(false);
         } catch (Exception e) {
-            String message = "<html><center>Unable to load your AWS Credentials from the file: "
+            String message = "<html><center>Unable to load your credentials from the file: "
                 + credentialsFile + "<br><br>Please check your password</center></html>";
             log.error(message, e);
             ErrorDialog.showDialog(this, hyperlinkListener, message, null);
@@ -505,39 +562,40 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
             password = "";
         }
 
-        ProviderCredentials awsCredentials =
-            AWSCredentialsDialog.showDialog(ownerFrame, true, myProperties, hyperlinkListener);
-        if (awsCredentials == null) {
+        ProviderCredentials myCredentials =
+            CredentialsDialog.showDialog(ownerFrame, true, this.isTargetS3(),
+                myProperties, hyperlinkListener);
+        if (myCredentials == null) {
             return;
         }
-        if (awsCredentials.getFriendlyName() == null || awsCredentials.getFriendlyName().length() == 0) {
+        if (myCredentials.getFriendlyName() == null || myCredentials.getFriendlyName().length() == 0) {
             String message = "You must enter a nickname when storing your credentials";
             log.error(message);
             ErrorDialog.showDialog(this, hyperlinkListener, message, null);
             return;
         }
 
-        File credentialsFile = new File(directory, awsCredentials.getFriendlyName() + ".enc");
+        File credentialsFile = new File(directory, myCredentials.getFriendlyName() + ".enc");
 
         try {
             String algorithm = myProperties.getStringProperty("crypto.algorithm", "PBEWithMD5AndDES");
-            awsCredentials.save(password, credentialsFile, algorithm);
+            myCredentials.save(password, credentialsFile, algorithm);
             loginLocalFolderPanel.clearPassword();
             loginLocalFolderPanel.refreshStoredCredentialsTable();
 
-            JOptionPane.showMessageDialog(ownerFrame, "Your AWS Credentials have been stored in the file:\n" +
+            JOptionPane.showMessageDialog(ownerFrame, "Your credentials have been stored in the file:\n" +
                 credentialsFile.getAbsolutePath());
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
-            String message = "Unable to encrypt your AWS Credentials to a folder";
+            String message = "Unable to encrypt your credentials to a folder";
             log.error(message, e);
             ErrorDialog.showDialog(this, hyperlinkListener, message, e);
         }
     }
 
-    public AWSCredentials getAWSCredentials() {
-        return this.awsCredentials;
+    public ProviderCredentials getProviderCredentials() {
+        return this.credentials;
     }
 
     /**
@@ -547,16 +605,6 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
      * @throws Exception
      */
     public static void main(String args[]) throws Exception {
-//        String algorithm = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-//            .getStringProperty("crypto.algorithm", "PBEWithMD5AndDES");
-//        File file = new File("/Users/jmurty/Desktop/test.enc");
-//        AWSCredentials awsCredentialsTest = new AWSCredentials("a", "b");
-//        awsCredentialsTest.save("please", file, algorithm);
-//        System.err.println("Saved: " + awsCredentialsTest);
-//        System.err.println("Loaded: " + AWSCredentials.load("please", file));
-//        if (true)
-//            return;
-//
         JFrame f = new JFrame();
 
         HyperlinkActivatedListener listener = new HyperlinkActivatedListener() {
@@ -570,13 +618,13 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
         StartupDialog startupDialog = new StartupDialog(f,
             Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME), listener);
         startupDialog.setVisible(true);
-        AWSCredentials awsCredentials = startupDialog.getAWSCredentials();
+        ProviderCredentials credentials = startupDialog.getProviderCredentials();
         startupDialog.dispose();
 
-        if (awsCredentials != null) {
-            System.out.println("AWS Credentials: " + awsCredentials.getLogString());
+        if (credentials != null) {
+            System.out.println("Credentials: " + credentials.getLogString());
         } else {
-            System.out.println("AWS Credentials: null");
+            System.out.println("Credentials: null");
         }
 
         f.dispose();

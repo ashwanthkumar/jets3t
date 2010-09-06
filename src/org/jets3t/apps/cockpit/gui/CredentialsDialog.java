@@ -42,13 +42,13 @@ import org.jets3t.service.security.GSCredentials;
 import org.jets3t.service.security.ProviderCredentials;
 
 /**
- * Dialog box for obtaining a user's AWS Credentials, where the dialog is simply
+ * Dialog box for obtaining a user's credentials, where the dialog is simply
  * a wrapping for a {@link LoginCredentialsPanel}.
  *
  * @author James Murty
  * @author Nikolas Coukouma
  */
-public class AWSCredentialsDialog extends JDialog implements ActionListener {
+public class CredentialsDialog extends JDialog implements ActionListener {
     private static final long serialVersionUID = -8201015667689728582L;
 
     private LoginCredentialsPanel loginCredentialsPanel = null;
@@ -60,20 +60,20 @@ public class AWSCredentialsDialog extends JDialog implements ActionListener {
     private final Insets insetsDefault = new Insets(3, 5, 3, 5);
 
     /**
-     * Displays a dialog box prompting for a user's AWS credentials
+     * Displays a dialog box prompting for a user's credentials
      *
      * @param ownerFrame
      * the frame that will own the dialog
      * @param askForFriendlyName
      * if true, the dialog will prompt the user for a "friendly" name they want to give to their
-     * AWS credentials - such as a nickname they can use to distinguish between multiple AWS accounts.
+     * credentials - such as a nickname they can use to distinguish between multiple accounts.
      * @param hyperlinkListener
      * the listener that will act on any hyperlink events triggered by the user clicking on HTTP links.
      */
-    public AWSCredentialsDialog(Frame ownerFrame, boolean askForFriendlyName,
+    public CredentialsDialog(Frame ownerFrame, boolean askForFriendlyName,
         Jets3tProperties jets3tProperties, HyperlinkActivatedListener hyperlinkListener)
     {
-        super(ownerFrame, "AWS Credentials", true);
+        super(ownerFrame, "Service Credentials", true);
         this.jets3tProperties = jets3tProperties;
 
         this.loginCredentialsPanel = new LoginCredentialsPanel(askForFriendlyName, hyperlinkListener);
@@ -147,18 +147,18 @@ public class AWSCredentialsDialog extends JDialog implements ActionListener {
 
     /**
      * @return
-     * the AWS Access Key provided by the user.
+     * the Access Key provided by the user.
      */
-    public String getAWSAccessKey() {
-        return loginCredentialsPanel.getAWSAccessKey().trim();
+    public String getAccessKey() {
+        return loginCredentialsPanel.getAccessKey().trim();
     }
 
     /**
      * @return
-     * the AWS Secret Key provided by the user.
+     * the Secret Key provided by the user.
      */
-    public String getAWSSecretKey() {
-        return loginCredentialsPanel.getAWSSecretKey().trim();
+    public String getSecretKey() {
+        return loginCredentialsPanel.getSecretKey().trim();
     }
 
     /**
@@ -206,43 +206,43 @@ public class AWSCredentialsDialog extends JDialog implements ActionListener {
      * the listener that will act on any hyperlink events triggered by the user clicking on HTTP links.
      */
     public static ProviderCredentials showDialog(Frame ownerFrame, boolean askForFriendlyName,
-        Jets3tProperties jets3tProperties, HyperlinkActivatedListener hyperlinkListener)
+        boolean isTargetS3, Jets3tProperties jets3tProperties,
+        HyperlinkActivatedListener hyperlinkListener)
     {
-        AWSCredentialsDialog dialog = new AWSCredentialsDialog(
+        CredentialsDialog dialog = new CredentialsDialog(
             ownerFrame, askForFriendlyName, jets3tProperties, hyperlinkListener);
         dialog.setVisible(true);
 
-        ProviderCredentials awsCredentials = null;
+        ProviderCredentials credentials = null;
         if (dialog.isConfirmed()) {
-            String serviceEndpoint = jets3tProperties.getStringProperty(
-                "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
             // Handle Google Storage endpoint
-            if  (Constants.GS_DEFAULT_HOSTNAME.equals(serviceEndpoint)) {
-                awsCredentials = new GSCredentials(
-                    dialog.getAWSAccessKey(),
-                    dialog.getAWSSecretKey());
+            if  (!isTargetS3) {
+                credentials = new GSCredentials(
+                    dialog.getAccessKey(),
+                    dialog.getSecretKey(),
+                    dialog.getFriendlyName());
             }
             // Handle Amazon endpoint
             else {
                 if (dialog.getUsingDevPay()) {
-                    awsCredentials = new AWSDevPayCredentials(
-                        dialog.getAWSAccessKey(),
-                        dialog.getAWSSecretKey(),
+                    credentials = new AWSDevPayCredentials(
+                        dialog.getAccessKey(),
+                        dialog.getSecretKey(),
                         dialog.getAWSUserToken(),
                         dialog.getAWSProductToken(),
                         dialog.getFriendlyName());
                 } else {
-                    awsCredentials = new AWSCredentials(
-                        dialog.getAWSAccessKey(),
-                        dialog.getAWSSecretKey(),
+                    credentials = new AWSCredentials(
+                        dialog.getAccessKey(),
+                        dialog.getSecretKey(),
                         dialog.getFriendlyName());
                 }
             }
         } else {
-            awsCredentials = null;
+            credentials = null;
         }
         dialog.dispose();
-        return awsCredentials;
+        return credentials;
     }
 
 }

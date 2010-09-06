@@ -36,6 +36,8 @@ TOOLKIT
 
 COCKPIT
 
+- Added explicit support for logging in to either the Google Storage or
+  Amazon S3 service in the startup/login dialog.
 - A CloudFront distribution's Default Root Object setting can be configured
   in the "CloudFront Distributions" dialog.
 

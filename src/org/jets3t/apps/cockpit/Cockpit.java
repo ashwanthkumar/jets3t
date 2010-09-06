@@ -117,8 +117,6 @@ import org.jets3t.service.CloudFrontService;
 import org.jets3t.service.CloudFrontServiceException;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.S3ObjectsChunk;
-import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.StorageObjectsChunk;
 import org.jets3t.service.acl.AccessControlList;
@@ -144,7 +142,6 @@ import org.jets3t.service.multithread.S3ServiceMulti;
 import org.jets3t.service.multithread.ServiceEvent;
 import org.jets3t.service.multithread.ThreadWatcher;
 import org.jets3t.service.multithread.UpdateACLEvent;
-import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.EncryptionUtil;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.ByteFormatter;
@@ -197,6 +194,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
     /**
      * Multi-threaded S3 service used by the application.
      */
+    private boolean isTargetS3 = true;
+    private String originalTargetEndpoint = null;
     private S3ServiceMulti s3ServiceMulti = null;
     private CloudFrontService cloudFrontService = null;
     private boolean cloudFrontMembershipChecked = false;
@@ -302,6 +301,23 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         ownerFrame.setVisible(true);
     }
 
+    protected RestS3Service getRestS3Service(ProviderCredentials credentials)
+        throws S3ServiceException
+    {
+        if (!this.isTargetS3) {
+            // Override endpoint property in JetS3t properties
+            originalTargetEndpoint =  cockpitProperties.getStringProperty(
+                    "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
+            cockpitProperties.setProperty(
+                "s3service.s3-endpoint", Constants.GS_DEFAULT_HOSTNAME);
+        } else if (originalTargetEndpoint != null) {
+            cockpitProperties.setProperty(
+                "s3service.s3-endpoint", originalTargetEndpoint);
+        }
+        return new RestS3Service(credentials, APPLICATION_DESCRIPTION,
+            this, cockpitProperties);
+    }
+
     /**
      * Prepares application to run as a GUI by finding/creating a root owner JFrame, creating an
      * un-authenticated {@link RestS3Service} and loading properties files.
@@ -325,18 +341,6 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
         // Initialise the GUI.
         initGui();
-
-        // Initialise a non-authenticated service.
-        try {
-            // Revert to anonymous service.
-            s3ServiceMulti = new S3ServiceMulti(
-                new RestS3Service(null, APPLICATION_DESCRIPTION, this), this);
-            cloudFrontService = null;
-        } catch (S3ServiceException e) {
-            String message = "Unable to start anonymous service";
-            log.error(message, e);
-            ErrorDialog.showDialog(ownerFrame, this, message, e);
-        }
 
         // Load Cockpit configuration files from cockpit's home directory.
         File mimeTypesFile = new File(cockpitHomeDirectory, "mime.types");
@@ -1130,7 +1134,8 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             if (credentials == null) {
                 StartupDialog startupDialog = new StartupDialog(ownerFrame, cockpitProperties, this);
                 startupDialog.setVisible(true);
-                credentials = startupDialog.getAWSCredentials();
+                credentials = startupDialog.getProviderCredentials();
+                this.isTargetS3 = startupDialog.isTargetS3();
                 startupDialog.dispose();
 
                 if (credentials == null) {
@@ -1140,7 +1145,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             }
 
             s3ServiceMulti = new S3ServiceMulti(
-                new RestS3Service(credentials, APPLICATION_DESCRIPTION, this), this);
+                getRestS3Service(credentials), this);
 
             cloudFrontMembershipChecked = false;
             listAllBuckets();
@@ -1165,7 +1170,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 loginSwitchMenu.setEnabled(true);
             }
         } catch (Exception e) {
-            String message = "Unable to log in to S3";
+            String message = "Unable to log in to storage service";
             log.error(message, e);
             ErrorDialog.showDialog(ownerFrame, this, message, e);
 
@@ -1201,7 +1206,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
             // Revert to anonymous service.
             s3ServiceMulti = new S3ServiceMulti(
-                new RestS3Service(null, APPLICATION_DESCRIPTION, this), this);
+                getRestS3Service(null), this);
             cloudFrontService = null;
 
             bucketsTable.clearSelection();
