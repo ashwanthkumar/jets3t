@@ -81,7 +81,6 @@ public class S3ServiceMulti {
     private static final Log log = LogFactory.getLog(S3ServiceMulti.class);
 
     private S3Service s3Service = null;
-    private String s3Endpoint = Constants.S3_DEFAULT_HOSTNAME;
     private final boolean[] isShutdown = new boolean[] { false };
 
     private final ArrayList serviceEventListeners = new ArrayList();
@@ -145,9 +144,6 @@ public class S3ServiceMulti {
                     + " simultaneous admin threads (s3service.admin-max-thread-count) - please adjust JetS3t settings");
             }
         }
-
-        this.s3Endpoint = this.s3Service.getJetS3tProperties().getStringProperty(
-            "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
     }
 
     /**
@@ -1149,7 +1145,7 @@ public class S3ServiceMulti {
                 try {
                     URL url = new URL(downloadPackages[i].getSignedUrl());
                     objects[i] = ServiceUtils.buildObjectFromUrl(
-                        url.getHost(), url.getPath(), this.s3Endpoint);
+                        url.getHost(), url.getPath(), s3Service.getEndpoint());
                 } catch (RuntimeException e) {
                     throw e;
                 } catch (Exception e) {
@@ -1295,7 +1291,7 @@ public class S3ServiceMulti {
         for (int i = 0; i < runnables.length; i++) {
             URL url = new URL(signedGetURLs[i]);
             S3Object object = ServiceUtils.buildObjectFromUrl(
-                url.getHost(), url.getPath(), this.s3Endpoint);
+                url.getHost(), url.getPath(), s3Service.getEndpoint());
             pendingObjectKeysList.add(object);
 
             runnables[i] = new GetObjectRunnable(signedGetURLs[i], false);
@@ -1387,7 +1383,7 @@ public class S3ServiceMulti {
         for (int i = 0; i < runnables.length; i++) {
             URL url = new URL(signedHeadURLs[i]);
             S3Object object = ServiceUtils.buildObjectFromUrl(
-                url.getHost(), url.getPath(), this.s3Endpoint);
+                url.getHost(), url.getPath(), s3Service.getEndpoint());
             pendingObjectKeysList.add(object);
 
             runnables[i] = new GetObjectRunnable(signedHeadURLs[i], true);
@@ -1471,7 +1467,7 @@ public class S3ServiceMulti {
         for (int i = 0; i < runnables.length; i++) {
             URL url = new URL(signedURLs[i]);
             S3Object object = ServiceUtils.buildObjectFromUrl(
-                url.getHost(), url.getPath(), this.s3Endpoint);
+                url.getHost(), url.getPath(), s3Service.getEndpoint());
             pendingObjectsList.add(object);
             runnables[i] = new PutACLRunnable(signedURLs[i], acl);
         }
@@ -1553,7 +1549,7 @@ public class S3ServiceMulti {
         for (int i = 0; i < runnables.length; i++) {
             URL url = new URL(signedDeleteUrls[i]);
             S3Object object = ServiceUtils.buildObjectFromUrl(
-                url.getHost(), url.getPath(), this.s3Endpoint);
+                url.getHost(), url.getPath(), s3Service.getEndpoint());
             objectsToDeleteList.add(object);
 
             runnables[i] = new DeleteObjectRunnable(signedDeleteUrls[i]);
@@ -1728,7 +1724,7 @@ public class S3ServiceMulti {
         for (int i = 0; i < runnables.length; i++) {
             URL url = new URL(signedAclURLs[i]);
             S3Object object = ServiceUtils.buildObjectFromUrl(
-                url.getHost(), url.getPath(),this.s3Endpoint);
+                url.getHost(), url.getPath(),s3Service.getEndpoint());
             pendingObjectKeysList.add(object);
 
             runnables[i] = new GetACLRunnable(signedAclURLs[i]);
@@ -1838,7 +1834,7 @@ public class S3ServiceMulti {
                     handler.putObjectAclWithSignedUrl(signedUrl, signedUrlAcl);
                     URL url = new URL(signedUrl);
                     S3Object object = ServiceUtils.buildObjectFromUrl(
-                        url.getHost(), url.getPath(), s3Endpoint);
+                        url.getHost(), url.getPath(), s3Service.getEndpoint());
                     object.setAcl(signedUrlAcl);
                     result = object;
                 }
@@ -1892,7 +1888,7 @@ public class S3ServiceMulti {
                     AccessControlList acl = handler.getObjectAclWithSignedUrl(signedAclUrl);
                     URL url = new URL(signedAclUrl);
                     object = ServiceUtils.buildObjectFromUrl(
-                        url.getHost(), url.getPath(), s3Endpoint);
+                        url.getHost(), url.getPath(), s3Service.getEndpoint());
                     object.setAcl(acl);
                     result = object;
                 }
@@ -1946,7 +1942,7 @@ public class S3ServiceMulti {
                     handler.deleteObjectWithSignedUrl(signedDeleteUrl);
                     URL url = new URL(signedDeleteUrl);
                     result = ServiceUtils.buildObjectFromUrl(
-                        url.getHost(), url.getPath(), s3Endpoint);
+                        url.getHost(), url.getPath(), s3Service.getEndpoint());
                 }
             } catch (RuntimeException e) {
                 result = e;
