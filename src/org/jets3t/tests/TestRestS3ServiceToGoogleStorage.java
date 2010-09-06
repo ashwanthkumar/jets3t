@@ -82,29 +82,4 @@ public class TestRestS3ServiceToGoogleStorage extends BaseStorageServiceTests {
      * S3 Features supported by Google Storage
      */
 
-    public void testS3RestCannedACL() throws Exception {
-        RestStorageService service = getStorageService(getCredentials());
-        StorageBucket bucket = createBucketForTest("testRestCannedACL");
-
-        try {
-            // Try to create REST canned public object.
-            String publicKey = "PublicObject";
-            StorageObject object = buildStorageObject(publicKey);
-            object.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ);
-            object.setOwner(bucket.getOwner());
-
-            try {
-                service.putObject(bucket.getName(), object);
-                URL url = new URL("https://" + service.getEndpoint()
-                    + "/" + bucket.getName() + "/" + publicKey);
-                assertEquals("Expected public access (200)",
-                        200, ((HttpURLConnection)url.openConnection()).getResponseCode());
-            } finally {
-                service.deleteObject(bucket.getName(), object.getKey());
-            }
-        } finally {
-            cleanupBucketForTest("testRestCannedACL");
-        }
-    }
-
 }

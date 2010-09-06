@@ -1583,14 +1583,9 @@ public abstract class RestStorageService extends StorageService implements AWSRe
 
         boolean putNonStandardAcl = false;
         if (acl != null) {
-            if (AccessControlList.REST_CANNED_PRIVATE.equals(acl)) {
-                metadata.put(Constants.REST_HEADER_PREFIX + "acl", "private");
-            } else if (AccessControlList.REST_CANNED_PUBLIC_READ.equals(acl)) {
-                metadata.put(Constants.REST_HEADER_PREFIX + "acl", "public-read");
-            } else if (AccessControlList.REST_CANNED_PUBLIC_READ_WRITE.equals(acl)) {
-                metadata.put(Constants.REST_HEADER_PREFIX + "acl", "public-read-write");
-            } else if (AccessControlList.REST_CANNED_AUTHENTICATED_READ.equals(acl)) {
-                metadata.put(Constants.REST_HEADER_PREFIX + "acl", "authenticated-read");
+            String restHeaderAclValue = acl.getValueForRESTHeaderACL();
+            if (restHeaderAclValue != null) {
+                metadata.put(this.getRestHeaderPrefix() + "acl", restHeaderAclValue);
             } else {
                 putNonStandardAcl = true;
             }
@@ -1671,14 +1666,9 @@ public abstract class RestStorageService extends StorageService implements AWSRe
 
         boolean putNonStandardAcl = false;
         if (acl != null) {
-            if (AccessControlList.REST_CANNED_PRIVATE.equals(acl)) {
-                metadata.put(Constants.REST_HEADER_PREFIX + "acl", "private");
-            } else if (AccessControlList.REST_CANNED_PUBLIC_READ.equals(acl)) {
-                metadata.put(Constants.REST_HEADER_PREFIX + "acl", "public-read");
-            } else if (AccessControlList.REST_CANNED_PUBLIC_READ_WRITE.equals(acl)) {
-                metadata.put(Constants.REST_HEADER_PREFIX + "acl", "public-read-write");
-            } else if (AccessControlList.REST_CANNED_AUTHENTICATED_READ.equals(acl)) {
-                metadata.put(Constants.REST_HEADER_PREFIX + "acl", "authenticated-read");
+            String restHeaderAclValue = acl.getValueForRESTHeaderACL();
+            if (restHeaderAclValue != null) {
+                metadata.put(this.getRestHeaderPrefix() + "acl", restHeaderAclValue);
             } else {
                 putNonStandardAcl = true;
             }
@@ -2054,14 +2044,9 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         PutMethod putMethod = new PutMethod(signedAclUrl);
 
         if (acl != null) {
-            if (AccessControlList.REST_CANNED_PRIVATE.equals(acl)) {
-                putMethod.addRequestHeader(this.getRestHeaderPrefix() + "acl", "private");
-            } else if (AccessControlList.REST_CANNED_PUBLIC_READ.equals(acl)) {
-                putMethod.addRequestHeader(this.getRestHeaderPrefix() + "acl", "public-read");
-            } else if (AccessControlList.REST_CANNED_PUBLIC_READ_WRITE.equals(acl)) {
-                putMethod.addRequestHeader(this.getRestHeaderPrefix() + "acl", "public-read-write");
-            } else if (AccessControlList.REST_CANNED_AUTHENTICATED_READ.equals(acl)) {
-                putMethod.addRequestHeader(this.getRestHeaderPrefix() + "acl", "authenticated-read");
+            String restHeaderAclValue = acl.getValueForRESTHeaderACL();
+            if (restHeaderAclValue != null) {
+                putMethod.addRequestHeader(this.getRestHeaderPrefix() + "acl", restHeaderAclValue);
             } else {
                 try {
                     String aclAsXml = acl.toXml();

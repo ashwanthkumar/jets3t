@@ -45,6 +45,7 @@ import org.jets3t.service.acl.GranteeInterface;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
 import org.jets3t.service.acl.gs.AllUsersGrantee;
+import org.jets3t.service.acl.gs.GSAccessControlList;
 import org.jets3t.service.acl.gs.UserByIdGrantee;
 import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
@@ -654,6 +655,38 @@ public abstract class BaseStorageServiceTests extends TestCase {
             service.deleteObject(bucketName, publicKey2);
         } finally {
             cleanupBucketForTest("testACLManagement", true);
+        }
+    }
+
+    public void testACLManagementViaRestHeaders() throws Exception {
+        RestStorageService service = getStorageService(getCredentials());
+        StorageBucket bucket = createBucketForTest("testACLManagementViaRestHeaders");
+
+        AccessControlList publicHeaderAcl = null;
+        if (service instanceof GoogleStorageService) {
+            publicHeaderAcl = GSAccessControlList.REST_CANNED_PUBLIC_READ;
+        } else {
+            publicHeaderAcl = AccessControlList.REST_CANNED_PUBLIC_READ;
+        }
+
+        try {
+            // Try to create public object using HTTP header ACL settings.
+            String publicKey = "PublicObject";
+            StorageObject object = buildStorageObject(publicKey);
+            object.setAcl(publicHeaderAcl);
+            object.setOwner(bucket.getOwner());
+
+            try {
+                service.putObject(bucket.getName(), object);
+                URL url = new URL("https://" + service.getEndpoint()
+                    + "/" + bucket.getName() + "/" + publicKey);
+                assertEquals("Expected public access (200)",
+                        200, ((HttpURLConnection)url.openConnection()).getResponseCode());
+            } finally {
+                service.deleteObject(bucket.getName(), object.getKey());
+            }
+        } finally {
+            cleanupBucketForTest("testACLManagementViaRestHeaders");
         }
     }
 

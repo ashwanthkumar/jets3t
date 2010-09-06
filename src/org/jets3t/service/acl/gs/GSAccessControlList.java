@@ -41,7 +41,19 @@ import com.jamesmurty.utils.XMLBuilder;
  *
  */
 public class GSAccessControlList extends AccessControlList {
-    private static final long serialVersionUID = 5090337024246721422L;
+    private static final long serialVersionUID = -1398278213190647823L;
+
+    /*
+     * Predefined ACLs that can be applied on creation of an object or bucket,
+     * topic "Applying ACLs with an extension request header" at
+     * http://code.google.com/apis/storage/docs/developer-guide.html#authentication
+     */
+    public static final GSAccessControlList REST_CANNED_PRIVATE = new GSAccessControlList();
+    public static final GSAccessControlList REST_CANNED_PUBLIC_READ = new GSAccessControlList();
+    public static final GSAccessControlList REST_CANNED_PUBLIC_READ_WRITE = new GSAccessControlList();
+    public static final GSAccessControlList REST_CANNED_AUTHENTICATED_READ = new GSAccessControlList();
+    public static final GSAccessControlList REST_CANNED_BUCKET_OWNER_READ = new GSAccessControlList();
+    public static final GSAccessControlList REST_CANNED_BUCKET_OWNER_FULL_CONTROL = new GSAccessControlList();
 
     /**
      * Returns a string representation of the ACL contents, useful for debugging.
@@ -78,4 +90,26 @@ public class GSAccessControlList extends AccessControlList {
         }
         return builder;
     }
+
+    /**
+     * @return the header value string for this ACL if it is a predefined ACL, otherwise return null;
+     */
+    @Override
+    public String getValueForRESTHeaderACL() {
+        if (GSAccessControlList.REST_CANNED_PRIVATE.equals(this)) {
+            return "private";
+        } else if (GSAccessControlList.REST_CANNED_PUBLIC_READ.equals(this)) {
+            return "public-read";
+        } else if (GSAccessControlList.REST_CANNED_PUBLIC_READ_WRITE.equals(this)) {
+            return "public-read-write";
+        } else if (GSAccessControlList.REST_CANNED_AUTHENTICATED_READ.equals(this)) {
+            return "authenticated-read";
+        } else if (GSAccessControlList.REST_CANNED_BUCKET_OWNER_READ.equals(this)) {
+            return "bucket-owner-read";
+        } else if (GSAccessControlList.REST_CANNED_BUCKET_OWNER_FULL_CONTROL.equals(this)) {
+            return "bucket-owner-full-control";
+        }
+        return null;
+    }
+
 }

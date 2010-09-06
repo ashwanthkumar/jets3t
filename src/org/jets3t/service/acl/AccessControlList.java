@@ -217,12 +217,35 @@ public class AccessControlList implements Serializable {
      * true if this ACL is a REST pre-canned one, in which case REST/HTTP implementations can use
      * the <tt>x-amz-acl</tt> header as a short-cut to set permissions on upload rather than using
      * a full ACL XML document.
+     *
+     * @deprecated 0.8.0
      */
+    @Deprecated
     public boolean isCannedRestACL() {
-        return (this.equals(AccessControlList.REST_CANNED_AUTHENTICATED_READ)
-            || this.equals(AccessControlList.REST_CANNED_PRIVATE)
-            || this.equals(AccessControlList.REST_CANNED_PUBLIC_READ)
-            || this.equals(AccessControlList.REST_CANNED_PUBLIC_READ_WRITE));
+        return isRESTHeaderACL();
+    }
+
+    /**
+     * @return true if this ACL can be set via an HTTP header, rather than via an XML document.
+     */
+    public boolean isRESTHeaderACL() {
+        return getValueForRESTHeaderACL() != null;
+    }
+
+    /**
+     * @return the header value string for this ACL if it is a canned ACL, otherwise return null;
+     */
+    public String getValueForRESTHeaderACL() {
+        if (AccessControlList.REST_CANNED_PRIVATE.equals(this)) {
+            return "private";
+        } else if (AccessControlList.REST_CANNED_PUBLIC_READ.equals(this)) {
+            return "public-read";
+        } else if (AccessControlList.REST_CANNED_PUBLIC_READ_WRITE.equals(this)) {
+            return "public-read-write";
+        } else if (AccessControlList.REST_CANNED_AUTHENTICATED_READ.equals(this)) {
+            return "authenticated-read";
+        }
+        return null;
     }
 
 }
