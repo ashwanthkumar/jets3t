@@ -16,26 +16,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jets3t.service.multithread;
+package org.jets3t.service.multi.event;
 
-import org.jets3t.service.model.S3Bucket;
-import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.StorageBucket;
+import org.jets3t.service.model.StorageObject;
+import org.jets3t.service.multi.StorageServiceMulti;
+import org.jets3t.service.multi.ThreadWatcher;
 
 /**
- * Multi-threaded service event fired by {@link S3ServiceMulti#deleteObjects(S3Bucket, S3Object[])}.
+ * Multi-threaded service event fired by
+ * {@link StorageServiceMulti#deleteObjects(StorageBucket, StorageObject[])}.
  * <p>
- * EVENT_IN_PROGRESS events include an array of the {@link S3Object}s that have been deleted
+ * EVENT_IN_PROGRESS events include an array of the {@link StorageObject}s that have been deleted
  * since the last progress event was fired. These objects are available via
  * {@link #getDeletedObjects()}.
  * <p>
- * EVENT_CANCELLED events include an array of the {@link S3Object}s that had not been deleted
+ * EVENT_CANCELLED events include an array of the {@link StorageObject}s that had not been deleted
  * before the operation was cancelled. These objects are available via
  * {@link #getCancelledObjects()}.
  *
  * @author James Murty
  */
 public class DeleteObjectsEvent extends ServiceEvent {
-    private S3Object[] objects = null;
+    private StorageObject[] objects = null;
 
     private DeleteObjectsEvent(int eventCode, Object uniqueOperationId) {
         super(eventCode, uniqueOperationId);
@@ -54,7 +57,7 @@ public class DeleteObjectsEvent extends ServiceEvent {
     }
 
     public static DeleteObjectsEvent newInProgressEvent(ThreadWatcher threadWatcher,
-        S3Object[] deletedObjects, Object uniqueOperationId)
+        StorageObject[] deletedObjects, Object uniqueOperationId)
     {
         DeleteObjectsEvent event = new DeleteObjectsEvent(EVENT_IN_PROGRESS, uniqueOperationId);
         event.setThreadWatcher(threadWatcher);
@@ -67,7 +70,7 @@ public class DeleteObjectsEvent extends ServiceEvent {
         return event;
     }
 
-    public static DeleteObjectsEvent newCancelledEvent(S3Object[] remainingObjects, Object uniqueOperationId) {
+    public static DeleteObjectsEvent newCancelledEvent(StorageObject[] remainingObjects, Object uniqueOperationId) {
         DeleteObjectsEvent event = new DeleteObjectsEvent(EVENT_CANCELLED, uniqueOperationId);
         event.setObjects(remainingObjects);
         return event;
@@ -82,17 +85,17 @@ public class DeleteObjectsEvent extends ServiceEvent {
     }
 
 
-    private void setObjects(S3Object[] objects) {
+    private void setObjects(StorageObject[] objects) {
         this.objects = objects;
     }
 
     /**
      * @return
-     * the S3Objects that have been deleted since the last progress event was fired.
+     * the {@link StorageObject}s that have been deleted since the last progress event was fired.
      * @throws IllegalStateException
      * deleted objects are only available from EVENT_IN_PROGRESS events.
      */
-    public S3Object[] getDeletedObjects() throws IllegalStateException {
+    public StorageObject[] getDeletedObjects() throws IllegalStateException {
         if (getEventCode() != EVENT_IN_PROGRESS) {
             throw new IllegalStateException("Deleted Objects are only available from EVENT_IN_PROGRESS events");
         }
@@ -101,11 +104,11 @@ public class DeleteObjectsEvent extends ServiceEvent {
 
     /**
      * @return
-     * the S3Objects that were not deleted before the operation was cancelled.
+     * the {@link StorageObject}s that were not deleted before the operation was cancelled.
      * @throws IllegalStateException
      * cancelled objects are only available from EVENT_CANCELLED events.
      */
-    public S3Object[] getCancelledObjects() throws IllegalStateException {
+    public StorageObject[] getCancelledObjects() throws IllegalStateException {
         if (getEventCode() != EVENT_CANCELLED) {
             throw new IllegalStateException("Cancelled Objects are  only available from EVENT_CANCELLED events");
         }

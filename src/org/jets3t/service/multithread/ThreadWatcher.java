@@ -44,162 +44,30 @@ import org.jets3t.service.io.BytesProgressWatcher;
  * {@link #isCancelTaskSupported()}.
  *
  * @author James Murty
+ *
+ * @deprecated 0.8.0 use {@link org.jets3t.service.multi.ThreadWatcher} instead.
  */
-public class ThreadWatcher {
-    private long completedThreads = 0;
-    private long threadCount = 0;
-    private CancelEventTrigger cancelEventListener = null;
-    private BytesProgressWatcher[] progressWatchers = null;
+@Deprecated
+public class ThreadWatcher extends org.jets3t.service.multi.ThreadWatcher {
 
     protected ThreadWatcher(BytesProgressWatcher[] progressWatchers) {
-        this.progressWatchers = progressWatchers;
-        this.threadCount = this.progressWatchers.length;
+        super(progressWatchers);
     }
 
     protected ThreadWatcher(long threadCount) {
-        this.threadCount = threadCount;
+        super(threadCount);
     }
 
-    /**
-     * Sets information about the number of threads completed and the total number of threads.
-     *
-     * @param completedThreads
-     * the number of threads that have completed.
-     */
-    protected void updateThreadsCompletedCount(long completedThreads) {
-        updateThreadsCompletedCount(completedThreads, null);
+    public void updateThreadsCompletedCount(long completedThreads,
+        org.jets3t.service.multithread.CancelEventTrigger cancelEventListener) {
+        // TODO Auto-generated method stub
+        super.updateThreadsCompletedCount(completedThreads, cancelEventListener);
     }
 
-    /**
-     * Sets information about the number of threads completed and the total number of threads,
-     * as well as setting the cancellation listener that will be notified if the event is cancelled.
-     *
-     * @param completedThreads
-     * the number of threads that have completed.
-     * @param cancelEventListener
-     * the listener to notify of cancellation events.
-     */
-    protected void updateThreadsCompletedCount(long completedThreads, CancelEventTrigger cancelEventListener)
-    {
-        this.completedThreads = completedThreads;
-        this.cancelEventListener = cancelEventListener;
-    }
-
-    /**
-     * @return
-     * the number of threads that have completed.
-     */
-    public long getCompletedThreads() {
-        return completedThreads;
-    }
-
-    /**
-     * @return
-     * the total number of threads involved in an operation.
-     */
-    public long getThreadCount() {
-        return threadCount;
-    }
-
-    /**
-     * If this method returns true, the methods {@link #getBytesTotal()} and {@link #getBytesTransferred()}
-     * will contain information about the amount of data being transferred by the watched threads.
-     *
-     * @return
-     * true if this watcher contains information about the bytes transferred by
-     * the threads it is watching.
-     */
-    public boolean isBytesTransferredInfoAvailable() {
-        return (progressWatchers != null);
-    }
-
-    /**
-     * @return
-     * the expected total of bytes that will be transferred by the watched threads.
-     * @throws IllegalStateException
-     * if the bytes transferred information is not available - check this availability
-     * with the {@link #isBytesTransferredInfoAvailable()} method.
-     */
-    public long getBytesTotal() throws IllegalStateException {
-        if (!isBytesTransferredInfoAvailable()) {
-            throw new IllegalStateException("Bytes Transferred Info is not available in this object");
-        }
-        return BytesProgressWatcher.sumBytesToTransfer(progressWatchers);
-    }
-
-    /**
-     * @return
-     * the count of bytes that have been transferred by the watched threads.
-     * @throws IllegalStateException
-     * if the bytes transferred information is not available - check this availability
-     * with the {@link #isBytesTransferredInfoAvailable()} method.
-     */
-    public long getBytesTransferred() {
-        if (!isBytesTransferredInfoAvailable()) {
-            throw new IllegalStateException("Bytes Transferred Info is not available in this object");
-        }
-        return BytesProgressWatcher.sumBytesTransferred(progressWatchers);
-    }
-
-    /**
-     * @return
-     * an estimate of the recent rate of bytes/second transfer speed.
-     */
-    public long getBytesPerSecond() {
-        return BytesProgressWatcher.calculateRecentByteRatePerSecond(progressWatchers);
-    }
-
-    /**
-     * If this method returns true, the method {@link #getTimeRemaining()} will contain
-     * an estimate of the completion time for the data transfer.
-     *
-     * @return
-     * true if this watcher contains an estimate of the completion time for the data transfer.
-     */
-    public boolean isTimeRemainingAvailable() {
-        return (progressWatchers != null);
-    }
-
-    /**
-     * @return
-     * an estimate of the how many <b>seconds</b> until the data transfer completes, based on the
-     * overall byte rate of the transmission.
-     * @throws IllegalStateException
-     * if the time remaining estimave is not available - check this availability
-     * with the {@link #isTimeRemainingAvailable()} method.
-     */
-    public long getTimeRemaining() {
-        if (!isTimeRemainingAvailable()) {
-            throw new IllegalStateException("Time remaining estimate is not available in this object");
-        }
-        return BytesProgressWatcher.calculateRemainingTime(progressWatchers);
-    }
-
-    /**
-     * @return
-     * true if the S3 operation this object is associated with can be cancelled, and a
-     * {@link CancelEventTrigger} is available.
-     */
-    public boolean isCancelTaskSupported() {
-        return cancelEventListener != null;
-    }
-
-    /**
-     * Convenience method to trigger an event cancellation via {@link CancelEventTrigger#cancelTask}
-     * if this thread watcher is associated with an operation that can be cancelled.
-     */
-    public void cancelTask() {
-        if (isCancelTaskSupported()) {
-            cancelEventListener.cancelTask(this);
-        }
-    }
-
-    /**
-     * @return
-     * the cancel event trigger associated with an S3 operation, if any.
-     */
-    public CancelEventTrigger getCancelEventListener() {
-        return cancelEventListener;
+    @Override
+    public org.jets3t.service.multithread.CancelEventTrigger getCancelEventListener() {
+        // TODO Auto-generated method stub
+        return (org.jets3t.service.multithread.CancelEventTrigger) super.getCancelEventListener();
     }
 
 }

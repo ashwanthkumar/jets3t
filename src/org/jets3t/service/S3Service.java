@@ -137,6 +137,15 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     }
 
     /**
+     * @return the credentials identifying the service user, or null for anonymous.
+     * @deprecated 0.8.0 use {@link #getProviderCredentials()} instead
+     */
+    @Deprecated
+    public ProviderCredentials getAWSCredentials() {
+        return credentials;
+    }
+
+    /**
      * Returns the URL representing an object in S3 without a signature. This URL
      * can only be used to download publicly-accessible objects.
      *

@@ -16,15 +16,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jets3t.service.multithread;
+package org.jets3t.service.multi;
+
+import java.util.EventListener;
 
 /**
- * Interface implemented by multi-threaded S3 operations that can be cancelled prior to finishing.
+ * Interface implemented by multi-threaded operations that can be cancelled prior to finishing.
  *
  * @author James Murty
- *
- * @deprecated 0.8.0 use {@link org.jets3t.service.multi.CancelEventTrigger} instead.
  */
-@Deprecated
-public interface CancelEventTrigger extends org.jets3t.service.multi.CancelEventTrigger {
+public interface CancelEventTrigger extends EventListener {
+
+    /**
+     * Triggers a cancellation of some operation.
+     *
+     * @param eventSource
+     * the object source that triggered the cancellation, useful for logging purposes.
+     *
+     */
+    public abstract void cancelTask(Object eventSource);
+
 }

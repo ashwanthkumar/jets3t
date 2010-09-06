@@ -585,9 +585,10 @@ public abstract class RestStorageService extends StorageService implements AWSRe
      * @throws org.jets3t.service.S3ServiceException
      */
     public void authorizeHttpRequest(HttpMethod httpMethod) throws Exception {
-        if (getAWSCredentials() != null) {
+        if (getProviderCredentials() != null) {
             if (log.isDebugEnabled()) {
-                log.debug("Adding authorization for Access Key '" + getAWSCredentials().getAccessKey() + "'.");
+                log.debug("Adding authorization for Access Key '"
+                    + getProviderCredentials().getAccessKey() + "'.");
             }
         } else {
             if (log.isDebugEnabled()) {
@@ -643,11 +644,11 @@ public abstract class RestStorageService extends StorageService implements AWSRe
 
         // Sign the canonical string.
         String signedCanonical = ServiceUtils.signWithHmacSha1(
-            getAWSCredentials().getSecretKey(), canonicalString);
+            getProviderCredentials().getSecretKey(), canonicalString);
 
         // Add encoded authorization to connection as HTTP Authorization header.
-        String authorizationString = getSignatureIdentifier() + " " +
-            getAWSCredentials().getAccessKey() + ":" + signedCanonical;
+        String authorizationString = getSignatureIdentifier() + " "
+            + getProviderCredentials().getAccessKey() + ":" + signedCanonical;
         httpMethod.setRequestHeader("Authorization", authorizationString);
     }
 
@@ -1175,7 +1176,8 @@ public abstract class RestStorageService extends StorageService implements AWSRe
     @Override
     protected StorageBucket[] listAllBucketsImpl() throws S3ServiceException {
         if (log.isDebugEnabled()) {
-            log.debug("Listing all buckets for user: " + getAWSCredentials().getAccessKey());
+            log.debug("Listing all buckets for user: "
+                + getProviderCredentials().getAccessKey());
         }
 
         String bucketName = ""; // Root path of S3 service lists the user's buckets.
@@ -1197,7 +1199,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
     protected StorageItemOwner getAccountOwnerImpl() throws S3ServiceException {
         if (log.isDebugEnabled()) {
             log.debug("Looking up owner of S3 account via the ListAllBuckets response: "
-                + getAWSCredentials().getAccessKey());
+                + getProviderCredentials().getAccessKey());
         }
 
         String bucketName = ""; // Root path of S3 service lists the user's buckets.

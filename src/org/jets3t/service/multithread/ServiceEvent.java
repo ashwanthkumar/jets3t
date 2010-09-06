@@ -18,6 +18,8 @@
  */
 package org.jets3t.service.multithread;
 
+import org.jets3t.service.multi.ThreadWatcher;
+
 
 /**
  * Base class of all events produced by {@link S3ServiceMulti}.
@@ -51,106 +53,18 @@ package org.jets3t.service.multithread;
  * information available in service events.
  *
  * @author James Murty
+ * @deprecated 0.8.0 use {@link org.jets3t.service.multi.event.ServiceEvent} instead.
  */
-public abstract class ServiceEvent {
-    public static final int EVENT_ERROR = 0;
-    public static final int EVENT_STARTED = 1;
-    public static final int EVENT_COMPLETED = 2;
-    public static final int EVENT_IN_PROGRESS = 3;
-    public static final int EVENT_CANCELLED = 4;
-    public static final int EVENT_IGNORED_ERRORS = 5;
-
-    private int eventCode = 0;
-    private Object uniqueOperationId = null;
-    private Throwable t = null;
-    private ThreadWatcher threadWatcher = null;
-    private Throwable[] ignoredErrors = null;
+@Deprecated
+public abstract class ServiceEvent extends org.jets3t.service.multi.event.ServiceEvent {
 
     protected ServiceEvent(int eventCode, Object uniqueOperationId) {
-        this.eventCode = eventCode;
-        this.uniqueOperationId = uniqueOperationId;
+        super(eventCode, uniqueOperationId);
     }
 
-    protected void setThreadWatcher(ThreadWatcher threadWatcher) {
-        this.threadWatcher = threadWatcher;
+    @Override
+    public org.jets3t.service.multithread.ThreadWatcher getThreadWatcher() throws IllegalStateException {
+        return (org.jets3t.service.multithread.ThreadWatcher) super.getThreadWatcher();
     }
-
-    protected void setErrorCause(Throwable t) {
-        this.t = t;
-    }
-
-    protected void setIgnoredErrors(Throwable[] ignoredErrors) {
-        this.ignoredErrors = ignoredErrors;
-    }
-
-    public Object getUniqueOperationId() {
-        return uniqueOperationId;
-    }
-
-    /**
-     * @return
-     * the event code, which will match one of this class's public static EVENT_XXX variables.
-     */
-    public int getEventCode() {
-        return eventCode;
-    }
-
-    /**
-     * @return
-     * the error that caused an S3 operation to fail.
-     * @throws IllegalStateException
-     * an error cause can only be retrieved from an EVENT_ERROR event.
-     */
-    public Throwable getErrorCause() throws IllegalStateException {
-        if (eventCode != EVENT_ERROR) {
-            throw new IllegalStateException("Error Cause is only available from EVENT_ERROR events");
-        }
-        return t;
-    }
-
-    /**
-     * @return
-     * a list of one or more errors that occurred during an S3 operation, but which were
-     * ignored at the time (so the overall operation continued).
-     * @throws IllegalStateException
-     * ignored errors can only be retrieved from an EVENT_IGNORED_ERRORS event.
-     */
-    public Throwable[] getIgnoredErrors() throws IllegalStateException {
-        if (eventCode != EVENT_IGNORED_ERRORS) {
-            throw new IllegalStateException("Ignored errors are only available from EVENT_IGNORED_ERRORS events");
-        }
-        return ignoredErrors;
-    }
-
-    /**
-     * @return
-     * a thread watcher object containing information about the progress of an S3 operation.
-     * @throws IllegalStateException
-     * a thread watcher can only be retrieved from an EVENET_STARTED or EVENT_IN_PROGRESS event.
-     */
-    public ThreadWatcher getThreadWatcher() throws IllegalStateException {
-        if (eventCode != EVENT_STARTED && eventCode != EVENT_IN_PROGRESS) {
-            throw new IllegalStateException("Thread Watcher is only available from EVENT_STARTED "
-                + "or EVENT_IN_PROGRESS events");
-        }
-        return threadWatcher;
-    }
-
-    public String toString() {
-        String eventText = eventCode == EVENT_ERROR ? "EVENT_ERROR"
-            : eventCode == EVENT_STARTED ? "EVENT_STARTED"
-                : eventCode == EVENT_COMPLETED ? "EVENT_COMPLETED"
-                    : eventCode == EVENT_IN_PROGRESS ? "EVENT_IN_PROGRESS"
-                        : eventCode == EVENT_CANCELLED ? "EVENT_CANCELLED"
-                            : eventCode == EVENT_IGNORED_ERRORS ? "EVENT_IGNORED_ERRORS"
-                                : "Unrecognised event status code: " + eventCode;
-
-        if (eventCode == EVENT_ERROR && getErrorCause() != null) {
-            return eventText + " " + getErrorCause();
-        } else {
-            return eventText;
-        }
-    }
-
 
 }

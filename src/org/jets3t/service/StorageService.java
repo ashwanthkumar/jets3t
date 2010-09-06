@@ -285,10 +285,9 @@ public abstract class StorageService {
     }
 
     /**
-     * @return the AWS Credentials identifying the S3 user, may be null if the service is acting
-     * anonymously.
+     * @return the credentials identifying the service user, or null for anonymous.
      */
-    public ProviderCredentials getAWSCredentials() {
+    public ProviderCredentials getProviderCredentials() {
         return credentials;
     }
 
@@ -1225,7 +1224,7 @@ public abstract class StorageService {
      * a bucket with ACL settings to apply.
      * @throws S3ServiceException
      */
-    public void putBucketAcl(S3Bucket bucket) throws S3ServiceException {
+    public void putBucketAcl(StorageBucket bucket) throws S3ServiceException {
         assertValidBucket(bucket, "Put Bucket Access Control List");
         putBucketAcl(bucket.getName(), bucket.getAcl());
     }
