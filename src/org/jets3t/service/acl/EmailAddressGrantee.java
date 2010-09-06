@@ -22,9 +22,6 @@ import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import com.jamesmurty.utils.XMLBuilder;
 
 /**
@@ -84,6 +81,7 @@ public class EmailAddressGrantee implements GranteeInterface {
         return emailAddress;
     }
 
+    @Override
     public boolean equals(Object obj) {
         if (obj instanceof EmailAddressGrantee) {
             return emailAddress.equals(((EmailAddressGrantee)obj).emailAddress);
@@ -91,6 +89,7 @@ public class EmailAddressGrantee implements GranteeInterface {
         return false;
     }
 
+    @Override
     public int hashCode() {
         return emailAddress.hashCode();
     }

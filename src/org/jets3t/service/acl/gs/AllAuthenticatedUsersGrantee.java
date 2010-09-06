@@ -20,11 +20,11 @@ package org.jets3t.service.acl.gs;
 
 import com.jamesmurty.utils.XMLBuilder;
 
+import org.jets3t.service.acl.GroupGrantee;
+
 import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
-
-import org.jets3t.service.acl.GranteeInterface;
 
 /**
  * Represents a grant to all authenticated users.
@@ -32,36 +32,30 @@ import org.jets3t.service.acl.GranteeInterface;
  * @author Google Developers
  *
  */
-public class AllAuthenticatedUsersGrantee implements GranteeInterface {
-    private String id = null;
+public class AllAuthenticatedUsersGrantee extends GroupGrantee {
+    private final String id = "AllAuthenticatedUsers";
 
+    @Override
     public String toXml() throws TransformerException,
         ParserConfigurationException, FactoryConfigurationError
     {
         return toXMLBuilder().asString();
     }
 
+    @Override
     public XMLBuilder toXMLBuilder() throws TransformerException,
         ParserConfigurationException, FactoryConfigurationError
     {
-        return (XMLBuilder.create("Scope")
-            .attr("type", "AllAuthenticatedUsers")
-            );
+        return XMLBuilder.create("Scope").attr("type", "AllAuthenticatedUsers");
     }
 
+    @Override
     public boolean equals(Object obj) {
         return (obj instanceof AllAuthenticatedUsersGrantee);
     }
 
-    public void setIdentifier(String id) {
-        this.id = id;
-    }
-
-    public String getIdentifier() {
-        return id;
-    }
-
+    @Override
     public String toString() {
-        return "AllAuthenticatedUsers";
+        return id;
     }
 }

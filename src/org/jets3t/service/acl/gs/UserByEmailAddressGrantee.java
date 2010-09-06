@@ -20,11 +20,11 @@ package org.jets3t.service.acl.gs;
 
 import com.jamesmurty.utils.XMLBuilder;
 
+import org.jets3t.service.acl.EmailAddressGrantee;
+
 import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
-
-import org.jets3t.service.acl.CanonicalGrantee;
 
 /**
  * Represents an User By Email Grantee, that is a grantee identified by their email address.
@@ -32,7 +32,7 @@ import org.jets3t.service.acl.CanonicalGrantee;
  * @author Google Developers
  *
  */
-public class UserByEmailAddressGrantee extends CanonicalGrantee {
+public class UserByEmailAddressGrantee extends EmailAddressGrantee {
 
     /**
      * Default constructor.
@@ -48,8 +48,8 @@ public class UserByEmailAddressGrantee extends CanonicalGrantee {
      * Constructs a grantee with the given email.
      * @param email
      */
-    public UserByEmailAddressGrantee(String email) {
-        super(email);
+    public UserByEmailAddressGrantee(String emailAddress) {
+        super(emailAddress);
     }
 
     @Override
@@ -58,20 +58,20 @@ public class UserByEmailAddressGrantee extends CanonicalGrantee {
     {
         return (XMLBuilder.create("Scope")
             .attr("type", "UserByEmail")
-            .element("EmailAddress").text(id)
+            .element("EmailAddress").text(getIdentifier())
             );
     }
 
     @Override
     public boolean equals(Object obj) {
         return (obj instanceof UserByEmailAddressGrantee
-                && ((UserByEmailAddressGrantee)obj).getIdentifier() == this.getIdentifier());
+                && ((UserByEmailAddressGrantee)obj).getIdentifier()
+                    .equals(getIdentifier()));
     }
 
     @Override
     public String toString() {
-        return "UserByEmail [email=" + id
-            + (displayName != null ? ", Name=" + displayName : "")
-            + "]";
+        return "UserByEmail [email=" + getIdentifier() + "]";
     }
+
 }
