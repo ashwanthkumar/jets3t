@@ -26,15 +26,25 @@ TOOLKIT
 - Methods for setting and using AWS DevPay credentials moved from
   S3Service to RestS3Service.
 
+  * CloudFront Service
+
+- Added support for setting Default Root Object for CloudFront distributions.
+
   * SOAP implementation
 
 - REMOVED from project.
 
+COCKPIT
+
+- A CloudFront distribution's Default Root Object setting can be configured
+  in the "CloudFront Distributions" dialog.
 
 KUDOS TO:
 
 - Claudio Cherubino of Google Inc., for significant refactoring work
   and the addition of full support for the Google Storage service.
+- David Kocher for a patch to implement Default Root Object support
+  in the CloundFrontService, and for providing testing and feedback. 
 
 
 -------------

@@ -720,7 +720,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         guiUtils.applyIcon(bucketLoggingMenuItem, "/images/nuvola/16x16/actions/toggle_log.png");
         toolsMenu.add(bucketLoggingMenuItem);
 
-        manageDistributionsMenuItem = new JMenuItem("Manage CloudFront Distributions...");
+        manageDistributionsMenuItem = new JMenuItem("CloudFront Distributions...");
         manageDistributionsMenuItem.setActionCommand("ManageDistributions");
         manageDistributionsMenuItem.addActionListener(this);
         guiUtils.applyIcon(manageDistributionsMenuItem, "/images/nuvola/16x16/actions/irkick.png");

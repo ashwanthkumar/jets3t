@@ -55,7 +55,6 @@ import org.jets3t.service.model.cloudfront.OriginAccessIdentity;
 import org.jets3t.service.model.cloudfront.OriginAccessIdentityConfig;
 import org.jets3t.service.model.cloudfront.StreamingDistribution;
 import org.jets3t.service.model.cloudfront.StreamingDistributionConfig;
-import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.EncryptionUtil;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.RestUtils;

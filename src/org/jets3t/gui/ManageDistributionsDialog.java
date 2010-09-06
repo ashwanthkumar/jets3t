@@ -75,11 +75,12 @@ import org.jets3t.service.model.cloudfront.LoggingStatus;
 public class ManageDistributionsDialog extends JDialog
     implements ActionListener, ListSelectionListener, HyperlinkActivatedListener
 {
-    private static final long serialVersionUID = 8754669642320546085L;
+
+    private static final long serialVersionUID = 4375982994004017092L;
 
     private CloudFrontService cloudFrontService = null;
 
-    private GuiUtils guiUtils = new GuiUtils();
+    private final GuiUtils guiUtils = new GuiUtils();
 
     private Frame ownerFrame = null;
     private JTable distributionListTable = null;
@@ -89,6 +90,7 @@ public class ManageDistributionsDialog extends JDialog
     private JCheckBox enabledCheckbox = null;
     private JCheckBox httpsOnlyCheckbox = null;
     private JComboBox loggingBucketComboBox = null;
+    private JTextField defaultRootObjectTextField = null;
     private JTextField loggingPrefixTextField = null;
     private JTable cnamesTable = null;
     private CNAMETableModel cnamesTableModel = null;
@@ -117,14 +119,16 @@ public class ManageDistributionsDialog extends JDialog
         distributionListTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         distributionListTable.getSelectionModel().addListSelectionListener(this);
 
-        JLabel bucketLabel = new JLabel("Bucket:");
+        JLabel bucketLabel = new JLabel("Bucket");
         bucketComboBox = new JComboBox(bucketNames);
-        JLabel enabledLabel = new JLabel("Enabled?");
+        JLabel enabledLabel = new JLabel("Enabled");
         enabledCheckbox = new JCheckBox();
-        JLabel httpsOnlyLabel = new JLabel("HTTPS Only?");
+        JLabel httpsOnlyLabel = new JLabel("HTTPS Only");
         httpsOnlyCheckbox = new JCheckBox();
+        JLabel defaultRootObjectLabel = new JLabel("Default Root Object");
+        defaultRootObjectTextField = new JTextField();
 
-        JLabel loggingBucketLabel = new JLabel("Logging bucket:");
+        JLabel loggingBucketLabel = new JLabel("Logging bucket");
         loggingBucketComboBox = new JComboBox(bucketNames);
         loggingBucketComboBox.insertItemAt("-- Logging Disabled --", 0);
         loggingBucketComboBox.setSelectedIndex(0);
@@ -134,7 +138,7 @@ public class ManageDistributionsDialog extends JDialog
                     loggingBucketComboBox.getSelectedIndex() > 0);
             }
         });
-        JLabel loggingPrefixLabel = new JLabel("Logging prefix:");
+        JLabel loggingPrefixLabel = new JLabel("Logging prefix");
         loggingPrefixTextField = new JTextField();
         loggingPrefixTextField.setEnabled(false);
 
@@ -225,6 +229,10 @@ public class ManageDistributionsDialog extends JDialog
             1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
         detailPanel.add(httpsOnlyCheckbox, new GridBagConstraints(1, row++,
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        detailPanel.add(defaultRootObjectLabel, new GridBagConstraints(0, row,
+            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+        detailPanel.add(defaultRootObjectTextField, new GridBagConstraints(1, row++,
+            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
 
         detailPanel.add(loggingBucketLabel, new GridBagConstraints(0, row,
             1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
@@ -272,6 +280,7 @@ public class ManageDistributionsDialog extends JDialog
 
     protected void refreshDistributions() {
         (new Thread() {
+            @Override
             public void run() {
                 final ProgressDialog progressDialog =
                     new ProgressDialog(ownerFrame, "Listing Distributions", null);
@@ -342,6 +351,7 @@ public class ManageDistributionsDialog extends JDialog
                 bucketComboBox.setEnabled(true);
                 enabledCheckbox.setSelected(false);
                 httpsOnlyCheckbox.setEnabled(false);
+                defaultRootObjectTextField.setText("");
 
                 loggingBucketComboBox.setSelectedIndex(0);
                 loggingPrefixTextField.setText("");
@@ -368,6 +378,7 @@ public class ManageDistributionsDialog extends JDialog
                 bucketComboBox.setEnabled(false);
                 enabledCheckbox.setSelected(distribution.isEnabled());
                 httpsOnlyCheckbox.setSelected(distributionConfig.isHttpsProtocolRequired());
+                defaultRootObjectTextField.setText(distributionConfig.getDefaultRootObject());
 
                 if (distributionConfig.getLoggingStatus() != null) {
                     loggingBucketComboBox.setSelectedItem(
@@ -423,6 +434,7 @@ public class ManageDistributionsDialog extends JDialog
                 return;
             } else {
                 (new Thread() {
+                    @Override
                     public void run() {
                         final ProgressDialog progressDialog =
                             new ProgressDialog(ownerFrame, "Deleting Distribution", null);
@@ -462,6 +474,7 @@ public class ManageDistributionsDialog extends JDialog
             final String origin = bucketComboBox.getSelectedItem() + ".s3.amazonaws.com";
 
             (new Thread() {
+                @Override
                 public void run() {
                     final ProgressDialog progressDialog =
                         new ProgressDialog(ownerFrame, "Creating Distribution", null);
@@ -490,6 +503,8 @@ public class ManageDistributionsDialog extends JDialog
                             requiredProtocols = new String[0];
                         }
 
+                        String defaultRootObject = defaultRootObjectTextField.getText();
+
                         cloudFrontService.createDistribution(origin, null,
                             cnamesTableModel.getCnames(), commentTextArea.getText(),
                             enabledCheckbox.isSelected(), loggingStatus,
@@ -497,7 +512,7 @@ public class ManageDistributionsDialog extends JDialog
                             false, // trustedSignerSelf
                             null,  // trustedSignerAwsAccountNumbers
                             requiredProtocols,
-                            null);
+                            defaultRootObject);
                         refreshDistributions();
                     } catch (Exception e) {
                         SwingUtilities.invokeLater(new Runnable() {
@@ -525,6 +540,7 @@ public class ManageDistributionsDialog extends JDialog
                     distributionListTable.getSelectedRow()));
 
             (new Thread() {
+                @Override
                 public void run() {
                     final ProgressDialog progressDialog =
                         new ProgressDialog(ownerFrame, "Updating Distribution", null);
@@ -553,6 +569,8 @@ public class ManageDistributionsDialog extends JDialog
                             requiredProtocols = new String[0];
                         }
 
+                        String defaultRootObject = defaultRootObjectTextField.getText();
+
                         cloudFrontService.updateDistributionConfig(distribution.getId(),
                             cnamesTableModel.getCnames(), commentTextArea.getText(),
                             enabledCheckbox.isSelected(), loggingStatus,
@@ -560,7 +578,7 @@ public class ManageDistributionsDialog extends JDialog
                             false, // trustedSignerSelf
                             null,  // trustedSignerAwsAccountNumbers
                             requiredProtocols,
-                            null);
+                            defaultRootObject);
                         refreshDistributions();
                     } catch (Exception e) {
                         SwingUtilities.invokeLater(new Runnable() {
@@ -609,7 +627,7 @@ public class ManageDistributionsDialog extends JDialog
     private class DistributionListTableModel extends DefaultTableModel {
         private static final long serialVersionUID = -8315527286580422385L;
 
-        private ArrayList distributionList = new ArrayList();
+        private final ArrayList distributionList = new ArrayList();
 
         private Icon inProgressIcon = null;
         private Icon deployedIcon = null;
@@ -674,10 +692,12 @@ public class ManageDistributionsDialog extends JDialog
             distributionList.clear();
         }
 
+        @Override
         public boolean isCellEditable(int row, int column) {
             return (column == 3 && row < distributionList.size());
         }
 
+        @Override
         public Class getColumnClass(int columnIndex) {
             switch (columnIndex) {
             case 0: return Icon.class;
@@ -713,6 +733,7 @@ public class ManageDistributionsDialog extends JDialog
             }
         }
 
+        @Override
         public boolean isCellEditable(int row, int column) {
             return true;
         }
