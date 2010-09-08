@@ -514,6 +514,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @param trustedSignerSelf
      * @param trustedSignerAwsAccountNumbers
      * @param requiredProtocols
+     * @param defaultRootObject
      * @return
      * XML document representing a Distribution Configuration
      * @throws TransformerException
@@ -591,6 +592,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @param trustedSignerSelf
      * @param trustedSignerAwsAccountNumbers
      * @param requiredProtocols
+     * @param defaultRootObject
+     *
      * @return
      * Information about the newly-created distribution.
      * @throws CloudFrontServiceException
@@ -689,6 +692,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * List of protocols that must be used by clients to retrieve content from the
      * distribution. If this value is null or is an empty array, all protocols will be
      * supported.
+     * @param defaultRootObject
+     * The name of an object that will be served when someone visits the root of a
+     * distribution.
      *
      * @return
      * an object that describes the newly-created distribution, in particular the
@@ -780,7 +786,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     {
         return createDistribution(config.getOrigin(), config.getCallerReference(),
             config.getCNAMEs(), config.getComment(), config.isEnabled(),
-            config.getLoggingStatus(), config.getOrigin(),
+            config.getLoggingStatus(), config.getOriginAccessIdentity(),
             config.isTrustedSignerSelf(),
             config.getTrustedSignerAwsAccountNumbers(),
             config.getRequiredProtocols(),
@@ -1038,7 +1044,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @param trustedSignerSelf
      * @param trustedSignerAwsAccountNumbers
      * @param requiredProtocols
-
+     * @param defaultRootObject
      * @return
      * Information about the updated distribution configuration.
      * @throws CloudFrontServiceException
@@ -1146,6 +1152,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * List of protocols that must be used by clients to retrieve content from the
      * distribution. If this value is null or is an empty array all protocols will be
      * permitted.
+     * @param defaultRootObject
+     * The name of an object that will be served when someone visits the root of a
+     * distribution.
      *
      * @return
      * an object that describes the distribution's updated configuration, including its
