@@ -213,8 +213,7 @@ public class CloudFrontSamples {
 
         // Generate a "canned" signed URL to allow access to a specific distribution and object
         String signedUrlCanned = CloudFrontService.signUrlCanned(
-            distributionDomain, // Domain name
-            s3ObjectKey, // S3 object key
+            "http://" + distributionDomain + "/" + s3ObjectKey, // Resource URL or Path
             keyPairId,     // Certificate identifier, an active trusted signer for the distribution
             derPrivateKey, // DER Private key data
             ServiceUtils.parseIso8601Date("2009-11-14T22:20:00.000Z") // DateLessThan
@@ -232,8 +231,7 @@ public class CloudFrontSamples {
 
         // Generate a signed URL using a custom policy document
         String signedUrl = CloudFrontService.signUrl(
-            distributionDomain, // Domain name
-            s3ObjectKey, // S3 object key
+            "http://" + distributionDomain + "/" + s3ObjectKey, // Resource URL or Path
             keyPairId,     // Certificate identifier, an active trusted signer for the distribution
             derPrivateKey, // DER Private key data
             policy // Access control policy

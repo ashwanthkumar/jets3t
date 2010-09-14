@@ -416,7 +416,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     }
 
     /**
-     * List all your standard CloudFront distributions.
+     * List all your streaming CloudFront distributions.
      *
      * @return
      * a list of your streaming distributions.
@@ -1854,9 +1854,13 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * Generate a signed URL that allows access to distribution and S3 objects by
      * applying access restrictions specified in a custom policy document.
      *
-     * @param domainName
-     * The distribution's domain name, e.g.
-     * <tt>a1b2c3d4e5f6g7.cloudfront.net/path/to/object.txt</tt>
+     * @param resourceUrlOrPath
+     * The URL or path that uniquely identifies a resource within a distribution.
+     * For standard distributions the resource URL will be
+     * <tt>"http://" + distributionName + "/" + objectKey</tt> (may also include URL
+     * parameters. For distributions with the HTTPS required protocol, the resource URL
+     * must start with <tt>"https://"</tt>. RTMP resources do not take the form of a URL,
+     * and instead the resource path is nothing but the stream's name.
      * @param s3ObjectKey
      * Key name of the S3 object that will be made accessible through the signed URL.
      * @param keyPairId
@@ -1877,20 +1881,19 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      *
      * @throws CloudFrontServiceException
      */
-    public static String signUrl(String domainName, String s3ObjectKey,
+    public static String signUrl(String resourceUrlOrPath,
         String keyPairId, byte[] derPrivateKey, String policy)
         throws CloudFrontServiceException
     {
         try {
-            String url = "http://" + domainName + "/" + s3ObjectKey;
             byte[] signatureBytes = EncryptionUtil.signWithRsaSha1(derPrivateKey,
                 policy.getBytes("UTF-8"));
 
             String urlSafePolicy = makeStringUrlSafe(policy);
             String urlSafeSignature = makeBytesUrlSafe(signatureBytes);
 
-            String signedUrl = url
-                + (url.indexOf('?') >= 0 ? "&" : "?")
+            String signedUrl = resourceUrlOrPath
+                + (resourceUrlOrPath.indexOf('?') >= 0 ? "&" : "?")
                 + "Policy=" + urlSafePolicy
                 + "&Signature=" + urlSafeSignature
                 + "&Key-Pair-Id=" + keyPairId;
@@ -1907,11 +1910,13 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * S3 object by applying a access restrictions from a "canned" (simplified)
      * policy document.
      *
-     * @param domainName
-     * The distribution's domain name, e.g.
-     * <tt>a1b2c3d4e5f6g7.cloudfront.net/path/to/object.txt</tt>
-     * @param s3ObjectKey
-     * Key name of the S3 object that will be made accessible through the signed URL.
+     * @param resourceUrlOrPath
+     * The URL or path that uniquely identifies a resource within a distribution.
+     * For standard distributions the resource URL will be
+     * <tt>"http://" + distributionName + "/" + objectKey</tt> (may also include URL
+     * parameters. For distributions with the HTTPS required protocol, the resource URL
+     * must start with <tt>"https://"</tt>. RTMP resources do not take the form of a URL,
+     * and instead the resource path is nothing but the stream's name.
      * @param keyPairId
      * Identifier of a public/private certificate keypair already configured in your
      * Amazon Web Services account.
@@ -1927,16 +1932,13 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      *
      * @throws CloudFrontServiceException
      */
-    public static String signUrlCanned(String domainName, String s3ObjectKey,
+    public static String signUrlCanned(String resourceUrlOrPath,
             String keyPairId, byte[] derPrivateKey, Date epochDateLessThan)
             throws CloudFrontServiceException
     {
         try {
-            String url = "http://" + domainName + "/" + s3ObjectKey;
-            String resourcePath = url;
-
             String cannedPolicy =
-                "{\"Statement\":[{\"Resource\":\"" + resourcePath
+                "{\"Statement\":[{\"Resource\":\"" + resourceUrlOrPath
                 + "\",\"Condition\":{\"DateLessThan\":{\"AWS:EpochTime\":"
                 + epochDateLessThan.getTime() / 1000 + "}}}]}";
 
@@ -1945,8 +1947,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
 
             String urlSafeSignature = makeBytesUrlSafe(signatureBytes);
 
-            String signedUrl = url
-                + (url.indexOf('?') >= 0 ? "&" : "?")
+            String signedUrl = resourceUrlOrPath
+                + (resourceUrlOrPath.indexOf('?') >= 0 ? "&" : "?")
                 + "Expires=" + epochDateLessThan.getTime() / 1000
                 + "&Signature=" + urlSafeSignature
                 + "&Key-Pair-Id=" + keyPairId;
