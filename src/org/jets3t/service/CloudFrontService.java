@@ -42,14 +42,20 @@ import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.DistributionConfigHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.DistributionHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.ErrorHandler;
+import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.InvalidationHandler;
+import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.InvalidationListHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.ListDistributionListHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccessIdentityConfigHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccessIdentityHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccessIdentityListHandler;
 import org.jets3t.service.impl.rest.httpclient.AWSRequestAuthorizer;
 import org.jets3t.service.impl.rest.httpclient.HttpClientAndConnectionManager;
+import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.cloudfront.Distribution;
 import org.jets3t.service.model.cloudfront.DistributionConfig;
+import org.jets3t.service.model.cloudfront.Invalidation;
+import org.jets3t.service.model.cloudfront.InvalidationList;
+import org.jets3t.service.model.cloudfront.InvalidationSummary;
 import org.jets3t.service.model.cloudfront.LoggingStatus;
 import org.jets3t.service.model.cloudfront.OriginAccessIdentity;
 import org.jets3t.service.model.cloudfront.OriginAccessIdentityConfig;
@@ -77,7 +83,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     private static final Log log = LogFactory.getLog(CloudFrontService.class);
 
     public static final String ENDPOINT = "https://cloudfront.amazonaws.com/";
-    public static final String VERSION = "2010-07-15";
+    public static final String VERSION = "2010-08-01";
     public static final String XML_NAMESPACE = "http://cloudfront.amazonaws.com/doc/" + VERSION + "/";
     public static final String DEFAULT_BUCKET_SUFFIX = ".s3.amazonaws.com";
     public static final String ORIGIN_ACCESS_IDENTITY_URI_PATH = "/origin-access-identity/cloudfront";
@@ -319,7 +325,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * A list of {@link Distribution}s.
      * @throws CloudFrontServiceException
      */
-    protected List listDistributionsImpl(boolean isStreaming, int pagingSize)
+    protected List<Distribution> listDistributionsImpl(boolean isStreaming, int pagingSize)
         throws CloudFrontServiceException
     {
         if (log.isDebugEnabled()) {
@@ -328,7 +334,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 + " distributions for AWS user: " + getAWSCredentials().getAccessKey());
         }
         try {
-            List distributions = new ArrayList();
+            List<Distribution> distributions = new ArrayList<Distribution>();
             String nextMarker = null;
             boolean incompleteListing = true;
             do {
@@ -379,8 +385,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public Distribution[] listDistributions(int pagingSize) throws CloudFrontServiceException {
-        List distributions = listDistributionsImpl(false, pagingSize);
-        return (Distribution[]) distributions.toArray(new Distribution[distributions.size()]);
+        List<Distribution> distributions = listDistributionsImpl(false, pagingSize);
+        return distributions.toArray(new Distribution[distributions.size()]);
     }
 
     /**
@@ -398,8 +404,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     public StreamingDistribution[] listStreamingDistributions(int pagingSize)
         throws CloudFrontServiceException
     {
-        List distributions = listDistributionsImpl(true, pagingSize);
-        return (StreamingDistribution[]) distributions.toArray(
+        List<Distribution> distributions = listDistributionsImpl(true, pagingSize);
+        return distributions.toArray(
             new StreamingDistribution[distributions.size()]);
     }
 
@@ -438,7 +444,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      *
      * @throws CloudFrontServiceException
      */
-    public List listDistributionsByBucketName(boolean isStreaming, String bucketName)
+    public List<Distribution> listDistributionsByBucketName(boolean isStreaming, String bucketName)
         throws CloudFrontServiceException
     {
         String s3Endpoint = this.jets3tProperties.getStringProperty(
@@ -449,7 +455,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 + " distributions for the S3 bucket '" + bucketName
                 + "' for AWS user: " + getAWSCredentials().getAccessKey());
         }
-        ArrayList bucketDistributions = new ArrayList();
+        ArrayList<Distribution> bucketDistributions = new ArrayList<Distribution>();
         Distribution[] allDistributions =
             (isStreaming ? listStreamingDistributions() : listDistributions());
         for (int i = 0; i < allDistributions.length; i++) {
@@ -476,8 +482,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public Distribution[] listDistributions(String bucketName) throws CloudFrontServiceException {
-        List bucketDistributions = listDistributionsByBucketName(false, bucketName);
-        return (Distribution[]) bucketDistributions.toArray(
+        List<Distribution> bucketDistributions = listDistributionsByBucketName(false, bucketName);
+        return bucketDistributions.toArray(
             new Distribution[bucketDistributions.size()]);
     }
 
@@ -495,8 +501,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     public StreamingDistribution[] listStreamingDistributions(String bucketName)
         throws CloudFrontServiceException
     {
-        List streamingDistributions = listDistributionsByBucketName(true, bucketName);
-        return (StreamingDistribution[]) streamingDistributions.toArray(
+        List<Distribution> streamingDistributions = listDistributionsByBucketName(true, bucketName);
+        return streamingDistributions.toArray(
             new StreamingDistribution[streamingDistributions.size()]);
     }
 
@@ -1536,7 +1542,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      *
      * @throws CloudFrontServiceException
      */
-    public List getOriginAccessIdentityList() throws CloudFrontServiceException {
+    public List<OriginAccessIdentity> getOriginAccessIdentityList()
+        throws CloudFrontServiceException
+    {
         if (log.isDebugEnabled()) {
             log.debug("Getting list of origin access identities");
         }
@@ -1716,6 +1724,181 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         try {
             httpMethod.setRequestHeader("If-Match", currentConfig.getEtag());
             performRestRequest(httpMethod, 204);
+        } catch (CloudFrontServiceException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CloudFrontServiceException(e);
+        }
+    }
+
+    /**
+     * Remove distribution objects from a CloudFront edge server cache to force
+     * a refresh of the object data from the S3 origin.
+     *
+     * @param distributionId
+     * @param objectKeys
+     * S3 object key names of object(s) to invalidate.
+     * @param callerReference
+     * @return
+     * @throws CloudFrontServiceException
+     */
+    public Invalidation invalidateObjects(String distributionId, String[] objectKeys,
+        String callerReference) throws CloudFrontServiceException
+    {
+        PostMethod httpMethod = new PostMethod(ENDPOINT + VERSION +
+            "/distribution/" + distributionId + "/invalidation");
+        try {
+            XMLBuilder builder = XMLBuilder.create("InvalidationBatch");
+            for (String objectPath: objectKeys) {
+                if (!objectPath.startsWith("/")) {
+                    objectPath = "/" + objectPath;
+                }
+                builder.e("Path").t(objectPath);
+            }
+            builder.e("CallerReference").t(callerReference);
+
+            httpMethod.setRequestEntity(new StringRequestEntity(
+                builder.asString(null), "text/xml", Constants.DEFAULT_ENCODING));
+
+            performRestRequest(httpMethod, 201);
+
+            InvalidationHandler handler =
+                (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
+                    .parseInvalidationResponse(httpMethod.getResponseBodyAsStream());
+            return handler.getInvalidation();
+        } catch (CloudFrontServiceException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CloudFrontServiceException(e);
+        }
+    }
+
+    /**
+     * Remove distribution objects from a CloudFront edge server cache to force
+     * a refresh of the object data from the S3 origin.
+     *
+     * @param distributionId
+     * @param objects
+     * S3 object(s) to invalidate.
+     * @param callerReference
+     * @return
+     * @throws CloudFrontServiceException
+     */
+    public Invalidation invalidateObjects(String distributionId, S3Object[] objects,
+        String callerReference) throws CloudFrontServiceException
+    {
+        String[] objectKeys = new String[objects.length];
+        for (int i = 0; i < objects.length; i++) {
+            objectKeys[i] = objects[i].getKey();
+        }
+        return invalidateObjects(distributionId, objectKeys, callerReference);
+    }
+
+    /**
+     * @param distributionId
+     * @param invalidationId
+     * @return
+     * Details of a prior invalidation operation.
+     * @throws CloudFrontServiceException
+     */
+    public Invalidation getInvalidation(String distributionId, String invalidationId)
+        throws CloudFrontServiceException
+    {
+        GetMethod httpMethod = new GetMethod(ENDPOINT + VERSION +
+            "/distribution/" + distributionId + "/invalidation/" + invalidationId);
+        try {
+            performRestRequest(httpMethod, 200);
+
+            InvalidationHandler handler =
+                (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
+                    .parseInvalidationResponse(httpMethod.getResponseBodyAsStream());
+            return handler.getInvalidation();
+        } catch (CloudFrontServiceException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CloudFrontServiceException(e);
+        }
+    }
+
+    /**
+     * List a single page of up to pagingSize past invalidation summaries, ordered from
+     * most recent to oldest. If there are more prior invalidations than will fit on the
+     * page you must perform follow-up calls to this method to obtain a complete listing.
+     *
+     * @param distributionId
+     * @param nextMarker
+     * a marker string indicating where to begin the next page of listing results.
+     * Start with null for an initial listing page, then set to the NextMarker value
+     * of each subsequent page returned.
+     * @param pagingSize
+     * maximum number of invalidation summaries to include in each result page, up to 100.
+     * @return
+     * @throws CloudFrontServiceException
+     */
+    public InvalidationList listInvalidations(String distributionId, String nextMarker, int pagingSize)
+        throws CloudFrontServiceException
+    {
+        try {
+            String uri = ENDPOINT + VERSION +
+            "/distribution/" + distributionId + "/invalidation"
+            + "?MaxItems=" + pagingSize;
+            if (nextMarker != null) {
+                uri += "&Marker=" + nextMarker;
+            }
+            HttpMethod httpMethod = new GetMethod(uri);
+            performRestRequest(httpMethod, 200);
+
+            InvalidationListHandler handler =
+                (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
+                    .parseInvalidationListResponse(httpMethod.getResponseBodyAsStream());
+            return handler.getInvalidationList();
+        } catch (CloudFrontServiceException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CloudFrontServiceException(e);
+        }
+    }
+
+    /**
+     * List all past invalidation summaries, ordered from most recent to oldest.
+     *
+     * @param distributionId
+     * @return
+     * @throws CloudFrontServiceException
+     */
+    public List<InvalidationSummary> listInvalidations(String distributionId)
+        throws CloudFrontServiceException
+    {
+        try {
+            List<InvalidationSummary> invalidationSummaries =
+                new ArrayList<InvalidationSummary>();
+
+            String nextMarker = null;
+            boolean incompleteListing = true;
+            do {
+                InvalidationList invalidationList = listInvalidations(
+                    distributionId, nextMarker, 100);
+                invalidationSummaries.addAll(invalidationList.getInvalidationSummaries());
+
+                incompleteListing = invalidationList.isTruncated();
+                nextMarker = invalidationList.getNextMarker();
+
+                // Sanity check for valid pagination values.
+                if (incompleteListing && nextMarker == null) {
+                    throw new CloudFrontServiceException("Unable to retrieve paginated "
+                            + "InvalidationList results without a valid NextMarker value.");
+                }
+            } while (incompleteListing);
+
+            return invalidationSummaries;
         } catch (CloudFrontServiceException e) {
             throw e;
         } catch (RuntimeException e) {

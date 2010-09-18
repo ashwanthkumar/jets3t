@@ -38,6 +38,9 @@ import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.model.cloudfront.Distribution;
 import org.jets3t.service.model.cloudfront.DistributionConfig;
+import org.jets3t.service.model.cloudfront.Invalidation;
+import org.jets3t.service.model.cloudfront.InvalidationList;
+import org.jets3t.service.model.cloudfront.InvalidationSummary;
 import org.jets3t.service.model.cloudfront.LoggingStatus;
 import org.jets3t.service.model.cloudfront.OriginAccessIdentity;
 import org.jets3t.service.model.cloudfront.OriginAccessIdentityConfig;
@@ -46,10 +49,8 @@ import org.jets3t.service.model.cloudfront.StreamingDistributionConfig;
 import org.jets3t.service.utils.ServiceUtils;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
-import org.xml.sax.helpers.XMLReaderFactory;
 
 /**
  * XML Sax parser to read XML documents returned by the CloudFront service via
@@ -74,6 +75,10 @@ public class CloudFrontXmlResponsesSaxParser {
     public CloudFrontXmlResponsesSaxParser(Jets3tProperties properties) throws S3ServiceException {
         this.properties = properties;
         this.xr = ServiceUtils.loadXMLReader();
+    }
+
+    public Jets3tProperties getProperties() {
+        return this.properties;
     }
 
     /**
@@ -166,6 +171,21 @@ public class CloudFrontXmlResponsesSaxParser {
         return handler;
     }
 
+    public InvalidationHandler parseInvalidationResponse(
+        InputStream inputStream) throws CloudFrontServiceException
+    {
+        InvalidationHandler handler = new InvalidationHandler();
+        parseXmlInputStream(handler, inputStream);
+        return handler;
+    }
+
+    public InvalidationListHandler parseInvalidationListResponse(
+        InputStream inputStream) throws CloudFrontServiceException
+    {
+        InvalidationListHandler handler = new InvalidationListHandler();
+        parseXmlInputStream(handler, inputStream);
+        return handler;
+    }
 
     public ErrorHandler parseErrorResponse(InputStream inputStream)
         throws CloudFrontServiceException
@@ -210,6 +230,7 @@ public class CloudFrontXmlResponsesSaxParser {
 
         public void controlReturned(SimpleHandler childHandler) {}
 
+        @Override
         public void startElement(String uri, String name, String qName, Attributes attrs) {
             try {
                 Method method = currentHandler.getClass().getMethod("start" + name, new Class[] {});
@@ -221,6 +242,7 @@ public class CloudFrontXmlResponsesSaxParser {
             }
         }
 
+        @Override
         public void endElement(String uri, String name, String qName) {
             String elementText = this.textContent.toString().trim();
             try {
@@ -234,6 +256,7 @@ public class CloudFrontXmlResponsesSaxParser {
             this.textContent = new StringBuffer();
         }
 
+        @Override
         public void characters(char ch[], int start, int length) {
             this.textContent.append(ch, start, length);
         }
@@ -248,7 +271,8 @@ public class CloudFrontXmlResponsesSaxParser {
         private String status = null;
         private Date lastModifiedTime = null;
         private String domainName = null;
-        private Map activeTrustedSigners = new HashMap();
+        private final Map<String, List<String>> activeTrustedSigners =
+            new HashMap<String, List<String>>();
 
         private boolean inSignerElement;
         private String lastSignerIdentifier = null;
@@ -297,9 +321,9 @@ public class CloudFrontXmlResponsesSaxParser {
 
         public void endKeyPairId(String text) {
             if (inSignerElement) {
-                List keypairIdList = (List) activeTrustedSigners.get(lastSignerIdentifier);
+                List<String> keypairIdList = activeTrustedSigners.get(lastSignerIdentifier);
                 if (keypairIdList == null) {
-                    keypairIdList = new ArrayList();
+                    keypairIdList = new ArrayList<String>();
                     activeTrustedSigners.put(lastSignerIdentifier, keypairIdList);
                 }
                 keypairIdList.add(text);
@@ -315,6 +339,7 @@ public class CloudFrontXmlResponsesSaxParser {
             transferControlToHandler(new DistributionConfigHandler());
         }
 
+        @Override
         public void controlReturned(SimpleHandler childHandler) {
             DistributionConfig config =
                 ((DistributionConfigHandler) childHandler).getDistributionConfig();
@@ -343,14 +368,14 @@ public class CloudFrontXmlResponsesSaxParser {
 
         private String origin = "";
         private String callerReference = "";
-        private List cnamesList = new ArrayList();
+        private final List<String> cnamesList = new ArrayList<String>();
         private String comment = "";
         private boolean enabled = false;
         private LoggingStatus loggingStatus = null;
         private String originAccessIdentity = null;
         private boolean trustedSignerSelf = false;
-        private List trustedSignerAwsAccountNumberList = new ArrayList();
-        private List requiredProtocols = new ArrayList();
+        private final List<String> trustedSignerAwsAccountNumberList = new ArrayList<String>();
+        private final List<String> requiredProtocols = new ArrayList<String>();
         private String defaultRootObject = null;
 
         public DistributionConfig getDistributionConfig() {
@@ -412,11 +437,11 @@ public class CloudFrontXmlResponsesSaxParser {
         public void endDistributionConfig(String text) {
             this.distributionConfig = new DistributionConfig(
                 origin, callerReference,
-                (String[]) cnamesList.toArray(new String[cnamesList.size()]),
+                cnamesList.toArray(new String[cnamesList.size()]),
                 comment, enabled, loggingStatus, originAccessIdentity, trustedSignerSelf,
-                (String[]) trustedSignerAwsAccountNumberList.toArray(
+                trustedSignerAwsAccountNumberList.toArray(
                     new String[trustedSignerAwsAccountNumberList.size()]),
-                (String[]) requiredProtocols.toArray(
+                requiredProtocols.toArray(
                     new String[requiredProtocols.size()]),
                     defaultRootObject
                 );
@@ -426,11 +451,11 @@ public class CloudFrontXmlResponsesSaxParser {
         public void endStreamingDistributionConfig(String text) {
             this.distributionConfig = new StreamingDistributionConfig(
                 origin, callerReference,
-                (String[]) cnamesList.toArray(new String[cnamesList.size()]), comment,
+                cnamesList.toArray(new String[cnamesList.size()]), comment,
                 enabled, loggingStatus, originAccessIdentity, trustedSignerSelf,
-                (String[]) trustedSignerAwsAccountNumberList.toArray(
+                trustedSignerAwsAccountNumberList.toArray(
                     new String[trustedSignerAwsAccountNumberList.size()]),
-                (String[]) requiredProtocols.toArray(
+                requiredProtocols.toArray(
                     new String[requiredProtocols.size()])
                 );
             returnControlToParentHandler();
@@ -445,7 +470,7 @@ public class CloudFrontXmlResponsesSaxParser {
         private Date lastModifiedTime = null;
         private String domainName = null;
         private String origin = null;
-        private List cnamesList = new ArrayList();
+        private final List<String> cnamesList = new ArrayList<String>();
         private String comment = null;
         private boolean enabled = false;
 
@@ -488,7 +513,7 @@ public class CloudFrontXmlResponsesSaxParser {
         public void endDistributionSummary(String text) {
             this.distribution = new Distribution(id, status,
                 lastModifiedTime, domainName, origin,
-                (String[]) cnamesList.toArray(new String[cnamesList.size()]),
+                cnamesList.toArray(new String[cnamesList.size()]),
                 comment, enabled);
             returnControlToParentHandler();
         }
@@ -496,21 +521,21 @@ public class CloudFrontXmlResponsesSaxParser {
         public void endStreamingDistributionSummary(String text) {
             this.distribution = new StreamingDistribution(id, status,
                 lastModifiedTime, domainName, origin,
-                (String[]) cnamesList.toArray(new String[cnamesList.size()]),
+                cnamesList.toArray(new String[cnamesList.size()]),
                 comment, enabled);
             returnControlToParentHandler();
         }
     }
 
     public class ListDistributionListHandler extends SimpleHandler {
-        private List distributions = new ArrayList();
-        private List cnamesList = new ArrayList();
+        private final List<Distribution> distributions = new ArrayList<Distribution>();
+        private final List<String> cnamesList = new ArrayList<String>();
         private String marker = null;
         private String nextMarker = null;
         private int maxItems = 100;
         private boolean isTruncated = false;
 
-        public List getDistributions() {
+        public List<Distribution> getDistributions() {
             return distributions;
         }
 
@@ -538,6 +563,7 @@ public class CloudFrontXmlResponsesSaxParser {
             transferControlToHandler(new DistributionSummaryHandler());
         }
 
+        @Override
         public void controlReturned(SimpleHandler childHandler) {
             distributions.add(
                 ((DistributionSummaryHandler) childHandler).getDistribution());
@@ -591,6 +617,7 @@ public class CloudFrontXmlResponsesSaxParser {
             transferControlToHandler(new OriginAccessIdentityConfigHandler());
         }
 
+        @Override
         public void controlReturned(SimpleHandler childHandler) {
             this.originAccessIdentityConfig =
                 ((OriginAccessIdentityConfigHandler) childHandler).getOriginAccessIdentityConfig();
@@ -632,13 +659,14 @@ public class CloudFrontXmlResponsesSaxParser {
     }
 
     public class OriginAccessIdentityListHandler extends SimpleHandler {
-        private List originAccessIdentityList = new ArrayList();
+        private final List<OriginAccessIdentity> originAccessIdentityList =
+            new ArrayList<OriginAccessIdentity>();
         private String marker = null;
         private String nextMarker = null;
         private int maxItems = 100;
         private boolean isTruncated = false;
 
-        public List getOriginAccessIdentityList() {
+        public List<OriginAccessIdentity> getOriginAccessIdentityList() {
             return this.originAccessIdentityList;
         }
 
@@ -662,6 +690,7 @@ public class CloudFrontXmlResponsesSaxParser {
             transferControlToHandler(new OriginAccessIdentityHandler());
         }
 
+        @Override
         public void controlReturned(SimpleHandler childHandler) {
             originAccessIdentityList.add(
                 ((OriginAccessIdentityHandler) childHandler).getOriginAccessIdentity());
@@ -681,6 +710,101 @@ public class CloudFrontXmlResponsesSaxParser {
 
         public void endIsTruncated(String text) {
             this.isTruncated = "true".equalsIgnoreCase(text);
+        }
+    }
+
+    public class InvalidationListHandler extends SimpleHandler {
+        private String marker = null;
+        private String nextMarker = null;
+        private int maxItems = 100;
+        private boolean isTruncated = false;
+        private String invalidationSummaryId = null;
+        private String invalidationSummaryStatus = null;
+        private List<InvalidationSummary> invalidationSummaries =
+            new ArrayList<InvalidationSummary>();
+        private InvalidationList invalidationList = null;
+
+        public InvalidationList getInvalidationList() {
+            return invalidationList;
+        }
+
+        public boolean isTruncated() {
+            return isTruncated;
+        }
+
+        public String getMarker() {
+            return marker;
+        }
+
+        public String getNextMarker() {
+            return nextMarker;
+        }
+
+        public int getMaxItems() {
+            return maxItems;
+        }
+
+        public void endMarker(String text) {
+            this.marker = text;
+        }
+
+        public void endNextMarker(String text) {
+            this.nextMarker = text;
+        }
+
+        public void endMaxItems(String text) {
+            this.maxItems = Integer.parseInt(text);
+        }
+
+        public void endIsTruncated(String text) {
+            this.isTruncated = "true".equalsIgnoreCase(text);
+        }
+
+        // Inside InvalidationSummary
+        public void endId(String text) {
+            this.invalidationSummaryId = text;
+        }
+
+        // Inside InvalidationSummary
+        public void endStatus(String text) {
+            this.invalidationSummaryStatus = text;
+            this.invalidationSummaries.add(new InvalidationSummary(
+                this.invalidationSummaryId, this.invalidationSummaryStatus));
+        }
+
+        public void endInvalidationList(String ignore) {
+            this.invalidationList = new InvalidationList(
+                this.marker, this.nextMarker, this.maxItems, this.isTruncated,
+                this.invalidationSummaries);
+        }
+    }
+
+    public class InvalidationHandler extends SimpleHandler {
+        private Invalidation invalidation = new Invalidation();
+
+        public Invalidation getInvalidation() {
+            return this.invalidation;
+        }
+
+        public void endId(String text) {
+            this.invalidation.setId(text);
+        }
+
+        public void endStatus(String text) {
+            this.invalidation.setStatus(text);
+        }
+
+        public void endCreateTime(String text) throws ParseException {
+            this.invalidation.setCreateTime(
+                ServiceUtils.parseIso8601Date(text));
+        }
+
+        public void endPath(String text) {
+            this.invalidation.getObjectKeys().add(text.substring(1));
+        }
+
+        public void endCallerReference(String text) {
+            this.invalidation.setCallerReference(text);
         }
     }
 

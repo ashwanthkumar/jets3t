@@ -22,6 +22,8 @@ import java.io.FileInputStream;
 import java.util.List;
 
 import org.jets3t.service.CloudFrontService;
+import org.jets3t.service.model.cloudfront.Invalidation;
+import org.jets3t.service.model.cloudfront.InvalidationSummary;
 import org.jets3t.service.model.cloudfront.OriginAccessIdentity;
 import org.jets3t.service.model.cloudfront.Distribution;
 import org.jets3t.service.model.cloudfront.DistributionConfig;
@@ -329,6 +331,34 @@ public class CloudFrontSamples {
 
         // Delete a streaming distribution (the distribution must be disabled and deployed first)
         cloudFrontService.deleteStreamingDistribution(testStreamingDistributionId);
+
+        // ------------------------------------------------------------
+        // Object Invalidation
+        // ------------------------------------------------------------
+
+        // Invalidate objects in a distribution to force CloudFront to fetch the
+        // latest object data from the S3 origin.
+        String[] objectKeys = new String[] {"downloads.html"};
+
+        Invalidation invalidation = cloudFrontService.invalidateObjects(
+            testDistributionId,
+            objectKeys,
+            "" + System.currentTimeMillis() // Caller reference - a unique string value
+            );
+        System.out.println(invalidation);
+
+        // Retrieve details about a prior invalidation operation
+        String invalidationId = invalidation.getId();
+
+        Invalidation priorInvalidation = cloudFrontService.getInvalidation(
+            testDistributionId, invalidationId);
+        System.out.println(priorInvalidation);
+
+        // List summary information about all invalidations performed
+        // on a distribution.
+        List<InvalidationSummary> invalidationSummaries =
+            cloudFrontService.listInvalidations(testDistributionId);
+        System.out.println(invalidationSummaries);
     }
 
 }

@@ -29,6 +29,7 @@ TOOLKIT
   * CloudFront Service
 
 - Added support for setting Default Root Object for CloudFront distributions.
+- Added support for API version 2010-08-01 and invalidation of objects.
 - Modified CloudFrontService#signUrl and #signUrlCanned to accept raw resource
   URL or path strings, instead of expressing all resources as HTTP URLs. This
   allows for URL signing of HTTPS and RTMP streaming resources.  
