@@ -162,8 +162,8 @@ public class RestUtils {
     public static String makeServiceCanonicalString(String method, String resource, Map headersMap,
         String expires, String headerPrefix)
     {
-        StringBuffer buf = new StringBuffer();
-        buf.append(method + "\n");
+        StringBuffer canonicalStringBuf = new StringBuffer();
+        canonicalStringBuf.append(method + "\n");
 
         // Add all interesting headers to a list, then sort them.  "Interesting"
         // is defined as Content-MD5, Content-Type, Date, and x-amz-
@@ -216,55 +216,45 @@ public class RestUtils {
             Object value = entry.getValue();
 
             if (key.startsWith(headerPrefix)) {
-                buf.append(key).append(':').append(value);
+                canonicalStringBuf.append(key).append(':').append(value);
             } else {
-                buf.append(value);
+                canonicalStringBuf.append(value);
             }
-            buf.append("\n");
+            canonicalStringBuf.append("\n");
         }
 
         // don't include the query parameters...
         int queryIndex = resource.indexOf('?');
         if (queryIndex == -1) {
-            buf.append(resource);
+            canonicalStringBuf.append(resource);
         } else {
-            buf.append(resource.substring(0, queryIndex));
+            canonicalStringBuf.append(resource.substring(0, queryIndex));
         }
 
-        // ...unless parameter is one of: acl, torrent, logging, requestPayment,
-        // versions, versioning, versionId.
+        // ...unless parameter is one of a set of special params
+        // that actually identify a service resource.
+        String[] resourceParams = new String[] {
+            "acl", "torrent", "logging", "location",
+            "requestPayment", "versions", "versioning",
+            "policy", "versionId"
+        };
         boolean existingParams = false;
-        if (resource.matches(".*[&?]acl($|=|&).*")) {
-            buf.append("?acl");
-            existingParams = true;
-        } else if (resource.matches(".*[&?]torrent($|=|&).*")) {
-            buf.append("?torrent");
-            existingParams = true;
-        } else if (resource.matches(".*[&?]logging($|=|&).*")) {
-            buf.append("?logging");
-            existingParams = true;
-        } else if (resource.matches(".*[&?]location($|=|&).*")) {
-            buf.append("?location");
-            existingParams = true;
-        } else if (resource.matches(".*[&?]requestPayment($|=|&).*")) {
-            buf.append("?requestPayment");
-            existingParams = true;
-        } else if (resource.matches(".*[&?]versions($|=|&).*")) {
-            buf.append("?versions");
-            existingParams = true;
-        } else if (resource.matches(".*[&?]versioning($|=|&).*")) {
-            buf.append("?versioning");
-            existingParams = true;
-        }
-        if (resource.matches(".*[&?](versionId=.+)($|&).*")) {
-            Pattern pattern = Pattern.compile(".*[&?](versionId=.+)($|&).*");
+        for (String resourceParam: resourceParams) {
+            Pattern pattern = Pattern.compile(".*[&?]" + resourceParam + "(=.+)?($|&).*");
             Matcher matcher = pattern.matcher(resource);
             if (matcher.matches()) {
-                buf.append( (existingParams ? "&" : "?") + matcher.group(1));
+                canonicalStringBuf.append(
+                    (existingParams ? "&" : "?")
+                    + resourceParam);
+                if (matcher.group(1) != null) {
+                    // Parameter also has a value component, include it.
+                    canonicalStringBuf.append(matcher.group(1));
+                }
+                existingParams = true;
             }
         }
 
-        return buf.toString();
+        return canonicalStringBuf.toString();
     }
 
     /**

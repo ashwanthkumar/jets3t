@@ -737,6 +737,33 @@ public class CodeSamples {
         acl.grantPermission(new CanonicalGrantee("AWS member's ID"),
             Permission.PERMISSION_WRITE_ACP);
 
+        /*
+         * Bucket Policies -- offer a greater degree of access control for a bucket.
+         */
+
+        // Set a bucket policy that allows public read access to all objects under
+        // the virtual path "/public"
+
+        String bucketNameForPolicy = publicBucket.getName();
+        String policyJSON =
+            "{"
+            + "\"Version\":\"2008-10-17\""
+            + ",\"Id\":\"EXAMPLE\""
+            + ",\"Statement\": [{"
+                + "\"Effect\":\"Allow\""
+                + ",\"Action\":[\"s3:GetObject*\"]"
+                + ",\"Principal\":{\"AWS\": [\"*\"]}"
+                + ",\"Resource\":\"arn:aws:s3:::" + bucketNameForPolicy + "/public/*\""
+            + "}]}";
+        s3Service.setBucketPolicy(bucketNameForPolicy, policyJSON);
+
+        // Retrieve the policy document applied to a bucket
+        String policyDocument = s3Service.getBucketPolicy(bucketNameForPolicy);
+        System.out.println(policyDocument);
+
+        // Delete the policy document applied to a bucket
+        s3Service.deleteBucketPolicy(bucketNameForPolicy);
+
 
         /*
          * Temporarily make an Object available to anyone

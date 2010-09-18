@@ -2770,6 +2770,53 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     }
 
     /**
+     * Apply a JSON access control policy document to a bucket.
+     *
+     * @param bucketName
+     * @param policyDocument
+     * @throws S3ServiceException
+     */
+    public void setBucketPolicy(String bucketName, String policyDocument)
+        throws S3ServiceException
+    {
+        setBucketPolicyImpl(bucketName, policyDocument);
+    }
+
+    /**
+     * Retrieve the JSON access control policy document for a bucket,
+     * or null if the bucket does not have a policy.
+     *
+     * @param bucketName
+     * @return
+     * @throws S3ServiceException
+     */
+    public String getBucketPolicy(String bucketName)
+        throws S3ServiceException
+    {
+        try {
+            return getBucketPolicyImpl(bucketName);
+        } catch (S3ServiceException e) {
+            if (e.getResponseCode() == 404) {
+                return null;
+            } else {
+                throw e;
+            }
+        }
+    }
+
+    /**
+     * Delete the acces control policy document for a bucket.
+     *
+     * @param bucketName
+     * @throws S3ServiceException
+     */
+    public void deleteBucketPolicy(String bucketName)
+        throws S3ServiceException
+    {
+        deleteBucketPolicyImpl(bucketName);
+    }
+
+    /**
      * Return true if the given bucket is configured as a
      * <a href="http://docs.amazonwebservices.com/AmazonS3/latest/RequesterPaysBuckets.html">
      * Requester Pays</a> bucket, in which case the requester must supply their own AWS
@@ -2822,6 +2869,13 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
 
     protected abstract void setBucketLoggingStatusImpl(String bucketName, S3BucketLoggingStatus status)
         throws S3ServiceException;
+
+    protected abstract void setBucketPolicyImpl(String bucketName, String policyDocument)
+        throws S3ServiceException;
+
+    protected abstract String getBucketPolicyImpl(String bucketName) throws S3ServiceException;
+
+    protected abstract void deleteBucketPolicyImpl(String bucketName) throws S3ServiceException;
 
     protected abstract void setRequesterPaysBucketImpl(String bucketName, boolean requesterPays)
         throws S3ServiceException;

@@ -931,7 +931,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             httpMethod.setRequestHeader("Content-Length", "0");
         }
 
-        performRequest(httpMethod, new int[] {200});
+        performRequest(httpMethod, new int[] {200, 204});
 
         if (requestEntity != null) {
             // Respond with the actual guaranteed content length of the uploaded data.

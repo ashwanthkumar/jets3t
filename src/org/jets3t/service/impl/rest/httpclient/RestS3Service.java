@@ -39,13 +39,13 @@ import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.VersionOrDeleteMarkersChunk;
-import org.jets3t.service.impl.rest.AccessControlListHandler;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListVersionsResultsHandler;
 import org.jets3t.service.model.BaseVersionOrDeleteMarker;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3BucketVersioningStatus;
 import org.jets3t.service.security.AWSDevPayCredentials;
 import org.jets3t.service.security.ProviderCredentials;
+import org.jets3t.service.utils.ServiceUtils;
 
 import com.jamesmurty.utils.XMLBuilder;
 
@@ -612,6 +612,50 @@ public class RestS3Service extends S3Service {
         } catch (UnsupportedEncodingException e) {
             throw new S3ServiceException("Unable to encode LoggingStatus XML document", e);
         }
+    }
+
+    @Override
+    protected String getBucketPolicyImpl(String bucketName)
+        throws S3ServiceException
+    {
+        try {
+            Map<String, Object> requestParameters = new HashMap<String, Object>();
+            requestParameters.put("policy","");
+
+            HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
+            return httpMethod.getResponseBodyAsString();
+        } catch (IOException  e) {
+            throw new S3ServiceException(e);
+        }
+    }
+
+    @Override
+    protected void setBucketPolicyImpl(String bucketName, String policyDocument)
+        throws S3ServiceException
+    {
+        Map<String, Object> requestParameters = new HashMap<String, Object>();
+        requestParameters.put("policy","");
+
+        Map<String, Object> metadata = new HashMap<String, Object>();
+        metadata.put("Content-Type", "text/plain");
+
+        try {
+            metadata.put("Content-Length", String.valueOf(policyDocument.length()));
+            performRestPut(bucketName, null, metadata, requestParameters,
+                new StringRequestEntity(policyDocument, "text/plain", Constants.DEFAULT_ENCODING),
+                true);
+        } catch (UnsupportedEncodingException e) {
+            throw new S3ServiceException("Unable to encode LoggingStatus XML document", e);
+        }
+    }
+
+    @Override
+    protected void deleteBucketPolicyImpl(String bucketName)
+        throws S3ServiceException
+    {
+        Map<String, Object> requestParameters = new HashMap<String, Object>();
+        requestParameters.put("policy","");
+        performRestDelete(bucketName, null, requestParameters, null, null);
     }
 
     @Override

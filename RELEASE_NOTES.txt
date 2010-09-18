@@ -23,6 +23,7 @@ TOOLKIT
 
   * S3Service
 
+- Added support for bucket policy documents: set, get, and delete.
 - Methods for setting and using AWS DevPay credentials moved from
   S3Service to RestS3Service.
 
