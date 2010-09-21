@@ -238,8 +238,17 @@ public abstract class RestStorageService extends StorageService implements AWSRe
      * configured HttpClient library client and connection manager objects.
      */
     protected HttpClientAndConnectionManager initHttpConnection(HostConfiguration hostConfig) {
-        return RestUtils.initHttpConnection(this, hostConfig, jets3tProperties,
+        HttpClientAndConnectionManager manager = RestUtils.initHttpConnection(
+            this, hostConfig, jets3tProperties,
             getInvokingApplicationDescription(), credentialsProvider);
+
+        // TODO: Google Storage Service does not work well with Expect: 100-Continue
+        if (this.isTargettingGoogleStorageService()) {
+            manager.getHttpClient().getParams().setBooleanParameter(
+                "http.protocol.expect-continue", false);
+        }
+
+        return manager;
     }
 
     /**
