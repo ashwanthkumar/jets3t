@@ -138,6 +138,11 @@ public class GoogleStorageService extends RestStorageService {
         super(credentials, invokingApplicationDescription, credentialsProvider, jets3tProperties, hostConfig);
     }
 
+    @Override
+    protected boolean isTargettingGoogleStorageService() {
+        return true;
+    }
+
     /**
      * @return
      * the endpoint to be used to connect to Google Storage.

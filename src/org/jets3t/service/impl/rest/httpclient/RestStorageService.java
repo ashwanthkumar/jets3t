@@ -203,6 +203,8 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         }
     }
 
+    protected abstract boolean isTargettingGoogleStorageService();
+
     /**
      * Shut down all connections managed by the underlying HttpConnectionManager.
      */
@@ -1644,10 +1646,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         String sourceKey = RestUtils.encodeUrlString(sourceBucketName + "/" + sourceObjectKey);
 
         // TODO: Hack for Google Storage Service which doesn't support URL-encoded copy-source
-        if (this instanceof GoogleStorageService
-            || Constants.GS_DEFAULT_HOSTNAME.equals(
-                this.getJetS3tProperties().getStringProperty("s3service.s3-endpoint", null)))
-        {
+        if (this.isTargettingGoogleStorageService()) {
             sourceKey = sourceBucketName + "/" + sourceObjectKey;
         }
 

@@ -45,7 +45,6 @@ import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3BucketVersioningStatus;
 import org.jets3t.service.security.AWSDevPayCredentials;
 import org.jets3t.service.security.ProviderCredentials;
-import org.jets3t.service.utils.ServiceUtils;
 
 import com.jamesmurty.utils.XMLBuilder;
 
@@ -171,6 +170,12 @@ public class RestS3Service extends S3Service {
 
         this.setRequesterPaysEnabled(
             this.jets3tProperties.getBoolProperty("httpclient.requester-pays-buckets-enabled", false));
+    }
+
+    @Override
+    protected boolean isTargettingGoogleStorageService() {
+        return Constants.GS_DEFAULT_HOSTNAME.equals(
+            this.getJetS3tProperties().getStringProperty("s3service.s3-endpoint", null));
     }
 
     /**
