@@ -986,4 +986,36 @@ public abstract class BaseStorageServiceTests extends TestCase {
         }
     }
 
+    public void testRecognizeDnsFriendlyBucketNames() {
+        // Valid DNS bucket names
+        assertTrue(ServiceUtils.isBucketNameValidDNSName("test"));
+        assertTrue(ServiceUtils.isBucketNameValidDNSName("test-name"));
+        assertTrue(ServiceUtils.isBucketNameValidDNSName("test.domain.name"));
+        assertTrue(ServiceUtils.isBucketNameValidDNSName("test-domain.name"));
+        assertTrue(ServiceUtils.isBucketNameValidDNSName(
+            "this-bucket-name-is-not-too-long-with-63-chars--less-than-limit"));
+
+        // IP-like, but not actual IP address numbers allowed
+        assertTrue(ServiceUtils.isBucketNameValidDNSName("1234"));
+        assertTrue(ServiceUtils.isBucketNameValidDNSName("123.4.5.6789"));
+        assertTrue(ServiceUtils.isBucketNameValidDNSName("123.456"));
+        assertTrue(ServiceUtils.isBucketNameValidDNSName("123.456.789"));
+
+        // Invalid DNS bucket names
+        assertFalse(ServiceUtils.isBucketNameValidDNSName(null));
+        assertFalse(ServiceUtils.isBucketNameValidDNSName("Capitalized"));
+        assertFalse(ServiceUtils.isBucketNameValidDNSName("ab")); // Too short
+        assertFalse(ServiceUtils.isBucketNameValidDNSName(
+            "this-bucket-name-is-too-long-with-64-chars--more-than-allowed-63"));
+        assertFalse(ServiceUtils.isBucketNameValidDNSName("bad-ch@racter"));
+        assertFalse(ServiceUtils.isBucketNameValidDNSName("empty..segment"));
+        assertFalse(ServiceUtils.isBucketNameValidDNSName("dash.-starts.segment"));
+        assertFalse(ServiceUtils.isBucketNameValidDNSName("dash.ends-.segment"));
+        // IP address numbers not allowed
+        assertFalse(ServiceUtils.isBucketNameValidDNSName("192.12.4.1"));
+        assertFalse(ServiceUtils.isBucketNameValidDNSName("127.0.0.1"));
+        assertFalse(ServiceUtils.isBucketNameValidDNSName("123.456.789.012"));
+        assertFalse(ServiceUtils.isBucketNameValidDNSName("10.0.0.1"));
+    }
+
 }
