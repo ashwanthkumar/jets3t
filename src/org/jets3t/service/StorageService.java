@@ -1264,7 +1264,7 @@ public abstract class StorageService {
 
     /**
      * Renames metadata property names to be suitable for use as HTTP Headers. This is done
-     * by renaming any non-HTTP headers to have the prefix <code>x-amz-meta-</code> and leaving the
+     * by renaming any non-HTTP headers to have the a service-specific prefix and leaving the
      * HTTP header names unchanged. The HTTP header names left unchanged are those found in
      * {@link #HTTP_HEADER_METADATA_NAMES}
      *

@@ -92,7 +92,6 @@ public abstract class RestStorageService extends StorageService implements AWSRe
     protected CredentialsProvider credentialsProvider = null;
 
     protected String defaultStorageClass = null;
-    protected boolean isGoogleStorageService = false;
 
     /**
      * Constructs the service and initialises the properties.
@@ -1643,6 +1642,15 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         Map<String, Object> metadata = new HashMap<String, Object>();
 
         String sourceKey = RestUtils.encodeUrlString(sourceBucketName + "/" + sourceObjectKey);
+
+        // TODO: Hack for Google Storage Service which doesn't support URL-encoded copy-source
+        if (this instanceof GoogleStorageService
+            || Constants.GS_DEFAULT_HOSTNAME.equals(
+                this.getJetS3tProperties().getStringProperty("s3service.s3-endpoint", null)))
+        {
+            sourceKey = sourceBucketName + "/" + sourceObjectKey;
+        }
+
         if (versionId != null) {
             sourceKey += "?versionId=" + versionId;
         }

@@ -50,8 +50,8 @@ import org.jets3t.service.acl.gs.UserByIdGrantee;
 import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
 import org.jets3t.service.model.StorageBucket;
-import org.jets3t.service.model.StorageOwner;
 import org.jets3t.service.model.StorageObject;
+import org.jets3t.service.model.StorageOwner;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.RestUtils;
@@ -108,11 +108,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
     protected StorageBucket createBucketForTest(String testName) throws Exception {
         String bucketName = getBucketNameForTest(testName);
         StorageService service = getStorageService(getCredentials());
-        if (!service.isBucketAccessible(bucketName)) {
-            return service.createBucket(bucketName);
-        } else {
-            return service.getBucket(bucketName);
-        }
+        return service.getOrCreateBucket(bucketName);
     }
 
     protected void deleteAllObjectsInBucket(String bucketName) {
@@ -481,6 +477,134 @@ public abstract class BaseStorageServiceTests extends TestCase {
             assertTrue(resultObject.isDirectoryPlaceholder());
         } finally {
             cleanupBucketForTest("testDirectoryPlaceholderObjects", true);
+        }
+    }
+
+    public void testCopyObjects() throws Exception {
+        String sourceBucketName = createBucketForTest("testCopyObjects-source").getName();
+        String targetBucketName = createBucketForTest("testCopyObjects-target").getName();
+        RestStorageService service = getStorageService(getCredentials());
+        try {
+            // Create source objects to copy, with potentially troublesome names
+            String[] objectNames = new String[] {
+                "testing.txt",
+                "test me.txt",
+                "virtual-path/testing.txt",
+                "vîrtüál-πå†h/tés†ing.txt"
+            };
+
+            // TODO: Google Storage bug: Source object paths cannot have characters that require encoding
+            if (TARGET_SERVICE_GS.equals(getTargetService())) {
+                objectNames[3] = "very-safe-path/testing.txt"; // No non-ASCII chars
+            }
+
+            for (int i = 0; i < objectNames.length; i++) {
+                StorageObject object = new StorageObject(
+                    objectNames[i], "A little data");
+                object.addMetadata("object-offset", "" + i);
+                service.putObject(sourceBucketName, object);
+            }
+
+            // Copy objects within bucket, retaining metadata
+            String targetPath = "copies/";
+            for (String objectName: objectNames) {
+                StorageObject targetObject = new StorageObject(
+                    targetPath + objectName);
+                service.copyObject(sourceBucketName, objectName,
+                    sourceBucketName, targetObject,
+                    false // replaceMetadata
+                    );
+            }
+            // Ensure objects are in target location and have the same metadata
+            for (int i = 0; i < objectNames.length; i++) {
+                StorageObject object = service.getObjectDetails(
+                    sourceBucketName, targetPath + objectNames[i]);
+                assertEquals("" + i, object.getMetadata("object-offset"));
+            }
+
+            // Copy object within bucket, replacing metadata
+            StorageObject targetObject = new StorageObject(
+                targetPath + objectNames[0]);
+            targetObject.addMetadata("replaced-metadata", "booyah!");
+            service.copyObject(sourceBucketName, objectNames[0],
+                sourceBucketName, targetObject,
+                true // replaceMetadata
+                );
+            StorageObject copiedObject = service.getObjectDetails(
+                sourceBucketName, targetObject.getName());
+            assertNull(copiedObject.getMetadata("object-offset"));
+            assertEquals("booyah!", copiedObject.getMetadata("replaced-metadata"));
+
+            // Copy objects between buckets
+            for (String objectName: objectNames) {
+                targetObject = new StorageObject(objectName);
+                service.copyObject(sourceBucketName, objectName,
+                    targetBucketName, targetObject,
+                    false // replaceMetadata
+                    );
+                copiedObject = service.getObjectDetails(
+                    targetBucketName, targetObject.getName());
+            }
+            assertEquals(4, service.listObjects(targetBucketName).length);
+
+            // Rename convenience method
+            int objectOffset = 3;
+            targetObject = new StorageObject("my-new-name");
+            service.renameObject(
+                sourceBucketName, objectNames[objectOffset], targetObject);
+            copiedObject = service.getObjectDetails(
+                sourceBucketName, targetObject.getName());
+            // Ensure we have a new object with the same metadata
+            assertEquals("my-new-name", copiedObject.getKey());
+            assertEquals("" + objectOffset, copiedObject.getMetadata("object-offset"));
+
+            // Update metadata convenience method
+            objectOffset = 2;
+            targetObject = new StorageObject(objectNames[objectOffset]);
+            targetObject.addMetadata("object-offset", "" + objectOffset); // Unchanged
+            targetObject.addMetadata("was-i-updated", "yes!");
+            service.updateObjectMetadata(sourceBucketName, targetObject);
+            copiedObject = service.getObjectDetails(
+                sourceBucketName, targetObject.getName());
+            // Ensure we have the same object with updated metadata
+            assertEquals("yes!", copiedObject.getMetadata("was-i-updated"));
+
+            // Move object convenience method - retain metadata
+            objectOffset = 0;
+            targetObject = new StorageObject(objectNames[objectOffset]);
+            service.moveObject(sourceBucketName, objectNames[objectOffset],
+                targetBucketName, targetObject, false);
+            try {
+                service.getObjectDetails(
+                    sourceBucketName, objectNames[objectOffset]);
+                fail("Source object should be moved");
+            } catch (S3ServiceException e) {
+                // Expected
+            }
+            copiedObject = service.getObjectDetails(
+                targetBucketName, targetObject.getName());
+            assertEquals("" + objectOffset, copiedObject.getMetadata("object-offset"));
+
+            // Move object convenience method - replace metadata
+            objectOffset = 1;
+            targetObject = new StorageObject(objectNames[objectOffset]);
+            targetObject.addMetadata("was-i-moved-with-new-metadata", "yes!");
+            service.moveObject(sourceBucketName, objectNames[objectOffset],
+                targetBucketName, targetObject, true);
+            try {
+                service.getObjectDetails(
+                    sourceBucketName, objectNames[objectOffset]);
+                fail("Source object should be moved");
+            } catch (S3ServiceException e) {
+                // Expected
+            }
+            copiedObject = service.getObjectDetails(
+                targetBucketName, targetObject.getName());
+            assertNull(copiedObject.getMetadata("object-offset"));
+            assertEquals("yes!", copiedObject.getMetadata("was-i-moved-with-new-metadata"));
+        } finally {
+            cleanupBucketForTest("testCopyObjects-source", true);
+            cleanupBucketForTest("testCopyObjects-target", true);
         }
     }
 
