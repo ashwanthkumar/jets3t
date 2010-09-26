@@ -992,16 +992,23 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         int httpPort = this.getHttpPort();
         boolean disableDnsBuckets = this.getDisableDnsBuckets();
 
-        String bucketNameInPath =
-            !disableDnsBuckets && ServiceUtils.isBucketNameValidDNSName(bucketName)
-            ? ""
-            : bucketName + "/";
-        return "http://" + ServiceUtils.generateS3HostnameForBucket(
-                                        bucketName, disableDnsBuckets, s3Endpoint)
-            + (httpPort != 80 ? ":" + httpPort : "")
-            + serviceEndpointVirtualPath + "/"
-            + bucketNameInPath
-            + objectKey + "?torrent";
+        try {
+            String bucketNameInPath =
+                !disableDnsBuckets && ServiceUtils.isBucketNameValidDNSName(bucketName)
+                ? ""
+                : RestUtils.encodeUrlString(bucketName) + "/";
+            String urlPath =
+                RestUtils.encodeUrlPath(serviceEndpointVirtualPath, "/")
+                + "/" + bucketNameInPath
+                + RestUtils.encodeUrlPath(objectKey, "/");
+            return "http://" + ServiceUtils.generateS3HostnameForBucket(
+                bucketName, disableDnsBuckets, s3Endpoint)
+                + (httpPort != 80 ? ":" + httpPort : "")
+                + urlPath
+                + "?torrent";
+        } catch (S3ServiceException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
