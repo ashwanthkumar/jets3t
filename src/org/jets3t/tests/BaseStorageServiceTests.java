@@ -52,6 +52,12 @@ import org.jets3t.service.impl.rest.httpclient.RestStorageService;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.StorageOwner;
+import org.jets3t.service.multi.StorageServiceEventAdaptor;
+import org.jets3t.service.multi.ThreadedStorageService;
+import org.jets3t.service.multi.event.CreateObjectsEvent;
+import org.jets3t.service.multi.event.DeleteObjectsEvent;
+import org.jets3t.service.multi.event.GetObjectHeadsEvent;
+import org.jets3t.service.multi.event.GetObjectsEvent;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.RestUtils;
@@ -140,7 +146,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
     }
 
     protected void cleanupBucketForTest(String testName) {
-        this.cleanupBucketForTest(testName, false);
+        this.cleanupBucketForTest(testName, true);
     }
 
     /////////////////////////////
@@ -435,7 +441,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             service.deleteObject(bucketName, trickyObject.getKey());
 
         } finally {
-            cleanupBucketForTest("testObjectManagement", true);
+            cleanupBucketForTest("testObjectManagement");
         }
     }
 
@@ -476,7 +482,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             resultObject = service.getObjectDetails(bucketName, requestObject.getKey());
             assertTrue(resultObject.isDirectoryPlaceholder());
         } finally {
-            cleanupBucketForTest("testDirectoryPlaceholderObjects", true);
+            cleanupBucketForTest("testDirectoryPlaceholderObjects");
         }
     }
 
@@ -603,8 +609,8 @@ public abstract class BaseStorageServiceTests extends TestCase {
             assertNull(copiedObject.getMetadata("object-offset"));
             assertEquals("yes!", copiedObject.getMetadata("was-i-moved-with-new-metadata"));
         } finally {
-            cleanupBucketForTest("testCopyObjects-source", true);
-            cleanupBucketForTest("testCopyObjects-target", true);
+            cleanupBucketForTest("testCopyObjects-source");
+            cleanupBucketForTest("testCopyObjects-target");
         }
     }
 
@@ -664,7 +670,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
                 "attachment; filename=" + unicodeText + "", resultObject.getContentDisposition());
             */
         } finally {
-            cleanupBucketForTest("testUnicodeData", true);
+            cleanupBucketForTest("testUnicodeData");
         }
     }
 
@@ -776,7 +782,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             service.deleteObject(bucketName, publicKey);
             service.deleteObject(bucketName, publicKey2);
         } finally {
-            cleanupBucketForTest("testACLManagement", true);
+            cleanupBucketForTest("testACLManagement");
         }
     }
 
@@ -982,7 +988,111 @@ public abstract class BaseStorageServiceTests extends TestCase {
 
             assertFalse(service.isObjectInBucket(bucketName, "does-not-exist"));
         } finally {
-            cleanupBucketForTest("testIsObjecInBucket", true);
+            cleanupBucketForTest("testIsObjecInBucket");
+        }
+    }
+
+    public void testThreadedStorageService() throws Exception {
+        RestStorageService service = getStorageService(getCredentials());
+        StorageBucket bucket = createBucketForTest("testMultiThreadedService");
+        String bucketName = bucket.getName();
+
+        try {
+            final int[] createObjectsEventCount = new int[] {0};
+            final int[] getObjectHeadsEventCount = new int[] {0};
+            final List<StorageObject> getObjectsList = new ArrayList<StorageObject>();
+            final int[] deleteObjectsEventCount = new int[] {0};
+
+            // Multi-threaded service with adaptor to count event occurrences.
+            ThreadedStorageService multiService = new ThreadedStorageService(
+                service,
+                new StorageServiceEventAdaptor() {
+                    @Override
+                    public void event(CreateObjectsEvent event) {
+                        if (CreateObjectsEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+                            createObjectsEventCount[0] += event.getCreatedObjects().length;
+                        }
+                    }
+
+                    @Override
+                    public void event(GetObjectHeadsEvent event) {
+                        if (GetObjectHeadsEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+                            getObjectHeadsEventCount[0] += event.getCompletedObjects().length;
+                        }
+                    }
+
+                    @Override
+                    public void event(GetObjectsEvent event) {
+                        if (GetObjectsEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+                            for (StorageObject object: event.getCompletedObjects()) {
+                                getObjectsList.add(object);
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void event(DeleteObjectsEvent event) {
+                        if (DeleteObjectsEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+                            deleteObjectsEventCount[0] += event.getDeletedObjects().length;
+                        }
+                    }
+            });
+
+            assertEquals(0, createObjectsEventCount[0]);
+            assertEquals(0, getObjectHeadsEventCount[0]);
+            assertEquals(0, getObjectsList.size());
+            assertEquals(0, deleteObjectsEventCount[0]);
+
+            StorageObject[] objects = new StorageObject[] {
+                new StorageObject("one.txt", "Some data"),
+                new StorageObject("twö.txt", "Some data"),
+                new StorageObject("thréè.txt", "Some data"),
+                new StorageObject("fôür.txt", "Some data"),
+                new StorageObject("fîvæ∫.txt", "Some data")
+            };
+
+            // Upload multiple objects
+            boolean success = multiService.putObjects(bucketName, objects);
+            assertTrue(success);
+            assertEquals(objects.length, createObjectsEventCount[0]);
+            assertEquals(0, getObjectHeadsEventCount[0]);
+            assertEquals(0, getObjectsList.size());
+            assertEquals(0, deleteObjectsEventCount[0]);
+
+            // Retrieve details for multiple objects
+            success = multiService.getObjectsHeads(bucketName, objects);
+            assertTrue(success);
+            assertEquals(objects.length, createObjectsEventCount[0]);
+            assertEquals(objects.length, getObjectHeadsEventCount[0]);
+            assertEquals(0, getObjectsList.size());
+            assertEquals(0, deleteObjectsEventCount[0]);
+
+            // Retrieve data for multiple objects
+            success = multiService.getObjects(bucketName, objects);
+            assertTrue(success);
+            assertEquals(objects.length, createObjectsEventCount[0]);
+            assertEquals(objects.length, getObjectHeadsEventCount[0]);
+            assertEquals(objects.length, getObjectsList.size());
+            assertEquals(0, deleteObjectsEventCount[0]);
+            // Check all objects retrieved have expected data content.
+            for (StorageObject getObject: getObjectsList) {
+                String objectData = ServiceUtils.readInputStreamToString(
+                    getObject.getDataInputStream(), Constants.DEFAULT_ENCODING);
+                assertEquals("Some data", objectData);
+            }
+
+            // Delete multiple objects
+            success = multiService.deleteObjects(bucketName, objects);
+            assertTrue(success);
+            assertEquals(objects.length, createObjectsEventCount[0]);
+            assertEquals(objects.length, getObjectHeadsEventCount[0]);
+            assertEquals(objects.length, getObjectsList.size());
+            assertEquals(objects.length, deleteObjectsEventCount[0]);
+
+            StorageObject[] listedObjects = service.listObjects(bucketName);
+            assertEquals(0, listedObjects.length);
+        } finally {
+            cleanupBucketForTest("testMultiThreadedService");
         }
     }
 

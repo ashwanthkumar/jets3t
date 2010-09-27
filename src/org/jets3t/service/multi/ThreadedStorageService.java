@@ -41,8 +41,6 @@ import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.io.InterruptableInputStream;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.io.TempFile;
-import org.jets3t.service.model.S3Bucket;
-import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.multi.event.CopyObjectsEvent;
@@ -56,13 +54,12 @@ import org.jets3t.service.multi.event.ListObjectsEvent;
 import org.jets3t.service.multi.event.LookupACLEvent;
 import org.jets3t.service.multi.event.ServiceEvent;
 import org.jets3t.service.multi.event.UpdateACLEvent;
-import org.jets3t.service.multithread.S3ServiceSimpleMulti;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.ServiceUtils;
 
 /**
- * S3 service wrapper that performs multiple S3 requests at a time using multi-threading and an
- * underlying thread-safe {@link StorageService} implementation.
+ * Storage service wrapper that performs multiple service requests at a time using
+ * multi-threading and an underlying thread-safe {@link StorageService} implementation.
  * <p>
  * This service is designed to be run in non-blocking threads that therefore communicates
  * information about its progress by firing {@link ServiceEvent} events. It is the responsibility
@@ -72,7 +69,7 @@ import org.jets3t.service.utils.ServiceUtils;
  * </p>
  * <p>
  * For cases where the full power, and complexity, of the event notification mechanism is not required
- * the simplified multi-threaded service {@link S3ServiceSimpleMulti} can be used.
+ * the simplified multi-threaded service {@link SimpleThreadedStorageService} can be used.
  * </p>
  * <p>
  * This class uses properties obtained through {@link Jets3tProperties}. For more information on
@@ -82,9 +79,9 @@ import org.jets3t.service.utils.ServiceUtils;
  *
  * @author James Murty
  */
-public class StorageServiceMulti {
+public class ThreadedStorageService {
 
-    private static final Log log = LogFactory.getLog(StorageServiceMulti.class);
+    private static final Log log = LogFactory.getLog(ThreadedStorageService.class);
 
     private StorageService storageService = null;
     private final boolean[] isShutdown = new boolean[] { false };
@@ -98,13 +95,12 @@ public class StorageServiceMulti {
      * to an event listening class. EVENT_IN_PROGRESS events are sent at the default time interval
      * of 500ms.
      *
-     * @param s3Service
-     *        an storage service implementation that will be used to perform S3 requests.
-     *        This implementation <b>must</b> be thread-safe.
+     * @param storageService
+     *        an storage service implementation that will be used to perform requests.
      * @param listener
      *        the event listener which will handle event notifications.
      */
-    public StorageServiceMulti(StorageService service, StorageServiceEventListener listener) {
+    public ThreadedStorageService(StorageService service, StorageServiceEventListener listener) {
         this(service, listener, 500);
     }
 
@@ -113,15 +109,14 @@ public class StorageServiceMulti {
      * to an event listening class, and which will send EVENT_IN_PROGRESS events at the specified
      * time interval.
      *
-     * @param s3Service
-     *        an storage service implementation that will be used to perform S3 requests. This implementation
-     *        <b>must</b> be thread-safe.
+     * @param storageService
+     *        a storage service implementation that will be used to perform requests.
      * @param listener
      *        the event listener which will handle event notifications.
      * @param threadSleepTimeMS
      *        how many milliseconds to wait before sending each EVENT_IN_PROGRESS notification event.
      */
-    public StorageServiceMulti(
+    public ThreadedStorageService(
         StorageService service, StorageServiceEventListener listener, long threadSleepTimeMS)
     {
         this.storageService = service;
@@ -175,7 +170,7 @@ public class StorageServiceMulti {
 
     /**
      * @return
-     * the underlying S3 service implementation.
+     * the underlying service implementation.
      */
     public StorageService getStorageService() {
         return storageService;
@@ -384,8 +379,8 @@ public class StorageServiceMulti {
             }
             @Override
             public void fireCancelEvent() {
-                StorageBucket[] incompletedBuckets = (S3Bucket[]) incompletedBucketList
-                    .toArray(new S3Bucket[incompletedBucketList.size()]);
+                StorageBucket[] incompletedBuckets = (StorageBucket[]) incompletedBucketList
+                    .toArray(new StorageBucket[incompletedBucketList.size()]);
                 success[0] = false;
                 fireServiceEvent(CreateBucketsEvent.newCancelledEvent(incompletedBuckets, uniqueOperationId));
             }
@@ -437,7 +432,7 @@ public class StorageServiceMulti {
      * true if all the threaded tasks completed successfully, false otherwise.
      */
     public boolean copyObjects(final String sourceBucketName, final String destinationBucketName,
-        final String[] sourceObjectKeys, final S3Object[] destinationObjects, boolean replaceMetadata)
+        final String[] sourceObjectKeys, final StorageObject[] destinationObjects, boolean replaceMetadata)
     {
         final List incompletedObjectsList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
@@ -469,8 +464,8 @@ public class StorageServiceMulti {
             }
             @Override
             public void fireCancelEvent() {
-                S3Object[] incompletedObjects = (S3Object[]) incompletedObjectsList
-                    .toArray(new S3Object[incompletedObjectsList.size()]);
+                StorageObject[] incompletedObjects = (StorageObject[]) incompletedObjectsList
+                    .toArray(new StorageObject[incompletedObjectsList.size()]);
                 success[0] = false;
                 fireServiceEvent(CopyObjectsEvent.newCancelledEvent(incompletedObjects, uniqueOperationId));
             }
@@ -508,7 +503,7 @@ public class StorageServiceMulti {
      * @return
      * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public boolean putObjects(final String bucketName, final S3Object[] objects) {
+    public boolean putObjects(final String bucketName, final StorageObject[] objects) {
         final List incompletedObjectsList = new ArrayList();
         final List progressWatchers = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
@@ -536,15 +531,15 @@ public class StorageServiceMulti {
             @Override
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 incompletedObjectsList.removeAll(completedResults);
-                S3Object[] completedObjects = (S3Object[]) completedResults
-                    .toArray(new S3Object[completedResults.size()]);
+                StorageObject[] completedObjects = (StorageObject[]) completedResults
+                    .toArray(new StorageObject[completedResults.size()]);
                 fireServiceEvent(CreateObjectsEvent.newInProgressEvent(threadWatcher,
                     completedObjects, uniqueOperationId));
             }
             @Override
             public void fireCancelEvent() {
-                S3Object[] incompletedObjects = (S3Object[]) incompletedObjectsList
-                    .toArray(new S3Object[incompletedObjectsList.size()]);
+                StorageObject[] incompletedObjects = (StorageObject[]) incompletedObjectsList
+                    .toArray(new StorageObject[incompletedObjectsList.size()]);
                 success[0] = false;
                 fireServiceEvent(CreateObjectsEvent.newCancelledEvent(incompletedObjects, uniqueOperationId));
             }
@@ -582,9 +577,9 @@ public class StorageServiceMulti {
      * true if all the threaded tasks completed successfully, false otherwise.
      */
     public boolean deleteObjects(final String bucketName, String[] objectKeys) {
-        S3Object objects[] = new S3Object[objectKeys.length];
+        StorageObject objects[] = new StorageObject[objectKeys.length];
         for (int i = 0; i < objects.length; i++) {
-            objects[i] = new S3Object(objectKeys[i]);
+            objects[i] = new StorageObject(objectKeys[i]);
         }
         return this.deleteObjects(bucketName, objects);
     }
@@ -603,7 +598,7 @@ public class StorageServiceMulti {
      * @return
      * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public boolean deleteObjects(final String bucketName, final S3Object[] objects) {
+    public boolean deleteObjects(final String bucketName, final StorageObject[] objects) {
         final List objectsToDeleteList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
         final boolean[] success = new boolean[] {true};
@@ -626,14 +621,14 @@ public class StorageServiceMulti {
             @Override
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 objectsToDeleteList.removeAll(completedResults);
-                S3Object[] deletedObjects = (S3Object[]) completedResults
-                    .toArray(new S3Object[completedResults.size()]);
+                StorageObject[] deletedObjects = (StorageObject[]) completedResults
+                    .toArray(new StorageObject[completedResults.size()]);
                 fireServiceEvent(DeleteObjectsEvent.newInProgressEvent(threadWatcher, deletedObjects, uniqueOperationId));
             }
             @Override
             public void fireCancelEvent() {
-                S3Object[] remainingObjects = (S3Object[]) objectsToDeleteList
-                    .toArray(new S3Object[objectsToDeleteList.size()]);
+                StorageObject[] remainingObjects = (StorageObject[]) objectsToDeleteList
+                    .toArray(new StorageObject[objectsToDeleteList.size()]);
                 success[0] = false;
                 fireServiceEvent(DeleteObjectsEvent.newCancelledEvent(remainingObjects, uniqueOperationId));
             }
@@ -668,7 +663,7 @@ public class StorageServiceMulti {
      * @return
      * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public boolean getObjects(String bucketName, S3Object[] objects) {
+    public boolean getObjects(String bucketName, StorageObject[] objects) {
         String[] objectKeys = new String[objects.length];
         for (int i = 0; i < objects.length; i++) {
             objectKeys[i] = objects[i].getKey();
@@ -713,8 +708,8 @@ public class StorageServiceMulti {
             }
             @Override
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
-                S3Object[] completedObjects = (S3Object[]) completedResults
-                    .toArray(new S3Object[completedResults.size()]);
+                StorageObject[] completedObjects = (StorageObject[]) completedResults
+                    .toArray(new StorageObject[completedResults.size()]);
                 for (int i = 0; i < completedObjects.length; i++) {
                     pendingObjectKeysList.remove(completedObjects[i].getKey());
                 }
@@ -726,10 +721,10 @@ public class StorageServiceMulti {
                 Iterator iter = pendingObjectKeysList.iterator();
                 while (iter.hasNext()) {
                     String key = (String) iter.next();
-                    cancelledObjectsList.add(new S3Object(key));
+                    cancelledObjectsList.add(new StorageObject(key));
                 }
-                S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList
-                    .toArray(new S3Object[cancelledObjectsList.size()]);
+                StorageObject[] cancelledObjects = (StorageObject[]) cancelledObjectsList
+                    .toArray(new StorageObject[cancelledObjectsList.size()]);
                 success[0] = false;
                 fireServiceEvent(GetObjectsEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
@@ -764,7 +759,7 @@ public class StorageServiceMulti {
      * @return
      * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public boolean getObjectsHeads(String bucketName, S3Object[] objects) {
+    public boolean getObjectsHeads(String bucketName, StorageObject[] objects) {
         String[] objectKeys = new String[objects.length];
         for (int i = 0; i < objects.length; i++) {
             objectKeys[i] = objects[i].getKey();
@@ -809,8 +804,8 @@ public class StorageServiceMulti {
             }
             @Override
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
-                S3Object[] completedObjects = (S3Object[]) completedResults
-                    .toArray(new S3Object[completedResults.size()]);
+                StorageObject[] completedObjects = (StorageObject[]) completedResults
+                    .toArray(new StorageObject[completedResults.size()]);
                 for (int i = 0; i < completedObjects.length; i++) {
                     pendingObjectKeysList.remove(completedObjects[i].getKey());
                 }
@@ -822,10 +817,10 @@ public class StorageServiceMulti {
                 Iterator iter = pendingObjectKeysList.iterator();
                 while (iter.hasNext()) {
                     String key = (String) iter.next();
-                    cancelledObjectsList.add(new S3Object(key));
+                    cancelledObjectsList.add(new StorageObject(key));
                 }
-                S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList
-                    .toArray(new S3Object[cancelledObjectsList.size()]);
+                StorageObject[] cancelledObjects = (StorageObject[]) cancelledObjectsList
+                    .toArray(new StorageObject[cancelledObjectsList.size()]);
                 success[0] = false;
                 fireServiceEvent(GetObjectHeadsEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
@@ -863,7 +858,7 @@ public class StorageServiceMulti {
      * @return
      * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public boolean getObjectACLs(final String bucketName, final S3Object[] objects) {
+    public boolean getObjectACLs(final String bucketName, final StorageObject[] objects) {
         final List pendingObjectsList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
         final boolean[] success = new boolean[] {true};
@@ -886,14 +881,14 @@ public class StorageServiceMulti {
             @Override
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 pendingObjectsList.removeAll(completedResults);
-                S3Object[] completedObjects = (S3Object[]) completedResults
-                    .toArray(new S3Object[completedResults.size()]);
+                StorageObject[] completedObjects = (StorageObject[]) completedResults
+                    .toArray(new StorageObject[completedResults.size()]);
                 fireServiceEvent(LookupACLEvent.newInProgressEvent(threadWatcher, completedObjects, uniqueOperationId));
             }
             @Override
             public void fireCancelEvent() {
-                S3Object[] cancelledObjects = (S3Object[]) pendingObjectsList
-                    .toArray(new S3Object[pendingObjectsList.size()]);
+                StorageObject[] cancelledObjects = (StorageObject[]) pendingObjectsList
+                    .toArray(new StorageObject[pendingObjectsList.size()]);
                 success[0] = false;
                 fireServiceEvent(LookupACLEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
@@ -954,14 +949,14 @@ public class StorageServiceMulti {
             @Override
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 pendingObjectsList.removeAll(completedResults);
-                S3Object[] completedObjects = (S3Object[]) completedResults
-                    .toArray(new S3Object[completedResults.size()]);
+                StorageObject[] completedObjects = (StorageObject[]) completedResults
+                    .toArray(new StorageObject[completedResults.size()]);
                 fireServiceEvent(UpdateACLEvent.newInProgressEvent(threadWatcher, completedObjects, uniqueOperationId));
             }
             @Override
             public void fireCancelEvent() {
-                S3Object[] cancelledObjects = (S3Object[]) pendingObjectsList
-                    .toArray(new S3Object[pendingObjectsList.size()]);
+                StorageObject[] cancelledObjects = (StorageObject[]) pendingObjectsList
+                    .toArray(new StorageObject[pendingObjectsList.size()]);
                 success[0] = false;
                 fireServiceEvent(UpdateACLEvent.newCancelledEvent(cancelledObjects, uniqueOperationId));
             }
@@ -1019,7 +1014,7 @@ public class StorageServiceMulti {
 
         // Start all queries in the background.
         DownloadObjectRunnable[] runnables = new DownloadObjectRunnable[downloadPackages.length];
-        final StorageObject[] objects = new S3Object[downloadPackages.length];
+        final StorageObject[] objects = new StorageObject[downloadPackages.length];
         for (int i = 0; i < runnables.length; i++) {
             objects[i] = downloadPackages[i].getObject();
 
@@ -1045,14 +1040,14 @@ public class StorageServiceMulti {
             @Override
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 incompleteObjectDownloadList.removeAll(completedResults);
-                S3Object[] completedObjects = (S3Object[]) completedResults
-                    .toArray(new S3Object[completedResults.size()]);
+                StorageObject[] completedObjects = (StorageObject[]) completedResults
+                    .toArray(new StorageObject[completedResults.size()]);
                 fireServiceEvent(DownloadObjectsEvent.newInProgressEvent(threadWatcher, completedObjects, uniqueOperationId));
             }
             @Override
             public void fireCancelEvent() {
-                S3Object[] incompleteObjects = (S3Object[]) incompleteObjectDownloadList
-                    .toArray(new S3Object[incompleteObjectDownloadList.size()]);
+                StorageObject[] incompleteObjects = (StorageObject[]) incompleteObjectDownloadList
+                    .toArray(new StorageObject[incompleteObjectDownloadList.size()]);
                 success[0] = false;
                 fireServiceEvent(DownloadObjectsEvent.newCancelledEvent(incompleteObjects, uniqueOperationId));
             }
@@ -1146,10 +1141,10 @@ public class StorageServiceMulti {
      */
     private class GetACLRunnable extends AbstractRunnable {
         private String bucketName = null;
-        private S3Object object = null;
+        private StorageObject object = null;
         private Object result = null;
 
-        public GetACLRunnable(String bucketName, S3Object object) {
+        public GetACLRunnable(String bucketName, StorageObject object) {
             this.bucketName = bucketName;
             this.object = object;
         }
@@ -1184,10 +1179,10 @@ public class StorageServiceMulti {
      */
     private class DeleteObjectRunnable extends AbstractRunnable {
         private String bucketName = null;
-        private S3Object object = null;
+        private StorageObject object = null;
         private Object result = null;
 
-        public DeleteObjectRunnable(String bucketName, S3Object object) {
+        public DeleteObjectRunnable(String bucketName, StorageObject object) {
             this.bucketName = bucketName;
             this.object = object;
         }
@@ -1283,7 +1278,7 @@ public class StorageServiceMulti {
 
                 result = new StorageObjectsChunk(
                     prefix, delimiter,
-                    (S3Object[]) allObjects.toArray(new S3Object[allObjects.size()]),
+                    (StorageObject[]) allObjects.toArray(new StorageObject[allObjects.size()]),
                     (String[]) allCommonPrefixes.toArray(new String[allCommonPrefixes.size()]),
                     null);
             } catch (ServiceException e) {
@@ -1309,29 +1304,29 @@ public class StorageServiceMulti {
      */
     private class CreateObjectRunnable extends AbstractRunnable {
         private String bucketName = null;
-        private S3Object s3Object = null;
+        private StorageObject object = null;
         private InterruptableInputStream interruptableInputStream = null;
         private BytesProgressWatcher progressMonitor = null;
 
         private Object result = null;
 
-        public CreateObjectRunnable(String bucketName, S3Object s3Object, BytesProgressWatcher progressMonitor) {
+        public CreateObjectRunnable(String bucketName, StorageObject object, BytesProgressWatcher progressMonitor) {
             this.bucketName = bucketName;
-            this.s3Object = s3Object;
+            this.object = object;
             this.progressMonitor = progressMonitor;
         }
 
         public void run() {
             try {
-                File underlyingFile = s3Object.getDataInputFile();
+                File underlyingFile = object.getDataInputFile();
 
-                if (s3Object.getDataInputStream() != null) {
-                    interruptableInputStream = new InterruptableInputStream(s3Object.getDataInputStream());
+                if (object.getDataInputStream() != null) {
+                    interruptableInputStream = new InterruptableInputStream(object.getDataInputStream());
                     ProgressMonitoredInputStream pmInputStream = new ProgressMonitoredInputStream(
                         interruptableInputStream, progressMonitor);
-                    s3Object.setDataInputStream(pmInputStream);
+                    object.setDataInputStream(pmInputStream);
                 }
-                result = storageService.putObject(bucketName, s3Object);
+                result = storageService.putObject(bucketName, object);
 
                 if (underlyingFile instanceof TempFile) {
                     underlyingFile.delete();
@@ -1361,13 +1356,13 @@ public class StorageServiceMulti {
         private String sourceBucketName = null;
         private String destinationBucketName = null;
         private String sourceObjectKey = null;
-        private S3Object destinationObject = null;
+        private StorageObject destinationObject = null;
         private boolean replaceMetadata = false;
 
         private Object result = null;
 
         public CopyObjectRunnable(String sourceBucketName, String destinationBucketName,
-            String sourceObjectKey, S3Object destinationObject, boolean replaceMetadata)
+            String sourceObjectKey, StorageObject destinationObject, boolean replaceMetadata)
         {
             this.sourceBucketName = sourceBucketName;
             this.destinationBucketName = destinationBucketName;

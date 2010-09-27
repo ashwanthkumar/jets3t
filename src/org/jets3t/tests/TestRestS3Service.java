@@ -313,7 +313,7 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
             assertEquals(1, comparerResults.updatedOnServerKeys.size());
             assertTrue(comparerResults.updatedOnServerKeys.contains(local3.getName()));
         } finally {
-            cleanupBucketForTest("testFileComparer", true);
+            cleanupBucketForTest("testFileComparer");
         }
     }
 

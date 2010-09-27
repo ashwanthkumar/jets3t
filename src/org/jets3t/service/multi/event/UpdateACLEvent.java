@@ -19,13 +19,13 @@
 package org.jets3t.service.multi.event;
 
 import org.jets3t.service.model.StorageObject;
-import org.jets3t.service.multi.StorageServiceMulti;
+import org.jets3t.service.multi.ThreadedStorageService;
 import org.jets3t.service.multi.ThreadWatcher;
 
 
 /**
  * Multi-threaded service event fired by
- * {@link StorageServiceMulti#putACLs(org.jets3t.service.model.StorageBucket, StorageObject[])}.
+ * {@link ThreadedStorageService#putACLs(org.jets3t.service.model.StorageBucket, StorageObject[])}.
  * <p>
  * EVENT_IN_PROGRESS events include an array of the {@link StorageObject}s that have had their ACLs updated
  * since the last progress event was fired. These objects are available via

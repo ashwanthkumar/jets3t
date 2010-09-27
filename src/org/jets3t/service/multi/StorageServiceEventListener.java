@@ -18,7 +18,7 @@
  */
 package org.jets3t.service.multi;
 
-import org.jets3t.service.multi.StorageServiceMulti;
+import org.jets3t.service.multi.ThreadedStorageService;
 import org.jets3t.service.multi.event.CopyObjectsEvent;
 import org.jets3t.service.multi.event.CreateBucketsEvent;
 import org.jets3t.service.multi.event.CreateObjectsEvent;
@@ -31,7 +31,7 @@ import org.jets3t.service.multi.event.LookupACLEvent;
 import org.jets3t.service.multi.event.UpdateACLEvent;
 
 /**
- * Listener for events produced by {@link StorageServiceMulti}.
+ * Listener for events produced by {@link ThreadedStorageService}.
  *
  * @author James Murty
  */

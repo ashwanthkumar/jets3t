@@ -21,12 +21,12 @@ package org.jets3t.service.multi.event;
 import java.util.List;
 
 import org.jets3t.service.StorageObjectsChunk;
-import org.jets3t.service.multi.StorageServiceMulti;
+import org.jets3t.service.multi.ThreadedStorageService;
 import org.jets3t.service.multi.ThreadWatcher;
 
 /**
  * Multi-threaded service event fired by
- * {@link StorageServiceMulti#listObjects(String, String[], String, long)}.
+ * {@link ThreadedStorageService#listObjects(String, String[], String, long)}.
  * <p>
  * EVENT_IN_PROGRESS events include a List of {@link StorageObjectsChunk} objects
  * that contain information about the objects and common-prefixes for the

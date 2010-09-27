@@ -18,11 +18,11 @@
  */
 package org.jets3t.service.multi.event;
 
-import org.jets3t.service.multi.StorageServiceMulti;
+import org.jets3t.service.multi.ThreadedStorageService;
 import org.jets3t.service.multi.ThreadWatcher;
 
 /**
- * Base class of all events produced by {@link StorageServiceMulti}.
+ * Base class of all events produced by {@link ThreadedStorageService}.
  * <p>
  * Every event has an event code that indicates the state of a process when the event was
  * generated. The event code will also give a guide as to what information the event will contain.

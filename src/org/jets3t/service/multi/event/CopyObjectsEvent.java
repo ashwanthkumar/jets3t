@@ -22,12 +22,12 @@ import java.util.Map;
 
 import org.jets3t.service.StorageService;
 import org.jets3t.service.model.StorageObject;
-import org.jets3t.service.multi.StorageServiceMulti;
+import org.jets3t.service.multi.ThreadedStorageService;
 import org.jets3t.service.multi.ThreadWatcher;
 
 /**
  * Multi-threaded service event fired by
- * {@link StorageServiceMulti#copyObjects(String, String, String[], StorageObject[], boolean)}.
+ * {@link ThreadedStorageService#copyObjects(String, String, String[], StorageObject[], boolean)}.
  * <p>
  * EVENT_IN_PROGRESS events include an array of the Map results returned by the
  * copy operation, see
