@@ -116,7 +116,8 @@ public abstract class StorageService {
 
         this.jets3tProperties = jets3tProperties;
         this.isHttpsOnly = this.getHttpsOnly();
-        this.internalErrorRetryMax = jets3tProperties.getIntProperty("s3service.internal-error-retry-max", 5);
+        this.internalErrorRetryMax = jets3tProperties.getIntProperty(
+            "storage-service.internal-error-retry-max", 5);
 
         // Configure the InetAddress DNS caching times to work well with S3. The cached DNS will
         // timeout after 5 minutes, while failed DNS lookups will be retried after 1 second.
@@ -206,7 +207,7 @@ public abstract class StorageService {
     /**
      * @return
      * The maximum number of times to retry when S3 Internal Error (500) errors are encountered,
-     * as set by the JetS3t property: s3service.internal-error-retry-max
+     * as set by the JetS3t property: storage-service.internal-error-retry-max
      */
     public int getInternalErrorRetryMax() {
         return internalErrorRetryMax;
@@ -242,9 +243,9 @@ public abstract class StorageService {
     }
 
     /**
-     * Sleeps for a period of time based on the number of S3 Internal Server errors a request has
+     * Sleeps for a period of time based on the number of Internal Server errors a request has
      * encountered, provided the number of errors does not exceed the value set with the
-     * property <code>s3service.internal-error-retry-max</code>. If the maximum error count is
+     * property <code>storage-service.internal-error-retry-max</code>. If the maximum error count is
      * exceeded, this method will throw an S3ServiceException.
      *
      * The millisecond delay grows rapidly according to the formula

@@ -1479,7 +1479,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     @Override
     public S3Bucket createBucket(String bucketName) throws S3ServiceException {
         try {
-            return (S3Bucket) super.createBucket(bucketName);
+            return this.createBucket(bucketName,
+                this.jets3tProperties.getStringProperty(
+                    "s3service.default-bucket-location", "US"));
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }
@@ -1488,7 +1490,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     @Override
     public S3Bucket getOrCreateBucket(String bucketName) throws S3ServiceException {
         try {
-            return (S3Bucket) super.getOrCreateBucket(bucketName);
+            return this.getOrCreateBucket(bucketName,
+                this.jets3tProperties.getStringProperty(
+                    "s3service.default-bucket-location", "US"));
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }
@@ -1523,8 +1527,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public S3Bucket createBucket(String bucketName, String location) throws S3ServiceException {
         try {
             assertAuthenticatedConnection("createBucket");
-            S3Bucket bucket = new S3Bucket(bucketName, location);
-            return createBucket(bucket);
+            return (S3Bucket) createBucketImpl(bucketName, location, null);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }

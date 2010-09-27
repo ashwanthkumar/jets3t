@@ -79,7 +79,7 @@ public class RepeatableRequestEntity implements RequestEntity {
      * transmission. If the input stream provided does not supports this method, it will
      * automatically be wrapped in a {@link RepeatableInputStream} -- in this case, the data
      * read from the wrapped input stream will be buffered up to the limit set by the JetS3t
-     * property <tt>s3service.stream-retry-buffer-size</tt> (default: 131072 bytes).
+     * property <tt>uploads.stream-retry-buffer-size</tt> (default: 131072 bytes).
      *
      * <p>
      * This constructor also detects when an underlying {@link ProgressMonitoredInputStream} is
@@ -134,7 +134,7 @@ public class RepeatableRequestEntity implements RequestEntity {
                 log.debug("Wrapping non-repeatable input stream in a RepeatableInputStream");
             }
             int bufferSize = jets3tProperties.getIntProperty(
-                "s3service.stream-retry-buffer-size", 131072);
+                "uploads.stream-retry-buffer-size", 131072);
             this.is = new RepeatableInputStream(is, bufferSize);
 
             this.repeatableInputStream = this.is;

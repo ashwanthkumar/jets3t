@@ -99,8 +99,11 @@ public class ThreadedStorageService {
      *        an storage service implementation that will be used to perform requests.
      * @param listener
      *        the event listener which will handle event notifications.
+     * @throws ServiceException
      */
-    public ThreadedStorageService(StorageService service, StorageServiceEventListener listener) {
+    public ThreadedStorageService(StorageService service, StorageServiceEventListener listener)
+        throws ServiceException
+    {
         this(service, listener, 500);
     }
 
@@ -115,9 +118,11 @@ public class ThreadedStorageService {
      *        the event listener which will handle event notifications.
      * @param threadSleepTimeMS
      *        how many milliseconds to wait before sending each EVENT_IN_PROGRESS notification event.
+     * @throws ServiceException
      */
     public ThreadedStorageService(
         StorageService service, StorageServiceEventListener listener, long threadSleepTimeMS)
+        throws ServiceException
     {
         this.storageService = service;
         addServiceEventListener(listener);
@@ -127,24 +132,23 @@ public class ThreadedStorageService {
         // of connections is at least equal to the largest of the maximum thread counts, and warn
         // the use of potential problems.
         int adminMaxThreadCount = this.storageService.getJetS3tProperties()
-            .getIntProperty("s3service.admin-max-thread-count", 20);
+            .getIntProperty("threaded-service.admin-max-thread-count", 20);
         int maxThreadCount = this.storageService.getJetS3tProperties()
-            .getIntProperty("s3service.max-thread-count", 2);
+            .getIntProperty("threaded-service.max-thread-count", 2);
         int maxConnectionCount = this.storageService.getJetS3tProperties()
             .getIntProperty("httpclient.max-connections", 20);
         if (maxConnectionCount < maxThreadCount) {
-            if (log.isWarnEnabled()) {
-                log.warn("Insufficient connections available (httpclient.max-connections="
-                    + maxConnectionCount + ") to run " + maxThreadCount
-                    + " simultaneous threads (s3service.max-thread-count) - please adjust JetS3t settings");
-            }
+            throw new ServiceException(
+                "Insufficient connections available (httpclient.max-connections="
+                + maxConnectionCount + ") to run (threaded-service.max-thread-count="
+                + maxThreadCount + ") simultaneous threads - please adjust JetS3t properties");
         }
         if (maxConnectionCount < adminMaxThreadCount) {
-            if (log.isWarnEnabled()) {
-                log.warn("Insufficient connections available (httpclient.max-connections="
-                    + maxConnectionCount + ") to run " + adminMaxThreadCount
-                    + " simultaneous admin threads (s3service.admin-max-thread-count) - please adjust JetS3t settings");
-            }
+            throw new ServiceException(
+                "Insufficient connections available (httpclient.max-connections="
+                + maxConnectionCount + ") to run (threaded-service.admin-max-thread-count="
+                + adminMaxThreadCount
+                + ") simultaneous admin threads - please adjust JetS3t properties");
         }
     }
 
@@ -282,7 +286,7 @@ public class ThreadedStorageService {
      *
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property
-     * <tt>s3service.admin-max-thread-count</tt>.
+     * <tt>threaded-service.admin-max-thread-count</tt>.
      *
      * @return
      * true if all the threaded tasks completed successfully, false otherwise.
@@ -341,7 +345,7 @@ public class ThreadedStorageService {
      * Creates multiple buckets, and sends {@link CreateBucketsEvent} notification events.
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property
-     * <tt>s3service.admin-max-thread-count</tt>.
+     * <tt>threaded-service.admin-max-thread-count</tt>.
      *
      * @param buckets
      * the buckets to create.
@@ -408,7 +412,7 @@ public class ThreadedStorageService {
      * {@link CopyObjectsEvent} notification events.
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property
-     * <tt>s3service.admin-max-thread-count</tt>.
+     * <tt>threaded-service.admin-max-thread-count</tt>.
      *
      * @param sourceBucketName
      * the name of the bucket containing the objects that will be copied.
@@ -424,9 +428,9 @@ public class ThreadedStorageService {
      * items in each object will also be applied to the resultant object.
      * @param replaceMetadata
      * if true, the metadata items in the destination objects will be stored
-     * in S3 by using the REPLACE metadata copying option. If false, the metadata
+     * in using the REPLACE metadata copying option. If false, the metadata
      * items will be copied unchanged from the original objects using the COPY
-     * metadata copying option.s
+     * metadata copying option.
      *
      * @return
      * true if all the threaded tasks completed successfully, false otherwise.
@@ -493,7 +497,7 @@ public class ThreadedStorageService {
      * Creates multiple objects in a bucket, and sends {@link CreateObjectsEvent} notification events.
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property
-     * <tt>s3service.max-admin-thread-count</tt>.
+     * <tt>threaded-service.max-admin-thread-count</tt>.
      *
      * @param bucket
      * the bucket to create the objects in
@@ -566,7 +570,7 @@ public class ThreadedStorageService {
      * Deletes multiple objects from a bucket, and sends {@link DeleteObjectsEvent} notification events.
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property
-     * <tt>s3service.admin-max-thread-count</tt>.
+     * <tt>threaded-service.admin-max-thread-count</tt>.
      *
      * @param bucket
      * the bucket containing the objects to be deleted
@@ -588,7 +592,7 @@ public class ThreadedStorageService {
      * Deletes multiple objects from a bucket, and sends {@link DeleteObjectsEvent} notification events.
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property
-     * <tt>s3service.admin-max-thread-count</tt>.
+     * <tt>threaded-service.admin-max-thread-count</tt>.
      *
      * @param bucket
      * the bucket containing the objects to be deleted
@@ -676,7 +680,7 @@ public class ThreadedStorageService {
      * {@link GetObjectsEvent} notification events.
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property
-     * <tt>s3service.max-thread-count</tt>.
+     * <tt>threaded-service.max-thread-count</tt>.
      *
      * @param bucket
      * the bucket containing the objects to retrieve.
@@ -772,7 +776,7 @@ public class ThreadedStorageService {
      * {@link GetObjectHeadsEvent} notification events.
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property
-     * <tt>s3service.admin-max-thread-count</tt>.
+     * <tt>threaded-service.admin-max-thread-count</tt>.
      *
      * @param bucket
      * the bucket containing the objects whose details will be retrieved.
@@ -848,7 +852,7 @@ public class ThreadedStorageService {
      * {@link LookupACLEvent} notification events.
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property
-     * <tt>s3service.admin-max-thread-count</tt>.
+     * <tt>threaded-service.admin-max-thread-count</tt>.
      *
      * @param bucket
      * the bucket containing the objects
@@ -916,7 +920,7 @@ public class ThreadedStorageService {
      * {@link UpdateACLEvent} notification events.
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property
-     * <tt>s3service.admin-max-thread-count</tt>.
+     * <tt>threaded-service.admin-max-thread-count</tt>.
      *
      * @param bucket
      * the bucket containing the objects
@@ -980,15 +984,15 @@ public class ThreadedStorageService {
     }
 
     /**
-     * A convenience method to download multiple objects from S3 to pre-existing
+     * A convenience method to download multiple objects to pre-existing
      * output streams, which is particularly useful for downloading objects to files.
      * <p>
      * The maximum number of threads is controlled by the JetS3t configuration property
-     * <tt>s3service.max-thread-count</tt>.
+     * <tt>threaded-service.max-thread-count</tt>.
      * <p>
      * If the JetS3t configuration property <tt>downloads.restoreLastModifiedDate</tt> is set
      * to true, any files created by this method will have their last modified date set according
-     * to the value of the S3 object's {@link Constants#METADATA_JETS3T_LOCAL_FILE_DATE} metadata
+     * to the value of the object's {@link Constants#METADATA_JETS3T_LOCAL_FILE_DATE} metadata
      * item.
      *
      * @param bucket
@@ -999,7 +1003,7 @@ public class ThreadedStorageService {
      *
      * @return
      * true if all the threaded tasks completed successfully, false otherwise.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public boolean downloadObjects(final String bucketName,
         final DownloadPackage[] downloadPackages) throws ServiceException
@@ -1474,7 +1478,7 @@ public class ThreadedStorageService {
                 object = storageService.getObject(
                     bucketName, objectKey);
 
-                // Replace the S3 object in the download package with the downloaded version to make metadata available.
+                // Replace the object in the download package with the downloaded version to make metadata available.
                 downloadPackage.setObject(object);
 
                 // Setup monitoring of stream bytes transferred.
@@ -1513,13 +1517,13 @@ public class ThreadedStorageService {
 
                         if (!hexMD5OfDownloadedData.equals(object.getETag())) {
                             throw new ServiceException("Mismatch between MD5 hash of downloaded data ("
-                                + hexMD5OfDownloadedData + ") and ETag returned by S3 ("
+                                + hexMD5OfDownloadedData + ") and ETag returned by service ("
                                 + object.getETag() + ") for object key: "
                                 + object.getKey());
                         } else {
                             if (log.isDebugEnabled()) {
                                 log.debug("Object download was automatically verified, the calculated MD5 hash "+
-                                    "value matched the ETag provided by S3: " + object.getKey());
+                                    "value matched the ETag provided by service: " + object.getKey());
                             }
                         }
                     }
@@ -1594,7 +1598,7 @@ public class ThreadedStorageService {
 
     /**
      * The thread group manager is responsible for starting, running and stopping the set of threads
-     * required to perform an S3 operation.
+     * required to perform an operation.
      * <p>
      * The manager starts all the threads, monitors their progress and stops threads when they are
      * cancelled or an error occurs - all the while firing the appropriate {@link ServiceEvent} event
@@ -1642,13 +1646,13 @@ public class ThreadedStorageService {
             this.threadWatcher = threadWatcher;
             if (isAdminTask) {
                 this.maxThreadCount = jets3tProperties
-                    .getIntProperty("s3service.admin-max-thread-count", 20);
+                    .getIntProperty("threaded-service.admin-max-thread-count", 20);
             } else {
                 this.maxThreadCount = jets3tProperties
-                    .getIntProperty("s3service.max-thread-count", 2);
+                    .getIntProperty("threaded-service.max-thread-count", 2);
             }
             this.ignoreExceptions = jets3tProperties
-                .getBoolProperty("s3service.ignore-exceptions-in-multi", false);
+                .getBoolProperty("threaded-service.ignore-exceptions-in-multi", false);
 
             this.threads = new Thread[runnables.length];
             started = new boolean[runnables.length]; // All values initialized to false.
@@ -1687,7 +1691,7 @@ public class ThreadedStorageService {
                             // Ignore exceptions
                             if (log.isWarnEnabled()) {
                                 log.warn("Ignoring exception (property " +
-                                        "s3service.ignore-exceptions-in-multi is set to true)",
+                                        "threaded-service.ignore-exceptions-in-multi is set to true)",
                                         throwable);
                             }
                             errorResults.add(throwable);
@@ -1712,7 +1716,7 @@ public class ThreadedStorageService {
 
         /**
          * Starts pending threads such that the total of running threads never exceeds the
-         * maximum count set in the jets3t property <i>s3service.max-thread-count</i>.
+         * maximum count set in the JetS3t property <i>threaded-service.max-thread-count</i>.
          *
          * @throws Throwable
          */
@@ -1772,7 +1776,7 @@ public class ThreadedStorageService {
         }
 
         /**
-         * Runs and manages all the threads involved in an S3 multi-operation.
+         * Runs and manages all the threads involved in a multi-operation.
          *
          */
         public void run() {

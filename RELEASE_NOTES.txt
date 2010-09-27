@@ -17,7 +17,20 @@ TOOLKIT
   the custom "application/x-directory" content-type. This should
   improve compatibility with other storage management tools, especially
   Amazon's AWS Console.
+  
+  * JetS3t Property File changes
 
+- Renamed "s3service.internal-error-retry-max"  
+  to "storage-service.internal-error-retry-max"
+- Renamed "s3service.stream-retry-buffer-size"
+  to "uploads.stream-retry-buffer-size"
+- Renamed "s3service.defaultStorageClass" 
+  to "s3service.default-storage-class"
+- Added properties for new ThreadedStorageService:
+  "threaded-service.max-thread-count"
+  "threaded-service.admin-max-thread-count"
+  "threaded-service.ignore-exceptions-in-multi"
+  
   * ThreadedStorageService / SimpleThreadedStorageService
 
 - New multi-threaded service classes that allow operations to be 

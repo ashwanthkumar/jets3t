@@ -178,7 +178,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         this.connectionManager = initHttpResult.getHttpConnectionManager();
 
         this.defaultStorageClass = this.jets3tProperties.getStringProperty(
-            "s3service.defaultStorageClass", null);
+            "s3service.default-storage-class", null);
 
         // Retrieve Proxy settings.
         if (this.jets3tProperties.getBoolProperty("httpclient.proxy-autodetect", true)) {

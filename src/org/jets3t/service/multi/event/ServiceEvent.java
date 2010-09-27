@@ -39,7 +39,7 @@ import org.jets3t.service.multi.ThreadWatcher;
  * <li>EVENT_ERROR: An operation has failed and an exception has been thrown. The error
  *     will be availble from {@link #getErrorCause()}</li>
  * <li>EVENT_IGNORED_ERRORS: One or more operations have failed but ,because the
- *     "s3service.ignore-exceptions-in-multi" JetS3t property value is set to true,
+ *     "threaded-service.ignore-exceptions-in-multi" JetS3t property value is set to true,
  *     the overall operation has continued. The errors will be available from
  *     {@link #getIgnoredErrors()}</li>
  * </ul>

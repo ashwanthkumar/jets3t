@@ -57,7 +57,7 @@ public class CockpitPreferences implements Serializable {
     private boolean uploadEncryptionActive = false;
     private String uploadStorageClass =
         Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-            .getStringProperty("s3service.defaultStorageClass",
+            .getStringProperty("s3service.default-storage-class",
                 S3Object.STORAGE_CLASS_STANDARD);
     private String encryptionPassword = null;
     private String encryptionAlgorithm =
