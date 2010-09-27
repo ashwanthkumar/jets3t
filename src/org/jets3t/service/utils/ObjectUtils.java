@@ -30,7 +30,7 @@ import java.util.Date;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
-import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.io.GZipDeflatingInputStream;
@@ -312,7 +312,7 @@ public class ObjectUtils {
             {
                 // Object is encrypted.
                 if (encryptionPassword == null) {
-                    throw new S3ServiceException(
+                    throw new ServiceException(
                         "One or more objects are encrypted, and cannot be downloaded unless "
                         + " the encyption password is provided");
                 }

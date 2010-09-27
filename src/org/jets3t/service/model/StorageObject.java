@@ -33,7 +33,7 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
-import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.io.RepeatableFileInputStream;
 import org.jets3t.service.utils.Mimetypes;
@@ -187,13 +187,13 @@ public class StorageObject extends BaseStorageItem implements Cloneable {
      *
      * @throws S3ServiceException
      */
-    public InputStream getDataInputStream() throws S3ServiceException {
+    public InputStream getDataInputStream() throws ServiceException {
         if (dataInputStream == null && dataInputFile != null) {
             try {
                 // Use a repeatable file data input stream, so transmissions can be retried if necessary.
                 dataInputStream = new RepeatableFileInputStream(dataInputFile);
             } catch (FileNotFoundException e) {
-                throw new S3ServiceException("Cannot open file input stream", e);
+                throw new ServiceException("Cannot open file input stream", e);
             }
         }
         return dataInputStream;

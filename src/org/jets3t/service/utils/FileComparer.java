@@ -48,7 +48,7 @@ import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
-import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.StorageObjectsChunk;
 import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
@@ -480,13 +480,13 @@ public class FileComparer {
      */
     public StorageObject[] listObjectsThreaded(S3Service s3Service,
         final String bucketName, String targetPath, final String delimiter, int toDepth)
-        throws S3ServiceException
+        throws ServiceException
     {
         final List<StorageObject> allObjects =
             Collections.synchronizedList(new ArrayList<StorageObject>());
         final List<String> lastCommonPrefixes =
             Collections.synchronizedList(new ArrayList<String>());
-        final S3ServiceException s3ServiceExceptions[] = new S3ServiceException[1];
+        final ServiceException s3ServiceExceptions[] = new ServiceException[1];
 
         /*
          * Create a S3ServiceMulti object with an event listener that responds to
@@ -512,8 +512,8 @@ public class FileComparer {
                         lastCommonPrefixes.addAll(Arrays.asList(chunk.getCommonPrefixes()));
                     }
                 } else if (ListObjectsEvent.EVENT_ERROR == event.getEventCode()) {
-                    s3ServiceExceptions[0] = new S3ServiceException(
-                        "Failed to list all objects in S3 bucket",
+                    s3ServiceExceptions[0] = new ServiceException(
+                        "Failed to list all objects in bucket",
                         event.getErrorCause());
                 }
             }
@@ -598,7 +598,7 @@ public class FileComparer {
      * @throws S3ServiceException
      */
     public StorageObject[] listObjectsThreaded(S3Service s3Service,
-        final String bucketName, String targetPath) throws S3ServiceException
+        final String bucketName, String targetPath) throws ServiceException
     {
         String delimiter = null;
         int toDepth = 0;
@@ -609,7 +609,7 @@ public class FileComparer {
         if (bucketListingProperties != null) {
             String splits[] = bucketListingProperties.split(",");
             if (splits.length != 2) {
-                throw new S3ServiceException(
+                throw new ServiceException(
                     "Invalid setting for bucket listing property "
                     + "filecomparer.bucket-listing." + bucketName + ": '" +
                     bucketListingProperties + "'");
@@ -640,7 +640,7 @@ public class FileComparer {
      */
     public Map<String, StorageObject> buildS3ObjectMap(S3Service s3Service, S3Bucket bucket,
         String targetPath, boolean skipMetadata, S3ServiceEventListener s3ServiceEventListener)
-        throws S3ServiceException
+        throws ServiceException
     {
         String prefix = (targetPath.length() > 0 ? targetPath : null);
         StorageObject[] s3ObjectsIncomplete = this.listObjectsThreaded(
@@ -683,7 +683,7 @@ public class FileComparer {
     public PartialObjectListing buildS3ObjectMapPartial(S3Service s3Service, S3Bucket bucket,
         String targetPath, String priorLastKey, boolean completeListing,
         boolean skipMetadata, S3ServiceEventListener s3ServiceEventListener)
-        throws S3ServiceException
+        throws ServiceException
     {
         String prefix = (targetPath.length() > 0 ? targetPath : null);
         StorageObject[] objects = null;
@@ -723,7 +723,7 @@ public class FileComparer {
     public Map<String, StorageObject> buildS3ObjectMap(S3Service s3Service, S3Bucket bucket,
         String targetPath, StorageObject[] s3ObjectsIncomplete, boolean skipMetadata,
         S3ServiceEventListener s3ServiceEventListener)
-        throws S3ServiceException
+        throws ServiceException
     {
         StorageObject[] s3Objects = null;
 
@@ -733,7 +733,7 @@ public class FileComparer {
             // Retrieve the complete information about all objects listed via GetObjectsHeads.
             final List<StorageObject> s3ObjectsCompleteList =
                 new ArrayList<StorageObject>(s3ObjectsIncomplete.length);
-            final S3ServiceException s3ServiceExceptions[] = new S3ServiceException[1];
+            final ServiceException s3ServiceExceptions[] = new ServiceException[1];
             S3ServiceMulti s3ServiceMulti = new S3ServiceMulti(s3Service, new S3ServiceEventAdaptor() {
                 @Override
                 public void s3ServiceEventPerformed(GetObjectHeadsEvent event) {
@@ -743,7 +743,7 @@ public class FileComparer {
                             s3ObjectsCompleteList.addAll(Arrays.asList(finishedObjects));
                         }
                     } else if (GetObjectHeadsEvent.EVENT_ERROR == event.getEventCode()) {
-                        s3ServiceExceptions[0] = new S3ServiceException(
+                        s3ServiceExceptions[0] = new ServiceException(
                             "Failed to retrieve detailed information about all S3 objects",
                             event.getErrorCause());
                     }

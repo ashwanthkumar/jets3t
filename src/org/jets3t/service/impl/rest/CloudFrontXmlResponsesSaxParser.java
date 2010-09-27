@@ -35,7 +35,7 @@ import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.CloudFrontServiceException;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.model.cloudfront.Distribution;
 import org.jets3t.service.model.cloudfront.DistributionConfig;
 import org.jets3t.service.model.cloudfront.Invalidation;
@@ -72,7 +72,7 @@ public class CloudFrontXmlResponsesSaxParser {
      *
      * @throws S3ServiceException
      */
-    public CloudFrontXmlResponsesSaxParser(Jets3tProperties properties) throws S3ServiceException {
+    public CloudFrontXmlResponsesSaxParser(Jets3tProperties properties) throws ServiceException {
         this.properties = properties;
         this.xr = ServiceUtils.loadXMLReader();
     }

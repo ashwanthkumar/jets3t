@@ -37,7 +37,7 @@ import javax.crypto.NoSuchPaddingException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
-import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.utils.ServiceUtils;
 
 /**
@@ -291,7 +291,7 @@ public abstract class ProviderCredentials {
      *
      * @throws S3ServiceException
      */
-    public static AWSCredentials load(String password, File file) throws S3ServiceException {
+    public static AWSCredentials load(String password, File file) throws ServiceException {
         if (log.isDebugEnabled()) {
             log.debug("Loading credentials from file: " + file.getAbsolutePath());
         }
@@ -300,7 +300,7 @@ public abstract class ProviderCredentials {
             fileIS = new BufferedInputStream(new FileInputStream(file));
             return load(password, fileIS);
         } catch (Throwable t) {
-            throw new S3ServiceException("Failed to load AWS credentials", t);
+            throw new ServiceException("Failed to load AWS credentials", t);
         } finally {
             if (fileIS != null) {
                 try {
@@ -324,7 +324,7 @@ public abstract class ProviderCredentials {
      *
      * @throws S3ServiceException
      */
-    public static AWSCredentials load(String password, BufferedInputStream inputStream) throws S3ServiceException {
+    public static AWSCredentials load(String password, BufferedInputStream inputStream) throws ServiceException {
         boolean partialReadOnly = (password == null);
         if (partialReadOnly) {
             if (log.isDebugEnabled()) {
@@ -393,9 +393,9 @@ public abstract class ProviderCredentials {
                 return new AWSCredentials(parts[0], parts[1], friendlyName);
             }
         } catch (BadPaddingException bpe) {
-            throw new S3ServiceException("Unable to decrypt AWS credentials. Is your password correct?", bpe);
+            throw new ServiceException("Unable to decrypt AWS credentials. Is your password correct?", bpe);
         } catch (Throwable t) {
-            throw new S3ServiceException("Failed to load AWS credentials", t);
+            throw new ServiceException("Failed to load AWS credentials", t);
         } finally {
             if (inputStream != null) {
                 try {

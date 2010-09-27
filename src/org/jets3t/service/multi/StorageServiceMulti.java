@@ -33,7 +33,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.StorageObjectsChunk;
 import org.jets3t.service.StorageService;
 import org.jets3t.service.acl.AccessControlList;
@@ -159,7 +159,7 @@ public class StorageServiceMulti {
      * this method the service instance will no longer be usable -- a new instance must
      * be created to do more work.
      */
-    public void shutdown() throws S3ServiceException {
+    public void shutdown() throws ServiceException {
         this.isShutdown[0] = true;
         this.getStorageService().shutdown();
     }
@@ -1007,7 +1007,7 @@ public class StorageServiceMulti {
      * @throws S3ServiceException
      */
     public boolean downloadObjects(final String bucketName,
-        final DownloadPackage[] downloadPackages) throws S3ServiceException
+        final DownloadPackage[] downloadPackages) throws ServiceException
     {
         final List progressWatchers = new ArrayList();
         final List incompleteObjectDownloadList = new ArrayList();
@@ -1229,7 +1229,7 @@ public class StorageServiceMulti {
         public void run() {
             try {
                 result = storageService.createBucket(bucketName);
-            } catch (S3ServiceException e) {
+            } catch (ServiceException e) {
                 result = e;
             }
         }
@@ -1286,7 +1286,7 @@ public class StorageServiceMulti {
                     (S3Object[]) allObjects.toArray(new S3Object[allObjects.size()]),
                     (String[]) allCommonPrefixes.toArray(new String[allCommonPrefixes.size()]),
                     null);
-            } catch (S3ServiceException e) {
+            } catch (ServiceException e) {
                 result = e;
             }
         }
@@ -1336,7 +1336,7 @@ public class StorageServiceMulti {
                 if (underlyingFile instanceof TempFile) {
                     underlyingFile.delete();
                 }
-            } catch (S3ServiceException e) {
+            } catch (ServiceException e) {
                 result = e;
             }
         }
@@ -1380,7 +1380,7 @@ public class StorageServiceMulti {
             try {
                 result = storageService.copyObject(sourceBucketName, sourceObjectKey,
                     destinationBucketName, destinationObject, replaceMetadata);
-            } catch (S3ServiceException e) {
+            } catch (ServiceException e) {
                 result = e;
             }
         }
@@ -1421,7 +1421,7 @@ public class StorageServiceMulti {
                     result = storageService.getObject(
                         bucketName, objectKey);
                 }
-            } catch (S3ServiceException e) {
+            } catch (ServiceException e) {
                 result = e;
             }
         }
@@ -1517,7 +1517,7 @@ public class StorageServiceMulti {
                         String hexMD5OfDownloadedData = ServiceUtils.toHex(dataMD5Hash);
 
                         if (!hexMD5OfDownloadedData.equals(object.getETag())) {
-                            throw new S3ServiceException("Mismatch between MD5 hash of downloaded data ("
+                            throw new ServiceException("Mismatch between MD5 hash of downloaded data ("
                                 + hexMD5OfDownloadedData + ") and ETag returned by S3 ("
                                 + object.getETag() + ") for object key: "
                                 + object.getKey());

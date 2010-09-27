@@ -18,11 +18,6 @@
  */
 package org.jets3t.service;
 
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.jets3t.service.mx.MxDelegate;
 
 /**
  * Exception for use by <code>S3Service</code>s and related utilities.
@@ -31,26 +26,9 @@ import org.jets3t.service.mx.MxDelegate;
  *
  * @author James Murty
  */
-public class S3ServiceException extends Exception {
-    private static final long serialVersionUID = -410679741840406046L;
+public class S3ServiceException extends ServiceException {
 
-    private String xmlMessage = null;
-
-    // Fields from S3 error messages.
-    private String s3ErrorCode = null;
-    private String s3ErrorMessage = null;
-    private String s3ErrorRequestId = null;
-    private String s3ErrorHostId = null;
-
-    // Map<String, String> - name => value pairs of response headers.
-    private Map s3Headers = null;
-
-    private int responseCode = -1;
-    private String responseStatus = null;
-    private String responseDate = null;
-    private String requestVerb = null;
-    private String requestPath = null;
-    private String requestHost = null;
+    private static final long serialVersionUID = -4350492756600862445L;
 
     /**
      * Constructor that includes the XML error document returned by S3.
@@ -58,9 +36,7 @@ public class S3ServiceException extends Exception {
      * @param xmlMessage
      */
     public S3ServiceException(String message, String xmlMessage) {
-        super(message);
-        parseS3XmlMessage(xmlMessage);
-        MxDelegate.getInstance().registerS3ServiceExceptionEvent(getS3ErrorCode());
+        super(message, xmlMessage);
     }
 
     public S3ServiceException() {
@@ -79,58 +55,12 @@ public class S3ServiceException extends Exception {
         super(cause);
     }
 
-    public String toString() {
-        String myString = super.toString();
-
-        // Add request-specific information, if it's available.
-        if (requestVerb != null) {
-            myString +=
-                " " + requestVerb
-                + " '" + requestPath + "'"
-                + (requestHost != null ? " on Host '" + requestHost + "'" : "")
-                + (responseDate != null ? " @ '" + responseDate + "'" : "");
-        }
-        if (responseCode != -1) {
-            myString +=
-                " -- ResponseCode: " + responseCode
-                + ", ResponseStatus: " + responseStatus;
-        }
-        if (isParsedFromXmlMessage()) {
-            myString += ", XML Error Message: " + xmlMessage;
-        }  else {
-            if (s3ErrorRequestId != null) {
-                myString += ", RequestId: " + s3ErrorRequestId
-                    + ", HostId: " + s3ErrorHostId;
-            }
-        }
-        return myString;
-    }
-
-    private String findXmlElementText(String xmlMessage, String elementName) {
-        Pattern pattern = Pattern.compile(".*<" + elementName + ">(.*)</" + elementName + ">.*");
-        Matcher matcher = pattern.matcher(xmlMessage);
-        if (matcher.matches() && matcher.groupCount() == 1) {
-            return matcher.group(1);
-        } else {
-            return null;
-        }
-    }
-
-    private void parseS3XmlMessage(String xmlMessage) {
-        xmlMessage = xmlMessage.replaceAll("\n", "");
-        this.xmlMessage = xmlMessage;
-
-        this.s3ErrorCode = findXmlElementText(xmlMessage, "Code");
-        this.s3ErrorMessage = findXmlElementText(xmlMessage, "Message");
-        this.s3ErrorRequestId = findXmlElementText(xmlMessage, "RequestId");
-        this.s3ErrorHostId = findXmlElementText(xmlMessage, "HostId");
-
-        // Add Details element present in some Google Storage error
-        // messages to Message field.
-        String errorDetails = findXmlElementText(xmlMessage, "Details");
-        if (errorDetails != null && errorDetails.length() > 0) {
-            this.s3ErrorMessage += " " + errorDetails;
-        }
+    /**
+     * Wrap a ServiceException as an S3ServiceException.
+     * @param se
+     */
+    public S3ServiceException(ServiceException se) {
+        this(se.getMessage(), se.getXmlMessage());
     }
 
     /**
@@ -139,7 +69,7 @@ public class S3ServiceException extends Exception {
      * Null otherwise.
      */
     public String getS3ErrorCode() {
-        return this.s3ErrorCode;
+        return this.getErrorCode();
     }
 
     /**
@@ -147,7 +77,7 @@ public class S3ServiceException extends Exception {
      * For example: "Access Denied", "We encountered an internal error. Please try again."
      */
     public String getS3ErrorMessage() {
-        return this.s3ErrorMessage;
+        return this.getErrorMessage();
     }
 
     /**
@@ -155,7 +85,7 @@ public class S3ServiceException extends Exception {
      * Null otherwise.
      */
     public String getS3ErrorHostId() {
-        return s3ErrorHostId;
+        return this.getErrorHostId();
     }
 
     /**
@@ -163,103 +93,7 @@ public class S3ServiceException extends Exception {
      * Null otherwise.
      */
     public String getS3ErrorRequestId() {
-        return s3ErrorRequestId;
-    }
-
-    /**
-     * @return The XML Error message returned by S3, if an S3 response is available.
-     * Null otherwise.
-     */
-    public String getXmlMessage() {
-        return xmlMessage;
-    }
-
-    public boolean isParsedFromXmlMessage() {
-        return (xmlMessage != null);
-    }
-
-    /**
-     * @return The HTTP Response Code returned by S3, if an HTTP response is available.
-     * For example: 401, 404, 500
-     */
-    public int getResponseCode() {
-        return responseCode;
-    }
-
-    public void setResponseCode(int responseCode) {
-        this.responseCode = responseCode;
-    }
-
-    /**
-     * @return The HTTP Status message returned by S3, if an HTTP response is available.
-     * For example: "Forbidden", "Not Found", "Internal Server Error"
-     */
-    public String getResponseStatus() {
-        return responseStatus;
-    }
-
-    public void setResponseStatus(String responseStatus) {
-        this.responseStatus = responseStatus;
-    }
-
-
-    public String getResponseDate() {
-        return responseDate;
-    }
-
-    public void setResponseDate(String responseDate) {
-        this.responseDate = responseDate;
-    }
-
-    /**
-     * @return The HTTP Verb used in the request, if available.
-     * For example: "GET", "PUT", "DELETE"
-     */
-    public String getRequestVerb() {
-        return requestVerb;
-    }
-
-    public void setRequestVerb(String requestVerb) {
-        this.requestVerb = requestVerb;
-    }
-
-    public String getRequestPath() {
-        return requestPath;
-    }
-
-    public void setRequestPath(String requestPath) {
-        this.requestPath = requestPath;
-    }
-
-    public String getRequestHost() {
-        return requestHost;
-    }
-
-    public void setRequestHost(String requestHost) {
-        this.requestHost = requestHost;
-    }
-
-    /**
-     * Allow the S3 Request and Host Id fields to be populated in situations where
-     * this information is not available from an XML response error document.
-     * If there is no XML error response document, the RequestId and HostId will
-     * generally be available as the HTTP response headers
-     * <code>x-amz-request-id</code> and <code>x-amz-id-2</code> respectively.
-     *
-     * @param errorRequestId
-     * @param errorHostId
-     */
-    public void setS3RequestAndHostIds(String errorRequestId, String errorHostId) {
-        this.s3ErrorRequestId = errorRequestId;
-        this.s3ErrorHostId = errorHostId;
-    }
-
-    public Map getResponseHeaders() {
-        return s3Headers;
-    }
-
-    public void setResponseHeaders(Map s3Headers) {
-        this.s3Headers = s3Headers;
+        return this.getErrorRequestId();
     }
 
 }

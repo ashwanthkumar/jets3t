@@ -40,6 +40,7 @@ import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.StorageObjectsChunk;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.io.BytesProgressWatcher;
@@ -49,6 +50,7 @@ import org.jets3t.service.io.TempFile;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Version;
+import org.jets3t.service.multi.StorageServiceMulti;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.utils.signedurl.SignedUrlAndObject;
@@ -74,8 +76,11 @@ import org.jets3t.service.utils.signedurl.SignedUrlHandler;
  * <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html">JetS3t Configuration</a>
  * </p>
  *
+ * @deprecated 0.8.0 use {@link StorageServiceMulti} instead.
+ *
  * @author James Murty
  */
+@Deprecated
 public class S3ServiceMulti {
 
     private static final Log log = LogFactory.getLog(S3ServiceMulti.class);
@@ -154,7 +159,11 @@ public class S3ServiceMulti {
      */
     public void shutdown() throws S3ServiceException {
         this.isShutdown[0] = true;
-        this.getS3Service().shutdown();
+        try {
+            this.getS3Service().shutdown();
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2080,8 +2089,8 @@ public class S3ServiceMulti {
                     (S3Object[]) allObjects.toArray(new S3Object[allObjects.size()]),
                     (String[]) allCommonPrefixes.toArray(new String[allCommonPrefixes.size()]),
                     null);
-            } catch (S3ServiceException e) {
-                result = e;
+            } catch (ServiceException se) {
+                result = new S3ServiceException(se);
             }
         }
 
@@ -2130,8 +2139,8 @@ public class S3ServiceMulti {
                 if (underlyingFile instanceof TempFile) {
                     underlyingFile.delete();
                 }
-            } catch (S3ServiceException e) {
-                result = e;
+            } catch (ServiceException se) {
+                result = new S3ServiceException(se);
             }
         }
 
@@ -2174,8 +2183,8 @@ public class S3ServiceMulti {
             try {
                 result = s3Service.copyObject(sourceBucketName, sourceObjectKey,
                     destinationBucketName, destinationObject, replaceMetadata);
-            } catch (S3ServiceException e) {
-                result = e;
+            } catch (ServiceException se) {
+                result = new S3ServiceException(se);
             }
         }
 
@@ -2232,8 +2241,8 @@ public class S3ServiceMulti {
                         result = handler.getObjectWithSignedUrl(signedGetOrHeadUrl);
                     }
                 }
-            } catch (S3ServiceException e) {
-                result = e;
+            } catch (ServiceException se) {
+                result = new S3ServiceException(se);
             }
         }
 
@@ -2446,8 +2455,8 @@ public class S3ServiceMulti {
                 if (underlyingFile instanceof TempFile) {
                     underlyingFile.delete();
                 }
-            } catch (S3ServiceException e) {
-                result = e;
+            } catch (ServiceException se) {
+                result = new S3ServiceException(se);
             } finally {
                 try {
                     signedUrlAndObject.getObject().closeDataInputStream();

@@ -33,7 +33,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.acl.CanonicalGrantee;
 import org.jets3t.service.acl.EmailAddressGrantee;
 import org.jets3t.service.acl.GrantAndPermission;
@@ -80,7 +80,7 @@ public class XmlResponsesSaxParser {
      * @throws S3ServiceException
      */
     public XmlResponsesSaxParser(Jets3tProperties properties, boolean returnGoogleStorageObjects)
-        throws S3ServiceException
+        throws ServiceException
     {
         this.properties = properties;
         this.isGoogleStorageMode = returnGoogleStorageObjects;
@@ -117,11 +117,11 @@ public class XmlResponsesSaxParser {
      *        the handler for the XML document
      * @param inputStream
      *        an input stream containing the XML document to parse
-     * @throws S3ServiceException
-     *        any parsing, IO or other exceptions are wrapped in an S3ServiceException.
+     * @throws ServiceException
+     *        any parsing, IO or other exceptions are wrapped in an ServiceException.
      */
     protected void parseXmlInputStream(DefaultXmlHandler handler, InputStream inputStream)
-        throws S3ServiceException
+        throws ServiceException
     {
         try {
             if (log.isDebugEnabled()) {
@@ -140,13 +140,13 @@ public class XmlResponsesSaxParser {
                     log.error("Unable to close response InputStream up after XML parse failure", e);
                 }
             }
-            throw new S3ServiceException("Failed to parse XML document with handler "
+            throw new ServiceException("Failed to parse XML document with handler "
                 + handler.getClass(), t);
         }
     }
 
     protected InputStream sanitizeXmlDocument(DefaultXmlHandler handler, InputStream inputStream)
-        throws S3ServiceException
+        throws ServiceException
     {
         if (!properties.getBoolProperty("xmlparser.sanitize-listings", true)) {
             // No sanitizing will be performed, return the original input stream unchanged.
@@ -189,7 +189,7 @@ public class XmlResponsesSaxParser {
                         log.error("Unable to close response InputStream after failure sanitizing XML document", e);
                     }
                 }
-                throw new S3ServiceException("Failed to sanitize XML document destined for handler "
+                throw new ServiceException("Failed to sanitize XML document destined for handler "
                     + handler.getClass(), t);
             }
             return sanitizedInputStream;
@@ -202,10 +202,10 @@ public class XmlResponsesSaxParser {
      * XML data input stream.
      * @return
      * the XML handler object populated with data parsed from the XML stream.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public ListBucketHandler parseListBucketResponse(InputStream inputStream)
-        throws S3ServiceException
+        throws ServiceException
     {
         ListBucketHandler handler = new ListBucketHandler();
         parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
@@ -218,10 +218,10 @@ public class XmlResponsesSaxParser {
      * XML data input stream.
      * @return
      * the XML handler object populated with data parsed from the XML stream.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public ListAllMyBucketsHandler parseListMyBucketsResponse(InputStream inputStream)
-        throws S3ServiceException
+        throws ServiceException
     {
         ListAllMyBucketsHandler handler = new ListAllMyBucketsHandler();
         parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
@@ -236,10 +236,10 @@ public class XmlResponsesSaxParser {
      * @return
      * the XML handler object populated with data parsed from the XML stream.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public AccessControlListHandler parseAccessControlListResponse(InputStream inputStream)
-        throws S3ServiceException
+        throws ServiceException
     {
         AccessControlListHandler handler = null;
         if (this.isGoogleStorageMode) {
@@ -261,11 +261,11 @@ public class XmlResponsesSaxParser {
      * @return
      * the XML handler object populated with data parsed from the XML stream.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public AccessControlListHandler parseAccessControlListResponse(InputStream inputStream,
         AccessControlListHandler handler)
-        throws S3ServiceException
+        throws ServiceException
     {
         parseXmlInputStream(handler, inputStream);
         return handler;
@@ -279,10 +279,10 @@ public class XmlResponsesSaxParser {
      * @return
      * the XML handler object populated with data parsed from the XML stream.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public BucketLoggingStatusHandler parseLoggingStatusResponse(InputStream inputStream)
-        throws S3ServiceException
+        throws ServiceException
     {
         BucketLoggingStatusHandler handler = new BucketLoggingStatusHandler();
         parseXmlInputStream(handler, inputStream);
@@ -290,7 +290,7 @@ public class XmlResponsesSaxParser {
     }
 
     public String parseBucketLocationResponse(InputStream inputStream)
-        throws S3ServiceException
+        throws ServiceException
     {
         BucketLocationHandler handler = new BucketLocationHandler();
         parseXmlInputStream(handler, inputStream);
@@ -298,7 +298,7 @@ public class XmlResponsesSaxParser {
     }
 
     public CopyObjectResultHandler parseCopyObjectResponse(InputStream inputStream)
-        throws S3ServiceException
+        throws ServiceException
     {
         CopyObjectResultHandler handler = new CopyObjectResultHandler();
         parseXmlInputStream(handler, inputStream);
@@ -312,10 +312,10 @@ public class XmlResponsesSaxParser {
      * true if the bucket is configured as Requester Pays, false if it is
      * configured as Owner pays.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public boolean parseRequestPaymentConfigurationResponse(InputStream inputStream)
-        throws S3ServiceException
+        throws ServiceException
     {
         RequestPaymentConfigurationHandler handler = new RequestPaymentConfigurationHandler();
         parseXmlInputStream(handler, inputStream);
@@ -328,10 +328,10 @@ public class XmlResponsesSaxParser {
      * @return
      * true if the bucket has versioning enabled, false otherwise.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public S3BucketVersioningStatus parseVersioningConfigurationResponse(
-        InputStream inputStream) throws S3ServiceException
+        InputStream inputStream) throws ServiceException
     {
         VersioningConfigurationHandler handler = new VersioningConfigurationHandler();
         parseXmlInputStream(handler, inputStream);
@@ -339,7 +339,7 @@ public class XmlResponsesSaxParser {
     }
 
     public ListVersionsResultsHandler parseListVersionsResponse(InputStream inputStream)
-        throws S3ServiceException
+        throws ServiceException
     {
         ListVersionsResultsHandler handler = new ListVersionsResultsHandler();
         parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));

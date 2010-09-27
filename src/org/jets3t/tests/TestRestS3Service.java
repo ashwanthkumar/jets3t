@@ -32,7 +32,7 @@ import java.util.Map;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
-import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.GrantAndPermission;
 import org.jets3t.service.acl.GroupGrantee;
@@ -74,7 +74,7 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
     }
 
     @Override
-    protected RestStorageService getStorageService(ProviderCredentials credentials) throws S3ServiceException {
+    protected RestStorageService getStorageService(ProviderCredentials credentials) throws ServiceException {
         Jets3tProperties properties = new Jets3tProperties();
         properties.setProperty("s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
         return new RestS3Service(credentials, null, null, properties);
@@ -171,7 +171,7 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
             try {
                 restS3Service.putObjectWithSignedUrl(signedPutUrl, object);
                 fail("Should not be able to use a signed URL for an object with a changed content-type");
-            } catch (S3ServiceException e) {
+            } catch (ServiceException e) {
                 object.setContentType("text/html");
             }
 
@@ -180,7 +180,7 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
             try {
                 restS3Service.putObjectWithSignedUrl(signedPutUrl, object);
                 fail("Should not be able to use a signed URL for an object with changed metadata");
-            } catch (S3ServiceException e) {
+            } catch (ServiceException e) {
                 object.removeMetadata(service.getRestMetadataPrefix() + "example-header-2");
             }
 

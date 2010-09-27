@@ -18,7 +18,7 @@
  */
 package org.jets3t.service.utils.signedurl;
 
-import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.model.S3Object;
 
@@ -57,7 +57,7 @@ public interface SignedUrlHandler {
      *
      * @throws S3ServiceException
      */
-    public S3Object putObjectWithSignedUrl(String signedPutUrl, S3Object object) throws S3ServiceException;
+    public S3Object putObjectWithSignedUrl(String signedPutUrl, S3Object object) throws ServiceException;
 
     /**
      * Deletes an object using a pre-signed DELETE URL generated for that object.
@@ -71,7 +71,7 @@ public interface SignedUrlHandler {
      *
      * @throws S3ServiceException
      */
-    public void deleteObjectWithSignedUrl(String signedDeleteUrl) throws S3ServiceException;
+    public void deleteObjectWithSignedUrl(String signedDeleteUrl) throws ServiceException;
 
     /**
      * Gets an object using a pre-signed GET URL generated for that object.
@@ -88,7 +88,7 @@ public interface SignedUrlHandler {
      *
      * @throws S3ServiceException
      */
-    public S3Object getObjectWithSignedUrl(String signedGetUrl) throws S3ServiceException;
+    public S3Object getObjectWithSignedUrl(String signedGetUrl) throws ServiceException;
 
     /**
      * Gets an object's details using a pre-signed HEAD URL generated for that object.
@@ -105,7 +105,7 @@ public interface SignedUrlHandler {
      *
      * @throws S3ServiceException
      */
-    public S3Object getObjectDetailsWithSignedUrl(String signedHeadUrl) throws S3ServiceException;
+    public S3Object getObjectDetailsWithSignedUrl(String signedHeadUrl) throws ServiceException;
 
     /**
      * Gets an object's ACL details using a pre-signed GET URL generated for that object.
@@ -119,7 +119,7 @@ public interface SignedUrlHandler {
      *
      * @throws S3ServiceException
      */
-    public AccessControlList getObjectAclWithSignedUrl(String signedAclUrl) throws S3ServiceException;
+    public AccessControlList getObjectAclWithSignedUrl(String signedAclUrl) throws ServiceException;
 
     /**
      * Sets an object's ACL details using a pre-signed PUT URL generated for that object.
@@ -132,6 +132,6 @@ public interface SignedUrlHandler {
      *
      * @throws S3ServiceException
      */
-    public void putObjectAclWithSignedUrl(String signedAclUrl, AccessControlList acl) throws S3ServiceException;
+    public void putObjectAclWithSignedUrl(String signedAclUrl, AccessControlList acl) throws ServiceException;
 
 }

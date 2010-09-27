@@ -18,7 +18,7 @@
  */
 package org.jets3t.tests;
 
-import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.gs.GSAccessControlList;
 import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
@@ -53,7 +53,7 @@ public class TestGoogleStorageService extends BaseStorageServiceTests {
     }
 
     @Override
-    protected RestStorageService getStorageService(ProviderCredentials credentials) throws S3ServiceException {
+    protected RestStorageService getStorageService(ProviderCredentials credentials) throws ServiceException {
         return new GoogleStorageService(credentials);
     }
 

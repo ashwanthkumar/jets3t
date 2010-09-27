@@ -79,7 +79,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
 
     protected S3Service(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties,
-        HostConfiguration hostConfig) throws S3ServiceException
+        HostConfiguration hostConfig)
     {
         super(credentials, invokingApplicationDescription, credentialsProvider,
             jets3tProperties, hostConfig);
@@ -97,10 +97,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * version number, for example: <code>Cockpit/0.7.3</code> or <code>My App Name/1.0</code>
      * @param jets3tProperties
      * JetS3t properties that will be applied within this service.
-     * @throws S3ServiceException
      */
     protected S3Service(ProviderCredentials credentials, String invokingApplicationDescription,
-        Jets3tProperties jets3tProperties) throws S3ServiceException
+        Jets3tProperties jets3tProperties)
     {
         super(credentials, invokingApplicationDescription, null, jets3tProperties);
     }
@@ -115,10 +114,8 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
      * version number, for example: <code>Cockpit/0.7.3</code> or <code>My App Name/1.0</code>
-     * @throws S3ServiceException
      */
     protected S3Service(ProviderCredentials credentials, String invokingApplicationDescription)
-        throws S3ServiceException
     {
         this(credentials, invokingApplicationDescription,
             Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME));
@@ -130,9 +127,8 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * @param credentials
      * the S3 user credentials to use when communicating with S3, may be null in which case the
      * communication is done as an anonymous user.
-     * @throws S3ServiceException
      */
-    protected S3Service(ProviderCredentials credentials) throws S3ServiceException {
+    protected S3Service(ProviderCredentials credentials) {
         this(credentials, null);
     }
 
@@ -221,92 +217,96 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         boolean isVirtualHost, boolean isHttps, boolean isDnsBucketNamingDisabled)
         throws S3ServiceException
     {
-        String s3Endpoint = this.getEndpoint();
-        String uriPath = "";
+        try {
+            String s3Endpoint = this.getEndpoint();
+            String uriPath = "";
 
-        String hostname = (isVirtualHost
-            ? bucketName
-            : ServiceUtils.generateS3HostnameForBucket(
-                bucketName, isDnsBucketNamingDisabled, s3Endpoint));
+            String hostname = (isVirtualHost
+                ? bucketName
+                : ServiceUtils.generateS3HostnameForBucket(
+                    bucketName, isDnsBucketNamingDisabled, s3Endpoint));
 
-        if (headersMap == null) {
-            headersMap = new HashMap<String, Object>();
-        }
-
-        // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
-        String virtualBucketPath = "";
-        if (!s3Endpoint.equals(hostname)) {
-            int subdomainOffset = hostname.lastIndexOf("." + s3Endpoint);
-            if (subdomainOffset > 0) {
-                // Hostname represents an S3 sub-domain, so the bucket's name is the CNAME portion
-                virtualBucketPath = hostname.substring(0, subdomainOffset) + "/";
-            } else {
-                // Hostname represents a virtual host, so the bucket's name is identical to hostname
-                virtualBucketPath = hostname + "/";
-            }
-            uriPath = (objectKey != null ? RestUtils.encodeUrlPath(objectKey, "/") : "");
-        } else {
-            uriPath = bucketName + (objectKey != null ? "/" + RestUtils.encodeUrlPath(objectKey, "/") : "");
-        }
-
-        if (specialParamName != null) {
-            uriPath += "?" + specialParamName + "&";
-        } else {
-            uriPath += "?";
-        }
-
-        // Include any DevPay tokens in signed request
-        if (credentials instanceof AWSDevPayCredentials) {
-            AWSDevPayCredentials devPayCredentials = (AWSDevPayCredentials) credentials;
-            if (devPayCredentials.getProductToken() != null) {
-                String securityToken = devPayCredentials.getUserToken()
-                    + "," + devPayCredentials.getProductToken();
-                headersMap.put(Constants.AMZ_SECURITY_TOKEN, securityToken);
-            } else {
-                headersMap.put(Constants.AMZ_SECURITY_TOKEN, devPayCredentials.getUserToken());
+            if (headersMap == null) {
+                headersMap = new HashMap<String, Object>();
             }
 
-            uriPath += Constants.AMZ_SECURITY_TOKEN + "=" +
-                RestUtils.encodeUrlString((String) headersMap.get(Constants.AMZ_SECURITY_TOKEN)) + "&";
-        }
+            // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
+            String virtualBucketPath = "";
+            if (!s3Endpoint.equals(hostname)) {
+                int subdomainOffset = hostname.lastIndexOf("." + s3Endpoint);
+                if (subdomainOffset > 0) {
+                    // Hostname represents an S3 sub-domain, so the bucket's name is the CNAME portion
+                    virtualBucketPath = hostname.substring(0, subdomainOffset) + "/";
+                } else {
+                    // Hostname represents a virtual host, so the bucket's name is identical to hostname
+                    virtualBucketPath = hostname + "/";
+                }
+                uriPath = (objectKey != null ? RestUtils.encodeUrlPath(objectKey, "/") : "");
+            } else {
+                uriPath = bucketName + (objectKey != null ? "/" + RestUtils.encodeUrlPath(objectKey, "/") : "");
+            }
 
-        uriPath += "AWSAccessKeyId=" + credentials.getAccessKey();
-        uriPath += "&Expires=" + secondsSinceEpoch;
+            if (specialParamName != null) {
+                uriPath += "?" + specialParamName + "&";
+            } else {
+                uriPath += "?";
+            }
 
-        // Include Requester Pays header flag, if the flag is included as a request parameter.
-        if (specialParamName != null
-            && specialParamName.toLowerCase().indexOf(Constants.REQUESTER_PAYS_BUCKET_FLAG) >= 0)
-        {
-            String[] requesterPaysHeaderAndValue = Constants.REQUESTER_PAYS_BUCKET_FLAG.split("=");
-            headersMap.put(requesterPaysHeaderAndValue[0], requesterPaysHeaderAndValue[1]);
-        }
+            // Include any DevPay tokens in signed request
+            if (credentials instanceof AWSDevPayCredentials) {
+                AWSDevPayCredentials devPayCredentials = (AWSDevPayCredentials) credentials;
+                if (devPayCredentials.getProductToken() != null) {
+                    String securityToken = devPayCredentials.getUserToken()
+                        + "," + devPayCredentials.getProductToken();
+                    headersMap.put(Constants.AMZ_SECURITY_TOKEN, securityToken);
+                } else {
+                    headersMap.put(Constants.AMZ_SECURITY_TOKEN, devPayCredentials.getUserToken());
+                }
 
-        String serviceEndpointVirtualPath = this.getVirtualPath();
+                uriPath += Constants.AMZ_SECURITY_TOKEN + "=" +
+                    RestUtils.encodeUrlString((String) headersMap.get(Constants.AMZ_SECURITY_TOKEN)) + "&";
+            }
 
-        String canonicalString = RestUtils.makeServiceCanonicalString(method,
-            serviceEndpointVirtualPath + "/" + virtualBucketPath + uriPath,
-            renameMetadataKeys(headersMap), String.valueOf(secondsSinceEpoch), this.getRestHeaderPrefix());
-        if (log.isDebugEnabled()) {
-            log.debug("Signing canonical string:\n" + canonicalString);
-        }
+            uriPath += "AWSAccessKeyId=" + credentials.getAccessKey();
+            uriPath += "&Expires=" + secondsSinceEpoch;
 
-        String signedCanonical = ServiceUtils.signWithHmacSha1(credentials.getSecretKey(),
-            canonicalString);
-        String encodedCanonical = RestUtils.encodeUrlString(signedCanonical);
-        uriPath += "&Signature=" + encodedCanonical;
+            // Include Requester Pays header flag, if the flag is included as a request parameter.
+            if (specialParamName != null
+                && specialParamName.toLowerCase().indexOf(Constants.REQUESTER_PAYS_BUCKET_FLAG) >= 0)
+            {
+                String[] requesterPaysHeaderAndValue = Constants.REQUESTER_PAYS_BUCKET_FLAG.split("=");
+                headersMap.put(requesterPaysHeaderAndValue[0], requesterPaysHeaderAndValue[1]);
+            }
 
-        if (isHttps) {
-            int httpsPort = this.getHttpsPort();
-            return "https://" + hostname
-                + (httpsPort != 443 ? ":" + httpsPort : "")
+            String serviceEndpointVirtualPath = this.getVirtualPath();
+
+            String canonicalString = RestUtils.makeServiceCanonicalString(method,
+                serviceEndpointVirtualPath + "/" + virtualBucketPath + uriPath,
+                renameMetadataKeys(headersMap), String.valueOf(secondsSinceEpoch), this.getRestHeaderPrefix());
+            if (log.isDebugEnabled()) {
+                log.debug("Signing canonical string:\n" + canonicalString);
+            }
+
+            String signedCanonical = ServiceUtils.signWithHmacSha1(credentials.getSecretKey(),
+                canonicalString);
+            String encodedCanonical = RestUtils.encodeUrlString(signedCanonical);
+            uriPath += "&Signature=" + encodedCanonical;
+
+            if (isHttps) {
+                int httpsPort = this.getHttpsPort();
+                return "https://" + hostname
+                    + (httpsPort != 443 ? ":" + httpsPort : "")
+                    + serviceEndpointVirtualPath
+                    + "/" + uriPath;
+            } else {
+                int httpPort = this.getHttpPort();
+                return "http://" + hostname
+                + (httpPort != 80 ? ":" + httpPort : "")
                 + serviceEndpointVirtualPath
                 + "/" + uriPath;
-        } else {
-            int httpPort = this.getHttpPort();
-            return "http://" + hostname
-            + (httpPort != 80 ? ":" + httpPort : "")
-            + serviceEndpointVirtualPath
-            + "/" + uriPath;
+            }
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
         }
     }
 
@@ -1006,7 +1006,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
                 + (httpPort != 80 ? ":" + httpPort : "")
                 + urlPath
                 + "?torrent";
-        } catch (S3ServiceException e) {
+        } catch (ServiceException e) {
             throw new RuntimeException(e);
         }
     }
@@ -1295,8 +1295,13 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
                 "value=\"" + credentials.getAccessKey() + "\">");
 
             // Add signature for encoded policy document as the 'AWSAccessKeyId' field
-            String signature = ServiceUtils.signWithHmacSha1(
-                credentials.getSecretKey(), policyB64);
+            String signature;
+            try {
+                signature = ServiceUtils.signWithHmacSha1(
+                    credentials.getSecretKey(), policyB64);
+            } catch (ServiceException se) {
+                throw new S3ServiceException(se);
+            }
             myInputFields.add("<input type=\"hidden\" name=\"signature\" " +
                 "value=\"" + signature + "\">");
         }
@@ -1349,13 +1354,21 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
 
     @Override
     public S3Bucket[] listAllBuckets() throws S3ServiceException {
-        StorageBucket[] buckets = super.listAllBuckets();
-        return S3Bucket.cast(buckets);
+        try {
+            StorageBucket[] buckets = super.listAllBuckets();
+            return S3Bucket.cast(buckets);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     @Override
     public S3Object getObject(String bucketName, String objectKey) throws S3ServiceException {
-        return (S3Object) super.getObject(bucketName, objectKey);
+        try {
+            return (S3Object) super.getObject(bucketName, objectKey);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -1381,20 +1394,32 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      */
     @Deprecated
     public S3Object[] listObjects(S3Bucket bucket) throws S3ServiceException {
-        assertValidBucket(bucket, "listObjects");
-        return listObjects(bucket, null, null, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE);
+        try {
+            assertValidBucket(bucket, "listObjects");
+            return listObjects(bucket, null, null, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     @Override
     public S3Object[] listObjects(String bucketName) throws S3ServiceException {
-        return S3Object.cast(super.listObjects(bucketName));
+        try {
+            return S3Object.cast(super.listObjects(bucketName));
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     @Override
     public S3Object[] listObjects(String bucketName, String prefix,
         String delimiter, long maxListingLength) throws S3ServiceException
     {
-        return S3Object.cast(super.listObjects(bucketName, prefix, delimiter, maxListingLength));
+        try {
+            return S3Object.cast(super.listObjects(bucketName, prefix, delimiter, maxListingLength));
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -1432,25 +1457,41 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      */
     @Deprecated
     public S3Object[] listObjects(S3Bucket bucket, String prefix, String delimiter) throws S3ServiceException {
-        assertValidBucket(bucket, "listObjects");
-        return listObjects(bucket, prefix, delimiter, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE);
+        try {
+            assertValidBucket(bucket, "listObjects");
+            return listObjects(bucket, prefix, delimiter, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     @Override
     public S3Object[] listObjects(String bucketName, String prefix, String delimiter)
             throws S3ServiceException
     {
-        return S3Object.cast(super.listObjects(bucketName, prefix, delimiter));
+        try {
+            return S3Object.cast(super.listObjects(bucketName, prefix, delimiter));
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     @Override
     public S3Bucket createBucket(String bucketName) throws S3ServiceException {
-        return (S3Bucket) super.createBucket(bucketName);
+        try {
+            return (S3Bucket) super.createBucket(bucketName);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     @Override
     public S3Bucket getOrCreateBucket(String bucketName) throws S3ServiceException {
-        return (S3Bucket) super.getOrCreateBucket(bucketName);
+        try {
+            return (S3Bucket) super.getOrCreateBucket(bucketName);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -1480,9 +1521,13 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * @throws S3ServiceException
      */
     public S3Bucket createBucket(String bucketName, String location) throws S3ServiceException {
-        assertAuthenticatedConnection("createBucket");
-        S3Bucket bucket = new S3Bucket(bucketName, location);
-        return createBucket(bucket);
+        try {
+            assertAuthenticatedConnection("createBucket");
+            S3Bucket bucket = new S3Bucket(bucketName, location);
+            return createBucket(bucket);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -1511,8 +1556,12 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      */
     @Deprecated
     public S3Object getObject(S3Bucket bucket, String objectKey) throws S3ServiceException {
-        assertValidBucket(bucket, "getObject");
-        return getObject(bucket, objectKey, null, null, null, null, null, null);
+        try {
+            assertValidBucket(bucket, "getObject");
+            return getObject(bucket, objectKey, null, null, null, null, null, null);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -1541,9 +1590,13 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public S3Object getVersionedObject(String versionId, String bucketName, String objectKey)
         throws S3ServiceException
     {
-        MxDelegate.getInstance().registerStorageObjectGetEvent(bucketName, objectKey);
-        return (S3Object) getObjectImpl(bucketName, objectKey,
-            null, null, null, null, null, null, versionId);
+        try {
+            MxDelegate.getInstance().registerStorageObjectGetEvent(bucketName, objectKey);
+            return (S3Object) getObjectImpl(bucketName, objectKey,
+                null, null, null, null, null, null, versionId);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -1568,8 +1621,12 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      */
     @Deprecated
     public S3Object getObjectDetails(S3Bucket bucket, String objectKey) throws S3ServiceException {
-        assertValidBucket(bucket, "getObjectDetails");
-        return getObjectDetails(bucket, objectKey, null, null, null, null);
+        try {
+            assertValidBucket(bucket, "getObjectDetails");
+            return getObjectDetails(bucket, objectKey, null, null, null, null);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -1592,9 +1649,13 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public S3Object getVersionedObjectDetails(String versionId, String bucketName,
         String objectKey) throws S3ServiceException
     {
-        MxDelegate.getInstance().registerStorageObjectHeadEvent(bucketName, objectKey);
-        return (S3Object) getObjectDetailsImpl(bucketName, objectKey,
-            null, null, null, null, versionId);
+        try {
+            MxDelegate.getInstance().registerStorageObjectHeadEvent(bucketName, objectKey);
+            return (S3Object) getObjectDetailsImpl(bucketName, objectKey,
+                null, null, null, null, versionId);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -1639,8 +1700,12 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public S3Object[] listObjects(S3Bucket bucket, String prefix, String delimiter,
         long maxListingLength) throws S3ServiceException
     {
-        assertValidBucket(bucket, "List objects in bucket");
-        return listObjects(bucket.getName(), prefix, delimiter, maxListingLength);
+        try {
+            assertValidBucket(bucket, "List objects in bucket");
+            return listObjects(bucket.getName(), prefix, delimiter, maxListingLength);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -1773,14 +1838,22 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      */
     @Deprecated
     public S3Bucket createBucket(S3Bucket bucket) throws S3ServiceException {
-        assertAuthenticatedConnection("Create Bucket");
-        assertValidBucket(bucket, "Create Bucket");
-        return (S3Bucket) createBucketImpl(bucket.getName(), bucket.getLocation(), bucket.getAcl());
+        try {
+            assertAuthenticatedConnection("Create Bucket");
+            assertValidBucket(bucket, "Create Bucket");
+            return (S3Bucket) createBucketImpl(bucket.getName(), bucket.getLocation(), bucket.getAcl());
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     @Override
     public S3Bucket getBucket(String bucketName) throws S3ServiceException {
-        return (S3Bucket) super.getBucket(bucketName);
+        try {
+            return (S3Bucket) super.getBucket(bucketName);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -1808,7 +1881,11 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public S3Bucket getOrCreateBucket(String bucketName, String location)
         throws S3ServiceException
     {
-        assertAuthenticatedConnection("Get or Create Bucket with location");
+        try {
+            assertAuthenticatedConnection("Get or Create Bucket with location");
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
 
         S3Bucket bucket = getBucket(bucketName);
         if (bucket == null) {
@@ -1833,8 +1910,12 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      */
     @Deprecated
     public void deleteBucket(S3Bucket bucket) throws S3ServiceException {
-        assertValidBucket(bucket, "Delete bucket");
-        deleteBucketImpl(bucket.getName());
+        try {
+            assertValidBucket(bucket, "Delete bucket");
+            deleteBucketImpl(bucket.getName());
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -1978,7 +2059,11 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * @throws S3ServiceException
      */
     public S3Object putObject(String bucketName, S3Object object) throws S3ServiceException {
-        return (S3Object) super.putObject(bucketName, object);
+        try {
+            return (S3Object) super.putObject(bucketName, object);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2035,16 +2120,20 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         Calendar ifUnmodifiedSince, String[] ifMatchTags,
         String[] ifNoneMatchTags) throws S3ServiceException
     {
-        assertAuthenticatedConnection("copyVersionedObject");
-        Map<String, Object> destinationMetadata =
-            replaceMetadata ? destinationObject.getModifiableMetadata() : null;
+        try {
+            assertAuthenticatedConnection("copyVersionedObject");
+            Map<String, Object> destinationMetadata =
+                replaceMetadata ? destinationObject.getModifiableMetadata() : null;
 
-        MxDelegate.getInstance().registerStorageObjectCopyEvent(sourceBucketName, sourceObjectKey);
-        return copyObjectImpl(sourceBucketName, sourceObjectKey,
-            destinationBucketName, destinationObject.getKey(),
-            destinationObject.getAcl(), destinationMetadata,
-            ifModifiedSince, ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, versionId,
-            destinationObject.getStorageClass());
+            MxDelegate.getInstance().registerStorageObjectCopyEvent(sourceBucketName, sourceObjectKey);
+            return copyObjectImpl(sourceBucketName, sourceObjectKey,
+                destinationBucketName, destinationObject.getKey(),
+                destinationObject.getAcl(), destinationMetadata,
+                ifModifiedSince, ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, versionId,
+                destinationObject.getStorageClass());
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2113,8 +2202,12 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * @throws S3ServiceException
      */
     public S3Object putObject(S3Bucket bucket, S3Object object) throws S3ServiceException {
-        assertValidBucket(bucket, "Create Object in bucket");
-        return putObject(bucket.getName(), object);
+        try {
+            assertValidBucket(bucket, "Create Object in bucket");
+            return putObject(bucket.getName(), object);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2130,9 +2223,13 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * @throws S3ServiceException
      */
     public void deleteObject(S3Bucket bucket, String objectKey) throws S3ServiceException {
-        assertValidBucket(bucket, "deleteObject");
-        assertValidObject(objectKey, "deleteObject");
-        deleteObject(bucket.getName(), objectKey);
+        try {
+            assertValidBucket(bucket, "deleteObject");
+            assertValidObject(objectKey, "deleteObject");
+            deleteObject(bucket.getName(), objectKey);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2158,10 +2255,14 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         String multiFactorSerialNumber, String multiFactorAuthCode,
         String bucketName, String objectKey) throws S3ServiceException
     {
-        assertValidObject(objectKey, "deleteVersionedObjectWithMFA");
-        MxDelegate.getInstance().registerStorageObjectDeleteEvent(bucketName, objectKey);
-        deleteObjectImpl(bucketName, objectKey, versionId,
-            multiFactorSerialNumber, multiFactorAuthCode);
+        try {
+            assertValidObject(objectKey, "deleteVersionedObjectWithMFA");
+            MxDelegate.getInstance().registerStorageObjectDeleteEvent(bucketName, objectKey);
+            deleteObjectImpl(bucketName, objectKey, versionId,
+                multiFactorSerialNumber, multiFactorAuthCode);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2182,9 +2283,13 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public void deleteVersionedObject(String versionId, String bucketName, String objectKey)
         throws S3ServiceException
     {
-        assertValidObject(objectKey, "deleteVersionedObject");
-        MxDelegate.getInstance().registerStorageObjectDeleteEvent(bucketName, objectKey);
-        deleteObjectImpl(bucketName, objectKey, versionId, null, null);
+        try {
+            assertValidObject(objectKey, "deleteVersionedObject");
+            MxDelegate.getInstance().registerStorageObjectDeleteEvent(bucketName, objectKey);
+            deleteObjectImpl(bucketName, objectKey, versionId, null, null);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2219,10 +2324,14 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
         String[] ifNoneMatchTags) throws S3ServiceException
     {
-        assertValidBucket(bucket, "Get Object Details");
-        MxDelegate.getInstance().registerStorageObjectHeadEvent(bucket.getName(), objectKey);
-        return (S3Object) getObjectDetailsImpl(bucket.getName(), objectKey, ifModifiedSince,
-            ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, null);
+        try {
+            assertValidBucket(bucket, "Get Object Details");
+            MxDelegate.getInstance().registerStorageObjectHeadEvent(bucket.getName(), objectKey);
+            return (S3Object) getObjectDetailsImpl(bucket.getName(), objectKey, ifModifiedSince,
+                ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, null);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2259,10 +2368,14 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
         String[] ifNoneMatchTags) throws S3ServiceException
     {
-        assertValidBucket(bucket, "Get Versioned Object Details");
-        MxDelegate.getInstance().registerStorageObjectHeadEvent(bucket.getName(), objectKey);
-        return (S3Object) getObjectDetailsImpl(bucket.getName(), objectKey, ifModifiedSince,
-            ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, versionId);
+        try {
+            assertValidBucket(bucket, "Get Versioned Object Details");
+            MxDelegate.getInstance().registerStorageObjectHeadEvent(bucket.getName(), objectKey);
+            return (S3Object) getObjectDetailsImpl(bucket.getName(), objectKey, ifModifiedSince,
+                ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, versionId);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2298,9 +2411,13 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
         String[] ifNoneMatchTags) throws S3ServiceException
     {
-        MxDelegate.getInstance().registerStorageObjectHeadEvent(bucketName, objectKey);
-        return (S3Object) getObjectDetailsImpl(bucketName, objectKey, ifModifiedSince,
-            ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, versionId);
+        try {
+            MxDelegate.getInstance().registerStorageObjectHeadEvent(bucketName, objectKey);
+            return (S3Object) getObjectDetailsImpl(bucketName, objectKey, ifModifiedSince,
+                ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, versionId);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     @Override
@@ -2309,9 +2426,13 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         String[] ifMatchTags, String[] ifNoneMatchTags, Long byteRangeStart,
         Long byteRangeEnd) throws S3ServiceException
     {
-        return (S3Object) super.getObject(bucketName, objectKey, ifModifiedSince,
-            ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, byteRangeStart,
-            byteRangeEnd);
+        try {
+            return (S3Object) super.getObject(bucketName, objectKey, ifModifiedSince,
+                ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, byteRangeStart,
+                byteRangeEnd);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2357,10 +2478,14 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags,
         Long byteRangeStart, Long byteRangeEnd) throws S3ServiceException
     {
-        assertValidBucket(bucket, "Get Object");
-        MxDelegate.getInstance().registerStorageObjectGetEvent(bucket.getName(), objectKey);
-        return (S3Object) getObjectImpl(bucket.getName(), objectKey, ifModifiedSince,
-            ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd, null);
+        try {
+            assertValidBucket(bucket, "Get Object");
+            MxDelegate.getInstance().registerStorageObjectGetEvent(bucket.getName(), objectKey);
+            return (S3Object) getObjectImpl(bucket.getName(), objectKey, ifModifiedSince,
+                ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd, null);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2410,10 +2535,14 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         String[] ifMatchTags, String[] ifNoneMatchTags,
         Long byteRangeStart, Long byteRangeEnd) throws S3ServiceException
     {
-        assertValidBucket(bucket, "Get Versioned Object");
-        MxDelegate.getInstance().registerStorageObjectGetEvent(bucket.getName(), objectKey);
-        return (S3Object) getObjectImpl(bucket.getName(), objectKey, ifModifiedSince,
-            ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd, versionId);
+        try {
+            assertValidBucket(bucket, "Get Versioned Object");
+            MxDelegate.getInstance().registerStorageObjectGetEvent(bucket.getName(), objectKey);
+            return (S3Object) getObjectImpl(bucket.getName(), objectKey, ifModifiedSince,
+                ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd, versionId);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2462,9 +2591,13 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         String[] ifMatchTags, String[] ifNoneMatchTags,
         Long byteRangeStart, Long byteRangeEnd) throws S3ServiceException
     {
-        MxDelegate.getInstance().registerStorageObjectGetEvent(bucketName, objectKey);
-        return (S3Object) getObjectImpl(bucketName, objectKey, ifModifiedSince,
-            ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd, versionId);
+        try {
+            MxDelegate.getInstance().registerStorageObjectGetEvent(bucketName, objectKey);
+            return (S3Object) getObjectImpl(bucketName, objectKey, ifModifiedSince,
+                ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd, versionId);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2485,9 +2618,13 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * @throws S3ServiceException
      */
     public void putObjectAcl(S3Bucket bucket, S3Object object) throws S3ServiceException {
-        assertValidBucket(bucket, "Put Object Access Control List");
-        assertValidObject(object, "Put Object Access Control List");
-        putObjectAcl(bucket.getName(), object.getKey(), object.getAcl());
+        try {
+            assertValidBucket(bucket, "Put Object Access Control List");
+            assertValidObject(object, "Put Object Access Control List");
+            putObjectAcl(bucket.getName(), object.getKey(), object.getAcl());
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2508,8 +2645,12 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * @throws S3ServiceException
      */
     public void putObjectAcl(String bucketName, S3Object object) throws S3ServiceException {
-        assertValidObject(object, "Put Object Access Control List");
-        putObjectAcl(bucketName, object.getKey(), object.getAcl());
+        try {
+            assertValidObject(object, "Put Object Access Control List");
+            putObjectAcl(bucketName, object.getKey(), object.getAcl());
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2533,7 +2674,11 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public void putVersionedObjectAcl(String versionId, String bucketName,
         String objectKey, AccessControlList acl) throws S3ServiceException
     {
-        putObjectAclImpl(bucketName, objectKey, acl, versionId);
+        try {
+            putObjectAclImpl(bucketName, objectKey, acl, versionId);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2559,15 +2704,19 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public void putVersionedObjectAcl(String versionId, S3Bucket bucket, S3Object object)
         throws S3ServiceException
     {
-        assertValidBucket(bucket, "Put Versioned Object Access Control List");
-        assertValidObject(object, "Put Versioned Object Access Control List");
-        String objectKey = object.getKey();
-        AccessControlList acl = object.getAcl();
-        if (acl == null) {
-            throw new S3ServiceException("The object '" + objectKey +
-                "' does not include ACL information");
+        try {
+            assertValidBucket(bucket, "Put Versioned Object Access Control List");
+            assertValidObject(object, "Put Versioned Object Access Control List");
+            String objectKey = object.getKey();
+            AccessControlList acl = object.getAcl();
+            if (acl == null) {
+                throw new S3ServiceException("The object '" + objectKey +
+                    "' does not include ACL information");
+            }
+            putObjectAclImpl(bucket.getName(), objectKey, acl, versionId);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
         }
-        putObjectAclImpl(bucket.getName(), objectKey, acl, versionId);
     }
 
     /**
@@ -2592,8 +2741,12 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public AccessControlList getObjectAcl(S3Bucket bucket, String objectKey)
         throws S3ServiceException
     {
-        assertValidBucket(bucket, "Get Object Access Control List");
-        return getObjectAclImpl(bucket.getName(), objectKey, null);
+        try {
+            assertValidBucket(bucket, "Get Object Access Control List");
+            return getObjectAclImpl(bucket.getName(), objectKey, null);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2620,8 +2773,12 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public AccessControlList getVersionedObjectAcl(String versionId, S3Bucket bucket,
         String objectKey) throws S3ServiceException
     {
-        assertValidBucket(bucket, "Get versioned Object Access Control List");
-        return getObjectAclImpl(bucket.getName(), objectKey, versionId);
+        try {
+            assertValidBucket(bucket, "Get versioned Object Access Control List");
+            return getObjectAclImpl(bucket.getName(), objectKey, versionId);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2647,7 +2804,11 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public AccessControlList getVersionedObjectAcl(String versionId, String bucketName,
         String objectKey) throws S3ServiceException
     {
-        return getObjectAclImpl(bucketName, objectKey, versionId);
+        try {
+            return getObjectAclImpl(bucketName, objectKey, versionId);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2668,8 +2829,12 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * @throws S3ServiceException
      */
     public AccessControlList getBucketAcl(S3Bucket bucket) throws S3ServiceException {
-        assertValidBucket(bucket, "Get Bucket Access Control List");
-        return getBucketAclImpl(bucket.getName());
+        try {
+            assertValidBucket(bucket, "Get Bucket Access Control List");
+            return getBucketAclImpl(bucket.getName());
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -2722,58 +2887,62 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         boolean updateTargetACLifRequired)
         throws S3ServiceException
     {
-        if (status.isLoggingEnabled() && updateTargetACLifRequired) {
-            // Check whether the target bucket has the ACL permissions necessary for logging.
-            if (log.isDebugEnabled()) {
-                log.debug("Checking whether the target logging bucket '" +
-                    status.getTargetBucketName() + "' has the appropriate ACL settings");
-            }
-            boolean isSetLoggingGroupWrite = false;
-            boolean isSetLoggingGroupReadACP = false;
-            String groupIdentifier = GroupGrantee.LOG_DELIVERY.getIdentifier();
+        try {
+            if (status.isLoggingEnabled() && updateTargetACLifRequired) {
+                // Check whether the target bucket has the ACL permissions necessary for logging.
+                if (log.isDebugEnabled()) {
+                    log.debug("Checking whether the target logging bucket '" +
+                        status.getTargetBucketName() + "' has the appropriate ACL settings");
+                }
+                boolean isSetLoggingGroupWrite = false;
+                boolean isSetLoggingGroupReadACP = false;
+                String groupIdentifier = GroupGrantee.LOG_DELIVERY.getIdentifier();
 
-            AccessControlList logBucketACL = getBucketAcl(status.getTargetBucketName());
+                AccessControlList logBucketACL = getBucketAcl(status.getTargetBucketName());
 
-            for (GrantAndPermission gap: logBucketACL.getGrantAndPermissions()) {
-                if (groupIdentifier.equals(gap.getGrantee().getIdentifier())) {
-                    // Found a Group Grantee.
-                    if (gap.getPermission().equals(Permission.PERMISSION_WRITE)) {
-                        isSetLoggingGroupWrite = true;
-                        if (log.isDebugEnabled()) {
-                            log.debug("Target bucket '" + status.getTargetBucketName() + "' has ACL "
-                                    + "permission " + Permission.PERMISSION_WRITE + " for group " +
+                for (GrantAndPermission gap: logBucketACL.getGrantAndPermissions()) {
+                    if (groupIdentifier.equals(gap.getGrantee().getIdentifier())) {
+                        // Found a Group Grantee.
+                        if (gap.getPermission().equals(Permission.PERMISSION_WRITE)) {
+                            isSetLoggingGroupWrite = true;
+                            if (log.isDebugEnabled()) {
+                                log.debug("Target bucket '" + status.getTargetBucketName() + "' has ACL "
+                                        + "permission " + Permission.PERMISSION_WRITE + " for group " +
+                                        groupIdentifier);
+                            }
+                        } else if (gap.getPermission().equals(Permission.PERMISSION_READ_ACP)) {
+                            isSetLoggingGroupReadACP = true;
+                            if (log.isDebugEnabled()) {
+                                log.debug("Target bucket '" + status.getTargetBucketName() + "' has ACL "
+                                    + "permission " + Permission.PERMISSION_READ_ACP + " for group " +
                                     groupIdentifier);
+                            }
                         }
-                    } else if (gap.getPermission().equals(Permission.PERMISSION_READ_ACP)) {
-                        isSetLoggingGroupReadACP = true;
-                        if (log.isDebugEnabled()) {
-                            log.debug("Target bucket '" + status.getTargetBucketName() + "' has ACL "
-                                + "permission " + Permission.PERMISSION_READ_ACP + " for group " +
-                                groupIdentifier);
-                        }
+                    }
+                }
+
+                // Update target bucket's ACL if necessary.
+                if (!isSetLoggingGroupWrite || !isSetLoggingGroupReadACP) {
+                    if (log.isWarnEnabled()) {
+                        log.warn("Target logging bucket '" + status.getTargetBucketName()
+                            + "' does not have the necessary ACL settings, updating ACL now");
+                    }
+
+                    logBucketACL.grantPermission(GroupGrantee.LOG_DELIVERY, Permission.PERMISSION_WRITE);
+                    logBucketACL.grantPermission(GroupGrantee.LOG_DELIVERY, Permission.PERMISSION_READ_ACP);
+                    putBucketAcl(status.getTargetBucketName(), logBucketACL);
+                } else {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Target logging bucket '" + status.getTargetBucketName()
+                            + "' has the necessary ACL settings");
                     }
                 }
             }
 
-            // Update target bucket's ACL if necessary.
-            if (!isSetLoggingGroupWrite || !isSetLoggingGroupReadACP) {
-                if (log.isWarnEnabled()) {
-                    log.warn("Target logging bucket '" + status.getTargetBucketName()
-                        + "' does not have the necessary ACL settings, updating ACL now");
-                }
-
-                logBucketACL.grantPermission(GroupGrantee.LOG_DELIVERY, Permission.PERMISSION_WRITE);
-                logBucketACL.grantPermission(GroupGrantee.LOG_DELIVERY, Permission.PERMISSION_READ_ACP);
-                putBucketAcl(status.getTargetBucketName(), logBucketACL);
-            } else {
-                if (log.isDebugEnabled()) {
-                    log.debug("Target logging bucket '" + status.getTargetBucketName()
-                        + "' has the necessary ACL settings");
-                }
-            }
+            setBucketLoggingStatusImpl(bucketName, status);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
         }
-
-        setBucketLoggingStatusImpl(bucketName, status);
     }
 
     /**

@@ -28,7 +28,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 
 import org.jets3t.service.Constants;
-import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.model.StorageOwner;
 
 import com.jamesmurty.utils.XMLBuilder;
@@ -41,7 +41,8 @@ import com.jamesmurty.utils.XMLBuilder;
  *
  */
 public class AccessControlList implements Serializable {
-    private static final long serialVersionUID = 1523885775877708689L;
+
+    private static final long serialVersionUID = -4616688515622838285L;
 
     /**
      * A pre-canned REST ACL to set an object's permissions to Private (only owner can read/write)
@@ -174,11 +175,11 @@ public class AccessControlList implements Serializable {
             new GrantAndPermission[grants.size()]);
     }
 
-    public XMLBuilder toXMLBuilder() throws S3ServiceException, ParserConfigurationException,
+    public XMLBuilder toXMLBuilder() throws ServiceException, ParserConfigurationException,
         FactoryConfigurationError, TransformerException
     {
         if (owner == null) {
-            throw new S3ServiceException("Invalid AccessControlList: missing an owner");
+            throw new ServiceException("Invalid AccessControlList: missing an owner");
         }
         XMLBuilder builder = XMLBuilder.create("AccessControlPolicy")
             .attr("xmlns", Constants.XML_NAMESPACE)
@@ -204,11 +205,11 @@ public class AccessControlList implements Serializable {
      * an XML representation of the Access Control List object, suitable to send to
      * a storage service in the request body.
      */
-    public String toXml() throws S3ServiceException {
+    public String toXml() throws ServiceException {
         try {
             return toXMLBuilder().asString();
         } catch (Exception e) {
-            throw new S3ServiceException("Failed to build XML document for ACL", e);
+            throw new ServiceException("Failed to build XML document for ACL", e);
         }
     }
 

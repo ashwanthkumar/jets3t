@@ -38,6 +38,7 @@ import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.VersionOrDeleteMarkersChunk;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListVersionsResultsHandler;
 import org.jets3t.service.model.BaseVersionOrDeleteMarker;
@@ -266,7 +267,12 @@ public class RestS3Service extends S3Service {
     protected HttpMethodBase setupConnection(String method, String bucketName, String objectKey,
         Map<String, Object> requestParameters) throws S3ServiceException
     {
-        HttpMethodBase httpMethod = super.setupConnection(method, bucketName, objectKey, requestParameters);
+        HttpMethodBase httpMethod;
+        try {
+            httpMethod = super.setupConnection(method, bucketName, objectKey, requestParameters);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
 
         // Set DevPay request headers.
         if (getDevPayUserToken() != null || getDevPayProductToken() != null) {
@@ -426,7 +432,11 @@ public class RestS3Service extends S3Service {
                 metadata.put(Constants.AMZ_MULTI_FACTOR_AUTH_CODE,
                     multiFactorSerialNumber + " " + multiFactorAuthCode);
             }
-            performRestPutWithXmlBuilder(bucketName, null, metadata, requestParams, builder);
+            try {
+                performRestPutWithXmlBuilder(bucketName, null, metadata, requestParams, builder);
+            } catch (ServiceException se) {
+                throw new S3ServiceException(se);
+            }
         } catch (ParserConfigurationException e) {
             throw new S3ServiceException("Failed to build XML document for request", e);
         }
@@ -436,14 +446,18 @@ public class RestS3Service extends S3Service {
     protected S3BucketVersioningStatus getBucketVersioningStatusImpl(String bucketName)
         throws S3ServiceException
     {
-        if (log.isDebugEnabled()) {
-            log.debug( "Checking status of versioning for bucket " + bucketName);
+        try {
+            if (log.isDebugEnabled()) {
+                log.debug( "Checking status of versioning for bucket " + bucketName);
+            }
+            Map<String, Object> requestParams = new HashMap<String, Object>();
+            requestParams.put("versioning", null);
+            HttpMethodBase method = performRestGet(bucketName, null, requestParams, null);
+            return getXmlResponseSaxParser()
+                .parseVersioningConfigurationResponse(new HttpMethodReleaseInputStream(method));
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
         }
-        Map<String, Object> requestParams = new HashMap<String, Object>();
-        requestParams.put("versioning", null);
-        HttpMethodBase method = performRestGet(bucketName, null, requestParams, null);
-        return getXmlResponseSaxParser()
-            .parseVersioningConfigurationResponse(new HttpMethodReleaseInputStream(method));
     }
 
     protected VersionOrDeleteMarkersChunk listVersionedObjectsInternal(
@@ -481,7 +495,12 @@ public class RestS3Service extends S3Service {
                 parameters.remove("version-id-marker");
             }
 
-            HttpMethodBase httpMethod = performRestGet(bucketName, null, parameters, null);
+            HttpMethodBase httpMethod;
+            try {
+                httpMethod = performRestGet(bucketName, null, parameters, null);
+            } catch (ServiceException se) {
+                throw new S3ServiceException(se);
+            }
             ListVersionsResultsHandler handler = null;
 
             try {
@@ -489,15 +508,15 @@ public class RestS3Service extends S3Service {
                     .parseListVersionsResponse(
                         new HttpMethodReleaseInputStream(httpMethod));
                 ioErrorRetryCount = 0;
-            } catch (S3ServiceException e) {
-                if (e.getCause() instanceof IOException && ioErrorRetryCount < 5) {
+            } catch (ServiceException se) {
+                if (se.getCause() instanceof IOException && ioErrorRetryCount < 5) {
                     ioErrorRetryCount++;
                     if (log.isWarnEnabled()) {
-                        log.warn("Retrying bucket listing failure due to IO error", e);
+                        log.warn("Retrying bucket listing failure due to IO error", se);
                     }
                     continue;
                 } else {
-                    throw e;
+                    throw new S3ServiceException(se);
                 }
             }
 
@@ -566,10 +585,14 @@ public class RestS3Service extends S3Service {
         Map<String, Object> requestParameters = new HashMap<String, Object>();
         requestParameters.put("location","");
 
-        HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
-        return getXmlResponseSaxParser()
-            .parseBucketLocationResponse(
-                new HttpMethodReleaseInputStream(httpMethod));
+        try {
+            HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
+            return getXmlResponseSaxParser()
+                .parseBucketLocationResponse(
+                    new HttpMethodReleaseInputStream(httpMethod));
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     @Override
@@ -583,10 +606,14 @@ public class RestS3Service extends S3Service {
         Map<String, Object> requestParameters = new HashMap<String, Object>();
         requestParameters.put("logging","");
 
-        HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
-        return getXmlResponseSaxParser()
-            .parseLoggingStatusResponse(
-                new HttpMethodReleaseInputStream(httpMethod)).getBucketLoggingStatus();
+        try {
+            HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
+            return getXmlResponseSaxParser()
+                .parseLoggingStatusResponse(
+                    new HttpMethodReleaseInputStream(httpMethod)).getBucketLoggingStatus();
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     @Override
@@ -614,6 +641,8 @@ public class RestS3Service extends S3Service {
             performRestPut(bucketName, null, metadata, requestParameters,
                 new StringRequestEntity(statusAsXml, "text/plain", Constants.DEFAULT_ENCODING),
                 true);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
         } catch (UnsupportedEncodingException e) {
             throw new S3ServiceException("Unable to encode LoggingStatus XML document", e);
         }
@@ -629,6 +658,8 @@ public class RestS3Service extends S3Service {
 
             HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
             return httpMethod.getResponseBodyAsString();
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
         } catch (IOException  e) {
             throw new S3ServiceException(e);
         }
@@ -649,6 +680,8 @@ public class RestS3Service extends S3Service {
             performRestPut(bucketName, null, metadata, requestParameters,
                 new StringRequestEntity(policyDocument, "text/plain", Constants.DEFAULT_ENCODING),
                 true);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
         } catch (UnsupportedEncodingException e) {
             throw new S3ServiceException("Unable to encode LoggingStatus XML document", e);
         }
@@ -658,9 +691,13 @@ public class RestS3Service extends S3Service {
     protected void deleteBucketPolicyImpl(String bucketName)
         throws S3ServiceException
     {
-        Map<String, Object> requestParameters = new HashMap<String, Object>();
-        requestParameters.put("policy","");
-        performRestDelete(bucketName, null, requestParameters, null, null);
+        try {
+            Map<String, Object> requestParameters = new HashMap<String, Object>();
+            requestParameters.put("policy","");
+            performRestDelete(bucketName, null, requestParameters, null, null);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     @Override
@@ -674,10 +711,14 @@ public class RestS3Service extends S3Service {
         Map<String, Object> requestParameters = new HashMap<String, Object>();
         requestParameters.put("requestPayment","");
 
-        HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
-        return getXmlResponseSaxParser()
-            .parseRequestPaymentConfigurationResponse(
-                new HttpMethodReleaseInputStream(httpMethod));
+        try {
+            HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
+            return getXmlResponseSaxParser()
+                .parseRequestPaymentConfigurationResponse(
+                    new HttpMethodReleaseInputStream(httpMethod));
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     @Override
@@ -704,6 +745,8 @@ public class RestS3Service extends S3Service {
             performRestPut(bucketName, null, metadata, requestParameters,
                 new StringRequestEntity(xml, "text/plain", Constants.DEFAULT_ENCODING),
                 true);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
         } catch (UnsupportedEncodingException e) {
             throw new S3ServiceException("Unable to encode RequestPaymentConfiguration XML document", e);
         }

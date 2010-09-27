@@ -55,7 +55,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.impl.rest.httpclient.AWSRequestAuthorizer;
 import org.jets3t.service.impl.rest.httpclient.HttpClientAndConnectionManager;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
@@ -107,9 +107,9 @@ public class RestUtils {
      * @param path
      * @return
      * encoded URL.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
-    public static String encodeUrlString(String path) throws S3ServiceException {
+    public static String encodeUrlString(String path) throws ServiceException {
         try {
             String encodedPath = URLEncoder.encode(path, Constants.DEFAULT_ENCODING);
             // Web browsers do not always handle '+' characters well, use the well-supported '%20' instead.
@@ -118,7 +118,7 @@ public class RestUtils {
             encodedPath = encodedPath.replaceAll("%40", "@");
             return encodedPath;
         } catch (UnsupportedEncodingException uee) {
-            throw new S3ServiceException("Unable to encode path: " + path, uee);
+            throw new ServiceException("Unable to encode path: " + path, uee);
         }
     }
 
@@ -130,9 +130,9 @@ public class RestUtils {
      * @param delimiter
      * @return
      * encoded URL string.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
-    public static String encodeUrlPath(String path, String delimiter) throws S3ServiceException {
+    public static String encodeUrlPath(String path, String delimiter) throws ServiceException {
         StringBuffer result = new StringBuffer();
         String tokens[] = path.split(delimiter);
         for (int i = 0; i < tokens.length; i++) {

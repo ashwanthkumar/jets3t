@@ -18,8 +18,13 @@
  */
 package org.jets3t.samples;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.InputStreamReader;
+
 import org.jets3t.service.Constants;
-import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.acl.Permission;
 import org.jets3t.service.acl.gs.AllUsersGrantee;
 import org.jets3t.service.acl.gs.GSAccessControlList;
@@ -31,11 +36,6 @@ import org.jets3t.service.model.GSBucket;
 import org.jets3t.service.model.GSObject;
 import org.jets3t.service.security.GSCredentials;
 import org.jets3t.service.utils.ServiceUtils;
-
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.InputStreamReader;
 
 /**
  * This class includes all the code samples as listed in the Google Storage
@@ -261,7 +261,7 @@ public class GSCodeSamples {
 
         // List only objects whose keys match a prefix.
         String prefix = "Reports";
-        String delimiter = null; // Refer to the S3 guide for more information on delimiters
+        String delimiter = null; // Refer to the service guide for more information on delimiters
         GSObject[] filteredObjects = gsService.listObjects(BUCKET_NAME, prefix, delimiter);
 
         /*
@@ -290,8 +290,7 @@ public class GSCodeSamples {
          * Moving and Renaming objects
          */
 
-        // Objects can be moved within a bucket (to a different name) or to another S3
-        // bucket in the same region (eg US or EU).
+        // Objects can be moved within a bucket (to a different name) or to another bucket.
         // A move operation is composed of a copy then a delete operation behind the scenes.
         // If the initial copy operation fails, the object is not deleted. If the final delete
         // operation fails, the object will exist in both the source and destination locations.
@@ -317,7 +316,7 @@ public class GSCodeSamples {
         try {
             // This will fail if the bucket isn't empty.
             gsService.deleteBucket(BUCKET_NAME);
-        } catch (S3ServiceException e) {
+        } catch (ServiceException e) {
             e.printStackTrace();
         }
 
@@ -348,7 +347,7 @@ public class GSCodeSamples {
         // existing items may be updated. Let's start by creating a bucket with default (i.e. private)
         // access settings, then making it public.
 
-        // Create a bucket in S3.
+        // Create a bucket.
         String publicBucketName = BUCKET_NAME + "-public";
         GSBucket publicBucket = new GSBucket(publicBucketName);
         gsService.createBucket(publicBucketName);

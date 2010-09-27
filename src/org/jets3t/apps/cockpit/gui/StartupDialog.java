@@ -53,6 +53,7 @@ import org.jets3t.gui.ProgressDialog;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.StorageService;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
@@ -394,7 +395,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
                     StorageService service = getStorageService();
                     encryptedCredentialsObject = service.getObject(
                         bucketName[0], credentialObjectKey[0]);
-                } catch (S3ServiceException e) {
+                } catch (ServiceException e) {
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
                             progressDialog.stopDialog();
@@ -429,7 +430,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
                         }
                      });
                     myself.setVisible(false);
-                } catch (S3ServiceException e) {
+                } catch (ServiceException e) {
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
                             progressDialog.stopDialog();
@@ -523,7 +524,7 @@ public class StartupDialog extends JDialog implements ActionListener, ChangeList
                         "Your credentials have been stored online"
                         + "\n\nBucket name: " + bucketName[0]
                         + "\nObject key: " + credentialObjectKey[0]);
-                } catch (S3ServiceException e) {
+                } catch (ServiceException e) {
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
                             progressDialog.stopDialog();

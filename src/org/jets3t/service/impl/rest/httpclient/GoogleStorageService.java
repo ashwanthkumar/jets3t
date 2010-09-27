@@ -24,7 +24,7 @@ import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.auth.CredentialsProvider;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.acl.gs.GSAccessControlList;
 import org.jets3t.service.impl.rest.AccessControlListHandler;
 import org.jets3t.service.impl.rest.GSAccessControlListHandler;
@@ -58,7 +58,7 @@ public class GoogleStorageService extends RestStorageService {
      *
      * @throws S3ServiceException
      */
-    public GoogleStorageService(ProviderCredentials credentials) throws S3ServiceException {
+    public GoogleStorageService(ProviderCredentials credentials) throws ServiceException {
         this(credentials, null, null);
     }
 
@@ -79,7 +79,7 @@ public class GoogleStorageService extends RestStorageService {
      * @throws S3ServiceException
      */
     public GoogleStorageService(ProviderCredentials credentials, String invokingApplicationDescription,
-        CredentialsProvider credentialsProvider) throws S3ServiceException
+        CredentialsProvider credentialsProvider) throws ServiceException
     {
         this(credentials, invokingApplicationDescription, credentialsProvider,
             Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME));
@@ -105,7 +105,7 @@ public class GoogleStorageService extends RestStorageService {
      */
     public GoogleStorageService(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties)
-        throws S3ServiceException
+        throws ServiceException
     {
         this(credentials, invokingApplicationDescription, credentialsProvider,
             jets3tProperties, new HostConfiguration());
@@ -133,7 +133,7 @@ public class GoogleStorageService extends RestStorageService {
      */
     public GoogleStorageService(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties,
-        HostConfiguration hostConfig) throws S3ServiceException
+        HostConfiguration hostConfig) throws ServiceException
     {
         super(credentials, invokingApplicationDescription, credentialsProvider, jets3tProperties, hostConfig);
     }
@@ -242,30 +242,30 @@ public class GoogleStorageService extends RestStorageService {
     ////////////////////////////////////////////////////////////
 
     @Override
-    public GSBucket[] listAllBuckets() throws S3ServiceException {
+    public GSBucket[] listAllBuckets() throws ServiceException {
         return GSBucket.cast(super.listAllBuckets());
     }
 
     @Override
-    public GSObject[] listObjects(String bucketName) throws S3ServiceException {
+    public GSObject[] listObjects(String bucketName) throws ServiceException {
         return GSObject.cast(super.listObjects(bucketName));
     }
 
     @Override
     public GSObject[] listObjects(String bucketName, String prefix, String delimiter)
-        throws S3ServiceException
+        throws ServiceException
     {
         return GSObject.cast(super.listObjects(bucketName, prefix, delimiter));
     }
 
 
     @Override
-    public GSBucket createBucket(String bucketName) throws S3ServiceException {
+    public GSBucket createBucket(String bucketName) throws ServiceException {
         return (GSBucket) super.createBucket(bucketName);
     }
 
     @Override
-    public GSAccessControlList getBucketAcl(String bucketName) throws S3ServiceException {
+    public GSAccessControlList getBucketAcl(String bucketName) throws ServiceException {
         return (GSAccessControlList) super.getBucketAcl(bucketName);
     }
 
@@ -284,9 +284,9 @@ public class GoogleStorageService extends RestStorageService {
      * a name of the bucket with ACL settings to apply.
      * @throws S3ServiceException
      */
-    public void putBucketAcl(String bucketName, GSAccessControlList acl) throws S3ServiceException {
+    public void putBucketAcl(String bucketName, GSAccessControlList acl) throws ServiceException {
         if (acl == null) {
-            throw new S3ServiceException("The bucket '" + bucketName +
+            throw new ServiceException("The bucket '" + bucketName +
                 "' does not include ACL information");
         }
         putBucketAclImpl(bucketName, acl);
@@ -307,18 +307,18 @@ public class GoogleStorageService extends RestStorageService {
      * a bucket with ACL settings to apply.
      * @throws S3ServiceException
      */
-    public void putBucketAcl(GSBucket bucket) throws S3ServiceException {
+    public void putBucketAcl(GSBucket bucket) throws ServiceException {
         assertValidBucket(bucket, "Put Bucket Access Control List");
         putBucketAcl(bucket.getName(), bucket.getAcl());
     }
 
     @Override
-    public GSObject getObject(String bucketName, String objectKey) throws S3ServiceException {
+    public GSObject getObject(String bucketName, String objectKey) throws ServiceException {
         return (GSObject) super.getObject(bucketName, objectKey);
     }
 
     public GSObject putObject(String bucketName, GSObject object)
-        throws S3ServiceException
+        throws ServiceException
     {
         return (GSObject) super.putObject(bucketName, object);
     }
@@ -327,7 +327,7 @@ public class GoogleStorageService extends RestStorageService {
     public GSObject getObject(String bucketName, String objectKey,
         Calendar ifModifiedSince, Calendar ifUnmodifiedSince,
         String[] ifMatchTags, String[] ifNoneMatchTags, Long byteRangeStart,
-        Long byteRangeEnd) throws S3ServiceException
+        Long byteRangeEnd) throws ServiceException
     {
         return (GSObject) super.getObject(bucketName, objectKey, ifModifiedSince,
             ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, byteRangeStart,
@@ -336,7 +336,7 @@ public class GoogleStorageService extends RestStorageService {
 
     @Override
     public GSObject getObjectDetails(String bucketName, String objectKey)
-        throws S3ServiceException
+        throws ServiceException
     {
         return (GSObject) super.getObjectDetails(bucketName, objectKey);
     }

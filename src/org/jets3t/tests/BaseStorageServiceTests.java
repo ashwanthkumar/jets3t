@@ -36,7 +36,7 @@ import junit.framework.TestCase;
 
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3Service;
-import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.StorageObjectsChunk;
 import org.jets3t.service.StorageService;
 import org.jets3t.service.acl.AccessControlList;
@@ -152,7 +152,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
         try {
             getStorageService(null).listAllBuckets();
             fail("Bucket listing should fail without authentication");
-        } catch (S3ServiceException e) {
+        } catch (ServiceException e) {
         }
 
         // List with credentials
@@ -178,13 +178,13 @@ public abstract class BaseStorageServiceTests extends TestCase {
         try {
             service.createBucket("");
             fail("Cannot create a bucket with empty name");
-        } catch (S3ServiceException e) {
+        } catch (ServiceException e) {
         }
 
         try {
             service.createBucket("test");
             fail("Cannot create a bucket with non-unique name");
-        } catch (S3ServiceException e) {
+        } catch (ServiceException e) {
         }
 
         String bucketName = createBucketForTest("testBucketManagement").getName();
@@ -195,19 +195,19 @@ public abstract class BaseStorageServiceTests extends TestCase {
         try {
             service.deleteBucket((String) null);
             fail("Cannot delete a bucket with null name");
-        } catch (S3ServiceException e) {
+        } catch (ServiceException e) {
         }
 
         try {
             service.deleteBucket("");
             fail("Cannot delete a bucket with empty name");
-        } catch (S3ServiceException e) {
+        } catch (ServiceException e) {
         }
 
         try {
             service.deleteBucket("test");
             fail("Cannot delete a bucket you don't own");
-        } catch (S3ServiceException e) {
+        } catch (ServiceException e) {
         }
 
         // Ensure we can delete our bucket
@@ -249,19 +249,19 @@ public abstract class BaseStorageServiceTests extends TestCase {
             try {
                 service.putObject((String) null, null);
                 fail("Cannot create an object without a valid bucket");
-            } catch (S3ServiceException e) {
+            } catch (ServiceException e) {
             }
 
             try {
                 service.putObject((String) null, object);
                 fail("Cannot create an object without a valid bucket");
-            } catch (S3ServiceException e) {
+            } catch (ServiceException e) {
             }
 
             try {
                 service.putObject(bucketName, new StorageObject());
                 fail("Cannot create an object without a valid object");
-            } catch (S3ServiceException e) {
+            } catch (ServiceException e) {
             }
 
             // Create basic object with no content type (use the default) and no data.
@@ -285,7 +285,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             try {
                 service.deleteBucket(bucketName);
                 fail("Should not be able to delete a bucket containing objects");
-            } catch (S3ServiceException e) {
+            } catch (ServiceException e) {
             }
 
             // Update/overwrite object with real data content and some metadata.
@@ -358,12 +358,12 @@ public abstract class BaseStorageServiceTests extends TestCase {
             try {
                 service.getObjectDetails(bucketName, object.getKey(), objectCreationTimeCal, null, null, null);
                 fail("Cannot have been modified since object was created");
-            } catch (S3ServiceException e) { }
+            } catch (ServiceException e) { }
             // Precondition: Not modified since yesterday
             try {
                 service.getObjectDetails(bucketName, object.getKey(), null, yesterday, null, null);
                 fail("Cannot be unmodified since yesterday");
-            } catch (S3ServiceException e) { }
+            } catch (ServiceException e) { }
             // Precondition: Not modified since tomorrow
             service.getObjectDetails(bucketName, object.getKey(), null, tomorrow, null, null);
             // Precondition: matches correct hash
@@ -373,13 +373,13 @@ public abstract class BaseStorageServiceTests extends TestCase {
                 service.getObjectDetails(bucketName, object.getKey(), null, null,
                     new String[] {"__" + dataMd5HashAsHex.substring(2)}, null);
                 fail("Hash values should not match");
-            } catch (S3ServiceException e) {
+            } catch (ServiceException e) {
             }
             // Precondition: doesn't match correct hash
             try {
                 service.getObjectDetails(bucketName, object.getKey(), null, null, null, new String[] {dataMd5HashAsHex});
                 fail("Hash values should mis-match");
-            } catch (S3ServiceException e) {
+            } catch (ServiceException e) {
             }
             // Precondition: doesn't match incorrect hash
             service.getObjectDetails(bucketName, object.getKey(), null, null, null,
@@ -578,7 +578,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
                 service.getObjectDetails(
                     sourceBucketName, objectNames[objectOffset]);
                 fail("Source object should be moved");
-            } catch (S3ServiceException e) {
+            } catch (ServiceException e) {
                 // Expected
             }
             copiedObject = service.getObjectDetails(
@@ -595,7 +595,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
                 service.getObjectDetails(
                     sourceBucketName, objectNames[objectOffset]);
                 fail("Source object should be moved");
-            } catch (S3ServiceException e) {
+            } catch (ServiceException e) {
                 // Expected
             }
             copiedObject = service.getObjectDetails(
@@ -633,7 +633,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             requestObject.addMetadata("testing", unicodeText);
             try {
                 service.putObject(bucketName, requestObject);
-            } catch (S3ServiceException e) {
+            } catch (ServiceException e) {
             }
 
             // Unicode metadata values can be encoded
@@ -650,7 +650,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             try {
                 service.putObject(bucketName, requestObject);
                 fail("Illegal to use non-ASCII characters in HTTP headers");
-            } catch (S3ServiceException e) {
+            } catch (ServiceException e) {
             }
 
             // Unicode HTTP headers (via RFC 5987 encoding) -- not working...
@@ -928,10 +928,10 @@ public abstract class BaseStorageServiceTests extends TestCase {
                 object.addMetadata("Content-MD5", "123");
                 service.putObject(bucketName, object);
                 fail("Should have failed due to invalid hash value");
-            } catch (S3ServiceException e) {
+            } catch (ServiceException e) {
                 assertTrue("Expected error code indicating invalid md5 hash",
-                    "InvalidDigest".equals(e.getS3ErrorCode())  // S3 error code
-                    || "BadDigest".equals(e.getS3ErrorCode())   // GS error code
+                    "InvalidDigest".equals(e.getErrorCode())  // S3 error code
+                    || "BadDigest".equals(e.getErrorCode())   // GS error code
                     );
             }
             object = new StorageObject("Testing MD5 Hashing", dataString);
@@ -944,8 +944,8 @@ public abstract class BaseStorageServiceTests extends TestCase {
                 object.setMd5Hash(incorrectHash);
                 service.putObject(bucketName, object);
                 fail("Should have failed due to incorrect hash value");
-            } catch (S3ServiceException e) {
-                assertEquals("Expected error code indicating invalid md5 hash", "BadDigest", e.getS3ErrorCode());
+            } catch (ServiceException e) {
+                assertEquals("Expected error code indicating invalid md5 hash", "BadDigest", e.getErrorCode());
             }
             object = new StorageObject("Testing MD5 Hashing", dataString);
 

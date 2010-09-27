@@ -22,7 +22,7 @@ import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 
-import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.GrantAndPermission;
 import org.jets3t.service.acl.GranteeInterface;
@@ -41,7 +41,8 @@ import com.jamesmurty.utils.XMLBuilder;
  *
  */
 public class GSAccessControlList extends AccessControlList {
-    private static final long serialVersionUID = -1398278213190647823L;
+
+    private static final long serialVersionUID = -3170938665076811564L;
 
     /*
      * Predefined ACLs that can be applied on creation of an object or bucket,
@@ -64,11 +65,11 @@ public class GSAccessControlList extends AccessControlList {
     }
 
     @Override
-    public XMLBuilder toXMLBuilder() throws S3ServiceException, ParserConfigurationException,
+    public XMLBuilder toXMLBuilder() throws ServiceException, ParserConfigurationException,
         FactoryConfigurationError, TransformerException
     {
         if (owner == null) {
-            throw new S3ServiceException("Invalid AccessControlList: missing an S3Owner");
+            throw new ServiceException("Invalid AccessControlList: missing an S3Owner");
         }
         XMLBuilder builder = XMLBuilder.create("AccessControlList");
 

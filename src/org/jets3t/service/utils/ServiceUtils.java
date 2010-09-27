@@ -49,7 +49,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.S3Service;
-import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.model.S3Object;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
@@ -128,7 +128,7 @@ public class ServiceUtils {
      * @throws S3ServiceException
      */
     public static String signWithHmacSha1(String awsSecretKey, String canonicalString)
-        throws S3ServiceException
+        throws ServiceException
     {
         if (awsSecretKey == null) {
             if (log.isDebugEnabled()) {
@@ -146,7 +146,7 @@ public class ServiceUtils {
             signingKey = new SecretKeySpec(awsSecretKey.getBytes(Constants.DEFAULT_ENCODING),
                 Constants.HMAC_SHA1_ALGORITHM);
         } catch (UnsupportedEncodingException e) {
-            throw new S3ServiceException("Unable to get bytes from secret string", e);
+            throw new ServiceException("Unable to get bytes from secret string", e);
         }
 
         // Acquire the MAC instance and initialize with the signing key.
@@ -170,7 +170,7 @@ public class ServiceUtils {
                 canonicalString.getBytes(Constants.DEFAULT_ENCODING)));
             return new String(b64);
         } catch (UnsupportedEncodingException e) {
-            throw new S3ServiceException("Unable to get bytes from canonical string", e);
+            throw new ServiceException("Unable to get bytes from canonical string", e);
         }
     }
 
@@ -717,7 +717,7 @@ public class ServiceUtils {
      *
      * @return an initialized XML SAX reader
      */
-    public static XMLReader loadXMLReader() throws S3ServiceException {
+    public static XMLReader loadXMLReader() throws ServiceException {
         // Try loading the default SAX reader
         try {
             return XMLReaderFactory.createXMLReader();
@@ -739,7 +739,7 @@ public class ServiceUtils {
             }
         }
         // If we haven't found and returned an XMLReader yet, give up.
-        throw new S3ServiceException("Failed to initialize a SAX XMLReader");
+        throw new ServiceException("Failed to initialize a SAX XMLReader");
     }
 
 }
