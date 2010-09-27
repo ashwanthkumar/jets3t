@@ -1077,6 +1077,10 @@ public abstract class BaseStorageServiceTests extends TestCase {
             assertEquals(0, deleteObjectsEventCount[0]);
             // Check all objects retrieved have expected data content.
             for (StorageObject getObject: getObjectsList) {
+                // TODO: Google Storage doesn't reliably return Content-Length in a GET!
+                if (!TARGET_SERVICE_GS.equals(getTargetService())) {
+                    assertEquals("Some data".length(), getObject.getContentLength());
+                }
                 String objectData = ServiceUtils.readInputStreamToString(
                     getObject.getDataInputStream(), Constants.DEFAULT_ENCODING);
                 assertEquals("Some data", objectData);
@@ -1135,8 +1139,10 @@ public abstract class BaseStorageServiceTests extends TestCase {
             StorageObject[] getObjects = simpleThreadedService.getObjects(bucketName, objects);
             assertEquals(objects.length, getObjects.length);
             for (int i = 0; i < objects.length; i++) {
-                assertEquals(objects[i].getKey(), getObjects[i].getKey());
-                assertEquals("Some data".length(), getObjects[i].getContentLength());
+                // TODO: Google Storage doesn't reliably return Content-Length in a GET!
+                if (!TARGET_SERVICE_GS.equals(getTargetService())) {
+                    assertEquals("Some data".length(), getObjects[i].getContentLength());
+                }
                 // Check all objects retrieved have expected data content.
                 assertEquals("Some data", ServiceUtils.readInputStreamToString(
                     getObjects[i].getDataInputStream(), Constants.DEFAULT_ENCODING));
