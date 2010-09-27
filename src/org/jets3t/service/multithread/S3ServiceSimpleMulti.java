@@ -41,8 +41,11 @@ import org.jets3t.service.model.S3Object;
  * For a non-blocking multi-threading service that is more powerful, but also more complicated,
  * see {@link S3ServiceMulti}.
  *
+ * @deprecated 0.8.0 use {@link org.jets3t.service.multi.SimpleThreadedStorageService} instead.
+ *
  * @author James Murty
  */
+@Deprecated
 public class S3ServiceSimpleMulti {
     private S3Service s3Service = null;
 
@@ -87,6 +90,7 @@ public class S3ServiceSimpleMulti {
     public S3Bucket[] createBuckets(final S3Bucket[] buckets) throws S3ServiceException {
         final List bucketList = new ArrayList();
         S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor() {
+            @Override
             public void s3ServiceEventPerformed(CreateBucketsEvent event) {
                 super.s3ServiceEventPerformed(event);
                 if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
@@ -113,6 +117,7 @@ public class S3ServiceSimpleMulti {
     public S3Object[] putObjects(final S3Bucket bucket, final S3Object[] objects) throws S3ServiceException {
         final List objectList = new ArrayList();
         S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor() {
+            @Override
             public void s3ServiceEventPerformed(CreateObjectsEvent event) {
                 super.s3ServiceEventPerformed(event);
                 if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
@@ -153,6 +158,7 @@ public class S3ServiceSimpleMulti {
     {
         final List resultsList = new ArrayList();
         S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor() {
+            @Override
             public void s3ServiceEventPerformed(CopyObjectsEvent event) {
                 super.s3ServiceEventPerformed(event);
                 if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
@@ -178,6 +184,7 @@ public class S3ServiceSimpleMulti {
     public void deleteObjects(final S3Bucket bucket, final S3Object[] objects) throws S3ServiceException {
         final List objectList = new ArrayList();
         S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor() {
+            @Override
             public void s3ServiceEventPerformed(DeleteObjectsEvent event) {
                 super.s3ServiceEventPerformed(event);
                 if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
@@ -263,6 +270,7 @@ public class S3ServiceSimpleMulti {
 
         final List objectList = new ArrayList();
         S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor() {
+            @Override
             public void s3ServiceEventPerformed(DownloadObjectsEvent event) {
                 super.s3ServiceEventPerformed(event);
                 if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
@@ -331,6 +339,7 @@ public class S3ServiceSimpleMulti {
     public S3Object[] getObjectsHeads(final S3Bucket bucket, final String[] objectKeys) throws S3ServiceException {
         final List objectList = new ArrayList();
         S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor() {
+            @Override
             public void s3ServiceEventPerformed(GetObjectHeadsEvent event) {
                 super.s3ServiceEventPerformed(event);
                 if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
@@ -357,6 +366,7 @@ public class S3ServiceSimpleMulti {
     public S3Object[] getObjectACLs(final S3Bucket bucket, final S3Object[] objects) throws S3ServiceException {
         final List objectList = new ArrayList();
         S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor() {
+            @Override
             public void s3ServiceEventPerformed(LookupACLEvent event) {
                 super.s3ServiceEventPerformed(event);
                 if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
@@ -383,6 +393,7 @@ public class S3ServiceSimpleMulti {
     public S3Object[] putACLs(final S3Bucket bucket, final S3Object[] objects) throws S3ServiceException {
         final List objectList = new ArrayList();
         S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor() {
+            @Override
             public void s3ServiceEventPerformed(UpdateACLEvent event) {
                 super.s3ServiceEventPerformed(event);
                 if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {

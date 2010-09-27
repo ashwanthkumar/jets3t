@@ -52,6 +52,7 @@ import org.jets3t.service.impl.rest.httpclient.RestStorageService;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.StorageOwner;
+import org.jets3t.service.multi.SimpleThreadedStorageService;
 import org.jets3t.service.multi.StorageServiceEventAdaptor;
 import org.jets3t.service.multi.ThreadedStorageService;
 import org.jets3t.service.multi.event.CreateObjectsEvent;
@@ -994,7 +995,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
 
     public void testThreadedStorageService() throws Exception {
         RestStorageService service = getStorageService(getCredentials());
-        StorageBucket bucket = createBucketForTest("testMultiThreadedService");
+        StorageBucket bucket = createBucketForTest("testThreadedStorageService");
         String bucketName = bucket.getName();
 
         try {
@@ -1004,7 +1005,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             final int[] deleteObjectsEventCount = new int[] {0};
 
             // Multi-threaded service with adaptor to count event occurrences.
-            ThreadedStorageService multiService = new ThreadedStorageService(
+            ThreadedStorageService threadedService = new ThreadedStorageService(
                 service,
                 new StorageServiceEventAdaptor() {
                     @Override
@@ -1052,7 +1053,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             };
 
             // Upload multiple objects
-            boolean success = multiService.putObjects(bucketName, objects);
+            boolean success = threadedService.putObjects(bucketName, objects);
             assertTrue(success);
             assertEquals(objects.length, createObjectsEventCount[0]);
             assertEquals(0, getObjectHeadsEventCount[0]);
@@ -1060,7 +1061,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             assertEquals(0, deleteObjectsEventCount[0]);
 
             // Retrieve details for multiple objects
-            success = multiService.getObjectsHeads(bucketName, objects);
+            success = threadedService.getObjectsHeads(bucketName, objects);
             assertTrue(success);
             assertEquals(objects.length, createObjectsEventCount[0]);
             assertEquals(objects.length, getObjectHeadsEventCount[0]);
@@ -1068,7 +1069,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             assertEquals(0, deleteObjectsEventCount[0]);
 
             // Retrieve data for multiple objects
-            success = multiService.getObjects(bucketName, objects);
+            success = threadedService.getObjects(bucketName, objects);
             assertTrue(success);
             assertEquals(objects.length, createObjectsEventCount[0]);
             assertEquals(objects.length, getObjectHeadsEventCount[0]);
@@ -1082,7 +1083,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             }
 
             // Delete multiple objects
-            success = multiService.deleteObjects(bucketName, objects);
+            success = threadedService.deleteObjects(bucketName, objects);
             assertTrue(success);
             assertEquals(objects.length, createObjectsEventCount[0]);
             assertEquals(objects.length, getObjectHeadsEventCount[0]);
@@ -1092,7 +1093,61 @@ public abstract class BaseStorageServiceTests extends TestCase {
             StorageObject[] listedObjects = service.listObjects(bucketName);
             assertEquals(0, listedObjects.length);
         } finally {
-            cleanupBucketForTest("testMultiThreadedService");
+            cleanupBucketForTest("testThreadedStorageService");
+        }
+    }
+
+    public void testSimpleThreadedStorageService() throws Exception {
+        RestStorageService service = getStorageService(getCredentials());
+        StorageBucket bucket = createBucketForTest("testSimpleThreadedStorageService");
+        String bucketName = bucket.getName();
+
+        try {
+            SimpleThreadedStorageService simpleThreadedService =
+                new SimpleThreadedStorageService(service);
+
+            StorageObject[] objects = new StorageObject[] {
+                new StorageObject("1-one.txt", "Some data"),
+                new StorageObject("2-twö.txt", "Some data"),
+                new StorageObject("3-thréè.txt", "Some data"),
+                new StorageObject("4-fôür.txt", "Some data"),
+                new StorageObject("5-fîvæ∫.txt", "Some data")
+            };
+
+            // Upload multiple objects
+            StorageObject[] putObjects =
+                simpleThreadedService.putObjects(bucketName, objects);
+            StorageObject[] listedObjects = service.listObjects(bucketName);
+            assertEquals(objects.length, listedObjects.length);
+            for (int i = 0; i < objects.length; i++) {
+                assertEquals(objects[i].getKey(), putObjects[i].getKey());
+            }
+
+            // Retrieve details for multiple objects
+            StorageObject[] headObjects = simpleThreadedService.getObjectsHeads(bucketName, objects);
+            assertEquals(objects.length, headObjects.length);
+            for (int i = 0; i < objects.length; i++) {
+                assertEquals(objects[i].getKey(), headObjects[i].getKey());
+                assertEquals("Some data".length(), headObjects[i].getContentLength());
+            }
+
+            // Retrieve data for multiple objects
+            StorageObject[] getObjects = simpleThreadedService.getObjects(bucketName, objects);
+            assertEquals(objects.length, getObjects.length);
+            for (int i = 0; i < objects.length; i++) {
+                assertEquals(objects[i].getKey(), getObjects[i].getKey());
+                assertEquals("Some data".length(), getObjects[i].getContentLength());
+                // Check all objects retrieved have expected data content.
+                assertEquals("Some data", ServiceUtils.readInputStreamToString(
+                    getObjects[i].getDataInputStream(), Constants.DEFAULT_ENCODING));
+            }
+
+            // Delete multiple objects
+            simpleThreadedService.deleteObjects(bucketName, objects);
+            listedObjects = service.listObjects(bucketName);
+            assertEquals(0, listedObjects.length);
+        } finally {
+            cleanupBucketForTest("testSimpleThreadedStorageService");
         }
     }
 

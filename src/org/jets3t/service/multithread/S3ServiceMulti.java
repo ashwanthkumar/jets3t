@@ -50,7 +50,6 @@ import org.jets3t.service.io.TempFile;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Version;
-import org.jets3t.service.multi.ThreadedStorageService;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.utils.signedurl.SignedUrlAndObject;
@@ -76,7 +75,7 @@ import org.jets3t.service.utils.signedurl.SignedUrlHandler;
  * <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html">JetS3t Configuration</a>
  * </p>
  *
- * @deprecated 0.8.0 use {@link ThreadedStorageService} instead.
+ * @deprecated 0.8.0 use {@link org.jets3t.service.multi.ThreadedStorageService} instead.
  *
  * @author James Murty
  */
