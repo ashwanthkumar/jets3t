@@ -1514,11 +1514,15 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * @param bucketName
      * the name of the bucket to create.
      * @param location
-     * the location of the S3 data centre in which the bucket will be created. Valid values
+     * the location of the S3 data centre in which the bucket will be created, or null for the
+     * default {@link S3Bucket#LOCATION_US_STANDARD} location. Valid values
      * include {@link S3Bucket#LOCATION_EUROPE}, {@link S3Bucket#LOCATION_US_WEST},
      * {@link S3Bucket#LOCATION_ASIA_PACIFIC}, and the default US location that can be
      * expressed in two ways:
      * {@link S3Bucket#LOCATION_US_STANDARD} or {@link S3Bucket#LOCATION_US}.
+     * @param acl
+     * the access control settings to apply to the new bucket, or null for default ACL values.
+     *
      * @return
      * the created bucket object. <b>Note:</b> the object returned has minimal information about
      * the bucket that was created, including only the bucket's name.
@@ -1832,7 +1836,8 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * This method cannot be performed by anonymous services.
      *
      * @param bucket
-     * an object representing the bucket to create which must be valid, and may contain ACL settings.
+     * an object representing the bucket to create which must be valid, and which may contain
+     * location and ACL settings that will be applied upon creation.
      * @return
      * the created bucket object, populated with all metadata made available by the creation operation.
      * @throws S3ServiceException
