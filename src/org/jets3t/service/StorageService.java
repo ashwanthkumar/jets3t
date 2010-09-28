@@ -445,6 +445,32 @@ public abstract class StorageService {
     }
 
     /**
+     * Create a bucket with the Access Control List settings of the bucket object (if any).
+     * <p>
+     * <b>Caution:</b> Performing this operation unnecessarily when a bucket already
+     * exists may cause OperationAborted errors with the message "A conflicting conditional
+     * operation is currently in progress against this resource.". To avoid this error, use the
+     * {@link #getOrCreateBucket(String)} in situations where the bucket may already exist.
+     * <p>
+     * <b>Warning:</b> Prior to version 0.7.0 this method did check whether a bucket already
+     * existed using {@link #isBucketAccessible(String)}. After changes to the way S3 operates,
+     * this check started to cause issues so it was removed.
+     * <p>
+     * This method cannot be performed by anonymous services.
+     *
+     * @param bucketName
+     * the name of the bucket to create.
+     * @return
+     * the created bucket object. <b>Note:</b> the object returned has minimal information about
+     * the bucket that was created, including only the bucket's name.
+     * @throws S3ServiceException
+     */
+    public StorageBucket createBucket(StorageBucket bucket) throws ServiceException
+    {
+        return createBucketImpl(bucket.getName(), null, bucket.getAcl());
+    }
+
+    /**
      * Convenience method to check whether an object exists in a bucket.
      *
      * @param bucketName
@@ -756,7 +782,8 @@ public abstract class StorageService {
 
     /**
      * Puts an object inside an existing bucket in S3, creating a new object or overwriting
-     * an existing one with the same key.
+     * an existing one with the same key. The Access Control List settings of the object
+     * (if any) will also be applied.
      * <p>
      * This method can be performed by anonymous services. Anonymous services
      * can put objects into a publicly-writable bucket.

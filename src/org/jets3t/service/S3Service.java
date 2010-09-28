@@ -1481,7 +1481,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         try {
             return this.createBucket(bucketName,
                 this.jets3tProperties.getStringProperty(
-                    "s3service.default-bucket-location", "US"));
+                    "s3service.default-bucket-location", "US"), null);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }
@@ -1524,10 +1524,12 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * the bucket that was created, including only the bucket's name.
      * @throws S3ServiceException
      */
-    public S3Bucket createBucket(String bucketName, String location) throws S3ServiceException {
+    public S3Bucket createBucket(String bucketName, String location, AccessControlList acl)
+        throws S3ServiceException
+    {
         try {
             assertAuthenticatedConnection("createBucket");
-            return (S3Bucket) createBucketImpl(bucketName, location, null);
+            return (S3Bucket) createBucketImpl(bucketName, location, acl);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }
@@ -1819,17 +1821,13 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     }
 
     /**
-     * Creates a bucket in S3 based on the provided bucket object.
+     * Creates a bucket in S3 based on the provided bucket object, with the Access Control List
+     * settings and location properties of the bucket object (if any).
+     * <p>
      * <b>Caution:</b> Performing this operation unnecessarily when a bucket already
      * exists may cause OperationAborted errors with the message "A conflicting conditional
      * operation is currently in progress against this resource.". To avoid this error, use the
      * {@link #getOrCreateBucket(String)} in situations where the bucket may already exist.
-     *
-     * @deprecated 0.8.0
-     * <p>
-     * <b>Warning:</b> Prior to version 0.7.0 this method did check whether a bucket already
-     * existed using {@link #isBucketAccessible(String)}. After changes to the way S3 operates,
-     * this check started to cause issues so it was removed.
      * <p>
      * This method cannot be performed by anonymous services.
      *
@@ -1839,7 +1837,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * the created bucket object, populated with all metadata made available by the creation operation.
      * @throws S3ServiceException
      */
-    @Deprecated
     public S3Bucket createBucket(S3Bucket bucket) throws S3ServiceException {
         try {
             assertAuthenticatedConnection("Create Bucket");
