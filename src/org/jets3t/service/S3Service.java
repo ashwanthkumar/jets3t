@@ -1540,6 +1540,44 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     }
 
     /**
+     * Creates a bucket in a specific location, without checking whether the bucket already
+     * exists. <b>Caution:</b> Performing this operation unnecessarily when a bucket already
+     * exists may cause OperationAborted errors with the message "A conflicting conditional
+     * operation is currently in progress against this resource.". To avoid this error, use the
+     * {@link #getOrCreateBucket(String)} in situations where the bucket may already exist.
+     * <p>
+     * <b>Warning:</b> Prior to version 0.7.0 this method did check whether a bucket already
+     * existed using {@link #isBucketAccessible(String)}. After changes to the way S3 operates,
+     * this check started to cause issues so it was removed.
+     * <p>
+     * This method cannot be performed by anonymous services.
+     *
+     * @param bucketName
+     * the name of the bucket to create.
+     * @param location
+     * the location of the S3 data centre in which the bucket will be created, or null for the
+     * default {@link S3Bucket#LOCATION_US_STANDARD} location. Valid values
+     * include {@link S3Bucket#LOCATION_EUROPE}, {@link S3Bucket#LOCATION_US_WEST},
+     * {@link S3Bucket#LOCATION_ASIA_PACIFIC}, and the default US location that can be
+     * expressed in two ways:
+     * {@link S3Bucket#LOCATION_US_STANDARD} or {@link S3Bucket#LOCATION_US}.
+     *
+     * @return
+     * the created bucket object. <b>Note:</b> the object returned has minimal information about
+     * the bucket that was created, including only the bucket's name.
+     * @throws S3ServiceException
+     */
+    public S3Bucket createBucket(String bucketName, String location) throws S3ServiceException
+    {
+        try {
+            assertAuthenticatedConnection("createBucket");
+            return (S3Bucket) createBucketImpl(bucketName, location, null);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
+    }
+
+    /**
      * Returns an object representing the details and data of an item in S3, without applying any
      * preconditions.
      *
