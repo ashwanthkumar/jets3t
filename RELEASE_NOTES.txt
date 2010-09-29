@@ -12,6 +12,8 @@ TOOLKIT
   and JDK 6+ is required to compile from source.
 - Removed antiquated and unsupported SOAP S3 service implementation
   from toolkit.
+- FileComparer and related tools are now compatible with both S3 and
+  Google Storage services.
 - FileComparer tool, and therefore all JetS3t apps, now uses a trailing
   slash to denote directory placeholder objects in S3 instead of
   the custom "application/x-directory" content-type. This should
@@ -66,6 +68,12 @@ COCKPIT
   Amazon S3 service in the startup/login dialog.
 - A CloudFront distribution's Default Root Object setting can be configured
   in the "CloudFront Distributions" dialog.
+
+SYNCHRONIZE
+
+- Directly supports new GoogleStorageService, allowing synchronization with
+  Google Storage accounts through the native API.
+- Choose target service end-point with the new "--provider" command argument.
 
 KUDOS TO:
 

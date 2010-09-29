@@ -38,7 +38,7 @@ import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.io.TempFile;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageObject;
-import org.jets3t.service.multithread.DownloadPackage;
+import org.jets3t.service.multi.DownloadPackage;
 import org.jets3t.service.security.EncryptionUtil;
 
 /**
@@ -274,7 +274,7 @@ public class ObjectUtils {
      * appropriate options are set.
      *
      * @param object
-     * the object in S3
+     * the object
      * @param fileTarget
      * the file to which downloaded (and possibly transformed) data will be written.
      * @param automaticUnzip
@@ -289,7 +289,7 @@ public class ObjectUtils {
      * a download package representing an S3Object and a taret file for the object's data.
      * @throws Exception
      */
-    public static DownloadPackage createPackageForDownload(S3Object object, File fileTarget,
+    public static DownloadPackage createPackageForDownload(StorageObject object, File fileTarget,
         boolean automaticUnzip, boolean automaticDecrypt, String encryptionPassword) throws Exception
     {
         // Recognize directory place-holder objects and ignore them
@@ -328,6 +328,77 @@ public class ObjectUtils {
             }
 
             return new DownloadPackage(object, fileTarget, isZipped, encryptionUtil);
+        }
+    }
+
+    /**
+     * Creates a download package representing an S3Object that will be downloaded, and the
+     * target file the downloaded data will be written to.
+     * <p>
+     * Downloaded data may be transformed if the S3Object is encrypted or gzipped and the
+     * appropriate options are set.
+     *
+     * @param object
+     * the object
+     * @param fileTarget
+     * the file to which downloaded (and possibly transformed) data will be written.
+     * @param automaticUnzip
+     * if true, gzipped objects will be decrypted on-the-fly as they are downloaded.
+     * @param automaticDecrypt
+     * if true, encrypted files will be decrypted on-the-fly as they are downloaded (in which
+     * case the encryptionPassword must be correct)
+     * @param encryptionPassword
+     * the password required to decrypt encrypted objects.
+     *
+     * @deprecated 0.8.0 use
+     * {@link #createPackageForDownload(StorageObject, File, boolean, boolean, String)} instead.
+     *
+     * @return
+     * a download package representing an S3Object and a taret file for the object's data.
+     * @throws Exception
+     */
+    @Deprecated
+    public static org.jets3t.service.multithread.DownloadPackage createPackageForDownload(
+        S3Object object, File fileTarget, boolean automaticUnzip, boolean automaticDecrypt,
+        String encryptionPassword) throws Exception
+    {
+        // Recognize directory place-holder objects and ignore them
+        if (object.isDirectoryPlaceholder()) {
+            return null;
+        }
+        else {
+            boolean isZipped = false;
+            EncryptionUtil encryptionUtil = null;
+
+            if (automaticUnzip &&
+                ("gzip".equalsIgnoreCase(object.getContentEncoding())
+                || object.containsMetadata(Constants.METADATA_JETS3T_COMPRESSED)))
+            {
+                // Object data is gzipped.
+                isZipped = true;
+            }
+            if (automaticDecrypt
+                && object.containsMetadata(Constants.METADATA_JETS3T_CRYPTO_ALGORITHM))
+            {
+                // Object is encrypted.
+                if (encryptionPassword == null) {
+                    throw new ServiceException(
+                        "One or more objects are encrypted, and cannot be downloaded unless "
+                        + " the encyption password is provided");
+                }
+
+                String algorithm = (String) object.getMetadata(
+                    Constants.METADATA_JETS3T_CRYPTO_ALGORITHM);
+                String version = (String) object.getMetadata(
+                    Constants.METADATA_JETS3T_CRYPTO_VERSION);
+                if (version == null) {
+                    version = EncryptionUtil.DEFAULT_VERSION;
+                }
+                encryptionUtil = new EncryptionUtil(encryptionPassword, algorithm, version);
+            }
+
+            return new org.jets3t.service.multithread.DownloadPackage(
+                object, fileTarget, isZipped, encryptionUtil);
         }
     }
 

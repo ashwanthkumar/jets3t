@@ -41,12 +41,14 @@ import java.util.Set;
  * @author James Murty
  */
 public class FileComparerResults {
-    public Set onlyOnServerKeys, updatedOnServerKeys, updatedOnClientKeys, onlyOnClientKeys,
+    public Set<String> onlyOnServerKeys, updatedOnServerKeys, updatedOnClientKeys, onlyOnClientKeys,
         alreadySynchronisedKeys, alreadySynchronisedLocalPaths;
 
-    public FileComparerResults(Set onlyOnServerKeys, Set updatedOnServerKeys,
-        Set updatedOnClientKeys, Set onlyOnClientKeys, Set alreadySynchronisedKeys,
-        Set alreadySynchronisedLocalPaths) {
+    public FileComparerResults(
+        Set<String> onlyOnServerKeys, Set<String> updatedOnServerKeys,
+        Set<String> updatedOnClientKeys, Set<String> onlyOnClientKeys,
+        Set<String> alreadySynchronisedKeys, Set<String> alreadySynchronisedLocalPaths)
+    {
         this.onlyOnServerKeys = onlyOnServerKeys;
         this.updatedOnServerKeys = updatedOnServerKeys;
         this.updatedOnClientKeys = updatedOnClientKeys;
@@ -56,7 +58,8 @@ public class FileComparerResults {
     }
 
     public FileComparerResults() {
-        this(new HashSet(), new HashSet(), new HashSet(), new HashSet(), new HashSet(), new HashSet());
+        this(new HashSet<String>(), new HashSet<String>(), new HashSet<String>(),
+            new HashSet<String>(), new HashSet<String>(), new HashSet<String>());
     }
 
     public void merge(FileComparerResults resultsToAdd) {
