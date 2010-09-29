@@ -1385,7 +1385,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
         // Build map of S3 Objects being downloaded.
         s3DownloadObjectsMap = FileComparer.getInstance()
-            .populateS3ObjectMap("", getSelectedObjects());
+            .populateObjectMap("", getSelectedObjects());
 
         // Identify objects that may clash with existing files, or may be directories,
         // and retrieve details for these.
@@ -1444,7 +1444,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                 .toArray(new S3Object[objectsWithExistingKeys.size()]);
 
             s3ExistingObjectsMap = FileComparer.getInstance()
-                .populateS3ObjectMap("", existingObjects);
+                .populateObjectMap("", existingObjects);
 
             if (existingObjects.length > 0) {
                 // Retrieve details of potential clashes.

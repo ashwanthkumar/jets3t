@@ -2072,7 +2072,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
         // Build map of S3 Objects being downloaded.
         final Map s3DownloadObjectsMap = FileComparer.getInstance()
-            .populateS3ObjectMap("", objectsForDownload);
+            .populateObjectMap("", objectsForDownload);
 
         final HyperlinkActivatedListener hyperlinkListener = this;
 
@@ -2141,7 +2141,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                 .toArray(new S3Object[objectsWithExistingKeys.size()]);
 
             final Map s3ExistingObjectsMap = FileComparer.getInstance()
-                .populateS3ObjectMap("", existingObjects);
+                .populateObjectMap("", existingObjects);
 
             final HyperlinkActivatedListener hyperlinkListener = this;
             final S3Object[] clashingObjects = existingObjects;

@@ -46,20 +46,17 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.S3Service;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.StorageObjectsChunk;
 import org.jets3t.service.StorageService;
 import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
-import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.multi.StorageServiceEventAdaptor;
 import org.jets3t.service.multi.StorageServiceEventListener;
 import org.jets3t.service.multi.ThreadedStorageService;
 import org.jets3t.service.multi.event.GetObjectHeadsEvent;
 import org.jets3t.service.multi.event.ListObjectsEvent;
-import org.jets3t.service.multithread.S3ServiceEventListener;
 
 /**
  * File comparison utility to compare files on the local computer with objects present in a service
@@ -355,7 +352,7 @@ public class FileComparer {
      * Any file or directory matching a path in a <code>.jets3t-ignore</code> file will be ignored.
      *
      * @see #buildDiscrepancyLists(Map, Map)
-     * @see #buildObjectMap(S3Service, S3Bucket, String, boolean, S3ServiceEventListener)
+     * @see #buildObjectMap(StorageService, String, String, boolean, StorageServiceEventListener)
      *
      * @param rootDirectory
      * The root directory containing the files/directories of interest. The root directory is <b>not</b>
@@ -492,7 +489,7 @@ public class FileComparer {
          * Create a ThreadedStorageService object with an event listener that responds to
          * ListObjectsEvent notifications and populates a complete object listing.
          */
-        final ThreadedStorageService s3Multi = new ThreadedStorageService(service,
+        final ThreadedStorageService threadedService = new ThreadedStorageService(service,
             new StorageServiceEventAdaptor() {
             @Override
             public void event(ListObjectsEvent event) {
@@ -544,7 +541,7 @@ public class FileComparer {
             (new Thread() {
                 @Override
                 public void run() {
-                    s3Multi.listObjects(bucketName, finalPrefixes,
+                    threadedService.listObjects(bucketName, finalPrefixes,
                         finalDelimiter, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE);
                 };
             }).run();
@@ -584,7 +581,7 @@ public class FileComparer {
      * filecomparer.bucket-listing.&lt;bucketname>=&lt;delim>,&lt;depth><br>
      * For example: <code>filecomparer.bucket-listing.my-bucket=/,2</code>
      *
-     * @param s3Service
+     * @param service
      * the service object that will be used to perform listing requests.
      * @param bucketName
      * the name of the bucket whose contents will be listed.
@@ -598,7 +595,7 @@ public class FileComparer {
      *
      * @throws ServiceException
      */
-    public StorageObject[] listObjectsThreaded(StorageService s3Service,
+    public StorageObject[] listObjectsThreaded(StorageService service,
         final String bucketName, String targetPath) throws ServiceException
     {
         String delimiter = null;
@@ -619,19 +616,19 @@ public class FileComparer {
             toDepth = Integer.parseInt(splits[1]);
         }
 
-        return listObjectsThreaded(s3Service, bucketName, targetPath,
+        return listObjectsThreaded(service, bucketName, targetPath,
             delimiter, toDepth);
     }
 
     /**
-     * Builds an S3 Object Map containing all the objects within the given target path,
+     * Builds an service Object Map containing all the objects within the given target path,
      * where the map's key for each object is the relative path to the object.
      *
      * @see #buildDiscrepancyLists(Map, Map)
      * @see #buildFileMap(File, String, boolean)
      *
-     * @param s3Service
-     * @param bucket
+     * @param service
+     * @param bucketName
      * @param targetPath
      * @param skipMetadata
      * @param eventListener
@@ -639,24 +636,24 @@ public class FileComparer {
      * mapping of keys to StorageObjects
      * @throws ServiceException
      */
-    public Map<String, StorageObject> buildObjectMap(StorageService s3Service, String bucketName,
+    public Map<String, StorageObject> buildObjectMap(StorageService service, String bucketName,
         String targetPath, boolean skipMetadata, StorageServiceEventListener eventListener)
         throws ServiceException
     {
         String prefix = (targetPath.length() > 0 ? targetPath : null);
-        StorageObject[] s3ObjectsIncomplete = this.listObjectsThreaded(
-            s3Service, bucketName, prefix);
-        return buildObjectMap(s3Service, bucketName, targetPath, s3ObjectsIncomplete,
+        StorageObject[] objectsIncomplete = this.listObjectsThreaded(
+            service, bucketName, prefix);
+        return buildObjectMap(service, bucketName, targetPath, objectsIncomplete,
             skipMetadata, eventListener);
     }
 
 
     /**
-     * Builds an S3 Object Map containing a partial set of objects within the given target path,
+     * Builds a service Object Map containing a partial set of objects within the given target path,
      * where the map's key for each object is the relative path to the object.
      * <p>
      * If the method is asked to perform a complete listing, it will use the
-     * {@link #listObjectsThreaded(S3Service, String, String)} method to list the objects
+     * {@link #listObjectsThreaded(StorageService, String, String)} method to list the objects
      * in the bucket, potentially taking advantage of any bucket name partitioning
      * settings you have applied.
      * <p>
@@ -666,22 +663,22 @@ public class FileComparer {
      * @see #buildDiscrepancyLists(Map, Map)
      * @see #buildFileMap(File, String, boolean)
      *
-     * @param s3Service
-     * @param bucket
+     * @param service
+     * @param bucketName
      * @param targetPath
      * @param priorLastKey
      * the prior last key value returned by a prior invocation of this method, if any.
      * @param completeListing
-     * if true, this method will perform a complete listing of an S3 target.
+     * if true, this method will perform a complete listing of a service target.
      * If false, the method will list a partial set of objects commencing from the
      * given prior last key.
      *
      * @return
-     * an object containing a mapping of key names to S3Objects, and the prior last
+     * an object containing a mapping of key names to StorageObjects, and the prior last
      * key (if any) that should be used to perform follow-up method calls.
      * @throws ServiceException
      */
-    public PartialObjectListing buildObjectMapPartial(StorageService s3Service,
+    public PartialObjectListing buildObjectMapPartial(StorageService service,
         String bucketName, String targetPath, String priorLastKey, boolean completeListing,
         boolean skipMetadata, StorageServiceEventListener eventListener)
         throws ServiceException
@@ -690,35 +687,35 @@ public class FileComparer {
         StorageObject[] objects = null;
         String resultPriorLastKey = null;
         if (completeListing) {
-            objects = listObjectsThreaded(s3Service, bucketName, prefix);
+            objects = listObjectsThreaded(service, bucketName, prefix);
         } else {
-            StorageObjectsChunk chunk = s3Service.listObjectsChunked(
+            StorageObjectsChunk chunk = service.listObjectsChunked(
                 bucketName, prefix, null, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE,
                 priorLastKey, completeListing);
             objects = chunk.getObjects();
             resultPriorLastKey = chunk.getPriorLastKey();
         }
 
-        Map<String, StorageObject> objectsMap = buildObjectMap(s3Service, bucketName,
+        Map<String, StorageObject> objectsMap = buildObjectMap(service, bucketName,
             targetPath, objects, skipMetadata, eventListener);
         return new PartialObjectListing(objectsMap, resultPriorLastKey);
     }
 
     /**
-     * Builds an S3 Object Map containing all the given objects, by retrieving HEAD details about
-     * all the objects and using {@link #populateS3ObjectMap(String, StorageObject[])}
+     * Builds a service Object Map containing all the given objects, by retrieving HEAD details about
+     * all the objects and using {@link #populateObjectMap(String, StorageObject[])}
      * to product an object/key map.
      *
      * @see #buildDiscrepancyLists(Map, Map)
      * @see #buildFileMap(File[], boolean)
      *
      * @param service
-     * @param bucket
+     * @param bucketName
      * @param targetPath
      * @param skipMetadata
      * @param objectsIncomplete
      * @return
-     * mapping of keys/S3Objects
+     * mapping of keys to StorageObjects
      * @throws ServiceException
      */
     public Map<String, StorageObject> buildObjectMap(StorageService service, String bucketName,
@@ -746,7 +743,7 @@ public class FileComparer {
                         }
                     } else if (GetObjectHeadsEvent.EVENT_ERROR == event.getEventCode()) {
                         serviceExceptions[0] = new ServiceException(
-                            "Failed to retrieve detailed information about all S3 objects",
+                            "Failed to retrieve detailed information about all objects",
                             event.getErrorCause());
                     }
                 }
@@ -761,22 +758,22 @@ public class FileComparer {
             objects = objectsCompleteList.toArray(new StorageObject[objectsCompleteList.size()]);
         }
 
-        return populateS3ObjectMap(targetPath, objects);
+        return populateObjectMap(targetPath, objects);
     }
 
     /**
      * Builds a map of key/object pairs each object is associated with a key based on its location
-     * in the S3 target path.
+     * in the service target path.
      *
      * @param targetPath
-     * @param s3Objects
+     * @param objects
      * @return
-     * a map of key/S3Object pairs.
+     * a map of keys to StorageObjects.
      */
-    public Map<String, StorageObject> populateS3ObjectMap(String targetPath, StorageObject[] s3Objects) {
+    public Map<String, StorageObject> populateObjectMap(String targetPath, StorageObject[] objects) {
         Map<String, StorageObject> map = new HashMap<String, StorageObject>();
-        for (int i = 0; i < s3Objects.length; i++) {
-            String relativeKey = s3Objects[i].getKey();
+        for (int i = 0; i < objects.length; i++) {
+            String relativeKey = objects[i].getKey();
             if (targetPath.length() > 0) {
                 relativeKey = relativeKey.substring(targetPath.length());
                 int slashIndex = relativeKey.indexOf(Constants.FILE_PATH_DELIM);
@@ -788,31 +785,31 @@ public class FileComparer {
                     // target path if available...
                     slashIndex = targetPath.lastIndexOf(Constants.FILE_PATH_DELIM);
                     if (slashIndex >= 0) {
-                        relativeKey = s3Objects[i].getKey().substring(slashIndex + 1);
+                        relativeKey = objects[i].getKey().substring(slashIndex + 1);
                     }
                     // ...otherwise, use the full object key name.
                     else {
-                        relativeKey = s3Objects[i].getKey();
+                        relativeKey = objects[i].getKey();
                     }
                 }
             }
             if (relativeKey.length() > 0) {
-                map.put(normalizeUnicode(relativeKey), s3Objects[i]);
+                map.put(normalizeUnicode(relativeKey), objects[i]);
             }
         }
         return map;
     }
 
     /**
-     * Compares the contents of a directory on the local file system with the contents of an
-     * S3 resource. This comparison is performed on a map of files and a map of S3 objects previously
+     * Compares the contents of a directory on the local file system with the contents of a service
+     * resource. This comparison is performed on a map of files and a map of service objects previously
      * generated using other methods in this class.
      *
      * @param filesMap
      * a map of keys/Files built using the method {@link #buildFileMap(File, String, boolean)}
-     * @param s3ObjectsMap
-     * a map of keys/S3Objects built using the method
-     * {@link #buildObjectMap(S3Service, S3Bucket, String, boolean, S3ServiceEventListener)}
+     * @param objectsMap
+     * a map of keys to StorageObjects built using the method
+     * {@link #buildObjectMap(StorageService, String, String, boolean, StorageServiceEventListener)}
      * @return
      * an object containing the results of the file comparison.
      *
@@ -822,22 +819,22 @@ public class FileComparer {
      * @throws ParseException
      */
     public FileComparerResults buildDiscrepancyLists(Map<String, File> filesMap,
-        Map<String, StorageObject> s3ObjectsMap)
+        Map<String, StorageObject> objectsMap)
         throws NoSuchAlgorithmException, FileNotFoundException, IOException, ParseException
     {
-        return buildDiscrepancyLists(filesMap, s3ObjectsMap, null);
+        return buildDiscrepancyLists(filesMap, objectsMap, null);
     }
 
     /**
-     * Compares the contents of a directory on the local file system with the contents of an
-     * S3 resource. This comparison is performed on a map of files and a map of S3 objects previously
+     * Compares the contents of a directory on the local file system with the contents of a service
+     * resource. This comparison is performed on a map of files and a map of service objects previously
      * generated using other methods in this class.
      *
      * @param filesMap
      * a map of keys/Files built using the method {@link #buildFileMap(File, String, boolean)}
-     * @param s3ObjectsMap
-     * a map of keys/S3Objects built using the method
-     * {@link #buildObjectMap(S3Service, S3Bucket, String, boolean, S3ServiceEventListener)}
+     * @param objectsMap
+     * a map of keys to StorageObjects built using the method
+     * {@link #buildObjectMap(StorageService, String, String, boolean, StorageServiceEventListener)}
      * @param progressWatcher
      * watches the progress of file hash generation.
      * @return
@@ -849,7 +846,7 @@ public class FileComparer {
      * @throws ParseException
      */
     public FileComparerResults buildDiscrepancyLists(Map<String, File> filesMap,
-        Map<String, StorageObject> s3ObjectsMap, BytesProgressWatcher progressWatcher)
+        Map<String, StorageObject> objectsMap, BytesProgressWatcher progressWatcher)
         throws NoSuchAlgorithmException, FileNotFoundException, IOException, ParseException
     {
         Set<String> onlyOnServerKeys = new HashSet<String>();
@@ -879,9 +876,9 @@ public class FileComparer {
         }
 
         // Check files on server against local client files.
-        Iterator<Map.Entry<String, StorageObject>> s3ObjectsMapIter = s3ObjectsMap.entrySet().iterator();
-        while (s3ObjectsMapIter.hasNext()) {
-            Map.Entry<String, StorageObject> entry = s3ObjectsMapIter.next();
+        Iterator<Map.Entry<String, StorageObject>> objectsMapIter = objectsMap.entrySet().iterator();
+        while (objectsMapIter.hasNext()) {
+            Map.Entry<String, StorageObject> entry = objectsMapIter.next();
             String keyPath = entry.getKey();
             StorageObject storageObject = entry.getValue();
 
@@ -965,14 +962,14 @@ public class FileComparer {
                             }
                         }
 
-                        // Get the S3 object's Base64 hash.
+                        // Get the service object's Base64 hash.
                         String objectHash = null;
                         if (storageObject.containsMetadata(StorageObject.METADATA_HEADER_ORIGINAL_HASH_MD5)) {
                             // Use the object's *original* hash, as it is an encoded version of a local file.
                             objectHash = (String) storageObject.getMetadata(
                                 StorageObject.METADATA_HEADER_ORIGINAL_HASH_MD5);
                             if (log.isDebugEnabled()) {
-                                log.debug("Object in S3 is encoded, using the object's original hash value for: "
+                                log.debug("Object in service is encoded, using the object's original hash value for: "
                                 + storageObject.getKey());
                             }
                         } else {
@@ -986,41 +983,41 @@ public class FileComparer {
                             alreadySynchronisedLocalPaths.add(localPath);
                         } else {
                             // File is out-of-synch. Check which version has the latest date.
-                            Date s3ObjectLastModified = null;
+                            Date objectLastModified = null;
                             String metadataLocalFileDate = (String) storageObject.getMetadata(
                                 Constants.METADATA_JETS3T_LOCAL_FILE_DATE);
 
                             if (metadataLocalFileDate == null) {
-                                // This is risky as local file times and S3 times don't match!
+                                // This is risky as local file times and service times don't match!
                                 if (!assumeLocalLatestInMismatch && log.isWarnEnabled()) {
-                                    log.warn("Using S3 last modified date as file date. This is not reliable "
-                                    + "as the time according to S3 can differ from your local system time. "
+                                    log.warn("Using service last modified date as file date. This is not reliable "
+                                    + "as the time according to service can differ from your local system time. "
                                     + "Please use the metadata item "
                                     + Constants.METADATA_JETS3T_LOCAL_FILE_DATE);
                                 }
-                                s3ObjectLastModified = storageObject.getLastModifiedDate();
+                                objectLastModified = storageObject.getLastModifiedDate();
                             } else {
-                                s3ObjectLastModified = ServiceUtils
+                                objectLastModified = ServiceUtils
                                     .parseIso8601Date(metadataLocalFileDate);
                             }
-                            if (s3ObjectLastModified.getTime() > file.lastModified()) {
+                            if (objectLastModified.getTime() > file.lastModified()) {
                                 updatedOnServerKeys.add(keyPath);
-                            } else if (s3ObjectLastModified.getTime() < file.lastModified()) {
+                            } else if (objectLastModified.getTime() < file.lastModified()) {
                                 updatedOnClientKeys.add(keyPath);
                             } else {
-                                // Local file date and S3 object date values match exactly, yet the
+                                // Local file date and service object date values match exactly, yet the
                                 // local file has a different hash. This shouldn't ever happen, but
                                 // sometimes does with Excel files.
                                 if (assumeLocalLatestInMismatch) {
                                     if (log.isWarnEnabled()) {
-                                        log.warn("Backed-up S3Object " + storageObject.getKey()
+                                        log.warn("Backed-up object " + storageObject.getKey()
                                         + " and local file " + file.getName()
                                         + " have the same date but different hash values. "
                                         + "Assuming local file is the latest version.");
                                     }
                                     updatedOnClientKeys.add(keyPath);
                                 } else {
-                                    throw new IOException("Backed-up S3Object " + storageObject.getKey()
+                                    throw new IOException("Backed-up object " + storageObject.getKey()
                                         + " and local file " + file.getName()
                                         + " have the same date but different hash values. "
                                         + "This shouldn't happen!");
@@ -1030,8 +1027,7 @@ public class FileComparer {
                         }
                     }
                 } else {
-                    // File is not in local file system, so it's only on the S3
-                    // server.
+                    // File is not in local file system, so it's only on the service.
                     onlyOnServerKeys.add(keyPath);
                 }
             }

@@ -20,14 +20,11 @@ package org.jets3t.tests;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Map;
 
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
@@ -45,8 +42,6 @@ import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.ProviderCredentials;
-import org.jets3t.service.utils.FileComparer;
-import org.jets3t.service.utils.FileComparerResults;
 import org.jets3t.service.utils.RestUtils;
 
 /**
