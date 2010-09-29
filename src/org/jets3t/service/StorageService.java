@@ -49,7 +49,7 @@ import org.jets3t.service.utils.RestUtils;
  * </p>
  * <p>
  * Implementations of <code>StorageService</code> must be thread-safe as they will probably be used by
- * the multi-threaded service class {@link org.jets3t.service.multithread.S3ServiceMulti}.
+ * the multi-threaded service class {@link org.jets3t.service.multi.ThreadedStorageService}.
  * </p>
  * <p>
  * This class uses properties obtained through {@link Jets3tProperties}. For more information on
@@ -85,7 +85,7 @@ public abstract class StorageService {
 
     /**
      * The approximate difference in the current time between your computer and
-     * Amazon's S3 server, measured in milliseconds.
+     * a target service, measured in milliseconds.
      *
      * This value is 0 by default. Use the {@link #getCurrentTimeWithOffset()}
      * to obtain the current time with this offset factor included, and the
@@ -98,15 +98,13 @@ public abstract class StorageService {
      * Construct a <code>StorageService</code> identified by the given user credentials.
      *
      * @param credentials
-     * the S3 user credentials to use when communicating with S3, may be null in which case the
-     * communication is done as an anonymous user.
+     * the user credentials, may be null in which case the communication is done as an anonymous user.
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
      * version number, for example: <code>Cockpit/0.7.3</code> or <code>My App Name/1.0</code>
      * @param jets3tProperties
      * JetS3t properties that will be applied within this service.
-     * @throws S3ServiceException
      */
     protected StorageService(ProviderCredentials credentials, String invokingApplicationDescription,
         Jets3tProperties jets3tProperties)
@@ -119,8 +117,8 @@ public abstract class StorageService {
         this.internalErrorRetryMax = jets3tProperties.getIntProperty(
             "storage-service.internal-error-retry-max", 5);
 
-        // Configure the InetAddress DNS caching times to work well with S3. The cached DNS will
-        // timeout after 5 minutes, while failed DNS lookups will be retried after 1 second.
+        // Configure the InetAddress DNS caching times to work well with remote services. The cached
+        // DNS will timeout after 5 minutes, while failed DNS lookups will be retried after 1 second.
         System.setProperty("networkaddress.cache.ttl", "300");
         System.setProperty("networkaddress.cache.negative.ttl", "1");
 
@@ -135,13 +133,11 @@ public abstract class StorageService {
      * Construct a <code>StorageService</code> identified by the given user credentials.
      *
      * @param credentials
-     * the S3 user credentials to use when communicating with S3, may be null in which case the
-     * communication is done as an anonymous user.
+     * the user credentials, may be null in which case the communication is done as an anonymous user.
      * @param invokingApplicationDescription
      * a short description of the application using the service, suitable for inclusion in a
      * user agent string for REST/HTTP requests. Ideally this would include the application's
      * version number, for example: <code>Cockpit/0.7.3</code> or <code>My App Name/1.0</code>
-     * @throws S3ServiceException
      */
     protected StorageService(ProviderCredentials credentials, String invokingApplicationDescription)
     {
@@ -153,9 +149,7 @@ public abstract class StorageService {
      * Construct a <code>StorageService</code> identified by the given user credentials.
      *
      * @param credentials
-     * the S3 user credentials to use when communicating with S3, may be null in which case the
-     * communication is done as an anonymous user.
-     * @throws S3ServiceException
+     * the user credentials, may be null in which case the communication is done as an anonymous user.
      */
     protected StorageService(ProviderCredentials credentials) {
         this(credentials, null);
@@ -185,7 +179,7 @@ public abstract class StorageService {
 
     /**
      * @return
-     * true if this service has <code>ProviderCredentials</code> identifying an S3 user, false
+     * true if this service has {@link ProviderCredentials} identifying a user, false
      * if the service is acting as an anonymous user.
      */
     public boolean isAuthenticatedConnection() {
@@ -193,11 +187,11 @@ public abstract class StorageService {
     }
 
     /**
-     * Whether to use secure HTTPS or insecure HTTP for communicating with S3, as set by the
-     * JetS3t property: s3service.https-only
+     * Whether to use secure HTTPS or insecure HTTP for communicating with a service,
+     * as configured in the {@link Jets3tProperties}.
      *
      * @return
-     * true if this service should use only secure HTTPS communication channels to S3.
+     * true if this service should use only secure HTTPS communication channels.
      * If false, the non-secure HTTP protocol will be used.
      */
     public boolean isHttpsOnly() {
@@ -206,8 +200,8 @@ public abstract class StorageService {
 
     /**
      * @return
-     * The maximum number of times to retry when S3 Internal Error (500) errors are encountered,
-     * as set by the JetS3t property: storage-service.internal-error-retry-max
+     * The maximum number of times to retry when Internal Error (500) errors are encountered,
+     * as configured by the {@link Jets3tProperties}.
      */
     public int getInternalErrorRetryMax() {
         return internalErrorRetryMax;
@@ -246,7 +240,7 @@ public abstract class StorageService {
      * Sleeps for a period of time based on the number of Internal Server errors a request has
      * encountered, provided the number of errors does not exceed the value set with the
      * property <code>storage-service.internal-error-retry-max</code>. If the maximum error count is
-     * exceeded, this method will throw an S3ServiceException.
+     * exceeded, this method will throw an {@link ServiceException}.
      *
      * The millisecond delay grows rapidly according to the formula
      * <code>50 * (<i>internalErrorCount</i> ^ 2)</code>.
@@ -261,9 +255,9 @@ public abstract class StorageService {
      * </table>
      *
      * @param internalErrorCount
-     * the number of S3 Internal Server errors encountered by a request.
+     * the number of Internal Server errors encountered by a request.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      * thrown if the number of internal errors exceeds the value of internalErrorCount.
      * @throws InterruptedException
      * thrown if the thread sleep is interrupted.
@@ -275,11 +269,11 @@ public abstract class StorageService {
             long delayMs = 50L * (int) Math.pow(internalErrorCount, 2);
             if (log.isWarnEnabled()) {
                 log.warn("Encountered " + internalErrorCount
-                    + " S3 Internal Server error(s), will retry in " + delayMs + "ms");
+                    + " Internal Server error(s), will retry in " + delayMs + "ms");
             }
             Thread.sleep(delayMs);
         } else {
-            throw new ServiceException("Encountered too many S3 Internal Server errors ("
+            throw new ServiceException("Encountered too many Internal Server errors ("
                 + internalErrorCount + "), aborting request.");
         }
     }
@@ -305,15 +299,15 @@ public abstract class StorageService {
 
     /**
      * Throws an exception if this service is anonymous (that is, it was created without
-     * an <code>ProviderCredentials</code> object representing an S3 user account.
+     * an {@link ProviderCredentials} object representing a user account.
      * @param action
      * the action being attempted which this assertion is applied, for debugging purposes.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     protected void assertAuthenticatedConnection(String action) throws ServiceException {
         if (!isAuthenticatedConnection()) {
             throw new ServiceException(
-                "The requested action cannot be performed with a non-authenticated S3 Service: "
+                "The requested action cannot be performed with a non-authenticated service: "
                     + action);
         }
     }
@@ -323,7 +317,7 @@ public abstract class StorageService {
      * @param bucket
      * @param action
      * the action being attempted which this assertion is applied, for debugging purposes.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     protected void assertValidBucket(StorageBucket bucket, String action) throws ServiceException {
         if (bucket == null || bucket.getName() == null || bucket.getName().length() == 0) {
@@ -337,7 +331,7 @@ public abstract class StorageService {
      * @param object
      * @param action
      * the action being attempted which this assertion is applied, for debugging purposes.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     protected void assertValidObject(StorageObject object, String action) throws ServiceException {
         if (object == null || object.getKey() == null || object.getKey().length() == 0) {
@@ -352,7 +346,7 @@ public abstract class StorageService {
      * An object's key name.
      * @param action
      * the action being attempted which this assertion is applied, for debugging purposes.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     protected void assertValidObject(String key, String action) throws ServiceException {
         if (key == null || key.length() == 0) {
@@ -380,7 +374,7 @@ public abstract class StorageService {
      * the name of the bucket whose contents will be listed.
      * @return
      * the set of objects contained in a bucket.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public StorageObject[] listObjects(String bucketName) throws ServiceException {
         return listObjects(bucketName, null, null, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE);
@@ -397,10 +391,10 @@ public abstract class StorageService {
      * This method can be performed by anonymous services. Anonymous services
      * can only list the objects in a publicly-readable bucket.
      * <p>
-     * NOTE: If you supply a delimiter value that could cause CommonPrefixes
-     * ("subdirectory paths") to be included in the results from S3, use the
+     * NOTE: If you supply a delimiter value that could cause virtual path
+     * "subdirectories" to be included in the results from the service, use the
      * {@link #listObjectsChunked(String, String, String, long, String, boolean)}
-     * method instead of this one to obtain both object and CommonPrefix values.
+     * method instead of this one to obtain both object and path values.
      *
      * @param bucketName
      * the name of the bucket whose contents will be listed.
@@ -413,9 +407,11 @@ public abstract class StorageService {
      * reach the first occurrence of the delimiter in the bucket's keys, or no results will be returned.
      * @return
      * the set of objects contained in a bucket whose keys start with the given prefix.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
-    public StorageObject[] listObjects(String bucketName, String prefix, String delimiter) throws ServiceException {
+    public StorageObject[] listObjects(String bucketName, String prefix, String delimiter)
+        throws ServiceException
+    {
         return listObjects(bucketName, prefix, delimiter, Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE);
     }
 
@@ -426,11 +422,7 @@ public abstract class StorageService {
      * exists may cause OperationAborted errors with the message "A conflicting conditional
      * operation is currently in progress against this resource.". To avoid this error, use the
      * {@link #getOrCreateBucket(String)} in situations where the bucket may already exist.
-     * <p>
-     * <b>Warning:</b> Prior to version 0.7.0 this method did check whether a bucket already
-     * existed using {@link #isBucketAccessible(String)}. After changes to the way S3 operates,
-     * this check started to cause issues so it was removed.
-     * <p>
+     *
      * This method cannot be performed by anonymous services.
      *
      * @param bucketName
@@ -438,7 +430,7 @@ public abstract class StorageService {
      * @return
      * the created bucket object. <b>Note:</b> the object returned has minimal information about
      * the bucket that was created, including only the bucket's name.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public StorageBucket createBucket(String bucketName) throws ServiceException {
         return createBucketImpl(bucketName, null, null);
@@ -452,18 +444,14 @@ public abstract class StorageService {
      * operation is currently in progress against this resource.". To avoid this error, use the
      * {@link #getOrCreateBucket(String)} in situations where the bucket may already exist.
      * <p>
-     * <b>Warning:</b> Prior to version 0.7.0 this method did check whether a bucket already
-     * existed using {@link #isBucketAccessible(String)}. After changes to the way S3 operates,
-     * this check started to cause issues so it was removed.
-     * <p>
      * This method cannot be performed by anonymous services.
      *
-     * @param bucketName
-     * the name of the bucket to create.
+     * @param bucket
+     * the bucket to create, including optional ACL settings.
      * @return
      * the created bucket object. <b>Note:</b> the object returned has minimal information about
      * the bucket that was created, including only the bucket's name.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public StorageBucket createBucket(StorageBucket bucket) throws ServiceException
     {
@@ -505,8 +493,8 @@ public abstract class StorageService {
     }
 
     /**
-     * Returns an object representing the details and data of an item in S3, without applying any
-     * preconditions.
+     * Returns an object representing the details and data of an item in a service,
+     * without applying any preconditions.
      * <p>
      * This method can be performed by anonymous services. Anonymous services
      * can get a publicly-readable object.
@@ -521,8 +509,8 @@ public abstract class StorageService {
      * @param objectKey
      * the key identifying the object.
      * @return
-     * the object with the given key in S3, including the object's data input stream.
-     * @throws S3ServiceException
+     * the object with the given key, including the object's data input stream.
+     * @throws ServiceException
      */
     public StorageObject getObject(String bucketName, String objectKey) throws ServiceException {
         return getObject(bucketName, objectKey,
@@ -530,7 +518,7 @@ public abstract class StorageService {
     }
 
     /**
-     * Returns an object representing the details of an item in S3 without the object's data, and
+     * Returns an object representing the details of an item in without the object's data, and
      * without applying any preconditions.
      * <p>
      * This method can be performed by anonymous services. Anonymous services
@@ -541,11 +529,13 @@ public abstract class StorageService {
      * @param objectKey
      * the key identifying the object.
      * @return
-     * the object with the given key in S3, including only general details and metadata (not the data
-     * input stream)
-     * @throws S3ServiceException
+     * the object with the given key, including only general details and metadata
+     * (not the data input stream)
+     * @throws ServiceException
      */
-    public StorageObject getObjectDetails(String bucketName, String objectKey) throws ServiceException {
+    public StorageObject getObjectDetails(String bucketName, String objectKey)
+        throws ServiceException
+    {
         return getObjectDetails(bucketName, objectKey, null, null, null, null);
     }
 
@@ -557,7 +547,7 @@ public abstract class StorageService {
      *
      * @return
      * the list of buckets owned by the service user.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public StorageBucket[] listAllBuckets() throws ServiceException {
         assertAuthenticatedConnection("List all buckets");
@@ -567,15 +557,15 @@ public abstract class StorageService {
     }
 
     /**
-     * Returns the owner of an S3 account, using information available in the
-     * ListAllBuckets response.
+     * Returns the owner of an account, using information available in the
+     * bucket listing response.
      * <p>
      * This method cannot be performed by anonymous services, and will fail with an exception
      * if the service is not authenticated.
      *
      * @return
-     * the owner of the S3 account.
-     * @throws S3ServiceException
+     * the owner of the account.
+     * @throws ServiceException
      */
     public StorageOwner getAccountOwner() throws ServiceException {
         assertAuthenticatedConnection("List all buckets to find account owner");
@@ -584,8 +574,8 @@ public abstract class StorageService {
     }
 
     /**
-     * Lists the objects in a bucket matching a prefix, while instructing S3 to
-     * send response messages containing no more than a given number of object
+     * Lists the objects in a bucket matching a prefix, while instructing the service
+     * to send response messages containing no more than a given number of object
      * results.
      * <p>
      * The objects returned by this method contain only minimal information
@@ -596,10 +586,10 @@ public abstract class StorageService {
      * This method can be performed by anonymous services. Anonymous services
      * can list the contents of a publicly-readable bucket.
      * <p>
-     * NOTE: If you supply a delimiter value that could cause CommonPrefixes
-     * ("subdirectory paths") to be included in the results from S3, use the
+     * NOTE: If you supply a delimiter value that could cause virtual path
+     * "subdirectories" to be included in the results from the service, use the
      * {@link #listObjectsChunked(String, String, String, long, String, boolean)}
-     * method instead of this one to obtain both object and CommonPrefix values.
+     * method instead of this one to obtain both object and path values.
      *
      * @param bucketName
      * the name of the the bucket whose contents will be listed.
@@ -609,13 +599,13 @@ public abstract class StorageService {
      * only list objects with key names up to this delimiter, may be null.
      * See note above.
      * @param maxListingLength
-     * the maximum number of objects to include in each result message sent by
-     * S3. This value has <strong>no effect</strong> on the number of objects
+     * the maximum number of objects to include in each result message. This value
+     * has <strong>no effect</strong> on the number of objects
      * that will be returned by this method, because it will always return all
      * the objects in the bucket.
      * @return
      * the set of objects contained in a bucket whose keys start with the given prefix.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public StorageObject[] listObjects(String bucketName, String prefix, String delimiter,
         long maxListingLength) throws ServiceException
@@ -652,7 +642,7 @@ public abstract class StorageService {
      * bucket's object contents.
      * @return
      * the set of objects contained in a bucket whose keys start with the given prefix.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public StorageObjectsChunk listObjectsChunked(String bucketName, String prefix, String delimiter,
         long maxListingLength, String priorLastKey) throws ServiceException
@@ -666,7 +656,7 @@ public abstract class StorageService {
 
     /**
      * Lists the objects in a bucket matching a prefix and also returns the
-     * common prefixes returned by S3. Depending on the value of the completeListing
+     * common prefixes. Depending on the value of the completeListing
      * variable, this method can be set to automatically perform follow-up requests
      * to build a complete object listing, or to return only a partial listing.
      * <p>
@@ -694,7 +684,7 @@ public abstract class StorageService {
      * build a complete bucket object listing.
      * @return
      * the set of objects contained in a bucket whose keys start with the given prefix.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public StorageObjectsChunk listObjectsChunked(String bucketName, String prefix, String delimiter,
         long maxListingLength, String priorLastKey, boolean completeListing) throws ServiceException
@@ -707,7 +697,7 @@ public abstract class StorageService {
     }
 
     /**
-     * Returns a bucket in your S3 account by listing all your buckets
+     * Returns a bucket in your account by listing all your buckets
      * (using {@link #listAllBuckets()}), and looking for the named bucket in
      * this list.
      * <p>
@@ -717,7 +707,7 @@ public abstract class StorageService {
      * @return
      * the bucket in your account, or null if you do not own the named bucket.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public StorageBucket getBucket(String bucketName) throws ServiceException {
         assertAuthenticatedConnection("Get Bucket");
@@ -733,7 +723,7 @@ public abstract class StorageService {
     }
 
     /**
-     * Returns a bucket in your S3 account, and creates the bucket if
+     * Returns a bucket in your account, and creates the bucket if
      * it does not yet exist.
      *
      * @param bucketName
@@ -741,7 +731,7 @@ public abstract class StorageService {
      * @return
      * the bucket in your account.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public StorageBucket getOrCreateBucket(String bucketName) throws ServiceException {
         StorageBucket bucket = getBucket(bucketName);
@@ -753,14 +743,13 @@ public abstract class StorageService {
     }
 
     /**
-     * Deletes an S3 bucket. Only the owner of a bucket may delete it.
+     * Deletes a bucket. Only the owner of a bucket may delete it.
      * <p>
      * This method cannot be performed by anonymous services.
      *
-     *
      * @param bucket
      * the bucket to delete.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public void deleteBucket(StorageBucket bucket) throws ServiceException {
         assertValidBucket(bucket, "Delete bucket");
@@ -768,20 +757,20 @@ public abstract class StorageService {
     }
 
     /**
-     * Deletes an S3 bucket. Only the owner of a bucket may delete it.
+     * Deletes a bucket. Only the owner of a bucket may delete it.
      * <p>
      * This method cannot be performed by anonymous services.
      *
      * @param bucketName
      * the name of the bucket to delete.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public void deleteBucket(String bucketName) throws ServiceException {
         deleteBucketImpl(bucketName);
     }
 
     /**
-     * Puts an object inside an existing bucket in S3, creating a new object or overwriting
+     * Puts an object inside an existing bucket, creating a new object or overwriting
      * an existing one with the same key. The Access Control List settings of the object
      * (if any) will also be applied.
      * <p>
@@ -791,16 +780,17 @@ public abstract class StorageService {
      * @param bucketName
      * the name of the bucket inside which the object will be put.
      * @param object
-     * the object containing all information that will be written to S3. At very least this object must
-     * be valid. Beyond that it may contain: an input stream with the object's data content, metadata,
-     * and access control settings.<p>
+     * the object containing all information that will be written to the service.
+     * At very least this object must be valid. Beyond that it may contain: an input stream
+     * with the object's data content, metadata, and access control settings.
+     * <p>
      * <b>Note:</b> It is very important to set the object's Content-Length to match the size of the
      * data input stream when possible, as this can remove the need to read data into memory to
      * determine its size.
      *
      * @return
-     * the object populated with any metadata information made available by S3.
-     * @throws S3ServiceException
+     * the object populated with any metadata.
+     * @throws ServiceException
      */
     public StorageObject putObject(String bucketName, StorageObject object)
         throws ServiceException
@@ -811,9 +801,8 @@ public abstract class StorageService {
     }
 
     /**
-     * Copy an object within your S3 account. You can copy an object within a
-     * single bucket or between buckets, and can optionally update the object's
-     * metadata at the same time.
+     * Copy an object. You can copy an object within a single bucket or between buckets,
+     * and can optionally update the object's metadata at the same time.
      * <p>
      * This method cannot be performed by anonymous services. You must have read
      * access to the source object and write access to the destination bucket.
@@ -850,11 +839,11 @@ public abstract class StorageService {
      * if null.
      *
      * @return
-     * a map of the header and result information returned by S3 after the object
+     * a map of the header and result information resulting from the object
      * copy. The map includes the object's MD5 hash value (ETag), its size
      * (Content-Length), and update timestamp (Last-Modified).
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public Map<String, Object> copyObject(String sourceBucketName, String sourceObjectKey,
         String destinationBucketName, StorageObject destinationObject, boolean replaceMetadata,
@@ -874,7 +863,7 @@ public abstract class StorageService {
     }
 
     /**
-     * Copy an object within your S3 account. You can copy an object within a
+     * Copy an object. You can copy an object within a
      * single bucket or between buckets, and can optionally update the object's
      * metadata at the same time.
      * <p>
@@ -901,11 +890,11 @@ public abstract class StorageService {
      * have the same metadata as the original object.
      *
      * @return
-     * a map of the header and result information returned by S3 after the object
+     * a map of the header and result information after the object
      * copy. The map includes the object's MD5 hash value (ETag), its size
      * (Content-Length), and update timestamp (Last-Modified).
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public Map<String, Object> copyObject(String sourceBucketName, String sourceObjectKey,
         String destinationBucketName, StorageObject destinationObject,
@@ -916,7 +905,7 @@ public abstract class StorageService {
     }
 
     /**
-     * Move an object from your S3 account. This method works by invoking the
+     * Move an object. This method works by invoking the
      * {@link #copyObject(String, String, String, StorageObject, boolean)} method to
      * copy the original object, then deletes the original object once the
      * copy has succeeded.
@@ -947,14 +936,14 @@ public abstract class StorageService {
      * have the same metadata as the original object.
      *
      * @return
-     * a map of the header and result information returned by S3 after the object
+     * a map of the header and result information after the object
      * copy. The map includes the object's MD5 hash value (ETag), its size
      * (Content-Length), and update timestamp (Last-Modified). If the object was
      * successfully copied but the original could not be deleted, the map will
      * also include an item named "DeleteException" with the exception thrown by
      * the delete operation.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public Map<String, Object> moveObject(String sourceBucketName, String sourceObjectKey,
         String destinationBucketName, StorageObject destinationObject,
@@ -972,7 +961,7 @@ public abstract class StorageService {
     }
 
     /**
-     * Rename an object in your S3 account. This method works by invoking the
+     * Rename an object. This method works by invoking the
      * {@link #moveObject(String, String, String, StorageObject, boolean)} method to
      * move the original object to a new key name.
      * <p>
@@ -994,14 +983,14 @@ public abstract class StorageService {
      * ACL setting.
      *
      * @return
-     * a map of the header and result information returned by S3 after the object
+     * a map of the header and result information after the object
      * copy. The map includes the object's MD5 hash value (ETag), its size
      * (Content-Length), and update timestamp (Last-Modified). If the object was
      * successfully copied but the original could not be deleted, the map will
      * also include an item named "DeleteException" with the exception thrown by
      * the delete operation.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public Map<String, Object> renameObject(String bucketName, String sourceObjectKey,
         StorageObject destinationObject) throws ServiceException
@@ -1025,11 +1014,11 @@ public abstract class StorageService {
      * ACL setting.
      *
      * @return
-     * a map of the header and result information returned by S3 after the object
+     * a map of the header and result information after the object
      * copy. The map includes the object's MD5 hash value (ETag), its size
      * (Content-Length), and update timestamp (Last-Modified).
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public Map<String, Object> updateObjectMetadata(String bucketName, StorageObject object)
         throws ServiceException
@@ -1039,7 +1028,7 @@ public abstract class StorageService {
     }
 
     /**
-     * Deletes an object from a bucket in S3.
+     * Deletes an object from a bucket.
      * <p>
      * This method can be performed by anonymous services. Anonymous services
      * can delete objects from publicly-writable buckets.
@@ -1047,8 +1036,8 @@ public abstract class StorageService {
      * @param bucketName
      * the name of the bucket containing the object to be deleted.
      * @param objectKey
-     * the key representing the object in S3.
-     * @throws S3ServiceException
+     * the key representing the object
+     * @throws ServiceException
      */
     public void deleteObject(String bucketName, String objectKey) throws ServiceException {
         assertValidObject(objectKey, "deleteObject");
@@ -1057,7 +1046,7 @@ public abstract class StorageService {
     }
 
     /**
-     * Returns an object representing the details of an item in S3 that meets any given preconditions.
+     * Returns an object representing the details of an item that meets any given preconditions.
      * The object is returned without the object's data.
      * <p>
      * An exception is thrown if any of the preconditions fail.
@@ -1079,9 +1068,9 @@ public abstract class StorageService {
      * @param ifNoneMatchTags
      * a precondition specifying an MD5 hash the object must not match, ignored if null.
      * @return
-     * the object with the given key in S3, including only general details and metadata (not the data
+     * the object with the given key, including only general details and metadata (not the data
      * input stream)
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public StorageObject getObjectDetails(String bucketName, String objectKey,
         Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
@@ -1093,7 +1082,7 @@ public abstract class StorageService {
     }
 
     /**
-     * Returns an object representing the details and data of an item in S3 that meets any given preconditions.
+     * Returns an object representing the details and data of an item that meets any given preconditions.
      * <p>
      * <b>Important:</b> It is the caller's responsibility to close the object's data input stream.
      * The data stream should be consumed and closed as soon as is practical as network connections
@@ -1126,9 +1115,9 @@ public abstract class StorageService {
      * @param byteRangeEnd
      * include only a portion of the object's data - ending at this point, ignored if null.
      * @return
-     * the object with the given key in S3, including only general details and metadata (not the data
+     * the object with the given key, including only general details and metadata (not the data
      * input stream)
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public StorageObject getObject(String bucketName, String objectKey, Calendar ifModifiedSince,
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags,
@@ -1146,15 +1135,13 @@ public abstract class StorageService {
      * This method can be performed by anonymous services, but can only succeed if the
      * object's existing ACL already allows write access by the anonymous user.
      * In general, you can only access the ACL of an object if the ACL already in place
-     * for that object (in S3) allows you to do so. See
-     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
-     * the S3 documentation on ACLs</a> for more details on access to ACLs.
+     * for that object allows you to do so.
      *
      * @param bucketName
      * the name of the bucket containing the object to modify.
      * @param object
      * the object with ACL settings that will be applied.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public void putObjectAcl(String bucketName, StorageObject object) throws ServiceException {
         assertValidObject(object, "Put Object Access Control List");
@@ -1168,15 +1155,13 @@ public abstract class StorageService {
      * This method can be performed by anonymous services, but can only succeed if the
      * object's existing ACL already allows write access by the anonymous user.
      * In general, you can only access the ACL of an object if the ACL already in place
-     * for that object (in S3) allows you to do so. See
-     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
-     * the S3 documentation on ACLs</a> for more details on access to ACLs.
+     * for that object allows you to do so.
      *
      * @param bucketName
      * the name of the bucket containing the object to modify.
      * @param objectKey
      * the key name of the object with ACL settings that will be applied.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public void putObjectAcl(String bucketName, String objectKey, AccessControlList acl)
         throws ServiceException
@@ -1194,9 +1179,7 @@ public abstract class StorageService {
      * This method can be performed by anonymous services, but can only succeed if the
      * object's existing ACL already allows write access by the anonymous user.
      * In general, you can only access the ACL of an object if the ACL already in place
-     * for that object (in S3) allows you to do so. See
-     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
-     * the S3 documentation on ACLs</a> for more details on access to ACLs.
+     * for that object allows you to do so.
      *
      * @param bucketName
      * the name of the bucket whose ACL settings will be retrieved (if objectKey is null) or the
@@ -1205,7 +1188,7 @@ public abstract class StorageService {
      * if non-null, the key of the object whose ACL settings will be retrieved. Ignored if null.
      * @return
      * the ACL settings of the bucket or object.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public AccessControlList getObjectAcl(String bucketName, String objectKey)
         throws ServiceException
@@ -1220,13 +1203,11 @@ public abstract class StorageService {
      * This method can be performed by anonymous services, but can only succeed if the
      * bucket's existing ACL already allows write access by the anonymous user.
      * In general, you can only access the ACL of a bucket if the ACL already in place
-     * for that bucket (in S3) allows you to do so. See
-     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
-     * the S3 documentation on ACLs</a> for more details on access to ACLs.
+     * for that bucket allows you to do so.
      *
      * @param bucketName
      * a name of the bucket with ACL settings to apply.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public void putBucketAcl(String bucketName, AccessControlList acl) throws ServiceException {
         if (acl == null) {
@@ -1243,13 +1224,11 @@ public abstract class StorageService {
      * This method can be performed by anonymous services, but can only succeed if the
      * bucket's existing ACL already allows write access by the anonymous user.
      * In general, you can only access the ACL of a bucket if the ACL already in place
-     * for that bucket (in S3) allows you to do so. See
-     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
-     * the S3 documentation on ACLs</a> for more details on access to ACLs.
+     * for that bucket allows you to do so.
      *
      * @param bucket
      * a bucket with ACL settings to apply.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public void putBucketAcl(StorageBucket bucket) throws ServiceException {
         assertValidBucket(bucket, "Put Bucket Access Control List");
@@ -1262,15 +1241,13 @@ public abstract class StorageService {
      * This method can be performed by anonymous services, but can only succeed if the
      * bucket's existing ACL already allows write access by the anonymous user.
      * In general, you can only access the ACL of a bucket if the ACL already in place
-     * for that bucket (in S3) allows you to do so. See
-     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
-     * the S3 documentation on ACLs</a> for more details on access to ACLs.
+     * for that bucket allows you to do so.
      *
      * @param bucketName
      * the name of the bucket whose access control settings will be returned.
      * @return
      * the ACL settings of the bucket.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public AccessControlList getBucketAcl(String bucketName) throws ServiceException {
         return getBucketAclImpl(bucketName);
@@ -1293,7 +1270,7 @@ public abstract class StorageService {
      * Renames metadata property names to be suitable for use as HTTP Headers. This is done
      * by renaming any non-HTTP headers to have the a service-specific prefix and leaving the
      * HTTP header names unchanged. The HTTP header names left unchanged are those found in
-     * {@link #HTTP_HEADER_METADATA_NAMES}
+     * {@link RestUtils#HTTP_HEADER_METADATA_NAMES}
      *
      * @param metadata
      * @return
@@ -1318,16 +1295,16 @@ public abstract class StorageService {
         return convertedMetadata;
     }
 
-    // /////////////////////////////////////////////////////////////////////////////////
-    // Abstract methods that must be implemented by interface-specific S3Service classes
-    // /////////////////////////////////////////////////////////////////////////////////
+    // ///////////////////////////////////////////////////////////////////////////////
+    // Abstract methods that must be implemented by interface-specific service classes
+    // ///////////////////////////////////////////////////////////////////////////////
 
     /**
      * Indicates whether a bucket exists and is accessible to a service user.
-     * <b>Caution:</b> After changes to the way S3 operates, this check started to
-     * cause issues in situations where you need to immediately create a bucket
-     * when it does not exist. To conditionally create a bucket, use the
-     * {@link #getOrCreateBucket(String)} method instead.
+     * <p>
+     * <b>Caution:</b> This check started to cause issues in situations where you need to
+     * immediately create a bucket when it does not exist. To conditionally create a bucket,
+     * use the {@link #getOrCreateBucket(String)} method instead.
      * <p>
      * This method can be performed by anonymous services.
      * <p>
@@ -1337,22 +1314,25 @@ public abstract class StorageService {
      *
      * @return
      * true if the bucket exists and is accessible to the service user, false otherwise.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public abstract boolean isBucketAccessible(String bucketName) throws ServiceException;
 
     /**
-     * Find out the status of an S3 bucket with the given name.
+     * Find out the status of a bucket with the given name.
      * <p>
      * <b>Caveats:</b>
      * <ul>
      * <li>If someone else owns the bucket but has made it public, this method will
      * mistakenly return {@link #BUCKET_STATUS__MY_BUCKET}.</li>
-     * <li><p>S3 can act strangely when you use this method in some circumstances.
+     * <li>
+     * <p>
+     * S3 can act strangely when you use this method in some circumstances.
      * If you check the status of a bucket and find that it does not exist, then create the
      * bucket, the service will continue to tell you the bucket does not exists for up to 30
      * seconds. This problem has something to do with connection caching (I think).</p>
-     * <p>This S3 quirk makes it a bad idea to use this method to check for a bucket's
+     * <p>
+     * This S3 quirk makes it a bad idea to use this method to check for a bucket's
      * existence before creating that bucket. Use the {@link #getOrCreateBucket(String)}
      * method for this purpose instead.</p>
      * </li>
@@ -1362,26 +1342,26 @@ public abstract class StorageService {
      * @param bucketName
      * @return
      * {@link #BUCKET_STATUS__MY_BUCKET} if you already own the bucket,
-     * {@link #BUCKET_STATUS__DOES_NOT_EXIST} if the bucket does not yet exist
-     * in S3, or {@link #BUCKET_STATUS__ALREADY_CLAIMED} if someone else has
+     * {@link #BUCKET_STATUS__DOES_NOT_EXIST} if the bucket does not yet exist, or
+     * {@link #BUCKET_STATUS__ALREADY_CLAIMED} if someone else has
      * already created a bucket with the given name.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public abstract int checkBucketStatus(String bucketName) throws ServiceException;
 
     /**
      * @return
-     * the buckets in an S3 account.
+     * the buckets in your account.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     protected abstract StorageBucket[] listAllBucketsImpl() throws ServiceException;
 
     /**
      * @return
-     * the owner of an S3 account.
-     * @throws S3ServiceException
+     * the owner of an account.
+     * @throws ServiceException
      */
     protected abstract StorageOwner getAccountOwnerImpl() throws ServiceException;
 
@@ -1390,7 +1370,7 @@ public abstract class StorageService {
      *
      * <b>Implementation notes</b><p>
      * The implementation of this method is expected to return <b>all</b> the objects
-     * in a bucket, not a subset. This may require repeating the S3 list operation if the
+     * in a bucket, not a subset. This may require repeating the list operation if the
      * first one doesn't include all the available objects, such as when the number of objects
      * is greater than <code>maxListingLength</code>.
      * <p>
@@ -1402,7 +1382,7 @@ public abstract class StorageService {
      * @return
      * the objects in a bucket.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     protected abstract StorageObject[] listObjectsImpl(String bucketName, String prefix,
         String delimiter, long maxListingLength) throws ServiceException;
@@ -1423,7 +1403,7 @@ public abstract class StorageService {
      * @param maxListingLength
      * @param priorLastKey
      * @param completeListing
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     protected abstract StorageObjectsChunk listObjectsChunkedImpl(String bucketName, String prefix,
         String delimiter, long maxListingLength, String priorLastKey, boolean completeListing)
@@ -1447,7 +1427,7 @@ public abstract class StorageService {
      * May be null, in which case the default permissions are applied.
      * @return
      * the created bucket object, populated with all metadata made available by the creation operation.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     protected abstract StorageBucket createBucketImpl(String bucketName, String location,
         AccessControlList acl) throws ServiceException;
@@ -1457,7 +1437,7 @@ public abstract class StorageService {
     protected abstract StorageObject putObjectImpl(String bucketName, StorageObject object) throws ServiceException;
 
     /**
-     * Copy an object within your S3 account. Copies within a single bucket or between
+     * Copy an object within your account. Copies within a single bucket or between
      * buckets, and optionally updates the object's metadata at the same time. An
      * object can be copied over itself, allowing you to update the metadata without
      * making any other changes.
@@ -1481,11 +1461,11 @@ public abstract class StorageService {
      * metadata.
      *
      * @return
-     * a map of the header and result information returned by S3 after the object
+     * a map of the header and result information returned after the object
      * copy. The map includes the object's MD5 hash value (ETag), its size
      * (Content-Length), and update timestamp (Last-Modified).
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     protected abstract Map<String, Object> copyObjectImpl(String sourceBucketName, String sourceObjectKey,
         String destinationBucketName, String destinationObjectKey,

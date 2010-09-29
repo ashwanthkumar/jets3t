@@ -86,8 +86,8 @@ public class SimpleThreadedStorageService {
     /**
      * Creates multiple buckets.
      *
-     * @param buckets
-     * the buckets to create.
+     * @param bucketNames
+     * name of the buckets to create.
      * @return
      * the created buckets.
      * @throws ServiceException
@@ -111,8 +111,8 @@ public class SimpleThreadedStorageService {
     /**
      * Creates/uploads multiple objects.
      *
-     * @param bucket
-     * the bucket to create the objects in.
+     * @param bucketName
+     * the bucket where objects will be stored.
      * @param objects
      * the objects to create/upload.
      * @return
@@ -182,8 +182,8 @@ public class SimpleThreadedStorageService {
     /**
      * Deletes multiple objects
      *
-     * @param bucket
-     * the bucket containing the objects to delete.
+     * @param bucketName
+     * name of the bucket containing the objects to delete.
      * @param objects
      * the objects to delete.
      * @throws ServiceException
@@ -208,8 +208,8 @@ public class SimpleThreadedStorageService {
      * The objects' data will be stored in temporary files, and can be retrieved using
      * {@link StorageObject#getDataInputStream()}.
      *
-     * @param bucket
-     * the bucket containing the objects.
+     * @param bucketName
+     * name of the bucket containing the objects.
      * @param objects
      * the objects to retrieve.
      * @return
@@ -250,8 +250,8 @@ public class SimpleThreadedStorageService {
      * The objects' data will be stored in temporary files, and can be retrieved using
      * {@link StorageObject#getDataInputStream()}.
      *
-     * @param bucket
-     * the bucket containing the objects.
+     * @param bucketName
+     * name of the bucket containing the objects.
      * @param objectKeys
      * the key names of the objects to retrieve.
      * @return
@@ -272,8 +272,8 @@ public class SimpleThreadedStorageService {
     /**
      * Retrieves details of multiple objects (details only, no data)
      *
-     * @param bucket
-     * the bucket containing the objects.
+     * @param bucketName
+     * name of the bucket containing the objects.
      * @param objects
      * the objects to retrieve.
      * @return
@@ -291,8 +291,8 @@ public class SimpleThreadedStorageService {
     /**
      * Retrieves details of multiple objects (details only, no data)
      *
-     * @param bucket
-     * the bucket containing the objects.
+     * @param bucketName
+     * name of the bucket containing the objects.
      * @param objectKeys
      * the key names of the objects to retrieve.
      * @return
@@ -318,8 +318,8 @@ public class SimpleThreadedStorageService {
     /**
      * Retrieves Access Control List (ACL) settings for multiple objects.
      *
-     * @param bucket
-     * the bucket containing the objects.
+     * @param bucketName
+     * name of the bucket containing the objects.
      * @param objects
      * the objects whose ACLs will be retrieved.
      * @return
@@ -345,8 +345,8 @@ public class SimpleThreadedStorageService {
     /**
      * Updates/sets Access Control List (ACL) settings for multiple objects.
      *
-     * @param bucket
-     * the bucket containing the objects.
+     * @param bucketName
+     * name of the bucket containing the objects.
      * @param objects
      * objects containing ACL settings that will be updated/set.
      * @return
@@ -373,8 +373,8 @@ public class SimpleThreadedStorageService {
      * A convenience method to download multiple objects from S3 to pre-existing output streams, which
      * is particularly useful for downloading objects to files.
      *
-     * @param bucket
-     * the bucket containing the objects
+     * @param bucketName
+     * name of the bucket containing the objects
      * @param downloadPackages
      * an array of download package objects that manage the output of data for an object.
      *

@@ -1742,6 +1742,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * S3 object key names of object(s) to invalidate.
      * @param callerReference
      * @return
+     * invalidation object
      * @throws CloudFrontServiceException
      */
     public Invalidation invalidateObjects(String distributionId, String[] objectKeys,
@@ -1786,6 +1787,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * S3 object(s) to invalidate.
      * @param callerReference
      * @return
+     * invalidation object
+     *
      * @throws CloudFrontServiceException
      */
     public Invalidation invalidateObjects(String distributionId, S3Object[] objects,
@@ -1839,6 +1842,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @param pagingSize
      * maximum number of invalidation summaries to include in each result page, up to 100.
      * @return
+     * invalidation listing
      * @throws CloudFrontServiceException
      */
     public InvalidationList listInvalidations(String distributionId, String nextMarker, int pagingSize)
@@ -1872,6 +1876,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      *
      * @param distributionId
      * @return
+     * list of invalidation objects
      * @throws CloudFrontServiceException
      */
     public List<InvalidationSummary> listInvalidations(String distributionId)
@@ -2044,8 +2049,6 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * parameters. For distributions with the HTTPS required protocol, the resource URL
      * must start with <tt>"https://"</tt>. RTMP resources do not take the form of a URL,
      * and instead the resource path is nothing but the stream's name.
-     * @param s3ObjectKey
-     * Key name of the S3 object that will be made accessible through the signed URL.
      * @param keyPairId
      * Identifier of a public/private certificate keypair already configured in your
      * Amazon Web Services account.

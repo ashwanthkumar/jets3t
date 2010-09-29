@@ -46,7 +46,8 @@ public class UserByEmailAddressGrantee extends EmailAddressGrantee {
 
     /**
      * Constructs a grantee with the given email.
-     * @param email
+     * @param emailAddress
+     * user's service-recognizable email address.
      */
     public UserByEmailAddressGrantee(String emailAddress) {
         super(emailAddress);

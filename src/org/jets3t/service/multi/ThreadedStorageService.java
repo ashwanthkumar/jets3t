@@ -95,10 +95,10 @@ public class ThreadedStorageService {
      * to an event listening class. EVENT_IN_PROGRESS events are sent at the default time interval
      * of 500ms.
      *
-     * @param storageService
-     *        an storage service implementation that will be used to perform requests.
+     * @param service
+     * an storage service implementation that will be used to perform requests.
      * @param listener
-     *        the event listener which will handle event notifications.
+     * the event listener which will handle event notifications.
      * @throws ServiceException
      */
     public ThreadedStorageService(StorageService service, StorageServiceEventListener listener)
@@ -112,17 +112,16 @@ public class ThreadedStorageService {
      * to an event listening class, and which will send EVENT_IN_PROGRESS events at the specified
      * time interval.
      *
-     * @param storageService
-     *        a storage service implementation that will be used to perform requests.
+     * @param service
+     * a storage service implementation that will be used to perform requests.
      * @param listener
-     *        the event listener which will handle event notifications.
+     * the event listener which will handle event notifications.
      * @param threadSleepTimeMS
-     *        how many milliseconds to wait before sending each EVENT_IN_PROGRESS notification event.
+     * how many milliseconds to wait before sending each EVENT_IN_PROGRESS notification event.
      * @throws ServiceException
      */
-    public ThreadedStorageService(
-        StorageService service, StorageServiceEventListener listener, long threadSleepTimeMS)
-        throws ServiceException
+    public ThreadedStorageService(StorageService service, StorageServiceEventListener listener,
+        long threadSleepTimeMS) throws ServiceException
     {
         this.storageService = service;
         addServiceEventListener(listener);
@@ -347,8 +346,8 @@ public class ThreadedStorageService {
      * The maximum number of threads is controlled by the JetS3t configuration property
      * <tt>threaded-service.admin-max-thread-count</tt>.
      *
-     * @param buckets
-     * the buckets to create.
+     * @param bucketNames
+     * names of buckets to create.
      *
      * @return
      * true if all the threaded tasks completed successfully, false otherwise.
@@ -499,8 +498,8 @@ public class ThreadedStorageService {
      * The maximum number of threads is controlled by the JetS3t configuration property
      * <tt>threaded-service.max-admin-thread-count</tt>.
      *
-     * @param bucket
-     * the bucket to create the objects in
+     * @param bucketName
+     * name of the bucket where objects will be stored
      * @param objects
      * the objects to create/upload.
      *
@@ -572,8 +571,8 @@ public class ThreadedStorageService {
      * The maximum number of threads is controlled by the JetS3t configuration property
      * <tt>threaded-service.admin-max-thread-count</tt>.
      *
-     * @param bucket
-     * the bucket containing the objects to be deleted
+     * @param bucketName
+     * name of the bucket containing objects to delete
      * @param objectKeys
      * key names of objects to delete
      *
@@ -594,8 +593,8 @@ public class ThreadedStorageService {
      * The maximum number of threads is controlled by the JetS3t configuration property
      * <tt>threaded-service.admin-max-thread-count</tt>.
      *
-     * @param bucket
-     * the bucket containing the objects to be deleted
+     * @param bucketName
+     * name of the bucket containing the objects to be deleted
      * @param objects
      * the objects to delete
      *
@@ -659,8 +658,8 @@ public class ThreadedStorageService {
      * Retrieves multiple objects (details and data) from a bucket, and sends
      * {@link GetObjectsEvent} notification events.
      *
-     * @param bucket
-     * the bucket containing the objects to retrieve.
+     * @param bucketName
+     * name of the bucket containing the objects.
      * @param objects
      * the objects to retrieve.
      *
@@ -682,8 +681,8 @@ public class ThreadedStorageService {
      * The maximum number of threads is controlled by the JetS3t configuration property
      * <tt>threaded-service.max-thread-count</tt>.
      *
-     * @param bucket
-     * the bucket containing the objects to retrieve.
+     * @param bucketName
+     * the bucket containing the objects.
      * @param objectKeys
      * the key names of the objects to retrieve.
      *
@@ -755,8 +754,8 @@ public class ThreadedStorageService {
      * Retrieves details (but no data) about multiple objects from a bucket, and sends
      * {@link GetObjectHeadsEvent} notification events.
      *
-     * @param bucket
-     * the bucket containing the objects whose details will be retrieved.
+     * @param bucketName
+     * name of the bucket containing the objects whose details will be retrieved.
      * @param objects
      * the objects with details to retrieve.
      *
@@ -778,8 +777,8 @@ public class ThreadedStorageService {
      * The maximum number of threads is controlled by the JetS3t configuration property
      * <tt>threaded-service.admin-max-thread-count</tt>.
      *
-     * @param bucket
-     * the bucket containing the objects whose details will be retrieved.
+     * @param bucketName
+     * name of the bucket containing the objects.
      * @param objectKeys
      * the key names of the objects with details to retrieve.
      *
@@ -854,8 +853,8 @@ public class ThreadedStorageService {
      * The maximum number of threads is controlled by the JetS3t configuration property
      * <tt>threaded-service.admin-max-thread-count</tt>.
      *
-     * @param bucket
-     * the bucket containing the objects
+     * @param bucketName
+     * name of the bucket containing the objects
      * @param objects
      * the objects to retrieve ACL details for.
      *
@@ -922,8 +921,8 @@ public class ThreadedStorageService {
      * The maximum number of threads is controlled by the JetS3t configuration property
      * <tt>threaded-service.admin-max-thread-count</tt>.
      *
-     * @param bucket
-     * the bucket containing the objects
+     * @param bucketName
+     * name of the bucket containing the objects.
      * @param objects
      * the objects to update/set ACL details for.
      *
@@ -995,8 +994,8 @@ public class ThreadedStorageService {
      * to the value of the object's {@link Constants#METADATA_JETS3T_LOCAL_FILE_DATE} metadata
      * item.
      *
-     * @param bucket
-     * the bucket containing the objects
+     * @param bucketName
+     * name of the bucket containing the objects
      * @param downloadPackages
      * an array of download packages containing the object to be downloaded, and able to build
      * an output stream where the object's contents will be written to.

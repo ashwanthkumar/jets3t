@@ -3007,6 +3007,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @param bucketName
      * @return
+     * JSON policy document for bucket, or null if the bucket has no policy.
      * @throws S3ServiceException
      */
     public String getBucketPolicy(String bucketName)

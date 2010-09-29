@@ -48,6 +48,7 @@ import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ObjectsChunk;
 import org.jets3t.service.S3Service;
+import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.StorageObjectsChunk;
 import org.jets3t.service.io.BytesProgressWatcher;
@@ -355,7 +356,7 @@ public class FileComparer {
      * Any file or directory matching a path in a <code>.jets3t-ignore</code> file will be ignored.
      *
      * @see #buildDiscrepancyLists(Map, Map)
-     * @see #buildS3ObjectMap(S3Service, S3Bucket, String, S3Object[], boolean, S3ServiceEventListener)
+     * @see #buildS3ObjectMap(S3Service, S3Bucket, String, boolean, S3ServiceEventListener)
      *
      * @param rootDirectory
      * The root directory containing the files/directories of interest. The root directory is <b>not</b>
@@ -705,11 +706,11 @@ public class FileComparer {
 
     /**
      * Builds an S3 Object Map containing all the given objects, by retrieving HEAD details about
-     * all the objects and using {@link #populateS3ObjectMap(String, S3Object[])} to product an object/key
-     * map.
+     * all the objects and using {@link #populateS3ObjectMap(String, StorageObject[])}
+     * to product an object/key map.
      *
      * @see #buildDiscrepancyLists(Map, Map)
-     * @see #buildFileMap(File, String, boolean)
+     * @see #buildFileMap(File[], boolean)
      *
      * @param s3Service
      * @param bucket
@@ -808,10 +809,10 @@ public class FileComparer {
      * generated using other methods in this class.
      *
      * @param filesMap
-     *        a map of keys/Files built using the method {@link #buildFileMap(File, String, boolean)}
+     * a map of keys/Files built using the method {@link #buildFileMap(File, String, boolean)}
      * @param s3ObjectsMap
-     *        a map of keys/S3Objects built using the method
-     *        {@link #buildS3ObjectMap(S3Service, S3Bucket, String, S3Object[], boolean, S3ServiceEventListener)}
+     * a map of keys/S3Objects built using the method
+     * {@link #buildS3ObjectMap(S3Service, S3Bucket, String, boolean, S3ServiceEventListener)}
      * @return
      * an object containing the results of the file comparison.
      *
@@ -833,12 +834,12 @@ public class FileComparer {
      * generated using other methods in this class.
      *
      * @param filesMap
-     *        a map of keys/Files built using the method {@link #buildFileMap(File, String, boolean)}
+     * a map of keys/Files built using the method {@link #buildFileMap(File, String, boolean)}
      * @param s3ObjectsMap
-     *        a map of keys/S3Objects built using the method
-     *        {@link #buildS3ObjectMap(S3Service, S3Bucket, String, boolean, S3ServiceEventListener)}
+     * a map of keys/S3Objects built using the method
+     * {@link #buildS3ObjectMap(S3Service, S3Bucket, String, boolean, S3ServiceEventListener)}
      * @param progressWatcher
-     *        watches the progress of file hash generation.
+     * watches the progress of file hash generation.
      * @return
      * an object containing the results of the file comparison.
      *

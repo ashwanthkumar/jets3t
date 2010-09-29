@@ -23,7 +23,7 @@ import org.jets3t.service.multi.ThreadedStorageService;
 import org.jets3t.service.multi.ThreadWatcher;
 
 /**
- * Multi-threaded service event fired by {@link ThreadedStorageService#createBuckets(StorageBucket[])}.
+ * Multi-threaded service event fired by {@link ThreadedStorageService#createBuckets(String[])}.
  * <p>
  * EVENT_IN_PROGRESS events include an array of the {@link StorageBucket}s that have been created
  * since the last progress event was fired. These objects are available via

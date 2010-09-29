@@ -29,7 +29,7 @@ import org.jets3t.service.model.S3Object;
  * <p>
  * EVENT_IN_PROGRESS events include an array of the Map results returned by the
  * copy operation, see
- * {@link S3Service#copyObject(String, String, String, S3Object, boolean)}.
+ * {@link S3Service#copyObject(String, String, String, org.jets3t.service.model.StorageObject, boolean)}.
  * These objects are available via {@link #getCopyResults()}.
  * <p>
  * EVENT_CANCELLED events include an array of the {@link S3Object}s that had not been

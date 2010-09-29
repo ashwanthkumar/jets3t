@@ -18,14 +18,13 @@
  */
 package org.jets3t.service.multi.event;
 
-import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
-import org.jets3t.service.multi.ThreadedStorageService;
 import org.jets3t.service.multi.ThreadWatcher;
+import org.jets3t.service.multi.ThreadedStorageService;
 
 /**
  * Multi-threaded service event fired by
- * {@link ThreadedStorageService#deleteObjects(StorageBucket, StorageObject[])}.
+ * {@link ThreadedStorageService#deleteObjects(String, String[])}.
  * <p>
  * EVENT_IN_PROGRESS events include an array of the {@link StorageObject}s that have been deleted
  * since the last progress event was fired. These objects are available via

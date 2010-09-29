@@ -23,7 +23,8 @@ import org.jets3t.service.multi.ThreadedStorageService;
 import org.jets3t.service.multi.ThreadWatcher;
 
 /**
- * Multi-threaded service event fired by {@link ThreadedStorageService#getObjectsHeads(String[])}.
+ * Multi-threaded service event fired by
+ * {@link ThreadedStorageService#getObjectsHeads(String, String[])}.
  * <p>
  * EVENT_IN_PROGRESS events include an array of the {@link StorageObject}s that have been retrieved
  * since the last progress event was fired. These objects are available via

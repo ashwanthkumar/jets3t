@@ -24,7 +24,7 @@ import org.jets3t.service.multi.ThreadWatcher;
 
 /**
  * Multi-threaded service event fired by
- * {@link ThreadedStorageService#downloadObjects(DownloadPackage[])}.
+ * {@link ThreadedStorageService#downloadObjects(String, org.jets3t.service.multi.DownloadPackage[])}.
  * <p>
  * EVENT_IN_PROGRESS events include an array of the {@link StorageObject}s that have finished downloading
  * since the last progress event was fired. These objects are available via

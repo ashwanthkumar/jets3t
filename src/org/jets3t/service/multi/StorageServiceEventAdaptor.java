@@ -32,15 +32,15 @@ import org.jets3t.service.multi.event.UpdateACLEvent;
 
 
 /**
- * Simple implementation of {@link S3ServiceEventListener} to listen for events produced by
- * {@link S3ServiceMulti}.
+ * Simple implementation of {@link StorageServiceEventListener} to listen for events produced by
+ * {@link ThreadedStorageService}.
  * <p>
  * By default this adaptor does nothing but store the first Error event it comes across, if any,
- * and make it available through {@link #getErrorThrown}.
+ * and make it available through {@link #getErrorThrown()}.
  * </p>
  * <p>
  * The behaviour of this class can be specialised by over-riding the appropriate
- * <tt>s3ServiceEventPerformed</tt> methods, though always be sure to call the <b>super</b>
+ * <tt>event</tt> methods, though always be sure to call the <b>super</b>
  * version of these methods if you are relying on the default error-trapping functions of this
  * class.
  * </p>
