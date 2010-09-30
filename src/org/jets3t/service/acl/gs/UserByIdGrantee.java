@@ -57,6 +57,19 @@ public class UserByIdGrantee extends CanonicalGrantee {
         super(identifier);
     }
 
+    public UserByIdGrantee(String identifier, String name) {
+        super(identifier);
+        setName(name);
+    }
+
+    public String getName() {
+        return getDisplayName();
+    }
+
+    public void setName(String name) {
+        setDisplayName(name);
+    }
+
     @Override
     public XMLBuilder toXMLBuilder() throws TransformerException,
         ParserConfigurationException, FactoryConfigurationError

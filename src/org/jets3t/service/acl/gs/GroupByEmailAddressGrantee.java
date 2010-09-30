@@ -33,9 +33,10 @@ import org.jets3t.service.acl.GroupGrantee;
  *
  */
 public class GroupByEmailAddressGrantee extends GroupGrantee {
+    private String name;
 
     public GroupByEmailAddressGrantee() {
-      super();
+        super();
     }
 
     /**
@@ -47,14 +48,31 @@ public class GroupByEmailAddressGrantee extends GroupGrantee {
         super(email);
     }
 
+    public GroupByEmailAddressGrantee(String email, String name) {
+        super(email);
+        setName(name);
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
     @Override
     public XMLBuilder toXMLBuilder() throws TransformerException,
         ParserConfigurationException, FactoryConfigurationError
     {
-        return (XMLBuilder.create("Scope")
-            .attr("type", "GroupByEmail")
-            .element("EmailAddress").text(id)
-            );
+        XMLBuilder builder =
+            XMLBuilder.create("Scope")
+                .attr("type", "GroupByEmail")
+                .element("EmailAddress").text(getIdentifier()).up();
+        if (getName() != null) {
+            builder.element("Name").text(getName());
+        }
+        return builder;
     }
 
     @Override
@@ -65,6 +83,8 @@ public class GroupByEmailAddressGrantee extends GroupGrantee {
 
     @Override
     public String toString() {
-        return "GroupByEmail [" + id + "]";
+        return "GroupByEmail [" + id
+            + (name != null ? ", name=" + getName() : "")
+            + "]";
     }
 }

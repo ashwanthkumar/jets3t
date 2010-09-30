@@ -18,13 +18,13 @@
  */
 package org.jets3t.service.acl.gs;
 
-import com.jamesmurty.utils.XMLBuilder;
-
-import org.jets3t.service.acl.EmailAddressGrantee;
-
 import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
+
+import org.jets3t.service.acl.EmailAddressGrantee;
+
+import com.jamesmurty.utils.XMLBuilder;
 
 /**
  * Represents an User By Email Grantee, that is a grantee identified by their email address.
@@ -33,6 +33,7 @@ import javax.xml.transform.TransformerException;
  *
  */
 public class UserByEmailAddressGrantee extends EmailAddressGrantee {
+    private String name;
 
     /**
      * Default constructor.
@@ -53,14 +54,31 @@ public class UserByEmailAddressGrantee extends EmailAddressGrantee {
         super(emailAddress);
     }
 
+    public UserByEmailAddressGrantee(String emailAddress, String name) {
+        super(emailAddress);
+        setName(name);
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
     @Override
     public XMLBuilder toXMLBuilder() throws TransformerException,
         ParserConfigurationException, FactoryConfigurationError
     {
-        return (XMLBuilder.create("Scope")
-            .attr("type", "UserByEmail")
-            .element("EmailAddress").text(getIdentifier())
-            );
+        XMLBuilder builder =
+            XMLBuilder.create("Scope")
+                .attr("type", "UserByEmail")
+                .element("EmailAddress").text(getIdentifier()).up();
+        if (getName() != null) {
+            builder.element("Name").text(getName());
+        }
+        return builder;
     }
 
     @Override
@@ -72,7 +90,9 @@ public class UserByEmailAddressGrantee extends EmailAddressGrantee {
 
     @Override
     public String toString() {
-        return "UserByEmail [email=" + getIdentifier() + "]";
+        return "UserByEmail [email=" + getIdentifier()
+            + (name != null ? ", name=" + getName() : "")
+            + "]";
     }
 
 }

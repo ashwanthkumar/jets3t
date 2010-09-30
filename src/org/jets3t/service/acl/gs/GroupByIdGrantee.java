@@ -33,7 +33,7 @@ import org.jets3t.service.acl.GroupGrantee;
  *
  */
 public class GroupByIdGrantee extends GroupGrantee {
-    private final String id = null;
+    private String name;
 
     public GroupByIdGrantee() {
       super();
@@ -48,14 +48,31 @@ public class GroupByIdGrantee extends GroupGrantee {
         super(id);
     }
 
+    public GroupByIdGrantee(String identifier, String name) {
+        super(identifier);
+        setName(name);
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
     @Override
     public XMLBuilder toXMLBuilder() throws TransformerException,
         ParserConfigurationException, FactoryConfigurationError
     {
-        return (XMLBuilder.create("Scope")
-            .attr("type", "GroupById")
-            .element("ID").text(id)
-            );
+        XMLBuilder builder =
+            XMLBuilder.create("Scope")
+                .attr("type", "GroupById")
+                .element("ID").text(getIdentifier()).up();
+        if (getName() != null) {
+            builder.element("Name").text(getName());
+        }
+        return builder;
     }
 
     @Override
@@ -66,6 +83,8 @@ public class GroupByIdGrantee extends GroupGrantee {
 
     @Override
     public String toString() {
-        return "GroupById [" + id + "]";
+        return "GroupById [" + id
+            + (name != null ? ", name=" + getName() : "")
+            + "]";
     }
 }

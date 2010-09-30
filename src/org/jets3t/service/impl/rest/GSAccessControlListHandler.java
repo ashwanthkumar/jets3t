@@ -44,7 +44,8 @@ public class GSAccessControlListHandler extends AccessControlListHandler {
 
    protected String scopeType = null;
 
-   public void startElement(String name, Attributes attrs) {
+   @Override
+public void startElement(String name, Attributes attrs) {
        if (name.equals("Owner")) {
            owner = new S3Owner();
        } else if (name.equals("Entries")) {
@@ -71,7 +72,8 @@ public class GSAccessControlListHandler extends AccessControlListHandler {
        }
    }
 
-   public void endElement(String name, String elementText) {
+   @Override
+public void endElement(String name, String elementText) {
        // Owner details.
        if (name.equals("ID") && !insideACL) {
            owner.setId(elementText);
@@ -86,7 +88,15 @@ public class GSAccessControlListHandler extends AccessControlListHandler {
        } else if (name.equals("URI")) {
            currentGrantee.setIdentifier(elementText);
        } else if (name.equals("Name")) {
-           ((CanonicalGrantee) currentGrantee).setDisplayName(elementText);
+           if (currentGrantee instanceof UserByIdGrantee) {
+               ((UserByIdGrantee) currentGrantee).setName(elementText);
+           } else if (currentGrantee instanceof UserByEmailAddressGrantee) {
+               ((UserByEmailAddressGrantee) currentGrantee).setName(elementText);
+           } else if (currentGrantee instanceof GroupByIdGrantee) {
+               ((GroupByIdGrantee) currentGrantee).setName(elementText);
+           } else if (currentGrantee instanceof GroupByEmailAddressGrantee) {
+               ((GroupByEmailAddressGrantee) currentGrantee).setName(elementText);
+           }
        } else if (name.equals("Permission")) {
            currentPermission = Permission.parsePermission(elementText);
        } else if (name.equals("Entry")) {
