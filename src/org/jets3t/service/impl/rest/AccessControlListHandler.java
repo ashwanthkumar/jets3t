@@ -51,6 +51,7 @@ public class AccessControlListHandler extends DefaultXmlHandler {
         return accessControlList;
     }
 
+    @Override
     public void startElement(String name) {
         if (name.equals("Owner")) {
             owner = new S3Owner();
@@ -61,6 +62,7 @@ public class AccessControlListHandler extends DefaultXmlHandler {
         }
     }
 
+    @Override
     public void endElement(String name, String elementText) {
         // Owner details.
         if (name.equals("ID") && !insideACL) {
@@ -79,7 +81,10 @@ public class AccessControlListHandler extends DefaultXmlHandler {
             currentGrantee = new GroupGrantee();
             currentGrantee.setIdentifier(elementText);
         } else if (name.equals("DisplayName")) {
-            ((CanonicalGrantee) currentGrantee).setDisplayName(elementText);
+            // In some cases we may get a DisplayName field for non-canonical grantees.
+            if (currentGrantee instanceof CanonicalGrantee) {
+                ((CanonicalGrantee) currentGrantee).setDisplayName(elementText);
+            }
         } else if (name.equals("Permission")) {
             currentPermission = Permission.parsePermission(elementText);
         } else if (name.equals("Grant")) {
