@@ -44,7 +44,7 @@ public class ServiceException extends Exception {
     private String errorHostId = null;
 
     // Map<String, String> - name => value pairs of response headers.
-    private Map responseHeaders = null;
+    private Map<String, String> responseHeaders = null;
 
     private int responseCode = -1;
     private String responseStatus = null;
@@ -258,11 +258,11 @@ public class ServiceException extends Exception {
         this.errorHostId = errorHostId;
     }
 
-    public Map getResponseHeaders() {
+    public Map<String, String> getResponseHeaders() {
         return responseHeaders;
     }
 
-    public void setResponseHeaders(Map responseHeaders) {
+    public void setResponseHeaders(Map<String, String> responseHeaders) {
         this.responseHeaders = responseHeaders;
     }
 

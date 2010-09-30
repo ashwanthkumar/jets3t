@@ -28,7 +28,7 @@ package org.jets3t.service;
  */
 public class S3ServiceException extends ServiceException {
 
-    private static final long serialVersionUID = -4350492756600862445L;
+    private static final long serialVersionUID = -4594639645399926038L;
 
     /**
      * Constructor that includes the XML error document returned by S3.
@@ -61,6 +61,14 @@ public class S3ServiceException extends ServiceException {
      */
     public S3ServiceException(ServiceException se) {
         this(se.getMessage(), se.getXmlMessage());
+
+        this.setResponseHeaders(se.getResponseHeaders());
+        this.setResponseCode(se.getResponseCode());
+        this.setResponseStatus(se.getResponseStatus());
+        this.setResponseDate(se.getResponseDate());
+        this.setRequestVerb(se.getRequestVerb());
+        this.setRequestPath(se.getRequestPath());
+        this.setRequestHost(se.getRequestHost());
     }
 
     /**
