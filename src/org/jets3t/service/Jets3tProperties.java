@@ -51,7 +51,8 @@ public class Jets3tProperties implements Serializable {
     /**
      * Stores the jets3t properties.
      */
-    private static final Hashtable propertiesHashtable = new Hashtable();
+    private static final Hashtable<String, Jets3tProperties> propertiesHashtable =
+        new Hashtable<String, Jets3tProperties>();
 
     private Properties properties = new Properties();
     private boolean loaded = false;
@@ -78,7 +79,7 @@ public class Jets3tProperties implements Serializable {
 
         // Keep static references to properties classes by propertiesIdentifer.
         if (propertiesHashtable.containsKey(propertiesIdentifer)) {
-            jets3tProperties = (Jets3tProperties) propertiesHashtable.get(propertiesIdentifer);
+            jets3tProperties = propertiesHashtable.get(propertiesIdentifer);
         } else {
             jets3tProperties = new Jets3tProperties();
             propertiesHashtable.put(propertiesIdentifer, jets3tProperties);
@@ -103,7 +104,7 @@ public class Jets3tProperties implements Serializable {
 
         // Keep static references to properties classes by filename.
         if (propertiesHashtable.containsKey(propertiesFileName)) {
-            jets3tProperties = (Jets3tProperties) propertiesHashtable.get(propertiesFileName);
+            jets3tProperties = propertiesHashtable.get(propertiesFileName);
             return jets3tProperties;
         } else {
             jets3tProperties = new Jets3tProperties();
@@ -221,9 +222,9 @@ public class Jets3tProperties implements Serializable {
      * @throws IOException
      */
     public void loadAndReplaceProperties(Properties newProperties, String propertiesSource) {
-        Iterator propsIter = newProperties.entrySet().iterator();
+        Iterator<Map.Entry<Object, Object>> propsIter = newProperties.entrySet().iterator();
         while (propsIter.hasNext()) {
-            Map.Entry entry = (Map.Entry) propsIter.next();
+            Map.Entry<Object, Object> entry = propsIter.next();
             String propertyName = (String) entry.getKey();
             String propertyValue = (String) entry.getValue();
             if (properties.containsKey(propertyName) && !properties.getProperty(propertyName).equals(propertyValue)) {

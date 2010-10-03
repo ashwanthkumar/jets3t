@@ -53,7 +53,7 @@ import com.jamesmurty.utils.XMLBuilder;
 public class S3BucketLoggingStatus {
     private String targetBucketName = null;
     private String logfilePrefix = null;
-    private final List targetGrantsList = new ArrayList();
+    private final List<GrantAndPermission> targetGrantsList = new ArrayList<GrantAndPermission>();
 
     public S3BucketLoggingStatus() {
     }
@@ -85,7 +85,7 @@ public class S3BucketLoggingStatus {
     }
 
     public GrantAndPermission[] getTargetGrants() {
-        return (GrantAndPermission[]) targetGrantsList.toArray(
+        return targetGrantsList.toArray(
             new GrantAndPermission[targetGrantsList.size()]);
     }
 
@@ -137,10 +137,10 @@ public class S3BucketLoggingStatus {
                 .elem("TargetBucket").text(getTargetBucketName()).up()
                 .elem("TargetPrefix").text(getLogfilePrefix()).up();
             if (targetGrantsList.size() > 0) {
-                Iterator targetGrantsIter = targetGrantsList.iterator();
+                Iterator<GrantAndPermission> targetGrantsIter = targetGrantsList.iterator();
                 XMLBuilder grantsBuilder = enabledBuilder.elem("TargetGrants");
                 while (targetGrantsIter.hasNext()) {
-                    GrantAndPermission gap = (GrantAndPermission) targetGrantsIter.next();
+                    GrantAndPermission gap = targetGrantsIter.next();
                     grantsBuilder.elem("Grant")
                         .importXMLBuilder(gap.getGrantee().toXMLBuilder())
                         .elem("Permission").text(gap.getPermission().toString());

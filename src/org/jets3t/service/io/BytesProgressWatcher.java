@@ -47,7 +47,7 @@ public class BytesProgressWatcher {
     private long totalBytesInCurrentTransfer = 0;
     private long endTimeCurrentTransferMS = -1;
 
-    private Map historyOfBytesBySecond = new TreeMap();
+    private Map<Long, Long> historyOfBytesBySecond = new TreeMap<Long, Long>();
     private long earliestHistorySecond = Long.MAX_VALUE;
 
     /**
@@ -108,7 +108,7 @@ public class BytesProgressWatcher {
 
         // Keep historical records of the byte counts transferred in a given second.
         Long currentSecond = new Long(System.currentTimeMillis() / 1000);
-        Long bytesInSecond = (Long) historyOfBytesBySecond.get(currentSecond);
+        Long bytesInSecond = historyOfBytesBySecond.get(currentSecond);
         if (bytesInSecond != null) {
             historyOfBytesBySecond.put(currentSecond,
                 new Long(byteCount + bytesInSecond.longValue()));
@@ -156,7 +156,7 @@ public class BytesProgressWatcher {
 
         long bytesRemaining = bytesToTransfer - totalBytesInCurrentTransfer;
         double remainingSecs =
-            (double) bytesRemaining / calculateOverallBytesPerSecond(progressWatchers);
+            bytesRemaining / calculateOverallBytesPerSecond(progressWatchers);
         return Math.round(remainingSecs);
     }
 
@@ -187,7 +187,7 @@ public class BytesProgressWatcher {
         long numberOfSecondsInHistory = 0;
         for (long sec = startSecond; sec <= endSecond; sec++) {
             numberOfSecondsInHistory++;
-            Long bytesInSecond = (Long) historyOfBytesBySecond.get(new Long(sec));
+            Long bytesInSecond = historyOfBytesBySecond.get(new Long(sec));
             if (bytesInSecond != null) {
                 sumOfBytes += bytesInSecond.longValue();
             }
@@ -294,7 +294,7 @@ public class BytesProgressWatcher {
         }
 
         double remainingSecs =
-            (double) bytesRemaining / bytesPerSecond;
+            bytesRemaining / bytesPerSecond;
         return Math.round(remainingSecs);
     }
 

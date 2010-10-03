@@ -330,15 +330,16 @@ public class ServiceUtils {
                 // Convert connection header string Collections into simple strings (where
                 // appropriate)
                 if (value instanceof Collection) {
-                    if (((Collection) value).size() == 1) {
+                    Collection<?> coll = (Collection<?>) value;
+                    if (coll.size() == 1) {
                         if (log.isDebugEnabled()) {
                             log.debug("Converted metadata single-item Collection "
-                                + value.getClass() + " " + value + " for key: " + key);
+                                + coll.getClass() + " " + coll + " for key: " + key);
                         }
-                        value = ((Collection) value).iterator().next();
+                        value = coll.iterator().next();
                     } else {
                         if (log.isWarnEnabled()) {
-                            log.warn("Collection " + value
+                            log.warn("Collection " + coll
                                 + " has too many items to convert to a single string");
                         }
                     }
@@ -443,10 +444,10 @@ public class ServiceUtils {
      * @return
      * a delimited string
      */
-    public static String join(List items, String delimiter) {
+    public static String join(List<?> items, String delimiter) {
         StringBuffer sb = new StringBuffer();
         for (int i = 0; i < items.size(); i++) {
-            sb.append(items.get(i));
+            sb.append(items.get(i).toString());
             if (i < items.size() - 1) {
                 sb.append(delimiter);
             }

@@ -65,11 +65,11 @@ public abstract class BaseVersionOrDeleteMarker {
     }
 
     public static String[] toVersionIds(BaseVersionOrDeleteMarker[] items) {
-        List versionsList = new ArrayList();
+        List<String> versionsList = new ArrayList<String>();
         for (int i = 0; i < items.length; i++) {
             versionsList.add(items[i].getVersionId());
         }
-        return (String[]) versionsList.toArray(new String[versionsList.size()]);
+        return versionsList.toArray(new String[versionsList.size()]);
     }
 
 }

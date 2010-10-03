@@ -25,7 +25,6 @@ import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -88,7 +87,7 @@ public class RestUtils {
      * <tr><td>content-encoding</td></tr>
      * </table>
      */
-    public static final List HTTP_HEADER_METADATA_NAMES = Arrays.asList(new String[] {
+    public static final List<String> HTTP_HEADER_METADATA_NAMES = Arrays.asList(new String[] {
         "content-type",
         "content-md5",
         "content-length",
@@ -149,9 +148,11 @@ public class RestUtils {
      *
      * When expires is non-null, it will be used instead of the Date header.
      */
-    public static String makeS3CanonicalString(String method, String resource, Map headersMap, String expires)
+    public static String makeS3CanonicalString(String method, String resource,
+        Map<String, Object> headersMap, String expires)
     {
-         return makeServiceCanonicalString(method, resource, headersMap, expires, Constants.REST_HEADER_PREFIX);
+         return makeServiceCanonicalString(method, resource, headersMap, expires,
+             Constants.REST_HEADER_PREFIX);
     }
 
     /**
@@ -159,19 +160,17 @@ public class RestUtils {
      *
      * When expires is non-null, it will be used instead of the Date header.
      */
-    public static String makeServiceCanonicalString(String method, String resource, Map headersMap,
-        String expires, String headerPrefix)
+    public static String makeServiceCanonicalString(String method, String resource,
+        Map<String, Object> headersMap, String expires, String headerPrefix)
     {
         StringBuffer canonicalStringBuf = new StringBuffer();
         canonicalStringBuf.append(method + "\n");
 
         // Add all interesting headers to a list, then sort them.  "Interesting"
         // is defined as Content-MD5, Content-Type, Date, and x-amz-
-        SortedMap interestingHeaders = new TreeMap();
+        SortedMap<String, Object> interestingHeaders = new TreeMap<String, Object>();
         if (headersMap != null && headersMap.size() > 0) {
-            Iterator headerIter = headersMap.entrySet().iterator();
-            while (headerIter.hasNext()) {
-                Map.Entry entry = (Map.Entry) headerIter.next();
+            for (Map.Entry<String, Object> entry: headersMap.entrySet()) {
                 Object key = entry.getKey();
                 Object value = entry.getValue();
 
@@ -210,9 +209,8 @@ public class RestUtils {
         }
 
         // Finally, add all the interesting headers (i.e.: all that start with x-amz- ;-))
-        for (Iterator i = interestingHeaders.entrySet().iterator(); i.hasNext(); ) {
-            Map.Entry entry = (Map.Entry) i.next();
-            String key = (String) entry.getKey();
+        for (Map.Entry<String, Object> entry: interestingHeaders.entrySet()) {
+            String key = entry.getKey();
             Object value = entry.getValue();
 
             if (key.startsWith(headerPrefix)) {
@@ -550,10 +548,9 @@ public class RestUtils {
         return timeOffset;
     }
 
-    public static Map convertHeadersToMap(Header[] headers) {
-        Map s3Headers = new HashMap();
-        for (int i = 0; i < headers.length; i++) {
-            Header header = headers[i];
+    public static Map<String, String> convertHeadersToMap(Header[] headers) {
+        Map<String, String> s3Headers = new HashMap<String, String>();
+        for (Header header: headers) {
             s3Headers.put(header.getName(), header.getValue());
         }
         return s3Headers;
