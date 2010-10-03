@@ -1235,10 +1235,12 @@ public abstract class BaseStorageServiceTests extends TestCase {
             assertEquals(0, comparerResults.updatedOnServerKeys.size());
 
             // Update 1 local and 1 remote file, then confirm discrepancies
-            new FileOutputStream(local1).write("Updated local file".getBytes("UTF-8"));
+            byte[] data = "Updated local file".getBytes("UTF-8");
+            FileOutputStream local1FOS = new FileOutputStream(local1);
+            local1FOS.write(data);
+            local1FOS.close();
             StorageObject remoteObject = new StorageObject(local3.getName());
-            remoteObject.setDataInputStream(
-                new ByteArrayInputStream("Updated Remote File".getBytes("UTF-8")));
+            remoteObject.setDataInputStream(new ByteArrayInputStream(data));
             service.putObject(bucketName, remoteObject);
 
             objectMap = comparer.buildObjectMap(
