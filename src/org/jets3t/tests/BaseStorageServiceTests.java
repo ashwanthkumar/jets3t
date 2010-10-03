@@ -324,7 +324,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             // what we expect, and we get our metadata back.
             dataObject = service.getObject(bucketName, object.getKey());
             assertEquals("Unexpected default content type", "text/plain", dataObject.getContentType());
-            // TODO: Google Storage doesn't return Content-Length in a GET!
+            // TODO: Google Storage doesn't reliably return Content-Length in a GET
             if (!TARGET_SERVICE_GS.equals(getTargetService())) {
                 assertEquals("Unexpected content-length for object",
                     objectData.length(), dataObject.getContentLength());
@@ -1083,7 +1083,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             assertEquals(0, deleteObjectsEventCount[0]);
             // Check all objects retrieved have expected data content.
             for (StorageObject getObject: getObjectsList) {
-                // TODO: Google Storage doesn't reliably return Content-Length in a GET!
+                // TODO: Google Storage doesn't reliably return Content-Length in a GET
                 if (!TARGET_SERVICE_GS.equals(getTargetService())) {
                     assertEquals("Some data".length(), getObject.getContentLength());
                 }
@@ -1142,7 +1142,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             StorageObject[] getObjects = simpleThreadedService.getObjects(bucketName, objects);
             assertEquals(objects.length, getObjects.length);
             for (int i = 0; i < objects.length; i++) {
-                // TODO: Google Storage doesn't reliably return Content-Length in a GET!
+                // TODO: Google Storage doesn't reliably return Content-Length in a GET
                 if (!TARGET_SERVICE_GS.equals(getTargetService())) {
                     assertEquals("Some data".length(), getObjects[i].getContentLength());
                 }

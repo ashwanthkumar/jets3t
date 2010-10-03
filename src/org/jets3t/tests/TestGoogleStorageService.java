@@ -23,8 +23,6 @@ import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.gs.GSAccessControlList;
 import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
-import org.jets3t.service.model.GSObject;
-import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.security.GSCredentials;
 import org.jets3t.service.security.ProviderCredentials;
 
