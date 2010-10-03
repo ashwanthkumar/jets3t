@@ -20,7 +20,7 @@ package org.jets3t.service.model;
 
 
 /**
- * Represents an S3 owner object with a canonical ID and, optionally, a display name.
+ * Represents a Google Storage owner object with a canonical ID and, optionally, a display name.
  *
  * @author James Murty
  */

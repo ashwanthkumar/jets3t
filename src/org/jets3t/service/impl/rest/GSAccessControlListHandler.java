@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2007 James Murty
+ * Copyright 2010 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@
 package org.jets3t.service.impl.rest;
 
 import org.jets3t.service.acl.AccessControlList;
-import org.jets3t.service.acl.CanonicalGrantee;
 import org.jets3t.service.acl.Permission;
 import org.jets3t.service.acl.gs.AllAuthenticatedUsersGrantee;
 import org.jets3t.service.acl.gs.AllUsersGrantee;
@@ -29,7 +28,7 @@ import org.jets3t.service.acl.gs.GroupByEmailAddressGrantee;
 import org.jets3t.service.acl.gs.GroupByIdGrantee;
 import org.jets3t.service.acl.gs.UserByEmailAddressGrantee;
 import org.jets3t.service.acl.gs.UserByIdGrantee;
-import org.jets3t.service.model.S3Owner;
+import org.jets3t.service.model.GSOwner;
 import org.xml.sax.Attributes;
 
 /**
@@ -45,9 +44,9 @@ public class GSAccessControlListHandler extends AccessControlListHandler {
    protected String scopeType = null;
 
    @Override
-public void startElement(String name, Attributes attrs) {
+   public void startElement(String name, Attributes attrs) {
        if (name.equals("Owner")) {
-           owner = new S3Owner();
+           owner = new GSOwner();
        } else if (name.equals("Entries")) {
            accessControlList = new GSAccessControlList();
            accessControlList.setOwner(owner);
@@ -73,7 +72,7 @@ public void startElement(String name, Attributes attrs) {
    }
 
    @Override
-public void endElement(String name, String elementText) {
+   public void endElement(String name, String elementText) {
        // Owner details.
        if (name.equals("ID") && !insideACL) {
            owner.setId(elementText);
@@ -105,4 +104,5 @@ public void endElement(String name, String elementText) {
            insideACL = false;
        }
    }
+
 }

@@ -25,6 +25,7 @@ import org.jets3t.service.acl.GranteeInterface;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
 import org.jets3t.service.model.S3Owner;
+import org.jets3t.service.model.StorageOwner;
 
 /**
  * Handler for AccessControlList response XML documents.
@@ -37,7 +38,7 @@ import org.jets3t.service.model.S3Owner;
 public class AccessControlListHandler extends DefaultXmlHandler {
     protected AccessControlList accessControlList = null;
 
-    protected S3Owner owner = null;
+    protected StorageOwner owner = null;
     protected GranteeInterface currentGrantee = null;
     protected Permission currentPermission = null;
 

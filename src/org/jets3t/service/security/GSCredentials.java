@@ -63,7 +63,7 @@ public class GSCredentials extends ProviderCredentials {
 
     @Override
     public String getVersionPrefix() {
-        return "jets3t AWS Credentials, version: ";
+        return "jets3t GS Credentials, version: ";
     }
 
 }

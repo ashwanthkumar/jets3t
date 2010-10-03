@@ -69,7 +69,7 @@ public class GSAccessControlList extends AccessControlList {
         FactoryConfigurationError, TransformerException
     {
         if (owner == null) {
-            throw new ServiceException("Invalid AccessControlList: missing an S3Owner");
+            throw new ServiceException("Invalid AccessControlList: missing an Owner");
         }
         XMLBuilder builder = XMLBuilder.create("AccessControlList");
 

@@ -80,7 +80,7 @@ KUDOS TO:
 - Claudio Cherubino of Google Inc., for significant refactoring work
   and the addition of full support for the Google Storage service.
 - David Kocher for a patch to implement Default Root Object support
-  in the CloundFrontService, and for providing testing and feedback. 
+  in the CloundFrontService, and for his invaluable testing and feedback. 
 
 
 -------------

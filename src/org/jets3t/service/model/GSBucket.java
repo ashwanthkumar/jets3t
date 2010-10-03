@@ -24,7 +24,7 @@ import java.util.List;
 import org.jets3t.service.acl.gs.GSAccessControlList;
 
 /**
- * Represents an S3 bucket.
+ * Represents a bucket in the Google Storage service.
  *
  * @author James Murty
  */
@@ -38,7 +38,7 @@ public class GSBucket extends StorageBucket {
     }
 
     /**
-     * Create a bucket with a name. All buckets in S3 share a single namespace,
+     * Create a bucket with a name. All buckets share a single namespace,
      * so choose a unique name for your bucket.
      * @param name the name for the bucket
      */
@@ -61,8 +61,8 @@ public class GSBucket extends StorageBucket {
     }
 
     /**
-     * Sets the bucket's Access Control List in S3 - this should only be used internally by J3tS3t
-     * methods that retrieve information directly from S3.
+     * Sets the bucket's Access Control List - this should only be used internally
+     * by JetS3t methods that retrieve information directly from the service.
      *
      * @param acl
      */

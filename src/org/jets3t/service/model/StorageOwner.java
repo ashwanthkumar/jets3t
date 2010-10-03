@@ -39,9 +39,10 @@ public class StorageOwner {
 
     @Override
     public String toString() {
-        return "StorageItemOwner ["
-            + (getDisplayName() != null ? "name=" + getDisplayName() + ", " : "")
-            + "id=" + getId() + "]";
+        return this.getClass().getName() + " ["
+            + "id=" + getId()
+            + (getDisplayName() != null ? ", name=" + getDisplayName(): "")
+            + "]";
     }
 
     public String getId() {

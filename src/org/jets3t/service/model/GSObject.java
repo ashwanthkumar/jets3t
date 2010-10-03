@@ -40,7 +40,7 @@ public class GSObject extends StorageObject implements Cloneable {
      * Create an object representing a file. The object is initialised with the file's name
      * as its key, the file's content as its data, a content type based on the file's extension
      * (see {@link Mimetypes}), and a content length matching the file's size.
-     * The file's MD5 hash value is also calculated and provided to S3, so the service
+     * The file's MD5 hash value is also calculated and provided to the service so it
      * can verify that no data are corrupted in transit.
      * <p>
      * <b>NOTE:</b> The automatic calculation of a file's MD5 hash digest as performed by
@@ -61,8 +61,8 @@ public class GSObject extends StorageObject implements Cloneable {
      * key, the given string as its data content (encoded as UTF-8), a content type of
      * <code>text/plain; charset=utf-8</code>, and a content length matching the
      * string's length.
-     * The given string's MD5 hash value is also calculated and provided to S3, so the service
-     * can verify that no data are corrupted in transit.
+     * The given string's MD5 hash value is also calculated and provided to the service
+     * so it can verify that no data are corrupted in transit.
      * <p>
      * <b>NOTE:</b> The automatic calculation of the MD5 hash digest as performed by
      * this constructor could take some time for large strings, or for many small ones.

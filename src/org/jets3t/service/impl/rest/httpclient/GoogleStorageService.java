@@ -26,8 +26,6 @@ import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.acl.gs.GSAccessControlList;
-import org.jets3t.service.impl.rest.AccessControlListHandler;
-import org.jets3t.service.impl.rest.GSAccessControlListHandler;
 import org.jets3t.service.model.GSBucket;
 import org.jets3t.service.model.GSObject;
 import org.jets3t.service.security.ProviderCredentials;
@@ -56,7 +54,7 @@ public class GoogleStorageService extends RestStorageService {
      * the user credentials to use when communicating with Google Storage, may be null in which case the
      * communication is done as an anonymous user.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public GoogleStorageService(ProviderCredentials credentials) throws ServiceException {
         this(credentials, null, null);
@@ -76,7 +74,7 @@ public class GoogleStorageService extends RestStorageService {
      * an implementation of the HttpClient CredentialsProvider interface, to provide a means for
      * prompting for credentials when necessary.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public GoogleStorageService(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider) throws ServiceException
@@ -101,7 +99,7 @@ public class GoogleStorageService extends RestStorageService {
      * @param jets3tProperties
      * JetS3t properties that will be applied within this service.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public GoogleStorageService(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties)
@@ -129,7 +127,7 @@ public class GoogleStorageService extends RestStorageService {
      * @param hostConfig
      * Custom HTTP host configuration; e.g to register a custom Protocol Socket Factory
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public GoogleStorageService(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties,
@@ -155,7 +153,7 @@ public class GoogleStorageService extends RestStorageService {
 
     /**
      * @return
-     * the virtual path inside the S3 server.
+     * the virtual path inside the service.
      */
     @Override
     protected String getVirtualPath() {
@@ -275,14 +273,10 @@ public class GoogleStorageService extends RestStorageService {
      *
      * This method can be performed by anonymous services, but can only succeed if the
      * bucket's existing ACL already allows write access by the anonymous user.
-     * In general, you can only access the ACL of a bucket if the ACL already in place
-     * for that bucket (in S3) allows you to do so. See
-     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
-     * the S3 documentation on ACLs</a> for more details on access to ACLs.
      *
      * @param bucketName
      * a name of the bucket with ACL settings to apply.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public void putBucketAcl(String bucketName, GSAccessControlList acl) throws ServiceException {
         if (acl == null) {
@@ -298,14 +292,10 @@ public class GoogleStorageService extends RestStorageService {
      *
      * This method can be performed by anonymous services, but can only succeed if the
      * bucket's existing ACL already allows write access by the anonymous user.
-     * In general, you can only access the ACL of a bucket if the ACL already in place
-     * for that bucket (in S3) allows you to do so. See
-     * <a href="http://docs.amazonwebservices.com/AmazonS3/2006-03-01/index.html?S3_ACLs.html">
-     * the S3 documentation on ACLs</a> for more details on access to ACLs.
      *
      * @param bucket
      * a bucket with ACL settings to apply.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public void putBucketAcl(GSBucket bucket) throws ServiceException {
         assertValidBucket(bucket, "Put Bucket Access Control List");
