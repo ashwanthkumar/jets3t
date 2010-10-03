@@ -7,44 +7,45 @@
      ====================================================================== -->
 <project name="JetS3t" default="dist">
     <description>
-    		JetS3t : Toolkit for Amazon's S3 online storage service
+            JetS3t : Toolkit for Amazon's S3 online storage service
     </description>
-	
-	<property file="build.properties"/>
-	
+    
+    <property file="build.properties"/>
+    
     <!-- ================================= 
          Define the script-wide classpath.
          ================================= -->
-	<path id="classpath">
-		<fileset dir="${dir.libs}" includes="**/*.jar"/>
-	</path>
-	
-	
-	<target name="compile">
-		<mkdir dir="${dir.build}"/>
-		<javac 
-			srcdir="${dir.src}"
-			destdir="${dir.build}"
-			debug="${debug}"
-			source="${build.source}"
-			target="${build.target}">
-			<classpath refid="classpath"/>			
+    <path id="classpath">
+        <fileset dir="${dir.libs}" includes="**/*.jar"/>
+    </path>
+    
+    
+    <target name="compile">
+        <mkdir dir="${dir.build}"/>
+        <javac 
+            srcdir="${dir.src}"
+            destdir="${dir.build}"
+            debug="${debug}"
+            source="${build.source}"
+            target="${build.target}"
+            encoding="utf-8">
+            <classpath refid="classpath"/>            
             <exclude name="**/mir/**"/>
             <exclude name="contribs/mx/**" unless="contribs.include-mx"/>
-		</javac>
-	</target>
-		
-	<target name="dist-service" depends="compile">
-		<mkdir dir="${dir.dist}/jets3t-${version}/jars"/>
-		<jar
-			basedir="${dir.build}"			
-			file="${dir.dist}/jets3t-${version}/jars/${dist.file.service}"
+        </javac>
+    </target>
+        
+    <target name="dist-service" depends="compile">
+        <mkdir dir="${dir.dist}/jets3t-${version}/jars"/>
+        <jar
+            basedir="${dir.build}"            
+            file="${dir.dist}/jets3t-${version}/jars/${dist.file.service}"
             index="true"
-			>
-			<include name="org/jets3t/service/**"/>
-			<include name="org/apache/commons/httpclient/contrib/**"/>
-			<include name="contribs/mx/**" if="contribs.include-mx"/>
-		</jar>
+            >
+            <include name="org/jets3t/service/**"/>
+            <include name="org/apache/commons/httpclient/contrib/**"/>
+            <include name="contribs/mx/**" if="contribs.include-mx"/>
+        </jar>
         <jar
             basedir="${dir.build}"
             file="${dir.dist}/jets3t-${version}/jars/${dist.file.guisupport}"
@@ -53,7 +54,7 @@
             <include name="org/jets3t/gui/**"/>
             <include name="org/jets3t/gui/skins/**"/>
         </jar>
-	</target>
+    </target>
 
     <target name="dist-resources">
         <mkdir dir="${dir.dist}/jets3t-${version}/resources"/>
@@ -64,19 +65,19 @@
     </target>
 
     <target name="dist-app-cockpit" depends="dist-service,dist-resources">
-		<mkdir dir="${dir.dist}/jets3t-${version}/jars"/>
-		<jar
-			basedir="${dir.build}"			
-			file="${dir.dist}/jets3t-${version}/jars/${dist.file.cockpit}"
+        <mkdir dir="${dir.dist}/jets3t-${version}/jars"/>
+        <jar
+            basedir="${dir.build}"            
+            file="${dir.dist}/jets3t-${version}/jars/${dist.file.cockpit}"
             index="true"
-			>
-			<include name="org/jets3t/apps/cockpit/**"/>
+            >
+            <include name="org/jets3t/apps/cockpit/**"/>
             <manifest>
                 <attribute name="Main-Class" value="org.jets3t.apps.cockpit.Cockpit"/>
             </manifest>
-		</jar>
-	</target>
-	
+        </jar>
+    </target>
+    
     <target name="dist-app-cockpitlite" depends="dist-service,dist-resources">
         <mkdir dir="${dir.dist}/jets3t-${version}/jars"/>
         <jar
@@ -92,171 +93,171 @@
     </target>
 
     <target name="dist-app-synchronize" depends="dist-service,dist-resources">
-		<mkdir dir="${dir.dist}/jets3t-${version}/jars"/>
-		<jar
-			basedir="${dir.build}"			
-			file="${dir.dist}/jets3t-${version}/jars/${dist.file.synchronize}"
+        <mkdir dir="${dir.dist}/jets3t-${version}/jars"/>
+        <jar
+            basedir="${dir.build}"            
+            file="${dir.dist}/jets3t-${version}/jars/${dist.file.synchronize}"
             index="true"
-			>
-			<include name="org/jets3t/apps/synchronize/**"/>
+            >
+            <include name="org/jets3t/apps/synchronize/**"/>
             <manifest>
                 <attribute name="Main-Class" value="org.jets3t.apps.synchronize.Synchronize"/>
             </manifest>
-		</jar>
-	</target>
-	
+        </jar>
+    </target>
+    
     <target name="dist-app-uploader" depends="dist-service,dist-resources">
-		<mkdir dir="${dir.dist}/jets3t-${version}/jars"/>
-		<jar
-			basedir="${dir.build}"			
-			file="${dir.dist}/jets3t-${version}/jars/${dist.file.uploader}"
+        <mkdir dir="${dir.dist}/jets3t-${version}/jars"/>
+        <jar
+            basedir="${dir.build}"            
+            file="${dir.dist}/jets3t-${version}/jars/${dist.file.uploader}"
             index="true"
-			>
-			<include name="org/jets3t/apps/uploader/**"/>
+            >
+            <include name="org/jets3t/apps/uploader/**"/>
             <manifest>
                 <attribute name="Main-Class" value="org.jets3t.apps.uploader.Uploader"/>
             </manifest>
-		</jar>
-	</target>
-	
-	<target name="dist-servlets" depends="dist-servlet-gatekeeper">
-	</target>
-		
-	<target name="dist-servlet-gatekeeper" depends="dist-service">
-		<mkdir dir="${dir.dist}/jets3t-${version}/servlets/gatekeeper"/>	
-		<war 
-			destfile="${dir.dist}/jets3t-${version}/servlets/gatekeeper/${dist.file.gatekeeper}"
-			webxml="${dir.servlet}/gatekeeper-web.xml"
-			>
-			
-			<lib dir="${dir.dist}/jets3t-${version}/jars" includes="${dist.file.service}"/>
-			<lib dir="${dir.libs}/commons-httpclient" includes="*.jar"/>
-			<lib dir="${dir.libs}/commons-logging" includes="*.jar"/>
-			<lib dir="${dir.libs}/commons-codec" includes="*.jar"/>
-			<lib dir="${dir.libs}/logging-log4j" includes="*.jar"/>
-			<lib dir="${dir.libs}/safehaus_jug" includes="*.jar"/>
-			
-			<classes dir="${dir.servlet}">
+        </jar>
+    </target>
+    
+    <target name="dist-servlets" depends="dist-servlet-gatekeeper">
+    </target>
+        
+    <target name="dist-servlet-gatekeeper" depends="dist-service">
+        <mkdir dir="${dir.dist}/jets3t-${version}/servlets/gatekeeper"/>    
+        <war 
+            destfile="${dir.dist}/jets3t-${version}/servlets/gatekeeper/${dist.file.gatekeeper}"
+            webxml="${dir.servlet}/gatekeeper-web.xml"
+            >
+            
+            <lib dir="${dir.dist}/jets3t-${version}/jars" includes="${dist.file.service}"/>
+            <lib dir="${dir.libs}/commons-httpclient" includes="*.jar"/>
+            <lib dir="${dir.libs}/commons-logging" includes="*.jar"/>
+            <lib dir="${dir.libs}/commons-codec" includes="*.jar"/>
+            <lib dir="${dir.libs}/logging-log4j" includes="*.jar"/>
+            <lib dir="${dir.libs}/safehaus_jug" includes="*.jar"/>
+            
+            <classes dir="${dir.servlet}">
                 <include name="commons-logging.properties"/>
                 <include name="log4j.properties"/>
                 <include name="simplelog.properties"/>
-			</classes>			
-			<classes dir="${dir.build}">
-				<include name="org/jets3t/servlets/gatekeeper/**"/>
-			</classes>
-		</war>
-	</target>
+            </classes>            
+            <classes dir="${dir.build}">
+                <include name="org/jets3t/servlets/gatekeeper/**"/>
+            </classes>
+        </war>
+    </target>
 
     <target name="dist-apps" depends="dist-app-cockpit,dist-app-cockpitlite,dist-app-synchronize,dist-app-uploader">
-	</target>
-
-	<target name="dist" depends="dist-service,dist-apps,dist-servlets">
-		<!-- Copy configs to dist directory -->
-		<mkdir dir="${dir.dist}/jets3t-${version}/configs"/>
-		<copy 			
-			todir="${dir.dist}/jets3t-${version}/configs">
-			<fileset dir="${dir.configs}"/>
-		</copy>
-		<replace dir="${dir.dist}/jets3t-${version}/configs"
-			token="{jets3t-version}" value="${version}"/>
-		
-		<!-- Copy scripts to dist directory so they are included in archive files -->
-		<mkdir dir="${dir.dist}/jets3t-${version}/bin"/>
-		<copy 			
-			todir="${dir.dist}/jets3t-${version}/bin">
-			<fileset dir="${dir.scripts}"/>
-		</copy>
-		<replace dir="${dir.dist}/jets3t-${version}/bin"
-			token="{jets3t-version}" value="${version}"/>
-
-		<!-- Copy libraries to dist directory so they are included in archive files -->
-		<mkdir dir="${dir.dist}/jets3t-${version}/libs"/>
-		<copy 			
-			todir="${dir.dist}/jets3t-${version}/libs">
-			<fileset dir="${dir.libs}" includes="**/*"/>
-		</copy>		
     </target>
-	
-	<target name="package" depends="dist,package-applets,api-docs">
-		<!-- Zip source code to dist directory so it's included in distribution -->
-		<zip destfile="${dir.dist}/jets3t-${version}/src.zip"
-			basedir="${dir.src}/.."
-			includes="src/**/*.java"
-			excludes="**/mir/**"/>				
 
-		<!-- Zip API documentation to dist directory so it's included in distribution -->
-		<zip destfile="${dir.dist}/jets3t-${version}/api-docs.zip"
-			basedir="${dir.apidocs}/.."
-			includes="api-docs/**"/>	
+    <target name="dist" depends="dist-service,dist-apps,dist-servlets">
+        <!-- Copy configs to dist directory -->
+        <mkdir dir="${dir.dist}/jets3t-${version}/configs"/>
+        <copy             
+            todir="${dir.dist}/jets3t-${version}/configs">
+            <fileset dir="${dir.configs}"/>
+        </copy>
+        <replace dir="${dir.dist}/jets3t-${version}/configs"
+            token="{jets3t-version}" value="${version}"/>
+        
+        <!-- Copy scripts to dist directory so they are included in archive files -->
+        <mkdir dir="${dir.dist}/jets3t-${version}/bin"/>
+        <copy             
+            todir="${dir.dist}/jets3t-${version}/bin">
+            <fileset dir="${dir.scripts}"/>
+        </copy>
+        <replace dir="${dir.dist}/jets3t-${version}/bin"
+            token="{jets3t-version}" value="${version}"/>
 
-		<!-- Copy distribution build files -->
-		<copy
-			tofile="${dir.dist}/jets3t-${version}/build.xml" 
-			file="dist-build.xml"/>
-		<copy 
-			tofile="${dir.dist}/jets3t-${version}/build.properties" 
-			file="dist-build.properties"/>
-		<replace 
-			file="${dir.dist}/jets3t-${version}/build.properties"
-			token="{jets3t-version}" value="${version}"/>		
+        <!-- Copy libraries to dist directory so they are included in archive files -->
+        <mkdir dir="${dir.dist}/jets3t-${version}/libs"/>
+        <copy             
+            todir="${dir.dist}/jets3t-${version}/libs">
+            <fileset dir="${dir.libs}" includes="**/*"/>
+        </copy>        
+    </target>
+    
+    <target name="package" depends="dist,package-applets,api-docs">
+        <!-- Zip source code to dist directory so it's included in distribution -->
+        <zip destfile="${dir.dist}/jets3t-${version}/src.zip"
+            basedir="${dir.src}/.."
+            includes="src/**/*.java"
+            excludes="**/mir/**"/>                
 
-		<!-- Copy servlet configuration files to enable redistribution -->
-		<copy 
-			todir="${dir.dist}/jets3t-${version}/servlets" 
-			file="${dir.servlet}/gatekeeper-web.xml"/>
+        <!-- Zip API documentation to dist directory so it's included in distribution -->
+        <zip destfile="${dir.dist}/jets3t-${version}/api-docs.zip"
+            basedir="${dir.apidocs}/.."
+            includes="api-docs/**"/>    
 
-		<!-- Copy text file notices etc -->
-		<copy 			
-			todir="${dir.dist}/jets3t-${version}">
-			<fileset dir="." includes="*.txt"/>
-		</copy>
+        <!-- Copy distribution build files -->
+        <copy
+            tofile="${dir.dist}/jets3t-${version}/build.xml" 
+            file="dist-build.xml"/>
+        <copy 
+            tofile="${dir.dist}/jets3t-${version}/build.properties" 
+            file="dist-build.properties"/>
+        <replace 
+            file="${dir.dist}/jets3t-${version}/build.properties"
+            token="{jets3t-version}" value="${version}"/>        
 
-		<!-- Create zip archive -->
-		<zip  destfile="${dir.dist}/jets3t-${version}.zip"
-			basedir="${dir.dist}"
-			includes="jets3t-${version}/**"/>		
-	</target>
-	
+        <!-- Copy servlet configuration files to enable redistribution -->
+        <copy 
+            todir="${dir.dist}/jets3t-${version}/servlets" 
+            file="${dir.servlet}/gatekeeper-web.xml"/>
+
+        <!-- Copy text file notices etc -->
+        <copy             
+            todir="${dir.dist}/jets3t-${version}">
+            <fileset dir="." includes="*.txt"/>
+        </copy>
+
+        <!-- Create zip archive -->
+        <zip  destfile="${dir.dist}/jets3t-${version}.zip"
+            basedir="${dir.dist}"
+            includes="jets3t-${version}/**"/>        
+    </target>
+    
     <target name="package-applets" depends="package-applet-cockpit,package-applet-cockpitlite,package-applet-uploader">
-	</target>
-		
+    </target>
+        
     <target name="sign-jars" depends="dist">
-		<mkdir dir="${dir.dist-applets}"/>
-		
+        <mkdir dir="${dir.dist-applets}"/>
+        
         <!-- Copy jars required by all applets -->
-		<copy 			
-			todir="${dir.dist-applets}"
-			flatten="true"
-			>
-			<fileset dir="${dir.dist}/jets3t-${version}/jars">
-				<include name="**/${dist.file.service}"/>
-				<include name="**/${dist.file.guisupport}"/>
-			</fileset>
-		</copy>
-		<copy 			
-			todir="${dir.dist-applets}"
-			flatten="true"
-			>
-			<fileset dir="${dir.libs}">
-				<include name="**/commons-logging/*.jar"/>
-				<include name="**/commons-codec/*.jar"/>
-				<include name="**/commons-httpclient/*.jar"/>
-				<include name="**/bouncycastle/*.jar"/>
-			</fileset>
-		</copy>
+        <copy             
+            todir="${dir.dist-applets}"
+            flatten="true"
+            >
+            <fileset dir="${dir.dist}/jets3t-${version}/jars">
+                <include name="**/${dist.file.service}"/>
+                <include name="**/${dist.file.guisupport}"/>
+            </fileset>
+        </copy>
+        <copy             
+            todir="${dir.dist-applets}"
+            flatten="true"
+            >
+            <fileset dir="${dir.libs}">
+                <include name="**/commons-logging/*.jar"/>
+                <include name="**/commons-codec/*.jar"/>
+                <include name="**/commons-httpclient/*.jar"/>
+                <include name="**/bouncycastle/*.jar"/>
+            </fileset>
+        </copy>
 
-		<!-- Sign jars -->		
-		<signjar 
-			alias="${keystore.alias}"
-			keystore="${keystore.file}"
-			storepass="${keystore.storepass}"
+        <!-- Sign jars -->        
+        <signjar 
+            alias="${keystore.alias}"
+            keystore="${keystore.file}"
+            storepass="${keystore.storepass}"
             keypass="${keystore.keypass}"
             lazy="true"
             >
             <fileset dir="${dir.dist-applets}" includes="*.jar"/>
-		</signjar>
+        </signjar>
     </target>
-		
+        
     <target name="package-applet-cockpit" depends="sign-jars">
 
         <!-- Copy jars required by Cockpit applet -->
@@ -269,35 +270,35 @@
             </fileset>
         </copy>
 
-		<!-- Copy relevant configuration files -->
-		<copy todir="${dir.dist-applets}">
-			<fileset dir="${dir.configs}">
-				<include name="jets3t.properties"/>
-				<include name="mime.types"/>
-			</fileset>
-		</copy>
-		<copy todir="${dir.dist-applets}">
-			<fileset dir="${dir.applet}">
-				<include name="commons-logging.properties"/>
-				<include name="simplelog.properties"/>
-			</fileset>
-		</copy>
+        <!-- Copy relevant configuration files -->
+        <copy todir="${dir.dist-applets}">
+            <fileset dir="${dir.configs}">
+                <include name="jets3t.properties"/>
+                <include name="mime.types"/>
+            </fileset>
+        </copy>
+        <copy todir="${dir.dist-applets}">
+            <fileset dir="${dir.applet}">
+                <include name="commons-logging.properties"/>
+                <include name="simplelog.properties"/>
+            </fileset>
+        </copy>
 
-		<!-- Copy applet running HTML files -->
-		<copy todir="${dir.dist-applets}">
+        <!-- Copy applet running HTML files -->
+        <copy todir="${dir.dist-applets}">
             <fileset dir="${dir.applet}">
                 <exclude name="*cockpit*lite*"/>
                 <include name="*cockpit*"/>
             </fileset>
-		</copy>
-		<replace dir="${dir.dist-applets}"
-			token="{jets3t-version}" value="${version}"/>
-    	
-		<!-- Copy resources -->
-		<copy todir="${dir.dist-applets}">
-			<fileset dir="${dir.resources}" includes="**"/>
-		</copy>
-		
+        </copy>
+        <replace dir="${dir.dist-applets}"
+            token="{jets3t-version}" value="${version}"/>
+        
+        <!-- Copy resources -->
+        <copy todir="${dir.dist-applets}">
+            <fileset dir="${dir.resources}" includes="**"/>
+        </copy>
+        
         <!-- Sign jars -->
         <signjar
             alias="${keystore.alias}"
@@ -310,20 +311,20 @@
                 <include name="${dist.file.cockpit}"/>
             </fileset>
         </signjar>
-	</target>
-		
+    </target>
+        
     <target name="package-applet-cockpitlite" depends="sign-jars">
-		
+        
         <!-- Copy jars required by CockpitLite applet -->
-		<copy 			
-			todir="${dir.dist-applets}"
-			flatten="true"
-			>
-			<fileset dir="${dir.dist}/jets3t-${version}/jars">
+        <copy             
+            todir="${dir.dist-applets}"
+            flatten="true"
+            >
+            <fileset dir="${dir.dist}/jets3t-${version}/jars">
                 <include name="**/${dist.file.cockpitlite}"/>
                 <include name="**/${dist.file.guisupport}"/>
-			</fileset>
-		</copy>
+            </fileset>
+        </copy>
 
         <!-- Copy relevant configuration files -->
         <copy todir="${dir.dist-applets}">
@@ -331,8 +332,8 @@
                 <include name="jets3t.properties"/>
                 <include name="mime.types"/>
                 <include name="cockpitlite.properties"/>
-			</fileset>
-		</copy>
+            </fileset>
+        </copy>
         <copy todir="${dir.dist-applets}">
             <fileset dir="${dir.applet}">
                 <include name="commons-logging.properties"/>
@@ -346,28 +347,28 @@
                 <include name="*cockpit*lite*"/>
             </fileset>
         </copy>
-		<replace dir="${dir.dist-applets}"
-			token="{jets3t-version}" value="${version}"/>
-    	
-		<!-- Copy resources -->
-		<copy todir="${dir.dist-applets}">
-			<fileset dir="${dir.resources}" includes="**"/>
-		</copy>
+        <replace dir="${dir.dist-applets}"
+            token="{jets3t-version}" value="${version}"/>
+        
+        <!-- Copy resources -->
+        <copy todir="${dir.dist-applets}">
+            <fileset dir="${dir.resources}" includes="**"/>
+        </copy>
 
-		<!-- Sign jars -->		
-		<signjar 
-			alias="${keystore.alias}"
-			keystore="${keystore.file}"
-			storepass="${keystore.storepass}"
+        <!-- Sign jars -->        
+        <signjar 
+            alias="${keystore.alias}"
+            keystore="${keystore.file}"
+            storepass="${keystore.storepass}"
             keypass="${keystore.keypass}"
             lazy="true"
             >
             <fileset dir="${dir.dist-applets}">
                 <include name="${dist.file.cockpitlite}"/>
             </fileset>
-		</signjar>
+        </signjar>
     </target>
-		
+        
     <target name="package-applet-uploader" depends="sign-jars">
 
         <!-- Copy jars required by Uploader applet -->
@@ -380,35 +381,35 @@
             </fileset>
         </copy>
 
-		<!-- Copy relevant configuration files -->
-		<copy todir="${dir.dist-applets}">
-			<fileset dir="${dir.configs}">
-				<include name="jets3t.properties"/>
-				<include name="mime.types"/>
+        <!-- Copy relevant configuration files -->
+        <copy todir="${dir.dist-applets}">
+            <fileset dir="${dir.configs}">
+                <include name="jets3t.properties"/>
+                <include name="mime.types"/>
                 <include name="uploader.properties"/>
-			</fileset>
-		</copy>
-		<copy todir="${dir.dist-applets}">
-			<fileset dir="${dir.applet}">
-				<include name="commons-logging.properties"/>
-				<include name="simplelog.properties"/>
-			</fileset>
-		</copy>
+            </fileset>
+        </copy>
+        <copy todir="${dir.dist-applets}">
+            <fileset dir="${dir.applet}">
+                <include name="commons-logging.properties"/>
+                <include name="simplelog.properties"/>
+            </fileset>
+        </copy>
 
-		<!-- Copy applet running HTML files -->
-		<copy todir="${dir.dist-applets}">
+        <!-- Copy applet running HTML files -->
+        <copy todir="${dir.dist-applets}">
             <fileset dir="${dir.applet}">
                 <include name="*uploader*"/>
             </fileset>
-		</copy>
-		<replace dir="${dir.dist-applets}"
-			token="{jets3t-version}" value="${version}"/>
-    	
-		<!-- Copy resources -->
-		<copy todir="${dir.dist-applets}">
-			<fileset dir="${dir.resources}" includes="**"/>
-		</copy>
-		
+        </copy>
+        <replace dir="${dir.dist-applets}"
+            token="{jets3t-version}" value="${version}"/>
+        
+        <!-- Copy resources -->
+        <copy todir="${dir.dist-applets}">
+            <fileset dir="${dir.resources}" includes="**"/>
+        </copy>
+        
         <!-- Sign jars -->
         <signjar
             alias="${keystore.alias}"
@@ -421,117 +422,71 @@
                 <include name="${dist.file.uploader}"/>
             </fileset>
         </signjar>
-	</target>
+    </target>
 
-	<target name="website" depends="package">		
-		<!-- Copy applets directory to website -->
-		<mkdir dir="${dir.website}/applets-jets3t-${version}"/>
-		<copy 			
-			todir="${dir.website}/applets-jets3t-${version}">
-			<fileset dir="${dir.dist-applets}"/>
-		</copy>	
+    <target name="website" depends="package">        
+        <!-- Copy applets directory to website -->
+        <mkdir dir="${dir.website}/applets-jets3t-${version}"/>
+        <copy             
+            todir="${dir.website}/applets-jets3t-${version}">
+            <fileset dir="${dir.dist-applets}"/>
+        </copy>    
 
-		<!-- Copy Release Notes document to website directory -->
-		<copy
-			todir="${dir.website}">
-		    <fileset dir="." includes="RELEASE_NOTES.txt"/>
-		</copy>
-		
-		<!-- Copy API documentation to website -->
-		<mkdir dir="${dir.website}/api"/>
-		<copy 			
-			todir="${dir.website}/api">
-			<fileset dir="${dir.apidocs}" includes="**/*.htm*"/>
-		</copy>	
+        <!-- Copy Release Notes document to website directory -->
+        <copy
+            todir="${dir.website}">
+            <fileset dir="." includes="RELEASE_NOTES.txt"/>
+        </copy>
+        
+        <!-- Copy API documentation to website -->
+        <mkdir dir="${dir.website}/api"/>
+        <copy             
+            todir="${dir.website}/api">
+            <fileset dir="${dir.apidocs}" includes="**/*.htm*"/>
+        </copy>    
 
         <!-- Copy packaged archive to java.net website directory -->
         <copy           
             todir="${dir.java-net.website}/releases"
-        	file="${dir.dist}/jets3t-${version}.zip" />
-	</target>
+            file="${dir.dist}/jets3t-${version}.zip" />
+    </target>
 
-	<target name="clean">
-		<delete dir="${dir.build}"/>
-		<delete dir="${dir.dist}"/>
-	</target>
+    <target name="clean">
+        <delete dir="${dir.build}"/>
+        <delete dir="${dir.dist}"/>
+    </target>
 
-	<target name="api-docs">		
-		<mkdir dir="${dir.apidocs}"/>
-		<javadoc 
-			author="false" 
-			version="true"
-			destdir="${dir.apidocs}" 
-			windowtitle="JetS3t API : Amazon S3 Toolkit">
-			
-			<classpath refid="classpath"/>
-			<fileset 
-				dir="${dir.src}" 
-				includes="**/*.java"
-				excludes="**/mir/**"/>
-		</javadoc>
-	</target>
-	
-	<target name="junit-tests">
-		<junit>
-			<classpath refid="classpath"/>
-			<fileset 
-				dir="${dir.src}/org/jets3t/tests" 
-				includes="**/*.java"/>
-		</junit>
-	</target>
-
-	
-	<target name="runFakeS3Server" depends="compile">
-		<java classname="org.jets3t.tests.FakeS3Server" fork="true">
-			<jvmarg line="-Djavax.net.ssl.keyStore=${keystore.file}"/>
-			<jvmarg line="-Djavax.net.ssl.keyStorePassword=${keystore.storepass}"/>
-
-			<classpath>
-				<fileset dir="${dir.libs}" includes="**/*.jar"/>
-				<path path="${dir.build}" />
-			</classpath>			
-		</java>
-	</target>
-
-	<target name="runCockpitToFakeS3Server" depends="compile">
-		<java classname="org.jets3t.apps.cockpit.Cockpit" fork="true">
-			<jvmarg line="-Djavax.net.ssl.trustStore=${keystore.file}"/>
-			<jvmarg line="-Djavax.net.ssl.trustStorePassword=${keystore.storepass}"/>
-
-			<classpath>
-				<fileset dir="${dir.libs}" includes="**/*.jar"/>
-				<path path="${dir.build}" />
-				<path path="${dir.resources}" />
-				<path path="${dir.configs}" />
-			</classpath>			
-		</java>
-	</target>
-
-        <target name="runS3CodeSamples" depends="compile">
-                <java classname="org.jets3t.samples.CodeSamples" fork="true">
-
-                        <classpath>
-                                <fileset dir="${dir.libs}" includes="**/*.jar"/>
-                                <path path="${dir.build}" />
-                                <path path="${dir.resources}" />
-                                <path path="${dir.configs}" />
-                                <path path="." />
-                        </classpath>
-                </java>
-        </target>
-
-        <target name="runGSCodeSamples" depends="compile">
-                <java classname="org.jets3t.samples.GSCodeSamples" fork="true">
-
-                        <classpath>
-                                <fileset dir="${dir.libs}" includes="**/*.jar"/>
-                                <path path="${dir.build}" />
-                                <path path="${dir.resources}" />
-                                <path path="${dir.configs}" />
-                                <path path="." />
-                        </classpath>
-                </java>
-        </target>
-	
+    <target name="api-docs">        
+        <mkdir dir="${dir.apidocs}"/>
+        <javadoc 
+            author="false" 
+            version="true"
+            destdir="${dir.apidocs}" 
+            windowtitle="JetS3t API : Amazon S3 Toolkit">
+            
+            <classpath refid="classpath"/>
+            <fileset 
+                dir="${dir.src}" 
+                includes="**/*.java"
+                excludes="**/mir/**"/>
+        </javadoc>
+    </target>
+    
+    <target name="junit-tests" depends="compile">
+        <junit fork="true" forkmode="perBatch">
+            <formatter type="plain"/>
+            <classpath>
+                <path refid="classpath"/>
+                <pathelement path="${dir.build}"/>
+                <pathelement path="."/> <!-- Find test.properties -->
+            </classpath>
+            <batchtest todir=".">
+                <fileset 
+                    dir="${dir.src}" 
+                    includes="**/Test*.java"/>
+            </batchtest>
+        </junit>
+    </target>
+    
 </project>
 
