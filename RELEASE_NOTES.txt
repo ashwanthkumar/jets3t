@@ -8,8 +8,7 @@ TOOLKIT
 
 - New generic bucket, object, and multi-threaded service classes for 
   interacting with either of the S3 or Google Storage services.
-- No long compatible with JDK 1.4. JDK 5+ is now required to run JetS3t,
-  and JDK 6+ is required to compile from source.
+- No long compatible with JDK 1.4. JDK 6+ is now required to run JetS3t.
 - Removed antiquated and unsupported SOAP S3 service implementation
   from toolkit.
 - FileComparer and related tools are now compatible with both S3 and

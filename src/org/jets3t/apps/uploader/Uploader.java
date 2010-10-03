@@ -154,11 +154,11 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
     private static final Log log = LogFactory.getLog(Uploader.class);
 
-    public static final String APPLICATION_DESCRIPTION = "Uploader/0.8.0-dev";
+    public static final String APPLICATION_DESCRIPTION = "Uploader/0.8.0";
 
     public static final String UPLOADER_PROPERTIES_FILENAME = "uploader.properties";
 
-    private static final String UPLOADER_VERSION_ID = "JetS3t Uploader/0.8.0-dev";
+    private static final String UPLOADER_VERSION_ID = "JetS3t Uploader/0.8.0";
 
     public static final int WIZARD_SCREEN_1 = 1;
     public static final int WIZARD_SCREEN_2 = 2;
@@ -320,6 +320,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * Prepares application to run as a GUI by finding/creating a root owner JFrame, and
      * (if necessary) creating a directory for storing remembered logins.
      */
+    @Override
     public void init() {
         super.init();
 
@@ -1012,6 +1013,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
             // Monitor generation of MD5 hash, and provide feedback via the progress bar.
             BytesProgressWatcher progressWatcher = new BytesProgressWatcher(filesSizeTotal[0]) {
+                @Override
                 public void updateBytesTransferred(long byteCount) {
                     super.updateBytesTransferred(byteCount);
 
@@ -1377,6 +1379,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
             cancelUploadButton.setEnabled(false);
             new Thread() {
+                @Override
                 public void run() {
                     uploadFilesToS3();
                 }
