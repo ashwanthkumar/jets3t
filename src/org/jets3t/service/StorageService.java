@@ -67,7 +67,7 @@ public abstract class StorageService {
     /**
      * The JetS3t suite version number implemented by this service.
      */
-    public static final String VERSION_NO__JETS3T_TOOLKIT = "0.8.0";
+    public static final String VERSION_NO__JETS3T_TOOLKIT = "0.8.1";
 
     public static final int BUCKET_STATUS__MY_BUCKET = 0;
     public static final int BUCKET_STATUS__DOES_NOT_EXIST = 1;
