@@ -1234,6 +1234,8 @@ public abstract class BaseStorageServiceTests extends TestCase {
             assertEquals(0, comparerResults.updatedOnClientKeys.size());
             assertEquals(0, comparerResults.updatedOnServerKeys.size());
 
+            Thread.sleep(1000); // Sleep for a second to ensure time ticks over
+
             // Update 1 local and 1 remote file, then confirm discrepancies
             byte[] data = "Updated local file".getBytes("UTF-8");
             FileOutputStream local1FOS = new FileOutputStream(local1);
