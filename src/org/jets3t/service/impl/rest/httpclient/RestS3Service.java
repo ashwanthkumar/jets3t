@@ -397,7 +397,9 @@ public class RestS3Service extends S3Service {
      */
     @Override
     protected boolean getEnableStorageClasses() {
-      return this.jets3tProperties.getBoolProperty("s3service.enable-storage-classes", false);
+        return this.jets3tProperties.getBoolProperty("s3service.enable-storage-classes",
+            // Enable non-standard storage classes by default for AWS, not for Google endpoints.
+            isTargettingGoogleStorageService() ? false : true);
     }
 
     @Override
