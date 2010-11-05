@@ -1645,11 +1645,6 @@ public abstract class RestStorageService extends StorageService implements AWSRe
 
         String sourceKey = RestUtils.encodeUrlString(sourceBucketName + "/" + sourceObjectKey);
 
-        // TODO: Hack for Google Storage Service which doesn't support URL-encoded copy-source
-        if (this.isTargettingGoogleStorageService()) {
-            sourceKey = sourceBucketName + "/" + sourceObjectKey;
-        }
-
         if (versionId != null) {
             sourceKey += "?versionId=" + versionId;
         }

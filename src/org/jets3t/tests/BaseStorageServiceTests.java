@@ -506,11 +506,6 @@ public abstract class BaseStorageServiceTests extends TestCase {
                 "vîrtüál-πå†h/tés†ing.txt"
             };
 
-            // TODO: Google Storage bug: Source object paths cannot have characters that require encoding
-            if (TARGET_SERVICE_GS.equals(getTargetService())) {
-                objectNames[3] = "very-safe-path/testing.txt"; // No non-ASCII chars
-            }
-
             for (int i = 0; i < objectNames.length; i++) {
                 StorageObject object = new StorageObject(
                     objectNames[i], "A little data");
