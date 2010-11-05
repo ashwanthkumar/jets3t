@@ -1756,7 +1756,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 if (!objectPath.startsWith("/")) {
                     objectPath = "/" + objectPath;
                 }
-                builder.e("Path").t(objectPath);
+                builder.e("Path").t(RestUtils.encodeUrlPath(objectPath, "/"));
             }
             builder.e("CallerReference").t(callerReference);
 
