@@ -22,10 +22,7 @@ import java.util.Arrays;
 
 
 public class DistributionConfig {
-    public static final String ORIGIN_ACCESS_IDENTITY_PREFIX =
-        "origin-access-identity/cloudfront/";
-
-    private String origin = null;
+    private Origin origin = null;
     private String callerReference = null;
     private String[] cnames = new String[0];
     private String comment = null;
@@ -33,16 +30,15 @@ public class DistributionConfig {
     private String etag = null;
     private LoggingStatus loggingStatus = null;
     // Private distribution settings
-    private String originAccessIdentity = null;
     private boolean trustedSignerSelf = false;
     private String[] trustedSignerAwsAccountNumbers = new String[0];
     private String[] requiredProtocols = new String[0];
     private String defaultRootObject = null;
 
-    public DistributionConfig(String origin, String callerReference,
+    public DistributionConfig(Origin origin, String callerReference,
         String[] cnames, String comment, boolean enabled,
-        LoggingStatus loggingStatus, String originAccessIdentity,
-        boolean trustedSignerSelf, String[] trustedSignerAwsAccountNumbers,
+        LoggingStatus loggingStatus, boolean trustedSignerSelf,
+        String[] trustedSignerAwsAccountNumbers,
         String[] requiredProtocols, String defaultRootObject)
     {
         this.origin = origin;
@@ -51,28 +47,21 @@ public class DistributionConfig {
         this.comment = comment;
         this.enabled = enabled;
         this.loggingStatus = loggingStatus;
-        // Ensure origin access identity has required prefix
-        if (originAccessIdentity != null
-            && !originAccessIdentity.startsWith(ORIGIN_ACCESS_IDENTITY_PREFIX))
-        {
-            originAccessIdentity = ORIGIN_ACCESS_IDENTITY_PREFIX + originAccessIdentity;
-        }
-        this.originAccessIdentity = originAccessIdentity;
         this.trustedSignerSelf = trustedSignerSelf;
         this.trustedSignerAwsAccountNumbers = trustedSignerAwsAccountNumbers;
         this.requiredProtocols = requiredProtocols;
         this.defaultRootObject = defaultRootObject;
     }
 
-    public DistributionConfig(String origin, String callerReference,
+    public DistributionConfig(Origin origin, String callerReference,
             String[] cnames, String comment, boolean enabled,
             LoggingStatus loggingStatus)
     {
         this(origin, callerReference, cnames, comment, enabled,
-                loggingStatus, null, false, null, null, null);
+                loggingStatus, false, null, null, null);
     }
 
-    public String getOrigin() {
+    public Origin getOrigin() {
         return origin;
     }
 
@@ -108,12 +97,9 @@ public class DistributionConfig {
         return this.loggingStatus != null;
     }
 
-    public String getOriginAccessIdentity() {
-        return this.originAccessIdentity;
-    }
-
     public boolean isPrivate() {
-        return this.originAccessIdentity != null;
+        return (this.getOrigin() instanceof S3Origin
+            && ((S3Origin)this.getOrigin()).getOriginAccessIdentity() != null);
     }
 
     public String[] getTrustedSignerAwsAccountNumbers() {
@@ -164,6 +150,7 @@ public class DistributionConfig {
         return defaultRootObject;
     }
 
+    @Override
     public String toString() {
         return
             (isStreamingDistributionConfig()
@@ -173,7 +160,7 @@ public class DistributionConfig {
             + ", callerReference=" + callerReference + ", comment=" + comment
             + ", enabled=" + enabled +
             (isPrivate()
-                ? ", Private:originAccessIdentity=" + originAccessIdentity
+                ? ", Private:originAccessIdentity=" + ((S3Origin)getOrigin()).getOriginAccessIdentity()
                 : ", Public") +
             (isUrlSigningRequired()
                     ? ", TrustedSigners:self=" + isTrustedSignerSelf()

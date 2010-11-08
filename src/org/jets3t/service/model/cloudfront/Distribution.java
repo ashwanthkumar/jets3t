@@ -31,14 +31,14 @@ public class Distribution {
     private Date lastModifiedTime = null;
     private String domainName = null;
     private Map activeTrustedSigners = new HashMap();
-    private String origin = null;
+    private Origin origin = null;
     private String cnames[] = new String[0];
     private String comment = null;
     private boolean enabled = false;
     private DistributionConfig config = null;
 
     public Distribution(String id, String status, Date lastModifiedDate,
-        String domainName, String origin, String[] cnames, String comment,
+        String domainName, Origin origin, String[] cnames, String comment,
         boolean enabled)
     {
         this.id = id;
@@ -86,20 +86,8 @@ public class Distribution {
         return lastModifiedTime;
     }
 
-    public String getOrigin() {
+    public Origin getOrigin() {
         return origin;
-    }
-
-    /**
-     * @return
-     * the origin bucket's name, without the suffix ".s3.amazonaws.com"
-     */
-    public String getOriginAsBucketName() {
-        if (origin.endsWith(CloudFrontService.DEFAULT_BUCKET_SUFFIX)) {
-            return origin.substring(0, origin.length() - CloudFrontService.DEFAULT_BUCKET_SUFFIX.length());
-        } else {
-            return origin;
-        }
     }
 
     public String[] getCNAMEs() {
@@ -129,6 +117,7 @@ public class Distribution {
         return (this instanceof StreamingDistribution);
     }
 
+    @Override
     public String toString() {
         return
             (isStreamingDistribution()

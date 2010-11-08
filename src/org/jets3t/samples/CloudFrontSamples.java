@@ -22,6 +22,7 @@ import java.io.FileInputStream;
 import java.util.List;
 
 import org.jets3t.service.CloudFrontService;
+import org.jets3t.service.model.cloudfront.CustomOrigin;
 import org.jets3t.service.model.cloudfront.Invalidation;
 import org.jets3t.service.model.cloudfront.InvalidationSummary;
 import org.jets3t.service.model.cloudfront.OriginAccessIdentity;
@@ -29,6 +30,7 @@ import org.jets3t.service.model.cloudfront.Distribution;
 import org.jets3t.service.model.cloudfront.DistributionConfig;
 import org.jets3t.service.model.cloudfront.LoggingStatus;
 import org.jets3t.service.model.cloudfront.OriginAccessIdentityConfig;
+import org.jets3t.service.model.cloudfront.S3Origin;
 import org.jets3t.service.model.cloudfront.StreamingDistribution;
 import org.jets3t.service.model.cloudfront.StreamingDistributionConfig;
 import org.jets3t.service.security.EncryptionUtil;
@@ -44,8 +46,14 @@ public class CloudFrontSamples {
         CloudFrontService cloudFrontService = new CloudFrontService(
             SamplesUtils.loadAWSCredentials());
 
+        // List non-streaming distributions
+        Distribution[] bucketDistributions = cloudFrontService.listDistributions();
+        for (int i = 0; i < bucketDistributions.length; i++) {
+            System.out.println("Distribution " + (i + 1) + ": " + bucketDistributions[i]);
+        }
+
         // List the distributions applied to a given S3 bucket
-        Distribution[] bucketDistributions = cloudFrontService.listDistributions("jets3t");
+        bucketDistributions = cloudFrontService.listDistributions("jets3t");
         for (int i = 0; i < bucketDistributions.length; i++) {
             System.out.println("Bucket distribution " + (i + 1) + ": " + bucketDistributions[i]);
         }
@@ -53,7 +61,7 @@ public class CloudFrontSamples {
         // Create a new public distribution
         String originBucket = "jets3t.s3.amazonaws.com";
         Distribution newDistribution = cloudFrontService.createDistribution(
-            originBucket,
+            new S3Origin(originBucket),
             "" + System.currentTimeMillis(), // Caller reference - a unique string value
             new String[] {"test1.jamesmurty.com"}, // CNAME aliases for distribution
             "Testing", // Comment
@@ -76,6 +84,7 @@ public class CloudFrontSamples {
         // Update a distribution's configuration to add an extra CNAME alias and enable logging.
         DistributionConfig updatedDistributionConfig = cloudFrontService.updateDistributionConfig(
             testDistributionId,
+            null, // origin -- null for no changes
             new String[] {"test1.jamesmurty.com", "test2.jamesmurty.com"}, // CNAME aliases for distribution
             "Another comment for testing", // Comment
             true, // Distribution enabled?
@@ -87,11 +96,11 @@ public class CloudFrontSamples {
         // connections, using the RequiredProtocols feature
         updatedDistributionConfig = cloudFrontService.updateDistributionConfig(
             testDistributionId,
+            null, // origin -- null for no changes
             new String[] {"test1.jamesmurty.com", "test2.jamesmurty.com"}, // CNAME aliases for distribution
             "HTTPS Only!", // Comment
             true, // Distribution enabled?
             new LoggingStatus("log-bucket.s3.amazonaws.com", "log-prefix/"),  // Distribution logging
-            null, // Origin Access Identity to make distribution private
             false, // URLs self-signing disabled
             null,  // No other AWS users can sign URLs
             new String[] {"https"}, // RequiredProtocols with HTTPS protocol
@@ -99,11 +108,10 @@ public class CloudFrontSamples {
         );
         System.out.println("HTTPS only distribution Config: " + updatedDistributionConfig);
 
-
         // Disable a distribution, e.g. so that it may be deleted.
         // The CloudFront service may take some time to disable and deploy the distribution.
         DistributionConfig disabledDistributionConfig = cloudFrontService.updateDistributionConfig(
-            testDistributionId, new String[] {}, "Deleting distribution", false, null);
+            testDistributionId, null, new String[] {}, "Deleting distribution", false, null);
         System.out.println("Disabled Distribution Config: " + disabledDistributionConfig);
 
         // Check whether a distribution is deployed
@@ -126,11 +134,12 @@ public class CloudFrontSamples {
         System.out.println(originAccessIdentity.toString());
 
         // List your origin access identities
-        List originAccessIdentityList = cloudFrontService.getOriginAccessIdentityList();
+        List<OriginAccessIdentity> originAccessIdentityList =
+            cloudFrontService.getOriginAccessIdentityList();
         System.out.println(originAccessIdentityList);
 
         // Obtain an origin access identity ID for future use
-        OriginAccessIdentity identity = (OriginAccessIdentity) originAccessIdentityList.get(1);
+        OriginAccessIdentity identity = originAccessIdentityList.get(1);
         String originAccessIdentityId = identity.getId();
         System.out.println("originAccessIdentityId: " + originAccessIdentityId);
 
@@ -160,13 +169,12 @@ public class CloudFrontSamples {
         // Create a new private distribution for which signed URLs are *not* required
         originBucket = "jets3t.s3.amazonaws.com";
         Distribution privateDistribution = cloudFrontService.createDistribution(
-            originBucket,
+            new S3Origin(originBucket, originAccessIdentityId),
             "" + System.currentTimeMillis(), // Caller reference - a unique string value
             new String[] {}, // CNAME aliases for distribution
             "New private distribution -- URL signing not required", // Comment
             true,  // Distribution is enabled?
             null,  // Logging status of distribution (null means disabled)
-            originAccessIdentityId, // Origin Access Identity to make distribution private
             false, // URLs self-signing disabled
             null,  // No other AWS users can sign URLs
             null,   // No required protocols
@@ -177,11 +185,11 @@ public class CloudFrontSamples {
         // Update an existing distribution to make it private and require URL signing
         updatedDistributionConfig = cloudFrontService.updateDistributionConfig(
             testDistributionId,
+            new S3Origin(originBucket, originAccessIdentityId),
             new String[] {}, // CNAME aliases for distribution
             "Now a private distribution -- URL Signing required", // Comment
             true, // Distribution enabled?
             null, // No distribution logging
-            originAccessIdentityId, // Origin Access Identity ID
             true, // URLs can be self-signed
             null, // No other AWS users can sign URLs
             null,  // No required protocols
@@ -257,7 +265,7 @@ public class CloudFrontSamples {
         // Create a new streaming distribution
         String streamingBucket = "jets3t-streaming.s3.amazonaws.com";
         StreamingDistribution newStreamingDistribution = cloudFrontService.createStreamingDistribution(
-            streamingBucket,
+            new S3Origin(streamingBucket),
             "" + System.currentTimeMillis(), // Caller reference - a unique string value
             null, // CNAME aliases for distribution
             "Test streaming distribution", // Comment
@@ -269,17 +277,16 @@ public class CloudFrontSamples {
         // Streaming distributions can be made private just like standard non-streaming
         // distributions. Create a new private streaming distribution for which signed
         // URLs are *not* required
-        StreamingDistribution newPrivateStreamingDistribution = cloudFrontService
-                .createStreamingDistribution(
-            streamingBucket,
-            "" + System.currentTimeMillis(), // Caller reference - a unique string value
-            new String[] {}, // CNAME aliases for distribution
-            "New private streaming distribution -- URL signing not required", // Comment
-            true, // Distribution is enabled?
-            null, // Logging status
-            originAccessIdentityId, // Origin Access Identity to make distribution private
-            true, // URLs self-signing enabled
-            null // No other AWS users can sign URLs
+        StreamingDistribution newPrivateStreamingDistribution =
+            cloudFrontService.createStreamingDistribution(
+                new S3Origin(streamingBucket, originAccessIdentityId),
+                "" + System.currentTimeMillis(), // Caller reference - a unique string value
+                new String[] {}, // CNAME aliases for distribution
+                "New private streaming distribution -- URL signing not required", // Comment
+                true, // Distribution is enabled?
+                null, // Logging status
+                true, // URLs self-signing enabled
+                null // No other AWS users can sign URLs
         );
         System.out.println("New Private Streaming Distribution: " + newPrivateStreamingDistribution);
 
@@ -301,6 +308,7 @@ public class CloudFrontSamples {
         StreamingDistributionConfig updatedStreamingDistributionConfig =
             cloudFrontService.updateStreamingDistributionConfig(
                 testStreamingDistributionId,
+                null, // origin -- null for no changes
                 new String[] {"cname.jets3t-streaming.com"}, // CNAME aliases for distribution
                 "Updated this streaming distribution", // Comment
                 true, // Distribution enabled?
@@ -313,7 +321,9 @@ public class CloudFrontSamples {
         // The CloudFront service may take some time to disable and deploy the distribution.
         StreamingDistributionConfig disabledStreamingDistributionConfig =
             cloudFrontService.updateStreamingDistributionConfig(
-                testStreamingDistributionId, new String[] {}, "Deleting distribution",
+                testStreamingDistributionId,
+                null, // origin -- null for no changes
+                new String[] {}, "Deleting distribution",
                 false, // Distribution enabled?
                 null   // Logging status
                 );
@@ -359,6 +369,28 @@ public class CloudFrontSamples {
         List<InvalidationSummary> invalidationSummaries =
             cloudFrontService.listInvalidations(testDistributionId);
         System.out.println(invalidationSummaries);
+
+        // ------------------------------------------------------------
+        // Non-S3 origin
+        // ------------------------------------------------------------
+
+        // Create a new distribution with a non-S3 (custom) origin
+        CustomOrigin customOrigin = new CustomOrigin(
+            "www.jamesmurty.com", // DNS name
+            CustomOrigin.OriginProtocolPolicy.HTTP_ONLY  // Access content over HTTP only
+            // To distribute content over HTTPS use:
+            // CustomOrigin.OriginProtocolPolicy.MATCH_VIEWER
+            );
+
+        Distribution customOriginDistribution = cloudFrontService.createDistribution(
+            customOrigin,
+            "" + System.currentTimeMillis(), // Caller reference - a unique string value
+            null, // CNAME aliases for distribution
+            "Distribution with a non-S3 origin", // Comment
+            true,  // Distribution is enabled?
+            null  // Logging status of distribution (null means disabled)
+            );
+        System.out.println("Distribution with custom origin: " + customOriginDistribution);
     }
 
 }

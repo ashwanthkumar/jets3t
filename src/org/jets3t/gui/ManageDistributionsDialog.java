@@ -62,6 +62,7 @@ import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.cloudfront.Distribution;
 import org.jets3t.service.model.cloudfront.DistributionConfig;
 import org.jets3t.service.model.cloudfront.LoggingStatus;
+import org.jets3t.service.model.cloudfront.S3Origin;
 
 /**
  * Dialog box for displaying and modifying CloudFront distributions.
@@ -75,7 +76,6 @@ import org.jets3t.service.model.cloudfront.LoggingStatus;
 public class ManageDistributionsDialog extends JDialog
     implements ActionListener, ListSelectionListener, HyperlinkActivatedListener
 {
-
     private static final long serialVersionUID = 4375982994004017092L;
 
     private CloudFrontService cloudFrontService = null;
@@ -374,7 +374,10 @@ public class ManageDistributionsDialog extends JDialog
                     return;
                 }
 
-                bucketComboBox.setSelectedItem(distribution.getOriginAsBucketName());
+                if (distribution.getOrigin() instanceof S3Origin) {
+                    bucketComboBox.setSelectedItem(
+                        ((S3Origin)distribution.getOrigin()).getOriginAsBucketName());
+                }
                 bucketComboBox.setEnabled(false);
                 enabledCheckbox.setSelected(distribution.isEnabled());
                 httpsOnlyCheckbox.setSelected(distributionConfig.isHttpsProtocolRequired());
@@ -471,7 +474,7 @@ public class ManageDistributionsDialog extends JDialog
                 }).start();
             }
         } else if (event.getActionCommand().equals("NewDistribution")) {
-            final String origin = bucketComboBox.getSelectedItem() + ".s3.amazonaws.com";
+            final String bucketName = bucketComboBox.getSelectedItem() + ".s3.amazonaws.com";
 
             (new Thread() {
                 @Override
@@ -504,11 +507,14 @@ public class ManageDistributionsDialog extends JDialog
                         }
 
                         String defaultRootObject = defaultRootObjectTextField.getText();
+                        if (defaultRootObject.length() == 0) {
+                            defaultRootObject = null;
+                        }
 
-                        cloudFrontService.createDistribution(origin, null,
+                        cloudFrontService.createDistribution(
+                            new S3Origin(bucketName), null,
                             cnamesTableModel.getCnames(), commentTextArea.getText(),
                             enabledCheckbox.isSelected(), loggingStatus,
-                            null,  // originAccessIdentityId
                             false, // trustedSignerSelf
                             null,  // trustedSignerAwsAccountNumbers
                             requiredProtocols,
@@ -570,11 +576,14 @@ public class ManageDistributionsDialog extends JDialog
                         }
 
                         String defaultRootObject = defaultRootObjectTextField.getText();
+                        if (defaultRootObject.length() == 0) {
+                            defaultRootObject = null;
+                        }
 
                         cloudFrontService.updateDistributionConfig(distribution.getId(),
+                            null, // origin
                             cnamesTableModel.getCnames(), commentTextArea.getText(),
                             enabledCheckbox.isSelected(), loggingStatus,
-                            null,  // originAccessIdentityId
                             false, // trustedSignerSelf
                             null,  // trustedSignerAwsAccountNumbers
                             requiredProtocols,
@@ -651,7 +660,7 @@ public class ManageDistributionsDialog extends JDialog
             return Collections.binarySearch(
                 distributionList, bucketName, new Comparator() {
                     public int compare(Object o1, Object o2) {
-                        String b1Name = ((Distribution)o1).getOriginAsBucketName();
+                        String b1Name = ((Distribution)o1).getOrigin().getDnsName();
                         String b2Name = (String) o2;
                         int result =  b1Name.compareTo(b2Name);
                         return result;
@@ -665,7 +674,7 @@ public class ManageDistributionsDialog extends JDialog
             this.insertRow(distributionList.size() - 1, new Object[] {
                 (distribution.isDeployed() ? deployedIcon : inProgressIcon),
                 Boolean.valueOf(distribution.isEnabled()),
-                distribution.getOriginAsBucketName(), distribution.getDomainName(),
+                distribution.getOrigin().getDnsName(), distribution.getDomainName(),
                 distribution.getLastModifiedTime()
             });
         }

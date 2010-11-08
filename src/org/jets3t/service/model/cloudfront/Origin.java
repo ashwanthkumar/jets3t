@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2008 James Murty
+ * Copyright 2010 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,22 +18,17 @@
  */
 package org.jets3t.service.model.cloudfront;
 
-import java.util.Date;
-import java.util.Map;
 
-public class StreamingDistribution extends Distribution {
+public abstract class Origin {
+    private String dnsName = null;
 
-    public StreamingDistribution(String id, String status, Date lastModifiedDate,
-        String domainName, Origin origin, String[] cnames, String comment,
-        boolean enabled)
+    public Origin(String dnsName)
     {
-        super(id, status, lastModifiedDate, domainName, origin, cnames, comment, enabled);
+        this.dnsName = dnsName;
     }
 
-    public StreamingDistribution(String id, String status, Date lastModifiedDate,
-        String domainName, Map activeTrustedSigners, DistributionConfig config)
-    {
-        super(id, status, lastModifiedDate, domainName, activeTrustedSigners, config);
+    public String getDnsName() {
+        return dnsName;
     }
 
 }

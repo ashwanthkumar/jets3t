@@ -36,14 +36,17 @@ import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.ServiceException;
+import org.jets3t.service.model.cloudfront.CustomOrigin;
 import org.jets3t.service.model.cloudfront.Distribution;
 import org.jets3t.service.model.cloudfront.DistributionConfig;
 import org.jets3t.service.model.cloudfront.Invalidation;
 import org.jets3t.service.model.cloudfront.InvalidationList;
 import org.jets3t.service.model.cloudfront.InvalidationSummary;
 import org.jets3t.service.model.cloudfront.LoggingStatus;
+import org.jets3t.service.model.cloudfront.Origin;
 import org.jets3t.service.model.cloudfront.OriginAccessIdentity;
 import org.jets3t.service.model.cloudfront.OriginAccessIdentityConfig;
+import org.jets3t.service.model.cloudfront.S3Origin;
 import org.jets3t.service.model.cloudfront.StreamingDistribution;
 import org.jets3t.service.model.cloudfront.StreamingDistributionConfig;
 import org.jets3t.service.utils.ServiceUtils;
@@ -122,10 +125,10 @@ public class CloudFrontXmlResponsesSaxParser {
      * the XML handler object populated with data parsed from the XML stream.
      * @throws S3ServiceException
      */
-    public ListDistributionListHandler parseDistributionListResponse(InputStream inputStream)
+    public DistributionListHandler parseDistributionListResponse(InputStream inputStream)
         throws CloudFrontServiceException
     {
-        ListDistributionListHandler handler = new ListDistributionListHandler(xr);
+        DistributionListHandler handler = new DistributionListHandler(xr);
         parseXmlInputStream(handler, inputStream);
         return handler;
     }
@@ -304,13 +307,12 @@ public class CloudFrontXmlResponsesSaxParser {
     public class DistributionConfigHandler extends SimpleHandler {
         private DistributionConfig distributionConfig = null;
 
-        private String origin = "";
         private String callerReference = "";
+        private Origin origin = null;
         private final List<String> cnamesList = new ArrayList<String>();
         private String comment = "";
         private boolean enabled = false;
         private LoggingStatus loggingStatus = null;
-        private String originAccessIdentity = null;
         private boolean trustedSignerSelf = false;
         private final List<String> trustedSignerAwsAccountNumberList = new ArrayList<String>();
         private final List<String> requiredProtocols = new ArrayList<String>();
@@ -324,12 +326,21 @@ public class CloudFrontXmlResponsesSaxParser {
             return distributionConfig;
         }
 
-        public void endOrigin(String text) {
-            this.origin = text;
-        }
-
         public void endCallerReference(String text) {
             this.callerReference = text;
+        }
+
+        public void startS3Origin() {
+            transferControlToHandler(new OriginHandler(xr));
+        }
+
+        public void startCustomOrigin() {
+            transferControlToHandler(new OriginHandler(xr));
+        }
+
+        @Override
+        public void controlReturned(SimpleHandler childHandler) {
+            this.origin = ((OriginHandler) childHandler).origin;
         }
 
         public void endCNAME(String text) {
@@ -356,10 +367,6 @@ public class CloudFrontXmlResponsesSaxParser {
             this.loggingStatus.setPrefix(text);
         }
 
-        public void endOriginAccessIdentity(String text) {
-            this.originAccessIdentity = text;
-        }
-
         public void endSelf(String text) {
             this.trustedSignerSelf = true;
         }
@@ -380,7 +387,7 @@ public class CloudFrontXmlResponsesSaxParser {
             this.distributionConfig = new DistributionConfig(
                 origin, callerReference,
                 cnamesList.toArray(new String[cnamesList.size()]),
-                comment, enabled, loggingStatus, originAccessIdentity, trustedSignerSelf,
+                comment, enabled, loggingStatus, trustedSignerSelf,
                 trustedSignerAwsAccountNumberList.toArray(
                     new String[trustedSignerAwsAccountNumberList.size()]),
                 requiredProtocols.toArray(
@@ -394,7 +401,7 @@ public class CloudFrontXmlResponsesSaxParser {
             this.distributionConfig = new StreamingDistributionConfig(
                 origin, callerReference,
                 cnamesList.toArray(new String[cnamesList.size()]), comment,
-                enabled, loggingStatus, originAccessIdentity, trustedSignerSelf,
+                enabled, loggingStatus, trustedSignerSelf,
                 trustedSignerAwsAccountNumberList.toArray(
                     new String[trustedSignerAwsAccountNumberList.size()]),
                 requiredProtocols.toArray(
@@ -411,7 +418,7 @@ public class CloudFrontXmlResponsesSaxParser {
         private String status = null;
         private Date lastModifiedTime = null;
         private String domainName = null;
-        private String origin = null;
+        private Origin origin = null;
         private final List<String> cnamesList = new ArrayList<String>();
         private String comment = null;
         private boolean enabled = false;
@@ -440,8 +447,17 @@ public class CloudFrontXmlResponsesSaxParser {
             this.domainName = text;
         }
 
-        public void endOrigin(String text) {
-            this.origin = text;
+        public void startS3Origin() {
+            transferControlToHandler(new OriginHandler(xr));
+        }
+
+        public void startCustomOrigin() {
+            transferControlToHandler(new OriginHandler(xr));
+        }
+
+        @Override
+        public void controlReturned(SimpleHandler childHandler) {
+            this.origin = ((OriginHandler) childHandler).origin;
         }
 
         public void endCNAME(String text) {
@@ -473,7 +489,7 @@ public class CloudFrontXmlResponsesSaxParser {
         }
     }
 
-    public class ListDistributionListHandler extends SimpleHandler {
+    public class DistributionListHandler extends SimpleHandler {
         private final List<Distribution> distributions = new ArrayList<Distribution>();
         private final List<String> cnamesList = new ArrayList<String>();
         private String marker = null;
@@ -481,7 +497,7 @@ public class CloudFrontXmlResponsesSaxParser {
         private int maxItems = 100;
         private boolean isTruncated = false;
 
-        public ListDistributionListHandler(XMLReader xr) {
+        public DistributionListHandler(XMLReader xr) {
             super(xr);
         }
 
@@ -537,6 +553,51 @@ public class CloudFrontXmlResponsesSaxParser {
 
         public void endIsTruncated(String text) {
             this.isTruncated = "true".equalsIgnoreCase(text);
+        }
+    }
+
+    public class OriginHandler extends SimpleHandler {
+        protected Origin origin = null;
+        private String dnsName = "";
+        private String originAccessIdentity = null; // S3Origin
+        private String httpPort = null; // CustomOrigin
+        private String httpsPort = null; // CustomOrigin
+        private String originProtocolPolicy = null; // CustomOrigin
+
+        public OriginHandler(XMLReader xr) {
+            super(xr);
+        }
+
+        public void endDNSName(String text) {
+            this.dnsName = text;
+        }
+
+        public void endOriginAccessIdentity(String text) {
+            this.originAccessIdentity = text;
+        }
+
+        public void endHTTPPort(String text) {
+            this.httpPort = text;
+        }
+
+        public void endHTTPSPort(String text) {
+            this.httpsPort = text;
+        }
+
+        public void endOriginProtocolPolicy(String text) {
+            this.originProtocolPolicy = text;
+        }
+
+        public void endS3Origin(String text) {
+            this.origin = new S3Origin(this.dnsName, this.originAccessIdentity);
+            returnControlToParentHandler();
+        }
+
+        public void endCustomOrigin(String text) {
+            this.origin = new CustomOrigin(this.dnsName,
+                CustomOrigin.OriginProtocolPolicy.fromText(this.originProtocolPolicy),
+                Integer.valueOf(this.httpPort), Integer.valueOf(this.httpsPort));
+            returnControlToParentHandler();
         }
     }
 

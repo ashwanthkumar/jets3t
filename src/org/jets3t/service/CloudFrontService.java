@@ -44,21 +44,24 @@ import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.Distribution
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.ErrorHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.InvalidationHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.InvalidationListHandler;
-import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.ListDistributionListHandler;
+import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.DistributionListHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccessIdentityConfigHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccessIdentityHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccessIdentityListHandler;
 import org.jets3t.service.impl.rest.httpclient.AWSRequestAuthorizer;
 import org.jets3t.service.impl.rest.httpclient.HttpClientAndConnectionManager;
 import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.cloudfront.CustomOrigin;
 import org.jets3t.service.model.cloudfront.Distribution;
 import org.jets3t.service.model.cloudfront.DistributionConfig;
 import org.jets3t.service.model.cloudfront.Invalidation;
 import org.jets3t.service.model.cloudfront.InvalidationList;
 import org.jets3t.service.model.cloudfront.InvalidationSummary;
 import org.jets3t.service.model.cloudfront.LoggingStatus;
+import org.jets3t.service.model.cloudfront.Origin;
 import org.jets3t.service.model.cloudfront.OriginAccessIdentity;
 import org.jets3t.service.model.cloudfront.OriginAccessIdentityConfig;
+import org.jets3t.service.model.cloudfront.S3Origin;
 import org.jets3t.service.model.cloudfront.StreamingDistribution;
 import org.jets3t.service.model.cloudfront.StreamingDistributionConfig;
 import org.jets3t.service.security.EncryptionUtil;
@@ -83,7 +86,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     private static final Log log = LogFactory.getLog(CloudFrontService.class);
 
     public static final String ENDPOINT = "https://cloudfront.amazonaws.com/";
-    public static final String VERSION = "2010-08-01";
+    public static final String VERSION = "2010-11-01";
     public static final String XML_NAMESPACE = "http://cloudfront.amazonaws.com/doc/" + VERSION + "/";
     public static final String DEFAULT_BUCKET_SUFFIX = ".s3.amazonaws.com";
     public static final String ORIGIN_ACCESS_IDENTITY_URI_PATH = "/origin-access-identity/cloudfront";
@@ -347,7 +350,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 HttpMethod httpMethod = new GetMethod(uri);
                 performRestRequest(httpMethod, 200);
 
-                ListDistributionListHandler handler =
+                DistributionListHandler handler =
                     (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
                         .parseDistributionListResponse(httpMethod.getResponseBodyAsStream());
                 distributions.addAll(handler.getDistributions());
@@ -459,10 +462,13 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         Distribution[] allDistributions =
             (isStreaming ? listStreamingDistributions() : listDistributions());
         for (int i = 0; i < allDistributions.length; i++) {
-            String distributionOrigin = allDistributions[i].getOrigin();
-            if (distributionOrigin.equals(bucketName)
-                || bucketName.equals(ServiceUtils.findBucketNameInHostname(
-                    distributionOrigin, s3Endpoint)))
+            Origin origin = allDistributions[i].getOrigin();
+            if (!(origin instanceof S3Origin)) {
+                continue;
+            }
+            S3Origin s3Origin = (S3Origin) origin;
+            if (s3Origin.equals(bucketName)
+                || bucketName.equals(ServiceUtils.findBucketNameInHostname(s3Origin.getDnsName(), s3Endpoint)))
             {
                 bucketDistributions.add(allDistributions[i]);
             }
@@ -507,6 +513,36 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     }
 
     /**
+     * Generate XML representing an S3 or non-S3 (custom) origin.
+     *
+     * @param origin
+     * @return
+     * @throws TransformerException
+     * @throws ParserConfigurationException
+     * @throws FactoryConfigurationError
+     */
+    protected XMLBuilder buildOrigin(Origin origin) throws TransformerException,
+        ParserConfigurationException, FactoryConfigurationError
+    {
+        if (origin instanceof S3Origin) {
+            S3Origin o = (S3Origin) origin;
+            XMLBuilder builder = XMLBuilder.create("S3Origin")
+                .e("DNSName").t(sanitizeS3BucketName(origin.getDnsName())).up();
+            if (o.getOriginAccessIdentity() != null) {
+                builder.e("OriginAccessIdentity").t(o.getOriginAccessIdentity());
+            }
+            return builder;
+        } else {
+            CustomOrigin o = (CustomOrigin) origin;
+            return XMLBuilder.create("CustomOrigin")
+                .e("DNSName").t(origin.getDnsName()).up()
+                .e("HTTPPort").t("" + o.getHttpPort()).up()
+                .e("HTTPSPort").t("" + o.getHttpsPort()).up()
+                .e("OriginProtocolPolicy").t(o.getOriginProtocolPolicy().toText());
+        }
+    }
+
+    /**
      * Generate a DistributionConfig or StreamingDistributionConfig XML document.
      *
      * @param isStreamingDistribution
@@ -516,7 +552,6 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @param comment
      * @param enabled
      * @param loggingStatus
-     * @param originAccessIdentityId
      * @param trustedSignerSelf
      * @param trustedSignerAwsAccountNumbers
      * @param requiredProtocols
@@ -528,16 +563,20 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws FactoryConfigurationError
      */
     protected String buildDistributionConfigXmlDocument(boolean isStreamingDistribution,
-        String origin, String callerReference, String[] cnames, String comment, boolean enabled,
-        LoggingStatus loggingStatus, String originAccessIdentityId, boolean trustedSignerSelf,
+        Origin origin, String callerReference, String[] cnames, String comment, boolean enabled,
+        LoggingStatus loggingStatus, boolean trustedSignerSelf,
         String[] trustedSignerAwsAccountNumbers, String[] requiredProtocols, String defaultRootObject)
         throws TransformerException, ParserConfigurationException, FactoryConfigurationError
     {
         XMLBuilder builder = XMLBuilder.create(
             isStreamingDistribution ? "StreamingDistributionConfig" : "DistributionConfig")
-            .a("xmlns", XML_NAMESPACE)
-            .e("Origin").t(origin).up()
-            .e("CallerReference").t(callerReference).up();
+            .a("xmlns", XML_NAMESPACE);
+        if (isStreamingDistribution) {
+            builder.e("Origin").t(origin.getDnsName()).up();
+        } else {
+            builder.importXMLBuilder(buildOrigin(origin));
+        }
+        builder.e("CallerReference").t(callerReference).up();
         for (int i = 0; i < cnames.length; i++) {
             builder.e("CNAME").t(cnames[i]).up();
         }
@@ -546,11 +585,6 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             .e("Enabled").t("" + enabled);
         if (defaultRootObject != null) {
             builder.e("DefaultRootObject").t(defaultRootObject).up();
-        }
-        if (originAccessIdentityId != null) {
-            builder.e("OriginAccessIdentity")
-                .t(ORIGIN_ACCESS_IDENTITY_PREFIX + originAccessIdentityId)
-            .up();
         }
         if (trustedSignerSelf
             || (trustedSignerAwsAccountNumbers != null
@@ -594,7 +628,6 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @param comment
      * @param enabled
      * @param loggingStatus
-     * @param originAccessIdentityId
      * @param trustedSignerSelf
      * @param trustedSignerAwsAccountNumbers
      * @param requiredProtocols
@@ -605,9 +638,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     protected Distribution createDistributionImpl(
-        boolean isStreaming, String origin, String callerReference,
+        boolean isStreaming, Origin origin, String callerReference,
         String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus,
-        String originAccessIdentityId, boolean trustedSignerSelf,
+        boolean trustedSignerSelf,
         String[] trustedSignerAwsAccountNumbers, String[] requiredProtocols, String defaultRootObject)
         throws CloudFrontServiceException
     {
@@ -618,7 +651,6 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         }
 
         // Sanitize parameters.
-        origin = sanitizeS3BucketName(origin);
         if (callerReference == null) {
             callerReference = "" + System.currentTimeMillis();
         }
@@ -635,8 +667,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         try {
             String distributionConfigXml = buildDistributionConfigXmlDocument(
                 isStreaming, origin, callerReference, cnames, comment, enabled,
-                loggingStatus, originAccessIdentityId, trustedSignerSelf,
-                trustedSignerAwsAccountNumbers, requiredProtocols, defaultRootObject);
+                loggingStatus, trustedSignerSelf, trustedSignerAwsAccountNumbers,
+                requiredProtocols, defaultRootObject);
 
             httpMethod.setRequestEntity(
                 new StringRequestEntity(distributionConfigXml, "text/xml", Constants.DEFAULT_ENCODING));
@@ -661,8 +693,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * Create a public or private CloudFront distribution for an S3 bucket.
      *
      * @param origin
-     * the Amazon S3 bucket to associate with the distribution, specified as a full
-     * S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
+     * the origin to associate with the distribution, either an Amazon S3 bucket or
+     * a custom HTTP/S-accessible location.
      * @param callerReference
      * A user-set unique reference value that ensures the request can't be replayed
      * (max UTF-8 encoding size 128 bytes). This parameter may be null, in which
@@ -678,10 +710,6 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @param loggingStatus
      * Logging status settings (bucket, prefix) for the distribution. If this value
      * is null, logging will be disabled for the distribution.
-     * @param originAccessIdentityId
-     * Identifier of the origin access identity that can authorize access to
-     * S3 objects via a private distribution. If provided the distribution will be
-     * private, if null the distribution will be be public.
      * @param trustedSignerSelf
      * If true the owner of the distribution (you) will be be allowed to generate
      * signed URLs for a private distribution. Note: If either trustedSignerSelf or
@@ -708,15 +736,15 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      *
      * @throws CloudFrontServiceException
      */
-    public Distribution createDistribution(String origin, String callerReference,
+    public Distribution createDistribution(Origin origin, String callerReference,
         String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus,
-        String originAccessIdentityId, boolean trustedSignerSelf,
-        String[] trustedSignerAwsAccountNumbers, String[] requiredProtocols, String defaultRootObject)
+        boolean trustedSignerSelf, String[] trustedSignerAwsAccountNumbers,
+        String[] requiredProtocols, String defaultRootObject)
         throws CloudFrontServiceException
     {
         return createDistributionImpl(false, origin, callerReference, cnames, comment,
-            enabled, loggingStatus, originAccessIdentityId, trustedSignerSelf,
-            trustedSignerAwsAccountNumbers, requiredProtocols, defaultRootObject);
+            enabled, loggingStatus, trustedSignerSelf, trustedSignerAwsAccountNumbers,
+            requiredProtocols, defaultRootObject);
     }
 
     /**
@@ -724,8 +752,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * be publicly available once created.
      *
      * @param origin
-     * the Amazon S3 bucket to associate with the distribution, specified as a full
-     * S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
+     * the origin to associate with the distribution, either an Amazon S3 bucket or
+     * a custom HTTP/S-accessible location.
      *
      * @return
      * an object that describes the newly-created distribution, in particular the
@@ -733,7 +761,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      *
      * @throws CloudFrontServiceException
      */
-    public Distribution createDistribution(String origin) throws CloudFrontServiceException
+    public Distribution createDistribution(Origin origin) throws CloudFrontServiceException
     {
         return this.createDistribution(origin, null, null, null, true, null);
     }
@@ -742,8 +770,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * Create a public CloudFront distribution for an S3 bucket.
      *
      * @param origin
-     * the Amazon S3 bucket to associate with the distribution, specified as a full
-     * S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
+     * the origin to associate with the distribution, either an Amazon S3 bucket or
+     * a custom HTTP/S-accessible location.
      * @param callerReference
      * A user-set unique reference value that ensures the request can't be replayed
      * (max UTF-8 encoding size 128 bytes). This parameter may be null, in which
@@ -766,12 +794,12 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      *
      * @throws CloudFrontServiceException
      */
-    public Distribution createDistribution(String origin, String callerReference,
+    public Distribution createDistribution(Origin origin, String callerReference,
         String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus)
         throws CloudFrontServiceException
     {
         return createDistribution(origin, callerReference, cnames, comment, enabled,
-                loggingStatus, null, false, null, null, null);
+                loggingStatus, false, null, null, null);
     }
 
      /**
@@ -792,7 +820,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     {
         return createDistribution(config.getOrigin(), config.getCallerReference(),
             config.getCNAMEs(), config.getComment(), config.isEnabled(),
-            config.getLoggingStatus(), config.getOriginAccessIdentity(),
+            config.getLoggingStatus(),
             config.isTrustedSignerSelf(),
             config.getTrustedSignerAwsAccountNumbers(),
             config.getRequiredProtocols(),
@@ -803,8 +831,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * Create a public or private streaming CloudFront distribution for an S3 bucket.
      *
      * @param origin
-     * the Amazon S3 bucket to associate with the distribution, specified as a full
-     * S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
+     * the origin to associate with the distribution, either an Amazon S3 bucket or
+     * a custom HTTP/S-accessible location.
      * @param callerReference
      * A user-set unique reference value that ensures the request can't be replayed
      * (max UTF-8 encoding size 128 bytes). This parameter may be null, in which
@@ -820,10 +848,6 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @param loggingStatus
      * Logging status settings (bucket, prefix) for the distribution. If this value
      * is null, logging will be disabled for the distribution.
-     * @param originAccessIdentityId
-     * Identifier of the origin access identity that can authorize access to
-     * S3 objects via a private distribution. If provided the distribution will be
-     * private, if null the distribution will be be public.
      * @param trustedSignerSelf
      * If true the owner of the distribution (you) will be be allowed to generate
      * signed URLs for a private distribution. Note: If either trustedSignerSelf or
@@ -843,23 +867,22 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      *
      * @throws CloudFrontServiceException
      */
-    public StreamingDistribution createStreamingDistribution(String origin, String callerReference,
+    public StreamingDistribution createStreamingDistribution(Origin origin, String callerReference,
             String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus,
-            String originAccessIdentityId, boolean trustedSignerSelf,
-            String[] trustedSignerAwsAccountNumbers)
+            boolean trustedSignerSelf, String[] trustedSignerAwsAccountNumbers)
         throws CloudFrontServiceException
     {
         return (StreamingDistribution) createDistributionImpl(true, origin, callerReference,
-            cnames, comment, enabled, loggingStatus, originAccessIdentityId,
-            trustedSignerSelf, trustedSignerAwsAccountNumbers, null, null);
+            cnames, comment, enabled, loggingStatus, trustedSignerSelf,
+            trustedSignerAwsAccountNumbers, null, null);
     }
 
     /**
      * Create a public streaming CloudFront distribution for an S3 bucket.
      *
      * @param origin
-     * the Amazon S3 bucket to associate with the distribution, specified as a full
-     * S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
+     * the origin to associate with the distribution, either an Amazon S3 bucket or
+     * a custom HTTP/S-accessible location.
      * @param callerReference
      * A user-set unique reference value that ensures the request can't be replayed
      * (max UTF-8 encoding size 128 bytes). This parameter may be null, in which
@@ -882,12 +905,12 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      *
      * @throws CloudFrontServiceException
      */
-    public StreamingDistribution createStreamingDistribution(String origin, String callerReference,
+    public StreamingDistribution createStreamingDistribution(Origin origin, String callerReference,
             String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus)
         throws CloudFrontServiceException
     {
         return (StreamingDistribution) createDistributionImpl(true, origin, callerReference,
-            cnames, comment, enabled, loggingStatus, null, false, null, null, null);
+            cnames, comment, enabled, loggingStatus, false, null, null, null);
     }
 
     /**
@@ -1046,7 +1069,6 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @param comment
      * @param enabled
      * @param loggingStatus
-     * @param originAccessIdentityId
      * @param trustedSignerSelf
      * @param trustedSignerAwsAccountNumbers
      * @param requiredProtocols
@@ -1056,10 +1078,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     protected DistributionConfig updateDistributionConfigImpl(
-        boolean isStreaming, String id, String[] cnames,
+        boolean isStreaming, String id, Origin origin, String[] cnames,
         String comment, boolean enabled, LoggingStatus loggingStatus,
-        String originAccessIdentityId, boolean trustedSignerSelf,
-        String[] trustedSignerAwsAccountNumbers,
+        boolean trustedSignerSelf, String[] trustedSignerAwsAccountNumbers,
         String[] requiredProtocols, String defaultRootObject)
         throws CloudFrontServiceException
     {
@@ -1080,6 +1101,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         if (comment == null) {
             comment = oldConfig.getComment();
         }
+        if (origin == null) {
+            origin = oldConfig.getOrigin();
+        }
 
         PutMethod httpMethod = new PutMethod(ENDPOINT + VERSION
             + (isStreaming ? "/streaming-distribution/" : "/distribution/")
@@ -1087,9 +1111,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
 
         try {
             String distributionConfigXml = buildDistributionConfigXmlDocument(isStreaming,
-                    oldConfig.getOrigin(), oldConfig.getCallerReference(), cnames, comment, enabled,
-                    loggingStatus, originAccessIdentityId, trustedSignerSelf,
-                    trustedSignerAwsAccountNumbers, requiredProtocols, defaultRootObject);
+                    origin, oldConfig.getCallerReference(), cnames, comment, enabled,
+                    loggingStatus, trustedSignerSelf, trustedSignerAwsAccountNumbers,
+                    requiredProtocols, defaultRootObject);
 
             httpMethod.setRequestEntity(
                 new StringRequestEntity(distributionConfigXml, "text/xml", Constants.DEFAULT_ENCODING));
@@ -1138,10 +1162,6 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @param loggingStatus
      * Logging status settings (bucket, prefix) for the distribution. If this value
      * is null, logging will be disabled for the distribution.
-     * @param originAccessIdentityId
-     * Identifier of the origin access identity that can authorize access to
-     * S3 objects via a private distribution. If provided the distribution will be
-     * private, if null the distribution will be be public.
      * @param trustedSignerSelf
      * If true the owner of the distribution (you) will be be allowed to generate
      * signed URLs for a private distribution. Note: If either trustedSignerSelf or
@@ -1168,14 +1188,14 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      *
      * @throws CloudFrontServiceException
      */
-    public DistributionConfig updateDistributionConfig(String id, String[] cnames,
-        String comment, boolean enabled, LoggingStatus loggingStatus,
-        String originAccessIdentityId, boolean trustedSignerSelf,
-        String[] trustedSignerAwsAccountNumbers, String[] requiredProtocols, String defaultRootObject)
+    public DistributionConfig updateDistributionConfig(String id, Origin origin,
+        String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus,
+        boolean trustedSignerSelf, String[] trustedSignerAwsAccountNumbers,
+        String[] requiredProtocols, String defaultRootObject)
         throws CloudFrontServiceException
     {
-        return updateDistributionConfigImpl(false, id, cnames, comment, enabled, loggingStatus,
-            originAccessIdentityId, trustedSignerSelf, trustedSignerAwsAccountNumbers,
+        return updateDistributionConfigImpl(false, id, origin, cnames, comment, enabled,
+            loggingStatus, trustedSignerSelf, trustedSignerAwsAccountNumbers,
             requiredProtocols, defaultRootObject);
     }
 
@@ -1211,12 +1231,12 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public StreamingDistributionConfig updateStreamingDistributionConfig(
-        String id, String[] cnames, String comment, boolean enabled,
+        String id, Origin origin, String[] cnames, String comment, boolean enabled,
         LoggingStatus loggingStatus)
         throws CloudFrontServiceException
     {
         return (StreamingDistributionConfig) updateDistributionConfigImpl(
-            true, id, cnames, comment, enabled, loggingStatus, null, false, null, null, null);
+            true, id, origin, cnames, comment, enabled, loggingStatus, false, null, null, null);
     }
 
     /**
@@ -1267,13 +1287,13 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public StreamingDistributionConfig updateStreamingDistributionConfig(
-        String id, String[] cnames, String comment, boolean enabled,
-        LoggingStatus loggingStatus, String originAccessIdentityId,
-        boolean trustedSignerSelf, String[] trustedSignerAwsAccountNumbers)
+        String id, Origin origin, String[] cnames, String comment, boolean enabled,
+        LoggingStatus loggingStatus, boolean trustedSignerSelf,
+        String[] trustedSignerAwsAccountNumbers)
         throws CloudFrontServiceException
     {
         return (StreamingDistributionConfig) updateDistributionConfigImpl(
-            true, id, cnames, comment, enabled, loggingStatus, originAccessIdentityId,
+            true, id, origin, cnames, comment, enabled, loggingStatus,
             trustedSignerSelf, trustedSignerAwsAccountNumbers, null, null);
     }
 
@@ -1309,12 +1329,12 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      *
      * @throws CloudFrontServiceException
      */
-    public DistributionConfig updateDistributionConfig(String id, String[] cnames,
-        String comment, boolean enabled, LoggingStatus loggingStatus)
+    public DistributionConfig updateDistributionConfig(String id, Origin origin,
+        String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus)
         throws CloudFrontServiceException
     {
-        return updateDistributionConfig(id, cnames, comment, enabled, loggingStatus,
-            null, false, null, null, null);
+        return updateDistributionConfig(id, origin, cnames, comment, enabled, loggingStatus,
+            false, null, null, null);
     }
 
      /**
@@ -1342,8 +1362,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     public DistributionConfig updateDistributionConfig(String id,
         DistributionConfig config) throws CloudFrontServiceException
     {
-        return updateDistributionConfig(id, config.getCNAMEs(), config.getComment(),
-            config.isEnabled(), config.getLoggingStatus(), config.getOriginAccessIdentity(),
+        return updateDistributionConfig(id, config.getOrigin(), config.getCNAMEs(),
+            config.getComment(), config.isEnabled(), config.getLoggingStatus(),
             config.isTrustedSignerSelf(), config.getTrustedSignerAwsAccountNumbers(),
             config.getRequiredProtocols(), config.getDefaultRootObject());
     }
@@ -1367,7 +1387,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     public void disableDistributionForDeletion(String id)
         throws CloudFrontServiceException
     {
-        updateDistributionConfig(id, new String[] {}, "Disabled prior to deletion", false, null);
+        updateDistributionConfig(id, null, new String[] {}, "Disabled prior to deletion", false, null);
     }
 
     /**
@@ -1389,7 +1409,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     public void disableStreamingDistributionForDeletion(String id)
         throws CloudFrontServiceException
     {
-        updateStreamingDistributionConfig(id, new String[] {}, "Disabled prior to deletion",
+        updateStreamingDistributionConfig(id, null, new String[] {}, "Disabled prior to deletion",
             false, // enabled?
             null // LoggingStatus
             );
