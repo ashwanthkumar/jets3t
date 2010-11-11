@@ -38,6 +38,9 @@ import org.jets3t.service.acl.Permission;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
 import org.jets3t.service.model.BaseVersionOrDeleteMarker;
+import org.jets3t.service.model.MultipartCompleted;
+import org.jets3t.service.model.MultipartPart;
+import org.jets3t.service.model.MultipartUpload;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3BucketVersioningStatus;
@@ -282,7 +285,8 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
 
             String canonicalString = RestUtils.makeServiceCanonicalString(method,
                 serviceEndpointVirtualPath + "/" + virtualBucketPath + uriPath,
-                renameMetadataKeys(headersMap), String.valueOf(secondsSinceEpoch), this.getRestHeaderPrefix());
+                renameMetadataKeys(headersMap), String.valueOf(secondsSinceEpoch),
+                this.getRestHeaderPrefix(), this.getResourceParameterNames());
             if (log.isDebugEnabled()) {
                 log.debug("Signing canonical string:\n" + canonicalString);
             }
@@ -307,6 +311,8 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
             }
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
+        } catch (UnsupportedEncodingException e) {
+            throw new S3ServiceException(e);
         }
     }
 
@@ -3077,6 +3083,68 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         setRequesterPaysBucketImpl(bucketName, requesterPays);
     }
 
+    public MultipartUpload multipartStartUpload(String bucketName, String objectKey,
+        Map<String, Object> metadata) throws S3ServiceException
+    {
+        return multipartStartUploadImpl(bucketName, objectKey, metadata);
+    }
+
+    public void multipartAbortUpload(MultipartUpload upload) throws S3ServiceException
+    {
+        multipartAbortUpload(upload.getUploadId(), upload.getBucketName(), upload.getObjectKey());
+    }
+
+    public void multipartAbortUpload(String uploadId, String bucketName,
+        String objectKey) throws S3ServiceException
+    {
+        multipartAbortUploadImpl(uploadId, bucketName, objectKey);
+    }
+
+    public List<MultipartUpload> multipartListUploads(String bucketName)
+        throws S3ServiceException
+    {
+        return multipartListUploadsImpl(bucketName);
+    }
+
+    public List<MultipartPart> multipartListParts(MultipartUpload upload)
+        throws S3ServiceException
+    {
+        return multipartListParts(upload.getUploadId(),
+            upload.getBucketName(), upload.getObjectKey());
+    }
+
+    public List<MultipartPart> multipartListParts(String uploadId,
+        String bucketName, String objectKey) throws S3ServiceException
+    {
+        return multipartListPartsImpl(uploadId, bucketName, objectKey);
+    }
+
+    public MultipartCompleted multipartCompleteUpload(String uploadId, String bucketName,
+        String objectKey, List<MultipartPart> parts) throws S3ServiceException
+    {
+        return multipartCompleteUploadImpl(uploadId, bucketName, objectKey, parts);
+    }
+
+    public MultipartCompleted multipartCompleteUpload(MultipartUpload upload,
+        List<MultipartPart> parts) throws S3ServiceException
+    {
+        return multipartCompleteUploadImpl(upload.getUploadId(), upload.getBucketName(),
+            upload.getObjectKey(), parts);
+    }
+
+    public MultipartPart multipartUploadPart(String uploadId, String bucketName,
+        Integer partNumber, S3Object object) throws S3ServiceException
+    {
+        return multipartUploadPartImpl(uploadId, bucketName, partNumber, object);
+    }
+
+    public MultipartPart multipartUploadPart(MultipartUpload upload, Integer partNumber,
+        S3Object object) throws S3ServiceException
+    {
+        return multipartUploadPart(upload.getUploadId(),
+            upload.getBucketName(),  partNumber, object);
+    }
+
     ///////////////////////////////////////////////////////////
     // Abstract methods that must be implemented by S3 services
     ///////////////////////////////////////////////////////////
@@ -3138,5 +3206,23 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
 
     protected abstract S3BucketVersioningStatus getBucketVersioningStatusImpl(
         String bucketName) throws S3ServiceException;
+
+    protected abstract MultipartUpload multipartStartUploadImpl(String bucketName,
+        String objectKey, Map<String, Object> metadata) throws S3ServiceException;
+
+    protected abstract void multipartAbortUploadImpl(String uploadId, String bucketName,
+        String objectKey) throws S3ServiceException;
+
+    protected abstract List<MultipartUpload> multipartListUploadsImpl(String bucketName)
+        throws S3ServiceException;
+
+    protected abstract List<MultipartPart> multipartListPartsImpl(String uploadId,
+        String bucketName, String objectKey) throws S3ServiceException;
+
+    protected abstract MultipartCompleted multipartCompleteUploadImpl(String uploadId, String bucketName,
+        String objectKey, List<MultipartPart> parts) throws S3ServiceException;
+
+    protected abstract MultipartPart multipartUploadPartImpl(String uploadId, String bucketName,
+        Integer partNumber, S3Object object) throws S3ServiceException;
 
 }

@@ -25,6 +25,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
@@ -36,6 +39,9 @@ import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
+import org.jets3t.service.model.MultipartCompleted;
+import org.jets3t.service.model.MultipartPart;
+import org.jets3t.service.model.MultipartUpload;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
@@ -223,6 +229,111 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
             service.deleteObject(bucketName, object.getKey());
         } finally {
             cleanupBucketForTest("testUrlSigning");
+        }
+    }
+
+    public void testMultipartUploads() throws Exception {
+        RestS3Service service = (RestS3Service) getStorageService(getCredentials());
+        StorageBucket bucket = createBucketForTest("testMultipartUploads");
+        String bucketName = bucket.getName();
+
+        try {
+            // Define name and String metadata values for multipart upload object
+            String objectKey = "multipart-object.txt";
+            Map<String, Object> metadata = new HashMap<String, Object>();
+            metadata.put("test-md-value", "testing, testing, 123");
+            metadata.put("test-timestamp-value", System.currentTimeMillis());
+
+            // Start a multipart upload
+            MultipartUpload testMultipartUpload =
+                service.multipartStartUpload(bucketName, objectKey, metadata);
+
+            assertEquals(bucketName, testMultipartUpload.getBucketName());
+            assertEquals(objectKey, testMultipartUpload.getObjectKey());
+
+            // List all ongoing multipart uploads
+            List<MultipartUpload> uploads = service.multipartListUploads(bucketName);
+
+            assertTrue("Expected at least one ongoing upload", uploads.size() >= 1);
+
+            // Confirm our newly-created multipart upload is present in listing
+            boolean foundNewUpload = false;
+            for (MultipartUpload upload: uploads) {
+                if (upload.getUploadId().equals(testMultipartUpload.getUploadId())) {
+                    foundNewUpload = true;
+                }
+            }
+            assertTrue("Expected to find the new upload in listing", foundNewUpload);
+
+            // Delete an incomplete multipart upload
+            service.multipartAbortUpload(testMultipartUpload);
+
+            // Ensure the first multipart upload has been deleted
+            uploads = service.multipartListUploads(bucketName);
+            for (MultipartUpload upload: uploads) {
+                if (upload.getUploadId().equals(testMultipartUpload.getUploadId())) {
+                    fail("Expected multipart upload " + upload.getUploadId()
+                        + " to be deleted");
+                }
+            }
+
+            // Start another upload
+            testMultipartUpload =
+                service.multipartStartUpload(bucketName, objectKey, metadata);
+
+            int partNumber = 0;
+
+            // Create 5MB of test data
+            byte[] testData = new byte[5 * 1024 * 1024];
+            for (int offset = 0; offset < testData.length; offset++) {
+                testData[offset] = (byte) (offset % 256);
+            }
+
+            // Upload a first part, must be 5MB+
+            S3Object partObject = new S3Object(
+                testMultipartUpload.getObjectKey(), testData);
+            MultipartPart uploadedPart = service.multipartUploadPart(
+                testMultipartUpload, ++partNumber, partObject);
+            assertEquals(uploadedPart.getPartNumber().longValue(), partNumber);
+            assertEquals(uploadedPart.getEtag(), partObject.getETag());
+            assertEquals(uploadedPart.getSize().longValue(), partObject.getContentLength());
+
+            // List multipart parts that have been received by the service
+            List<MultipartPart> listedParts = service.multipartListParts(testMultipartUpload);
+            assertEquals(listedParts.size(), 1);
+            assertEquals(listedParts.get(0).getSize().longValue(), partObject.getContentLength());
+
+            // Upload a second and final part, can be as small as 1 byte
+            partObject = new S3Object(
+                testMultipartUpload.getObjectKey(), new byte[] {testData[0]});
+            uploadedPart = service.multipartUploadPart(
+                testMultipartUpload, ++partNumber, partObject);
+            assertEquals(uploadedPart.getPartNumber().longValue(), partNumber);
+            assertEquals(uploadedPart.getEtag(), partObject.getETag());
+            assertEquals(uploadedPart.getSize().longValue(), partObject.getContentLength());
+
+            // List multipart parts that have been received by the service
+            listedParts = service.multipartListParts(testMultipartUpload);
+            assertEquals(listedParts.size(), 2);
+            assertEquals(listedParts.get(1).getSize().longValue(), partObject.getContentLength());
+
+            // Complete multipart upload using part listing.
+            MultipartCompleted multipartCompleted = service.multipartCompleteUpload(
+                testMultipartUpload, listedParts);
+            assertEquals(multipartCompleted.getBucketName(), testMultipartUpload.getBucketName());
+            assertEquals(multipartCompleted.getObjectKey(), testMultipartUpload.getObjectKey());
+
+            // Confirm completed object exists and has expected metadata
+            S3Object completedObject = (S3Object) service.getObjectDetails(
+                bucketName, testMultipartUpload.getObjectKey());
+            assertEquals(
+                metadata.get("test-md-value"),
+                completedObject.getMetadata("test-md-value"));
+            assertEquals(
+                metadata.get("test-timestamp-value").toString(),
+                completedObject.getMetadata("test-timestamp-value").toString());
+        } finally {
+            cleanupBucketForTest("testMultipartUploads");
         }
     }
 

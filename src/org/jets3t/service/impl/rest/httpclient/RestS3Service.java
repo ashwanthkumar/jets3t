@@ -25,12 +25,16 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpMethodBase;
 import org.apache.commons.httpclient.auth.CredentialsProvider;
+import org.apache.commons.httpclient.methods.InputStreamRequestEntity;
+import org.apache.commons.httpclient.methods.RequestEntity;
 import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -40,12 +44,21 @@ import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.VersionOrDeleteMarkersChunk;
+import org.jets3t.service.impl.rest.XmlResponsesSaxParser.CompleteMultipartUploadResultHandler;
+import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListMultipartPartsResultHandler;
+import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListMultipartUploadsResultHandler;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListVersionsResultsHandler;
 import org.jets3t.service.model.BaseVersionOrDeleteMarker;
+import org.jets3t.service.model.MultipartCompleted;
+import org.jets3t.service.model.MultipartPart;
+import org.jets3t.service.model.MultipartUpload;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3BucketVersioningStatus;
+import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.security.AWSDevPayCredentials;
 import org.jets3t.service.security.ProviderCredentials;
+import org.jets3t.service.utils.RestUtils;
 
 import com.jamesmurty.utils.XMLBuilder;
 
@@ -264,8 +277,8 @@ public class RestS3Service extends S3Service {
      * @throws org.jets3t.service.S3ServiceException
      */
     @Override
-    protected HttpMethodBase setupConnection(String method, String bucketName, String objectKey,
-        Map<String, Object> requestParameters) throws S3ServiceException
+    protected HttpMethodBase setupConnection(HTTP_METHOD method, String bucketName, String objectKey,
+        Map<String, String> requestParameters) throws S3ServiceException
     {
         HttpMethodBase httpMethod;
         try {
@@ -342,6 +355,20 @@ public class RestS3Service extends S3Service {
     @Override
     public String getRestHeaderPrefix() {
     	return AWS_REST_HEADER_PREFIX;
+    }
+
+    @Override
+    public List<String> getResourceParameterNames() {
+        // Special HTTP parameter names that refer to resources in S3
+        return Arrays.asList(new String[] {
+            "acl", "policy",
+            "torrent",
+            "logging",
+            "location",
+            "requestPayment",
+            "versions", "versioning", "versionId",
+            "uploads", "uploadId", "partNumber"
+        });
     }
 
     /**
@@ -427,7 +454,7 @@ public class RestS3Service extends S3Service {
                 .create("VersioningConfiguration").a("xmlns", Constants.XML_NAMESPACE)
                     .e("Status").t( (enabled ? "Enabled" : "Suspended") ).up()
                     .e("MfaDelete").t( (multiFactorAuthDeleteEnabled ? "Enabled" : "Disabled"));
-            Map<String, Object> requestParams = new HashMap<String, Object>();
+            Map<String, String> requestParams = new HashMap<String, String>();
             requestParams.put("versioning", null);
             Map<String, Object> metadata = new HashMap<String, Object>();
             if (multiFactorSerialNumber != null || multiFactorAuthCode != null) {
@@ -452,7 +479,7 @@ public class RestS3Service extends S3Service {
             if (log.isDebugEnabled()) {
                 log.debug( "Checking status of versioning for bucket " + bucketName);
             }
-            Map<String, Object> requestParams = new HashMap<String, Object>();
+            Map<String, String> requestParams = new HashMap<String, String>();
             requestParams.put("versioning", null);
             HttpMethodBase method = performRestGet(bucketName, null, requestParams, null);
             return getXmlResponseSaxParser()
@@ -467,7 +494,7 @@ public class RestS3Service extends S3Service {
         boolean automaticallyMergeChunks, String nextKeyMarker, String nextVersionIdMarker)
         throws S3ServiceException
     {
-        Map<String, Object> parameters = new HashMap<String, Object>();
+        Map<String, String> parameters = new HashMap<String, String>();
         parameters.put("versions", null);
         if (prefix != null) {
             parameters.put("prefix", prefix);
@@ -584,8 +611,8 @@ public class RestS3Service extends S3Service {
             log.debug("Retrieving location of Bucket: " + bucketName);
         }
 
-        Map<String, Object> requestParameters = new HashMap<String, Object>();
-        requestParameters.put("location","");
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put("location", "");
 
         try {
             HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
@@ -605,8 +632,8 @@ public class RestS3Service extends S3Service {
             log.debug("Retrieving Logging Status for Bucket: " + bucketName);
         }
 
-        Map<String, Object> requestParameters = new HashMap<String, Object>();
-        requestParameters.put("logging","");
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put("logging", "");
 
         try {
             HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
@@ -626,8 +653,8 @@ public class RestS3Service extends S3Service {
             log.debug("Setting Logging Status for bucket: " + bucketName);
         }
 
-        Map<String, Object> requestParameters = new HashMap<String, Object>();
-        requestParameters.put("logging","");
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put("logging", "");
 
         Map<String, Object> metadata = new HashMap<String, Object>();
         metadata.put("Content-Type", "text/plain");
@@ -655,8 +682,8 @@ public class RestS3Service extends S3Service {
         throws S3ServiceException
     {
         try {
-            Map<String, Object> requestParameters = new HashMap<String, Object>();
-            requestParameters.put("policy","");
+            Map<String, String> requestParameters = new HashMap<String, String>();
+            requestParameters.put("policy", "");
 
             HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
             return httpMethod.getResponseBodyAsString();
@@ -671,8 +698,8 @@ public class RestS3Service extends S3Service {
     protected void setBucketPolicyImpl(String bucketName, String policyDocument)
         throws S3ServiceException
     {
-        Map<String, Object> requestParameters = new HashMap<String, Object>();
-        requestParameters.put("policy","");
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put("policy", "");
 
         Map<String, Object> metadata = new HashMap<String, Object>();
         metadata.put("Content-Type", "text/plain");
@@ -694,8 +721,8 @@ public class RestS3Service extends S3Service {
         throws S3ServiceException
     {
         try {
-            Map<String, Object> requestParameters = new HashMap<String, Object>();
-            requestParameters.put("policy","");
+            Map<String, String> requestParameters = new HashMap<String, String>();
+            requestParameters.put("policy", "");
             performRestDelete(bucketName, null, requestParameters, null, null);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
@@ -710,8 +737,8 @@ public class RestS3Service extends S3Service {
             log.debug("Retrieving Request Payment Configuration settings for Bucket: " + bucketName);
         }
 
-        Map<String, Object> requestParameters = new HashMap<String, Object>();
-        requestParameters.put("requestPayment","");
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put("requestPayment", "");
 
         try {
             HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
@@ -729,8 +756,8 @@ public class RestS3Service extends S3Service {
             log.debug("Setting Request Payment Configuration settings for bucket: " + bucketName);
         }
 
-        Map<String, Object> requestParameters = new HashMap<String, Object>();
-        requestParameters.put("requestPayment","");
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put("requestPayment", "");
 
         Map<String, Object> metadata = new HashMap<String, Object>();
         metadata.put("Content-Type", "text/plain");
@@ -751,6 +778,233 @@ public class RestS3Service extends S3Service {
             throw new S3ServiceException(se);
         } catch (UnsupportedEncodingException e) {
             throw new S3ServiceException("Unable to encode RequestPaymentConfiguration XML document", e);
+        }
+    }
+
+    @Override
+    protected MultipartUpload multipartStartUploadImpl(String bucketName, String objectKey,
+        Map<String, Object> metadata) throws S3ServiceException
+    {
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put("uploads", "");
+
+        try {
+            HttpMethodBase postMethod = performRestPost(
+                bucketName, objectKey, metadata, requestParameters, null, false);
+            MultipartUpload multipartUpload = getXmlResponseSaxParser()
+                .parseInitiateMultipartUploadResult(
+                    new HttpMethodReleaseInputStream(postMethod));
+            multipartUpload.setMetadata(metadata); // Add object's known metadata to result object.
+            return multipartUpload;
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
+    }
+
+    @Override
+    protected MultipartPart multipartUploadPartImpl(String uploadId, String bucketName,
+        Integer partNumber, S3Object object) throws S3ServiceException
+    {
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put("uploadId", uploadId);
+        requestParameters.put("partNumber", "" + partNumber);
+
+        // Remove metadata (non-HTTP headers) from object, multipart upload parts cannot have any.
+        Set<String> metadataNames = renameMetadataKeys(object.getMetadataMap()).keySet();
+        for (String name: metadataNames) {
+            if (name.startsWith(this.getRestMetadataPrefix())) {
+                // Actual metadata name in object does not include the prefix
+                object.removeMetadata(name.substring(this.getRestMetadataPrefix().length()));
+            }
+        }
+
+        try {
+            // We do not need to calculate the data MD5 hash during upload if the
+            // expected hash value was provided as the object's Content-MD5 header.
+            boolean isLiveMD5HashingRequired =
+                (object.getMetadata(StorageObject.METADATA_HEADER_CONTENT_MD5) == null);
+
+            RequestEntity requestEntity = null;
+            if (object.getDataInputStream() != null) {
+                if (object.containsMetadata(StorageObject.METADATA_HEADER_CONTENT_LENGTH)) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Uploading multipart part data with Content-Length: "
+                            + object.getContentLength());
+                    }
+                    requestEntity = new RepeatableRequestEntity(object.getKey(),
+                        object.getDataInputStream(), object.getContentType(), object.getContentLength(),
+                        this.jets3tProperties, isLiveMD5HashingRequired);
+                } else {
+                    // Use InputStreamRequestEntity for objects with an unknown content length, as the
+                    // entity will cache the results and doesn't need to know the data length in advance.
+                    if (log.isWarnEnabled()) {
+                        log.warn("Content-Length of multipart part stream not set, "
+                            + "will automatically determine data length in memory");
+                    }
+                    requestEntity = new InputStreamRequestEntity(
+                        object.getDataInputStream(), InputStreamRequestEntity.CONTENT_LENGTH_AUTO);
+                }
+            }
+
+            this.putObjectWithRequestEntityImpl(bucketName, object, requestEntity, requestParameters);
+
+            // Populate part with response data that is accessible via the object's metadata
+            MultipartPart part = new MultipartPart(partNumber, object.getLastModifiedDate(),
+                object.getETag(), object.getContentLength());
+            return part;
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
+    }
+
+    @Override
+    protected void multipartAbortUploadImpl(String uploadId, String bucketName,
+        String objectKey) throws S3ServiceException
+    {
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put("uploadId", uploadId);
+
+        try {
+            performRestDelete(bucketName, objectKey, requestParameters, null, null);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
+    }
+
+    @Override
+    protected MultipartCompleted multipartCompleteUploadImpl(String uploadId, String bucketName,
+        String objectKey, List<MultipartPart> parts) throws S3ServiceException
+    {
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put("uploadId", uploadId);
+
+        try {
+            // Calculate the combined content length of all parts
+            long contentLength = 0;
+
+            XMLBuilder builder = XMLBuilder
+                .create("CompleteMultipartUpload").a("xmlns", Constants.XML_NAMESPACE);
+            for (MultipartPart part: parts) {
+                builder.e("Part")
+                    .e("PartNumber").t("" + part.getPartNumber()).up()
+                    .e("ETag").t(part.getEtag());
+
+                contentLength += parts.size();
+            }
+
+            try {
+                HttpMethodBase postMethod = performRestPostWithXmlBuilder(
+                    bucketName, objectKey, null, requestParameters, builder);
+                CompleteMultipartUploadResultHandler handler = getXmlResponseSaxParser()
+                    .parseCompleteMultipartUploadResult(
+                        new HttpMethodReleaseInputStream(postMethod));
+                // Check whether completion actually suceeded
+                if (handler.getServiceException() != null) {
+                    ServiceException e = handler.getServiceException();
+                    e.setResponseHeaders(RestUtils.convertHeadersToMap(
+                        postMethod.getResponseHeaders()));
+                    throw e;
+                }
+                return handler.getMultipartCompleted();
+            } catch (ServiceException se) {
+                throw new S3ServiceException(se);
+            }
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        } catch (ParserConfigurationException e) {
+            throw new S3ServiceException(e);
+        } catch (FactoryConfigurationError e) {
+            throw new S3ServiceException(e);
+        }
+    }
+
+    @Override
+    protected List<MultipartUpload> multipartListUploadsImpl(String bucketName)
+        throws S3ServiceException
+    {
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put("uploads", "");
+        requestParameters.put("max-uploads","1000");
+
+        try {
+            List<MultipartUpload> uploads = new ArrayList<MultipartUpload>();
+            String nextKeyMarker = null;
+            String nextUploadIdMarker = null;
+            boolean incompleteListing = true;
+            do {
+                if (nextKeyMarker != null) {
+                    requestParameters.put("key-marker", nextKeyMarker);
+                } else {
+                    requestParameters.remove("key-marker");
+                }
+                if (nextUploadIdMarker != null) {
+                    requestParameters.put("upload-id-marker", nextUploadIdMarker);
+                } else {
+                    requestParameters.remove("upload-id-marker");
+                }
+
+                HttpMethodBase getMethod = performRestGet(bucketName, null, requestParameters, null);
+                ListMultipartUploadsResultHandler handler = getXmlResponseSaxParser()
+                    .parseListMultipartUploadsResult(
+                        new HttpMethodReleaseInputStream(getMethod));
+                uploads.addAll(handler.getMultipartUploadList());
+
+                incompleteListing = handler.isTruncated();
+                nextKeyMarker = handler.getNextKeyMarker();
+                nextUploadIdMarker = handler.getNextUploadIdMarker();
+
+                // Sanity check for valid pagination values.
+                if (incompleteListing && nextKeyMarker == null && nextUploadIdMarker == null)
+                {
+                    throw new ServiceException("Unable to retrieve paginated "
+                        + "ListMultipartUploadsResult without valid NextKeyMarker "
+                        + " or NextUploadIdMarker value.");
+                }
+            } while (incompleteListing);
+            return uploads;
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
+    }
+
+    @Override
+    protected List<MultipartPart> multipartListPartsImpl(String uploadId,
+        String bucketName, String objectKey) throws S3ServiceException
+    {
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put("uploadId", uploadId);
+        requestParameters.put("max-parts", "1000");
+
+        try {
+            List<MultipartPart> parts = new ArrayList<MultipartPart>();
+            String nextPartNumberMarker = null;
+            boolean incompleteListing = true;
+            do {
+                if (nextPartNumberMarker != null) {
+                    requestParameters.put("part-number-marker", nextPartNumberMarker);
+                } else {
+                    requestParameters.remove("part-number-marker");
+                }
+
+                HttpMethodBase getMethod = performRestGet(bucketName, objectKey, requestParameters, null);
+                ListMultipartPartsResultHandler handler = getXmlResponseSaxParser()
+                    .parseListMultipartPartsResult(
+                        new HttpMethodReleaseInputStream(getMethod));
+                parts.addAll(handler.getMultipartPartList());
+
+                incompleteListing = handler.isTruncated();
+                nextPartNumberMarker = handler.getNextPartNumberMarker();
+
+                // Sanity check for valid pagination values.
+                if (incompleteListing && nextPartNumberMarker == null)
+                {
+                    throw new ServiceException("Unable to retrieve paginated "
+                        + "ListMultipartPartsResult without valid NextKeyMarker value.");
+                }
+            } while (incompleteListing);
+            return parts;
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
         }
     }
 

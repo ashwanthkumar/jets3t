@@ -79,8 +79,8 @@ public class PutViaSocket {
     private static String generateAuthorizationString(AWSCredentials awsCredentials,
         String url, Map headersMap) throws Exception
     {
-        String canonicalString = RestUtils.makeS3CanonicalString("PUT", url,
-            headersMap, null);
+        String canonicalString = RestUtils.makeServiceCanonicalString(
+            "PUT", url, headersMap, null, null, null);
 
         // Sign the canonical string.
         String signedCanonical = ServiceUtils.signWithHmacSha1(
@@ -255,7 +255,7 @@ public class PutViaSocket {
                     return;
                 }
             }
-        }        
+        }
         FileInputStream fis = new FileInputStream(file);
         long fileBytesTransferred = 0;
 

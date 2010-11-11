@@ -125,6 +125,32 @@ public class StorageObject extends BaseStorageItem implements Cloneable {
     }
 
     /**
+     * Create an object representing binary data. The object is initialized with the given
+     * key, the bytes as its data content, a content type of
+     * <code>application/octet-stream</code>, and a content length matching the
+     * byte array's length.
+     * The MD5 hash value of the byte data is also calculated and provided to the target
+     * service, so the service can verify that no data are corrupted in transit.
+     *
+     * @param key
+     * the key name for the object.
+     * @param data
+     * the byte data the object will contain, cannot be null.
+     *
+     * @throws IOException
+     * @throws NoSuchAlgorithmException when this JRE doesn't support the MD5 hash algorithm
+     */
+    public StorageObject(String key, byte[] data) throws NoSuchAlgorithmException, IOException
+    {
+        this(key);
+        ByteArrayInputStream bais = new ByteArrayInputStream(data);
+        setDataInputStream(bais);
+        setContentLength(bais.available());
+        setContentType(Mimetypes.MIMETYPE_OCTET_STREAM);
+        setMd5Hash(ServiceUtils.computeMD5Hash(data));
+    }
+
+    /**
      * Create an object without any associated data.
      *
      * @param key

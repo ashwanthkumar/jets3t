@@ -18,7 +18,9 @@
  */
 package org.jets3t.service.impl.rest.httpclient;
 
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.List;
 
 import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.auth.CredentialsProvider;
@@ -186,6 +188,14 @@ public class GoogleStorageService extends RestStorageService {
     @Override
     public String getRestMetadataPrefix() {
         return GOOGLE_REST_METADATA_PREFIX;
+    }
+
+    @Override
+    public List<String> getResourceParameterNames() {
+        // Special HTTP parameter names that refer to resources in Google Storage
+        return Arrays.asList(new String[] {
+            "acl"
+        });
     }
 
     /**

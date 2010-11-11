@@ -1,4 +1,25 @@
 -------------
+Version 0.8.1
+-------------
+
+TOOLKIT
+
+  * General
+
+- StorageObject and its subclasses (e.g. S3Object) now include a
+  convenience constructor that accepts byte array data.
+- Fixed incorrect file path for XMLBuilder library in shell scripts.
+
+  * S3Service
+
+- Added support for Multipart Uploads.
+
+  * CloudFront Service
+
+- Added support for custom (non-S3) distribution origins (API 2010-11-01).
+
+
+-------------
 Version 0.8.0
 -------------
 

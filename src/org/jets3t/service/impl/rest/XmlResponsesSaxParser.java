@@ -33,6 +33,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
+import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.acl.CanonicalGrantee;
 import org.jets3t.service.acl.EmailAddressGrantee;
@@ -44,6 +45,9 @@ import org.jets3t.service.model.BaseVersionOrDeleteMarker;
 import org.jets3t.service.model.GSBucket;
 import org.jets3t.service.model.GSObject;
 import org.jets3t.service.model.GSOwner;
+import org.jets3t.service.model.MultipartCompleted;
+import org.jets3t.service.model.MultipartPart;
+import org.jets3t.service.model.MultipartUpload;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3BucketVersioningStatus;
@@ -52,11 +56,12 @@ import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Owner;
 import org.jets3t.service.model.S3Version;
 import org.jets3t.service.model.StorageBucket;
-import org.jets3t.service.model.StorageOwner;
 import org.jets3t.service.model.StorageObject;
+import org.jets3t.service.model.StorageOwner;
 import org.jets3t.service.utils.ServiceUtils;
 import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.DefaultHandler;
 
 /**
  * XML Sax parser to read XML documents returned by S3 via the REST interface, converting these
@@ -120,7 +125,7 @@ public class XmlResponsesSaxParser {
      * @throws ServiceException
      *        any parsing, IO or other exceptions are wrapped in an ServiceException.
      */
-    protected void parseXmlInputStream(DefaultXmlHandler handler, InputStream inputStream)
+    protected void parseXmlInputStream(DefaultHandler handler, InputStream inputStream)
         throws ServiceException
     {
         try {
@@ -145,7 +150,7 @@ public class XmlResponsesSaxParser {
         }
     }
 
-    protected InputStream sanitizeXmlDocument(DefaultXmlHandler handler, InputStream inputStream)
+    protected InputStream sanitizeXmlDocument(DefaultHandler handler, InputStream inputStream)
         throws ServiceException
     {
         if (!properties.getBoolProperty("xmlparser.sanitize-listings", true)) {
@@ -342,6 +347,38 @@ public class XmlResponsesSaxParser {
         throws ServiceException
     {
         ListVersionsResultsHandler handler = new ListVersionsResultsHandler();
+        parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
+        return handler;
+    }
+
+    public MultipartUpload parseInitiateMultipartUploadResult(InputStream inputStream)
+        throws ServiceException
+    {
+        MultipartUploadResultHandler handler = new MultipartUploadResultHandler(xr);
+        parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
+        return handler.getMultipartUpload();
+    }
+
+    public ListMultipartUploadsResultHandler parseListMultipartUploadsResult(
+        InputStream inputStream) throws ServiceException
+    {
+        ListMultipartUploadsResultHandler handler = new ListMultipartUploadsResultHandler(xr);
+        parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
+        return handler;
+    }
+
+    public ListMultipartPartsResultHandler parseListMultipartPartsResult(
+        InputStream inputStream) throws ServiceException
+    {
+        ListMultipartPartsResultHandler handler = new ListMultipartPartsResultHandler(xr);
+        parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
+        return handler;
+    }
+
+    public CompleteMultipartUploadResultHandler parseCompleteMultipartUploadResult(
+        InputStream inputStream) throws ServiceException
+    {
+        CompleteMultipartUploadResultHandler handler = new CompleteMultipartUploadResultHandler(xr);
         parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
         return handler;
     }
@@ -967,4 +1004,466 @@ public class XmlResponsesSaxParser {
             }
         }
     }
+
+    public class OwnerHandler extends SimpleHandler {
+        private String id;
+        private String displayName;
+
+        public OwnerHandler(XMLReader xr) {
+            super(xr);
+        }
+
+        public StorageOwner getOwner() {
+            StorageOwner owner = newOwner();
+            owner.setId(id);
+            owner.setDisplayName(displayName);
+            return owner;
+        }
+
+        public void endID(String text) {
+            this.id = text;
+        }
+
+        public void endDisplayName(String text) {
+            this.displayName = text;
+        }
+
+        public void endOwner(String text) {
+            returnControlToParentHandler();
+        }
+
+        // </Initiator> represents end of an owner item in ListMultipartUploadsResult/Upload
+        public void endInitiator(String text) {
+            returnControlToParentHandler();
+        }
+    }
+
+    public class MultipartUploadResultHandler extends SimpleHandler {
+        private String uploadId;
+        private String bucketName;
+        private String objectKey;
+        private String storageClass;
+        private S3Owner owner;
+        private S3Owner initiator;
+        private Date initiatedDate;
+
+        private boolean inInitiator = false;
+
+        public MultipartUploadResultHandler(XMLReader xr) {
+            super(xr);
+        }
+
+        public MultipartUpload getMultipartUpload() {
+            if (initiatedDate != null) {
+                // Return the contents from a ListMultipartUploadsResult response
+                return new MultipartUpload(uploadId, objectKey, storageClass,
+                    initiator, owner, initiatedDate);
+            } else {
+                // Return the contents from an InitiateMultipartUploadsResult response
+                return new MultipartUpload(uploadId, bucketName, objectKey);
+            }
+        }
+
+        public void endUploadId(String text) {
+            this.uploadId = text;
+        }
+
+        public void endBucket(String text) {
+            this.bucketName = text;
+        }
+
+        public void endKey(String text) {
+            this.objectKey = text;
+        }
+
+        public void endStorageClass(String text) {
+            this.storageClass = text;
+        }
+
+        public void endInitiated(String text) throws ParseException {
+            this.initiatedDate = ServiceUtils.parseIso8601Date(text);
+        }
+
+        public void startOwner() {
+            inInitiator = false;
+            transferControlToHandler(new OwnerHandler(xr));
+        }
+
+        public void startInitiator() {
+            inInitiator = true;
+            transferControlToHandler(new OwnerHandler(xr));
+        }
+
+        @Override
+        public void controlReturned(SimpleHandler childHandler) {
+            if (inInitiator) {
+                this.owner = (S3Owner) ((OwnerHandler) childHandler).getOwner();
+            } else {
+                this.initiator = (S3Owner) ((OwnerHandler) childHandler).getOwner();
+            }
+        }
+
+        // </Upload> represents end of a MultipartUpload item in ListMultipartUploadsResult
+        public void endUpload(String text) {
+            returnControlToParentHandler();
+        }
+    }
+
+    public class ListMultipartUploadsResultHandler extends SimpleHandler {
+        private final List<MultipartUpload> uploads = new ArrayList<MultipartUpload>();
+        private String bucketName = null;
+        private String keyMarker = null;
+        private String uploadIdMarker = null;
+        private String nextKeyMarker = null;
+        private String nextUploadIdMarker = null;
+        private int maxUploads = 1000;
+        private boolean isTruncated = false;
+
+        public ListMultipartUploadsResultHandler(XMLReader xr) {
+            super(xr);
+        }
+
+        public List<MultipartUpload> getMultipartUploadList() {
+            // Update multipart upload objects with overall bucket name
+            for (MultipartUpload upload: uploads) {
+                upload.setBucketName(bucketName);
+            }
+            return uploads;
+        }
+
+        public boolean isTruncated() {
+            return isTruncated;
+        }
+
+        public String getKeyMarker() {
+            return keyMarker;
+        }
+
+        public String getUploadIdMarker() {
+            return uploadIdMarker;
+        }
+
+        public String getNextKeyMarker() {
+            return nextKeyMarker;
+        }
+
+        public String getNextUploadIdMarker() {
+            return nextUploadIdMarker;
+        }
+
+        public int getMaxUploads() {
+            return maxUploads;
+        }
+
+        public void startUpload() {
+            transferControlToHandler(new MultipartUploadResultHandler(xr));
+        }
+
+        @Override
+        public void controlReturned(SimpleHandler childHandler) {
+            uploads.add(
+                ((MultipartUploadResultHandler) childHandler).getMultipartUpload());
+        }
+
+        public void endBucket(String text) {
+            this.bucketName = text;
+        }
+
+        public void endKeyMarker(String text) {
+            this.keyMarker = text;
+        }
+
+        public void endUploadIdMarker(String text) {
+            this.uploadIdMarker = text;
+        }
+
+        public void endNextKeyMarker(String text) {
+            this.nextKeyMarker = text;
+        }
+
+        public void endNextUploadIdMarker(String text) {
+            this.nextUploadIdMarker = text;
+        }
+
+        public void endMaxUploads(String text) {
+            this.maxUploads = Integer.parseInt(text);
+        }
+
+        public void endIsTruncated(String text) {
+            this.isTruncated = "true".equalsIgnoreCase(text);
+        }
+    }
+
+    public class MultipartPartResultHandler extends SimpleHandler {
+        private Integer partNumber;
+        private Date lastModified;
+        private String etag;
+        private Long size;
+
+        public MultipartPartResultHandler(XMLReader xr) {
+            super(xr);
+        }
+
+        public MultipartPart getMultipartPart() {
+            return new MultipartPart(partNumber, lastModified, etag, size);
+        }
+
+        public void endPartNumber(String text) {
+            this.partNumber = Integer.parseInt(text);
+        }
+
+        public void endLastModified(String text) throws ParseException {
+            this.lastModified = ServiceUtils.parseIso8601Date(text);
+        }
+
+        public void endETag(String text) {
+            this.etag = text;
+        }
+
+        public void endSize(String text) {
+            this.size = Long.parseLong(text);
+        }
+
+        // </Part> represents end of a Part item in ListPartsResultHandler/Part
+        public void endPart(String text) {
+            returnControlToParentHandler();
+        }
+    }
+
+    public class ListMultipartPartsResultHandler extends SimpleHandler {
+        private final List<MultipartPart> parts = new ArrayList<MultipartPart>();
+        private String bucketName = null;
+        private String objectKey = null;
+        private String uploadId = null;
+        private S3Owner initiator = null;
+        private S3Owner owner = null;
+        private String storageClass = null;
+        private String partNumberMarker = null;
+        private String nextPartNumberMarker = null;
+        private int maxParts = 1000;
+        private boolean isTruncated = false;
+
+        private boolean inInitiator = false;
+
+        public ListMultipartPartsResultHandler(XMLReader xr) {
+            super(xr);
+        }
+
+        public List<MultipartPart> getMultipartPartList() {
+            return parts;
+        }
+
+        public boolean isTruncated() {
+            return isTruncated;
+        }
+
+        public String getBucketName() {
+            return bucketName;
+        }
+
+        public String getObjectKey() {
+            return objectKey;
+        }
+
+        public String getUploadId() {
+            return uploadId;
+        }
+
+        public S3Owner getInitiator() {
+            return initiator;
+        }
+
+        public S3Owner getOwner() {
+            return owner;
+        }
+
+        public String getStorageClass() {
+            return storageClass;
+        }
+
+        public String getPartNumberMarker() {
+            return partNumberMarker;
+        }
+
+        public String getNextPartNumberMarker() {
+            return nextPartNumberMarker;
+        }
+
+        public int getMaxParts() {
+            return maxParts;
+        }
+
+        public void startPart() {
+            transferControlToHandler(new MultipartPartResultHandler(xr));
+        }
+
+        @Override
+        public void controlReturned(SimpleHandler childHandler) {
+            if (childHandler instanceof MultipartPartResultHandler) {
+                parts.add(
+                    ((MultipartPartResultHandler) childHandler).getMultipartPart());
+            } else {
+                if (inInitiator) {
+                    initiator = (S3Owner)((OwnerHandler)childHandler).getOwner();
+                } else {
+                    owner = (S3Owner)((OwnerHandler)childHandler).getOwner();
+                }
+            }
+        }
+
+        public void startInitiator() {
+            inInitiator = true;
+            transferControlToHandler(new OwnerHandler(xr));
+        }
+
+        public void startOwner() {
+            inInitiator = false;
+            transferControlToHandler(new OwnerHandler(xr));
+        }
+
+        public void endBucket(String text) {
+            this.bucketName = text;
+        }
+
+        public void endKey(String text) {
+            this.objectKey = text;
+        }
+
+        public void endStorageClass(String text) {
+            this.storageClass = text;
+        }
+
+        public void endUploadId(String text) {
+            this.uploadId = text;
+        }
+
+        public void endPartNumberMarker(String text) {
+            this.partNumberMarker = text;
+        }
+
+        public void endNextPartNumberMarker(String text) {
+            this.nextPartNumberMarker = text;
+        }
+
+        public void endMaxParts(String text) {
+            this.maxParts = Integer.parseInt(text);
+        }
+
+        public void endIsTruncated(String text) {
+            this.isTruncated = "true".equalsIgnoreCase(text);
+        }
+    }
+
+    public class CompleteMultipartUploadResultHandler extends SimpleHandler {
+        private String location;
+        private String bucketName;
+        private String objectKey;
+        private String etag;
+
+        private ServiceException serviceException = null;
+
+        public CompleteMultipartUploadResultHandler(XMLReader xr) {
+            super(xr);
+        }
+
+        public MultipartCompleted getMultipartCompleted() {
+            return new MultipartCompleted(location, bucketName, objectKey, etag);
+        }
+
+        public ServiceException getServiceException() {
+            return serviceException;
+        }
+
+        public void endLocation(String text) {
+            this.location = text;
+        }
+
+        public void endBucket(String text) {
+            this.bucketName = text;
+        }
+
+        public void endKey(String text) {
+            this.objectKey = text;
+        }
+
+        public void endETag(String text) {
+            this.etag = text;
+        }
+
+        public void startError() {
+            transferControlToHandler(new CompleteMultipartUploadErrorHandler(xr));
+        }
+
+        @Override
+        public void controlReturned(SimpleHandler childHandler) {
+            this.serviceException = ((CompleteMultipartUploadErrorHandler)childHandler)
+                .getServiceException();
+        }
+    }
+
+    public class CompleteMultipartUploadErrorHandler extends SimpleHandler {
+        private String code = null;
+        private String message = null;
+        private String etag = null;
+        private Long minSizeAllowed = null;
+        private Long proposedSize = null;
+        private String hostId = null;
+        private Integer partNumber = null;
+        private String requestId = null;
+
+        public CompleteMultipartUploadErrorHandler(XMLReader xr) {
+            super(xr);
+        }
+
+        public ServiceException getServiceException() {
+            String fullMessage = message
+                + ": PartNumber=" + partNumber
+                + ", MinSizeAllowed=" + minSizeAllowed
+                + ", ProposedSize=" + proposedSize
+                + ", ETag=" + etag;
+            ServiceException e = new ServiceException(fullMessage);
+            e.setErrorCode(code);
+            e.setErrorMessage(message);
+            e.setErrorHostId(hostId);
+            e.setErrorRequestId(requestId);
+            return e;
+        }
+
+        public void endCode(String text) {
+            this.code = text;
+        }
+
+        public void endMessage(String text) {
+            this.message = text;
+        }
+
+        public void endETag(String text) {
+            this.etag = text;
+        }
+
+        public void endMinSizeAllowed(String text) {
+            this.minSizeAllowed = Long.parseLong(text);
+        }
+
+        public void endProposedSize(String text) {
+            this.proposedSize = Long.parseLong(text);
+        }
+
+        public void endHostId(String text) {
+            this.hostId = text;
+        }
+
+        public void endPartNumber(String text) {
+            this.partNumber = Integer.parseInt(text);
+        }
+
+        public void endRequestId(String text) {
+            this.requestId = text;
+        }
+
+        public void endError(String text) {
+            returnControlToParentHandler();
+        }
+    }
+
 }

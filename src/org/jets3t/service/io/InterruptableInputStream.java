@@ -66,21 +66,25 @@ public class InterruptableInputStream extends InputStream implements InputStream
         }
     }
 
+    @Override
     public int read() throws IOException {
         maybeInterruptInputStream();
         return inputStream.read();
     }
 
+    @Override
     public int read(byte[] b, int off, int len) throws IOException {
         maybeInterruptInputStream();
         return inputStream.read(b, off, len);
     }
 
+    @Override
     public int available() throws IOException {
         maybeInterruptInputStream();
         return inputStream.available();
     }
 
+    @Override
     public void close() throws IOException {
         inputStream.close();
     }

@@ -21,6 +21,7 @@ package org.jets3t.service;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -1504,6 +1505,7 @@ public abstract class StorageService {
     protected abstract String getVirtualPath();
     protected abstract String getSignatureIdentifier();
     public abstract String getRestHeaderPrefix();
+    public abstract List<String> getResourceParameterNames();
     public abstract String getRestMetadataPrefix();
     protected abstract int getHttpPort();
     protected abstract int getHttpsPort();

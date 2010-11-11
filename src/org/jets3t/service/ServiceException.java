@@ -146,12 +146,20 @@ public class ServiceException extends Exception {
         return this.errorCode;
     }
 
+    public void setErrorCode(String code) {
+        this.errorCode = code;
+    }
+
     /**
      * @return The service-specific Error Message returned by the service, if a response is available.
      * For example: "Access Denied", "We encountered an internal error. Please try again."
      */
     public String getErrorMessage() {
         return this.errorMessage;
+    }
+
+    public void setErrorMessage(String message) {
+        this.errorMessage= message;
     }
 
     /**
@@ -162,12 +170,20 @@ public class ServiceException extends Exception {
         return errorHostId;
     }
 
+    public void setErrorHostId(String hostId) {
+        this.errorHostId = hostId;
+    }
+
     /**
      * @return The Error Request ID returned by the service, if a response is available.
      * Null otherwise.
      */
     public String getErrorRequestId() {
         return errorRequestId;
+    }
+
+    public void setErrorRequestId(String requestId) {
+        this.errorRequestId = requestId;
     }
 
     /**

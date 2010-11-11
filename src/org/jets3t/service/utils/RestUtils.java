@@ -21,6 +21,7 @@ package org.jets3t.service.utils;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.Date;
@@ -30,8 +31,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.commons.httpclient.DefaultHttpMethodRetryHandler;
 import org.apache.commons.httpclient.Header;
@@ -144,24 +143,14 @@ public class RestUtils {
     }
 
     /**
-     * Calculate the canonical string for a REST/HTTP request to S3.
-     *
-     * When expires is non-null, it will be used instead of the Date header.
-     */
-    public static String makeS3CanonicalString(String method, String resource,
-        Map<String, Object> headersMap, String expires)
-    {
-         return makeServiceCanonicalString(method, resource, headersMap, expires,
-             Constants.REST_HEADER_PREFIX);
-    }
-
-    /**
      * Calculate the canonical string for a REST/HTTP request to a storage service.
      *
      * When expires is non-null, it will be used instead of the Date header.
+     * @throws UnsupportedEncodingException
      */
     public static String makeServiceCanonicalString(String method, String resource,
-        Map<String, Object> headersMap, String expires, String headerPrefix)
+        Map<String, Object> headersMap, String expires, String headerPrefix,
+        List<String> serviceResourceParameterNames) throws UnsupportedEncodingException
     {
         StringBuffer canonicalStringBuf = new StringBuffer();
         canonicalStringBuf.append(method + "\n");
@@ -229,26 +218,41 @@ public class RestUtils {
             canonicalStringBuf.append(resource.substring(0, queryIndex));
         }
 
-        // ...unless parameter is one of a set of special params
+        // ...unless the parameter(s) are in the set of special params
         // that actually identify a service resource.
-        String[] resourceParams = new String[] {
-            "acl", "torrent", "logging", "location",
-            "requestPayment", "versions", "versioning",
-            "policy", "versionId"
-        };
-        boolean existingParams = false;
-        for (String resourceParam: resourceParams) {
-            Pattern pattern = Pattern.compile(".*[&?]" + resourceParam + "(=.+)?($|&).*");
-            Matcher matcher = pattern.matcher(resource);
-            if (matcher.matches()) {
-                canonicalStringBuf.append(
-                    (existingParams ? "&" : "?")
-                    + resourceParam);
-                if (matcher.group(1) != null) {
-                    // Parameter also has a value component, include it.
-                    canonicalStringBuf.append(matcher.group(1));
+        if (queryIndex >= 0) {
+            SortedMap<String, String> sortedResourceParams = new TreeMap<String, String>();
+
+            // Parse parameters from resource string
+            String query = resource.substring(queryIndex + 1);
+            for (String paramPair: query.split("&")) {
+                String[] paramNameValue = paramPair.split("=");
+                String name = URLDecoder.decode(paramNameValue[0], "UTF-8");
+                String value = null;
+                if (paramNameValue.length > 1) {
+                    value = URLDecoder.decode(paramNameValue[1], "UTF-8");
                 }
-                existingParams = true;
+                // Only include parameter (and its value if present) in canonical
+                // string if it is a resource-identifying parameter
+                if (serviceResourceParameterNames.contains(name)) {
+                    sortedResourceParams.put(name, value);
+                }
+            }
+
+            // Add resource parameters
+            if (sortedResourceParams.size() > 0) {
+                canonicalStringBuf.append("?");
+            }
+            boolean addedParam = false;
+            for (Map.Entry<String, String> entry: sortedResourceParams.entrySet()) {
+                if (addedParam) {
+                    canonicalStringBuf.append("&");
+                }
+                canonicalStringBuf.append(entry.getKey());
+                if (entry.getValue() != null) {
+                    canonicalStringBuf.append("=" + entry.getValue());
+                }
+                addedParam = true;
             }
         }
 
