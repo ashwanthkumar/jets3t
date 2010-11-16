@@ -1990,9 +1990,15 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * via a private distribution's signed URL.
      *
      * @param resourcePath
-     * An optional resource path that restricts which distribution and S3 objects will be
-     * accessible in a signed URL. The '*' and '?' characters can be used as a wildcards
-     * to allow multi-character or single-character matches respectively:
+     * An optional HTTP/S or RTMP resource path that restricts which distribution and S3 objects
+     * will be accessible in a signed URL. For standard distributions the resource URL will be
+     * <tt>"http://" + distributionName + "/" + objectKey</tt> (may also include URL
+     * parameters. For distributions with the HTTPS required protocol, the resource URL
+     * must start with <tt>"https://"</tt>. RTMP resources do not take the form of a URL,
+     * and instead the resource path is nothing but the stream's name.
+     *
+     * The '*' and '?' characters can be used as a wildcards to allow multi-character or
+     * single-character matches respectively:
      * <ul>
      * <li><tt>*</tt> : All distributions/objects will be accessible</li>
      * <li><tt>a1b2c3d4e5f6g7.cloudfront.net/*</tt> : All objects within the distribution
@@ -2030,32 +2036,21 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         if (resourcePath == null) {
             resourcePath = "*";
         }
-        try {
-            String resource = "http://" + resourcePath;
-            String ipAddress = (limitToIpAddressCIDR == null
-                ? "0.0.0.0/0"
-                : limitToIpAddressCIDR);
-            String policy =
-                "{\n" +
-                "   \"Statement\": [{\n" +
-                "      \"Resource\":\"" + resource + "\",\n" +
-                "      \"Condition\":{\n" +
-                "         \"DateLessThan\":{\"AWS:EpochTime\":"
-                            + epochDateLessThan.getTime() / 1000 + "}" +
-                        (ipAddress == null ? "" : ",\n" +
-                "         \"IpAddress\":{\"AWS:SourceIp\":\"" + ipAddress + "\"}") +
-                        (epochDateGreaterThan == null ? "" : ",\n" +
-                "         \"DateGreaterThan\":{\"AWS:EpochTime\":"
-                            + epochDateGreaterThan.getTime() / 1000 + "}") +
-                "\n      }\n" +
-                "   }]\n" +
-                "}";
-            return policy;
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new CloudFrontServiceException(e);
-        }
+        String ipAddress = (limitToIpAddressCIDR == null
+            ? "0.0.0.0/0"  // No IP restriction
+            : limitToIpAddressCIDR);
+        String policy =
+            "{\"Statement\": [{" +
+             "\"Resource\":\"" + resourcePath + "\"" +
+             ",\"Condition\":{" +
+             "\"DateLessThan\":{\"AWS:EpochTime\":"
+                + epochDateLessThan.getTime() / 1000 + "}" +
+             ",\"IpAddress\":{\"AWS:SourceIp\":\"" + ipAddress + "\"}" +
+             (epochDateGreaterThan == null ? ""
+                 : ",\"DateGreaterThan\":{\"AWS:EpochTime\":"
+                     + epochDateGreaterThan.getTime() / 1000 + "}") +
+            "}}]}";
+        return policy;
     }
 
     /**

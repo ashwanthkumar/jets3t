@@ -214,7 +214,7 @@ public class CloudFrontSamples {
         String distributionDomain = "a1b2c3d4e5f6g7.cloudfront.net";
         String privateKeyFilePath = "/path/to/rsa-private-key.pem";
         String s3ObjectKey = "s3/object/key.txt";
-        String policyResourcePath = distributionDomain + "/" + s3ObjectKey;
+        String policyResourcePath = "http://" + distributionDomain + "/" + s3ObjectKey;
 
         // Convert an RSA PEM private key file to DER bytes
         byte[] derPrivateKey = EncryptionUtil.convertRsaPemToDer(
