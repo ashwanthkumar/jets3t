@@ -467,7 +467,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 continue;
             }
             S3Origin s3Origin = (S3Origin) origin;
-            if (s3Origin.equals(bucketName)
+            if (s3Origin.getDnsName().equals(bucketName)
                 || bucketName.equals(ServiceUtils.findBucketNameInHostname(s3Origin.getDnsName(), s3Endpoint)))
             {
                 bucketDistributions.add(allDistributions[i]);
