@@ -571,11 +571,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         XMLBuilder builder = XMLBuilder.create(
             isStreamingDistribution ? "StreamingDistributionConfig" : "DistributionConfig")
             .a("xmlns", XML_NAMESPACE);
-        if (isStreamingDistribution) {
-            builder.e("Origin").t(origin.getDnsName()).up();
-        } else {
-            builder.importXMLBuilder(buildOrigin(origin));
-        }
+        builder.importXMLBuilder(buildOrigin(origin));
         builder.e("CallerReference").t(callerReference).up();
         for (int i = 0; i < cnames.length; i++) {
             builder.e("CNAME").t(cnames[i]).up();
