@@ -1769,10 +1769,11 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         try {
             XMLBuilder builder = XMLBuilder.create("InvalidationBatch");
             for (String objectPath: objectKeys) {
-                if (!objectPath.startsWith("/")) {
-                    objectPath = "/" + objectPath;
+                String encodedPath = RestUtils.encodeUrlPath(objectPath, "/");
+                if (!encodedPath.startsWith("/")) {
+                    encodedPath = "/" + encodedPath;
                 }
-                builder.e("Path").t(RestUtils.encodeUrlPath(objectPath, "/"));
+                builder.e("Path").t(encodedPath);
             }
             builder.e("CallerReference").t(callerReference);
 
