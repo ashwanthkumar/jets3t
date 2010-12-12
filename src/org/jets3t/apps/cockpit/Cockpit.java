@@ -165,7 +165,7 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
 public class Cockpit extends JApplet implements S3ServiceEventListener, ActionListener,
     ListSelectionListener, HyperlinkActivatedListener, CredentialsProvider
 {
-    private static final long serialVersionUID = -3982368878320163058L;
+    private static final long serialVersionUID = -3193198830234682011L;
 
     private static final Log log = LogFactory.getLog(Cockpit.class);
 
@@ -2125,7 +2125,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         try {
             // Build map of files proposed for upload.
             final Map filesForUploadMap = FileComparer.getInstance()
-                .buildFileMap(uploadFiles, false);
+                .buildFileMap(uploadFiles, true);
 
             // Build map of objects already existing in target S3 bucket with keys
             // matching the proposed upload keys.

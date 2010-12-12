@@ -18,6 +18,11 @@ TOOLKIT
 
 - Added support for custom (non-S3) distribution origins (API 2010-11-01).
 
+COCKPIT
+
+- Fixed nasty bug that prevented directories from being included when 
+  uploading files.
+
 
 -------------
 Version 0.8.0
