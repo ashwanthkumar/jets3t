@@ -41,7 +41,7 @@ Required?   : YES
             : This library is used directly by services to build XML documents.
 Description : A utility that creates simple XML documents using sparse Java
             : code.
-Files       : java-xmlbuilder/java-xmlbuilder-0.4-SNAPSHOT.jar
+Files       : java-xmlbuilder/java-xmlbuilder-0.4.jar
 
 
 Name        : Bouncy Castle Crypto APIs
