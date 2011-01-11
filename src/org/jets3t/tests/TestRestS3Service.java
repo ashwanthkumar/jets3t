@@ -46,6 +46,9 @@ import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
+import org.jets3t.service.multi.StorageServiceEventAdaptor;
+import org.jets3t.service.multi.s3.MultipartUploadsEvent;
+import org.jets3t.service.multi.s3.ThreadedS3Service;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.RestUtils;
@@ -238,6 +241,12 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
         String bucketName = bucket.getName();
 
         try {
+            // Create 5MB of test data
+            byte[] testData = new byte[5 * 1024 * 1024];
+            for (int offset = 0; offset < testData.length; offset++) {
+                testData[offset] = (byte) (offset % 256);
+            }
+
             // Define name and String metadata values for multipart upload object
             String objectKey = "multipart-object.txt";
             Map<String, Object> metadata = new HashMap<String, Object>();
@@ -283,12 +292,6 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
 
             int partNumber = 0;
 
-            // Create 5MB of test data
-            byte[] testData = new byte[5 * 1024 * 1024];
-            for (int offset = 0; offset < testData.length; offset++) {
-                testData[offset] = (byte) (offset % 256);
-            }
-
             // Upload a first part, must be 5MB+
             S3Object partObject = new S3Object(
                 testMultipartUpload.getObjectKey(), testData);
@@ -317,9 +320,9 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
             assertEquals(listedParts.size(), 2);
             assertEquals(listedParts.get(1).getSize().longValue(), partObject.getContentLength());
 
-            // Complete multipart upload using part listing.
+            // Complete multipart upload.
             MultipartCompleted multipartCompleted = service.multipartCompleteUpload(
-                testMultipartUpload, listedParts);
+                testMultipartUpload);
             assertEquals(multipartCompleted.getBucketName(), testMultipartUpload.getBucketName());
             assertEquals(multipartCompleted.getObjectKey(), testMultipartUpload.getObjectKey());
 
@@ -332,6 +335,37 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
             assertEquals(
                 metadata.get("test-timestamp-value").toString(),
                 completedObject.getMetadata("test-timestamp-value").toString());
+
+            /*
+             *  Perform a threaded multipart upload
+             */
+            String objectKeyForThreaded = "threaded-multipart-object.txt";
+            Map<String, Object> metadataForThreaded = new HashMap<String, Object>();
+
+            // Start threaded upload using normal service.
+            MultipartUpload threadedMultipartUpload =
+                service.multipartStartUpload(bucketName, objectKeyForThreaded, metadataForThreaded);
+
+            // Prepare objects for upload (2 * 5MB, and 1 * 1 byte)
+            S3Object[] objectsForThreadedUpload = new S3Object[] {
+                new S3Object(threadedMultipartUpload.getObjectKey(), testData),
+                new S3Object(threadedMultipartUpload.getObjectKey(), testData),
+                new S3Object(threadedMultipartUpload.getObjectKey(), new byte[] {testData[0]}),
+            };
+
+            // Create threaded service and perform upload in multiple threads
+            ThreadedS3Service threadedS3Service = new ThreadedS3Service(service,
+                new StorageServiceEventAdaptor());
+            threadedS3Service.multipartUploads(threadedMultipartUpload, objectsForThreadedUpload);
+
+            // Complete threaded multipart upload using part listing and normal service.
+            MultipartCompleted threadedMultipartCompleted = service.multipartCompleteUpload(
+                threadedMultipartUpload);
+
+            // Confirm completed object exists and has expected size
+            S3Object finalObjectForThreaded = (S3Object) service.getObjectDetails(
+                bucketName, threadedMultipartUpload.getObjectKey());
+            assertEquals(testData.length * 2 + 1, finalObjectForThreaded.getContentLength());
         } finally {
             cleanupBucketForTest("testMultipartUploads");
         }

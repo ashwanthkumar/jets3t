@@ -29,6 +29,7 @@ import org.jets3t.service.multi.event.GetObjectsEvent;
 import org.jets3t.service.multi.event.ListObjectsEvent;
 import org.jets3t.service.multi.event.LookupACLEvent;
 import org.jets3t.service.multi.event.UpdateACLEvent;
+import org.jets3t.service.multi.s3.MultipartUploadsEvent;
 
 /**
  * Listener for events produced by {@link ThreadedStorageService}.
@@ -56,5 +57,7 @@ public interface StorageServiceEventListener {
     public void event(UpdateACLEvent event);
 
     public void event(DownloadObjectsEvent event);
+
+    public void event(MultipartUploadsEvent event);
 
 }

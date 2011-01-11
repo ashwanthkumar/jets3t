@@ -29,6 +29,7 @@ import org.jets3t.service.multi.event.ListObjectsEvent;
 import org.jets3t.service.multi.event.LookupACLEvent;
 import org.jets3t.service.multi.event.ServiceEvent;
 import org.jets3t.service.multi.event.UpdateACLEvent;
+import org.jets3t.service.multi.s3.MultipartUploadsEvent;
 
 
 /**
@@ -88,6 +89,10 @@ public class StorageServiceEventAdaptor implements StorageServiceEventListener {
     }
 
     public void event(DownloadObjectsEvent event) {
+        storeThrowable(event);
+    }
+
+    public void event(MultipartUploadsEvent event) {
         storeThrowable(event);
     }
 

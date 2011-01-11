@@ -54,6 +54,7 @@ import org.jets3t.service.multi.event.ListObjectsEvent;
 import org.jets3t.service.multi.event.LookupACLEvent;
 import org.jets3t.service.multi.event.ServiceEvent;
 import org.jets3t.service.multi.event.UpdateACLEvent;
+import org.jets3t.service.multi.s3.MultipartUploadsEvent;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.ServiceUtils;
 
@@ -83,12 +84,12 @@ public class ThreadedStorageService {
 
     private static final Log log = LogFactory.getLog(ThreadedStorageService.class);
 
-    private StorageService storageService = null;
-    private final boolean[] isShutdown = new boolean[] { false };
+    protected StorageService storageService = null;
+    protected final boolean[] isShutdown = new boolean[] { false };
 
-    private final List<StorageServiceEventListener> serviceEventListeners =
+    protected final List<StorageServiceEventListener> serviceEventListeners =
         new ArrayList<StorageServiceEventListener>();
-    private final long sleepTime;
+    protected final long sleepTime;
 
     /**
      * Construct a multi-threaded service based on a StorageService and which sends event notifications
@@ -211,7 +212,7 @@ public class ThreadedStorageService {
     protected void fireServiceEvent(ServiceEvent event) {
         if (serviceEventListeners.size() == 0) {
             if (log.isWarnEnabled()) {
-                log.warn("StorageServiceMulti invoked without any StorageServiceEventListener objects, this is dangerous!");
+                log.warn("ThreadedStorageService invoked without any StorageServiceEventListener objects, this is dangerous!");
             }
         }
         for (StorageServiceEventListener listener: this.serviceEventListeners) {
@@ -235,7 +236,12 @@ public class ThreadedStorageService {
                 listener.event((UpdateACLEvent) event);
             } else if (event instanceof DownloadObjectsEvent) {
                 listener.event((DownloadObjectsEvent) event);
-            } else {
+            // Supported by AWS S3 only
+            } else if (event instanceof MultipartUploadsEvent) {
+                listener.event((MultipartUploadsEvent) event);
+            }
+
+            else {
                 throw new IllegalArgumentException("Listener not invoked for event class: " + event.getClass());
             }
         }
@@ -1082,7 +1088,7 @@ public class ThreadedStorageService {
      * methods used to retrieve the result object from a completed thread (via {@link #getResult()}
      * or force a thread to be interrupted (via {@link #forceInterrupt}.
      */
-    private abstract class AbstractRunnable implements Runnable {
+    protected abstract class AbstractRunnable implements Runnable {
 
         public abstract Object getResult();
 
@@ -1603,7 +1609,7 @@ public class ThreadedStorageService {
      * cancelled or an error occurs - all the while firing the appropriate {@link ServiceEvent} event
      * notifications.
      */
-    private abstract class ThreadGroupManager {
+    protected abstract class ThreadGroupManager {
         private final Log log = LogFactory.getLog(ThreadGroupManager.class);
         private int maxThreadCount = 1;
 

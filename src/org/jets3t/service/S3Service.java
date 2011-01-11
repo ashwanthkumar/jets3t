@@ -3132,6 +3132,21 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
             upload.getObjectKey(), parts);
     }
 
+    /**
+     * Convenience method to complete a multipart upload -- automatically find the
+     * multipart upload's component parts.
+     *
+     * @param upload
+     * @return
+     * @throws S3ServiceException
+     */
+    public MultipartCompleted multipartCompleteUpload(MultipartUpload upload) throws S3ServiceException
+    {
+        List<MultipartPart> parts = multipartListParts(upload);
+        return multipartCompleteUploadImpl(upload.getUploadId(), upload.getBucketName(),
+            upload.getObjectKey(), parts);
+    }
+
     public MultipartPart multipartUploadPart(String uploadId, String bucketName,
         Integer partNumber, S3Object object) throws S3ServiceException
     {

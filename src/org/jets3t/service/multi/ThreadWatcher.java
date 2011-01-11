@@ -51,12 +51,12 @@ public class ThreadWatcher {
     private CancelEventTrigger cancelEventListener = null;
     private BytesProgressWatcher[] progressWatchers = null;
 
-    protected ThreadWatcher(BytesProgressWatcher[] progressWatchers) {
+    public ThreadWatcher(BytesProgressWatcher[] progressWatchers) {
         this.progressWatchers = progressWatchers;
         this.threadCount = this.progressWatchers.length;
     }
 
-    protected ThreadWatcher(long threadCount) {
+    public ThreadWatcher(long threadCount) {
         this.threadCount = threadCount;
     }
 

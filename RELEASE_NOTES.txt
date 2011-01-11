@@ -14,6 +14,11 @@ TOOLKIT
 
 - Added support for Multipart Uploads.
 
+  * ThreadedS3Service
+
+- Added threaded service subclass of ThreadedStorageService for
+  features specific to Amazon's S3, namely multipart upload.
+
   * CloudFront Service
 
 - Added support for custom (non-S3) distribution origins (API 2010-11-01).
