@@ -14,8 +14,6 @@ TOOLKIT
   remote service. Also affected JetS3t's Synchronize and Cockpit apps.
   See https://bitbucket.org/jmurty/jets3t/issue/69
 
- (as used by JetS3t app Synchronize and Cockpit)
-
   * S3Service
 
 - Added support for Multipart Uploads.
@@ -33,11 +31,6 @@ COCKPIT
 
 - Fixed nasty bug that prevented directories from being included when 
   uploading files.
-
-SYNCHRONIZE
-
-
- 
 
 
 -------------
