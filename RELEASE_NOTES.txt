@@ -9,6 +9,12 @@ TOOLKIT
 - StorageObject and its subclasses (e.g. S3Object) now include a
   convenience constructor that accepts byte array data.
 - Fixed incorrect file path for XMLBuilder library in shell scripts.
+- Fixed issue in FileComparer utility that prevented locally-deleted
+  files within directories from being noticed and removed from the
+  remove service. Also affected JetS3t's Synchronize and Cockpit apps.
+  See https://bitbucket.org/jmurty/jets3t/issue/69
+
+ (as used by JetS3t app Synchronize and Cockpit)
 
   * S3Service
 
@@ -27,6 +33,11 @@ COCKPIT
 
 - Fixed nasty bug that prevented directories from being included when 
   uploading files.
+
+SYNCHRONIZE
+
+
+ 
 
 
 -------------

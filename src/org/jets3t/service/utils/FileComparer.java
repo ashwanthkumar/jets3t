@@ -882,19 +882,30 @@ public class FileComparer {
             String keyPath = entry.getKey();
             StorageObject storageObject = entry.getValue();
 
-            for (String localPath: splitFilePathIntoDirPaths(keyPath, storageObject.isDirectoryPlaceholder()))
-            {
+            String[] splitPathComponents = splitFilePathIntoDirPaths(
+                keyPath, storageObject.isDirectoryPlaceholder());
+
+            int componentCount = 0;
+            for (String localPath: splitPathComponents) {
+                componentCount += 1;
+
                 // Check whether local file is already on server
                 if (filesMap.containsKey(localPath)) {
                     // File has been backed up in the past, is it still up-to-date?
                     File file = filesMap.get(localPath);
 
+                    // We don't care about directory date changes, as long as it's present.
                     if (file.isDirectory()) {
-                        // We don't care about directory date changes, as long as it's present.
-                        alreadySynchronisedKeys.add(keyPath);
-                        alreadySynchronisedLocalPaths.add(localPath);
-                    } else {
-                        // Compare file hashes.
+                        // Only flag key path as already synced if the current localPath
+                        // is also equivalent to the *full* path of the object in the storage
+                        // service, not just an object's parent directory. (Issue #69)
+                        if (componentCount == splitPathComponents.length) {
+                            alreadySynchronisedKeys.add(keyPath);
+                            alreadySynchronisedLocalPaths.add(localPath);
+                        }
+                    }
+                    // Compare file hashes.
+                    else {
                         byte[] computedHash = null;
 
                         // Check whether a pre-computed MD5 hash file is available
@@ -1044,9 +1055,9 @@ public class FileComparer {
             onlyOnClientKeys, alreadySynchronisedKeys, alreadySynchronisedLocalPaths);
     }
 
-    private Set<String> splitFilePathIntoDirPaths(String path, boolean isDirectoryPlaceholder) {
-        Set<String> dirPathsSet = new HashSet<String>();
+    private String[] splitFilePathIntoDirPaths(String path, boolean isDirectoryPlaceholder) {
         String[] pathComponents = path.split(Constants.FILE_PATH_DELIM);
+        String[] dirPathsInOrder = new String[pathComponents.length];
         String myPath = "";
         for (int i = 0; i < pathComponents.length; i++) {
             String pathComponent = pathComponents[i];
@@ -1054,9 +1065,9 @@ public class FileComparer {
             if (i < pathComponents.length - 1 || isDirectoryPlaceholder) {
                 myPath += Constants.FILE_PATH_DELIM;
             }
-            dirPathsSet.add(myPath);
+            dirPathsInOrder[i] = myPath;
         }
-        return dirPathsSet;
+        return dirPathsInOrder;
     }
 
     public class PartialObjectListing {
