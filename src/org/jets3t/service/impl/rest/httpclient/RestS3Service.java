@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +44,7 @@ import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.VersionOrDeleteMarkersChunk;
+import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.CompleteMultipartUploadResultHandler;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListMultipartPartsResultHandler;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListMultipartUploadsResultHandler;
@@ -784,10 +784,17 @@ public class RestS3Service extends S3Service {
 
     @Override
     protected MultipartUpload multipartStartUploadImpl(String bucketName, String objectKey,
-        Map<String, Object> metadata) throws S3ServiceException
+        Map<String, Object> metadata, AccessControlList acl, String storageClass)
+        throws S3ServiceException
     {
         Map<String, String> requestParameters = new HashMap<String, String>();
         requestParameters.put("uploads", "");
+
+        if (metadata == null) {
+            metadata = new HashMap<String, Object>();
+        }
+        // Apply per-object or default storage class when uploading object
+        prepareStorageClass(metadata, storageClass, objectKey);
 
         try {
             HttpMethodBase postMethod = performRestPost(
@@ -917,17 +924,21 @@ public class RestS3Service extends S3Service {
     }
 
     @Override
-    protected List<MultipartUpload> multipartListUploadsImpl(String bucketName)
+    protected List<MultipartUpload> multipartListUploadsImpl(String bucketName,
+        String nextKeyMarker, String nextUploadIdMarker, Integer maxUploads)
         throws S3ServiceException
     {
+        if (bucketName == null || bucketName.length()==0) {
+            throw new IllegalArgumentException(
+                "The bucket name parameter must be specified when listing multipart uploads");
+        }
         Map<String, String> requestParameters = new HashMap<String, String>();
         requestParameters.put("uploads", "");
-        requestParameters.put("max-uploads","1000");
+        requestParameters.put("max-uploads",
+            (maxUploads == null ? "1000" : maxUploads.toString()));
 
         try {
             List<MultipartUpload> uploads = new ArrayList<MultipartUpload>();
-            String nextKeyMarker = null;
-            String nextUploadIdMarker = null;
             boolean incompleteListing = true;
             do {
                 if (nextKeyMarker != null) {
@@ -941,7 +952,8 @@ public class RestS3Service extends S3Service {
                     requestParameters.remove("upload-id-marker");
                 }
 
-                HttpMethodBase getMethod = performRestGet(bucketName, null, requestParameters, null);
+                HttpMethodBase getMethod = performRestGet(
+                    bucketName, null, requestParameters, null);
                 ListMultipartUploadsResultHandler handler = getXmlResponseSaxParser()
                     .parseListMultipartUploadsResult(
                         new HttpMethodReleaseInputStream(getMethod));

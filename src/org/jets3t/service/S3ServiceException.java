@@ -60,7 +60,7 @@ public class S3ServiceException extends ServiceException {
      * @param se
      */
     public S3ServiceException(ServiceException se) {
-        this(se.getMessage(), se.getXmlMessage());
+        super(se.getMessage(), se.getXmlMessage(), se.getCause());
 
         this.setResponseHeaders(se.getResponseHeaders());
         this.setResponseCode(se.getResponseCode());

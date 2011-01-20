@@ -59,7 +59,11 @@ public class ServiceException extends Exception {
      * @param xmlMessage
      */
     public ServiceException(String message, String xmlMessage) {
-        super(message);
+        this(message, xmlMessage, null);
+    }
+
+    public ServiceException(String message, String xmlMessage, Throwable cause) {
+        super(message, cause);
         if (xmlMessage != null) {
             parseXmlMessage(xmlMessage);
         }

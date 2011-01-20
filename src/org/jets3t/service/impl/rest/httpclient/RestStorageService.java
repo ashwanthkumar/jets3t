@@ -546,7 +546,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                 serviceException = (ServiceException) t;
             } else {
                 MxDelegate.getInstance().registerS3ServiceExceptionEvent();
-                serviceException = new ServiceException("Request Error.", t);
+                serviceException = new ServiceException("Request Error: " + t, t);
             }
 
             // Add S3 request and host IDs from HTTP headers to exception, if they are available
@@ -1656,27 +1656,8 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         }
 
         // Apply per-object or default storage class when uploading object
-        if (getEnableStorageClasses()) {
-            if (storageClass == null && this.defaultStorageClass != null) {
-                // Apply default storage class
-                storageClass = this.defaultStorageClass;
-                log.debug("Applied default storage class '" + storageClass
-                    + "' to object '" + objectKey + "'");
-            }
-            if (storageClass != null) {
-                metadata.put(this.getRestHeaderPrefix() + "storage-class", storageClass);
-            }
-        }
-
-        boolean putNonStandardAcl = false;
-        if (acl != null) {
-            String restHeaderAclValue = acl.getValueForRESTHeaderACL();
-            if (restHeaderAclValue != null) {
-                metadata.put(this.getRestHeaderPrefix() + "acl", restHeaderAclValue);
-            } else {
-                putNonStandardAcl = true;
-            }
-        }
+        prepareStorageClass(metadata, storageClass, objectKey);
+        boolean isExtraAclPutRequired = !prepareCannedAcl(metadata, acl);
 
         if (log.isDebugEnabled()) {
             log.debug("Creating object bucketName=" + bucketName +
@@ -1702,7 +1683,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         map = ServiceUtils.cleanRestMetadataMap(
             map, this.getRestHeaderPrefix(), this.getRestMetadataPrefix());
 
-        if (putNonStandardAcl) {
+        if (isExtraAclPutRequired) {
             if (log.isDebugEnabled()) {
                 log.debug("Creating object with a non-canned ACL using REST, so an extra ACL Put is required");
             }
@@ -1710,6 +1691,49 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         }
 
         return map;
+    }
+
+    /**
+     * Prepares the metadata with a canned representation of the given ACL, if
+     * an ACL is provided and can be represented with a HTTP header.
+     *
+     * @param metadata
+     * @param acl
+     * @return
+     * false if an ACL was provided but it could not be applied as a canned ACL.
+     */
+    protected boolean prepareCannedAcl(Map<String, Object> metadata, AccessControlList acl) {
+        if (acl != null) {
+            if (metadata == null) {
+                throw new IllegalArgumentException("Null metadata not allowed.");
+            }
+            String restHeaderAclValue = acl.getValueForRESTHeaderACL();
+            if (restHeaderAclValue != null) {
+                metadata.put(this.getRestHeaderPrefix() + "acl", restHeaderAclValue);
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    protected void prepareStorageClass(Map<String, Object> metadata, String storageClass,
+        String objectKey)
+    {
+        if (getEnableStorageClasses()) {
+            if (metadata == null) {
+                throw new IllegalArgumentException("Null metadata not allowed.");
+            }
+            if (storageClass == null && this.defaultStorageClass != null) {
+                // Apply default storage class
+                storageClass = this.defaultStorageClass;
+                log.debug("Applied default storage class '" + storageClass
+                    + "' to object '" + objectKey + "'");
+            }
+            if (storageClass != null) {
+                metadata.put(this.getRestHeaderPrefix() + "storage-class", storageClass);
+            }
+        }
     }
 
     @Override
@@ -1735,9 +1759,8 @@ public abstract class RestStorageService extends StorageService implements AWSRe
 
         metadata.put(this.getRestHeaderPrefix() + "copy-source", sourceKey);
 
-        boolean enableStorageClasses = getEnableStorageClasses();
-        if (enableStorageClasses && destinationObjectStorageClass != null) {
-            metadata.put(this.getRestHeaderPrefix() + "storage-class", destinationObjectStorageClass);
+        if (destinationObjectStorageClass != null) {
+            prepareStorageClass(metadata, destinationObjectStorageClass, destinationObjectKey);
         }
 
         if (destinationMetadata != null) {
@@ -1752,15 +1775,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             metadata.put(this.getRestHeaderPrefix() + "metadata-directive", "COPY");
         }
 
-        boolean putNonStandardAcl = false;
-        if (acl != null) {
-            String restHeaderAclValue = acl.getValueForRESTHeaderACL();
-            if (restHeaderAclValue != null) {
-                metadata.put(this.getRestHeaderPrefix() + "acl", restHeaderAclValue);
-            } else {
-                putNonStandardAcl = true;
-            }
-        }
+        boolean isExtraAclPutRequired = !prepareCannedAcl(metadata, acl);
 
         if (ifModifiedSince != null) {
             metadata.put(this.getRestHeaderPrefix() + "copy-source-if-modified-since",
@@ -1821,7 +1836,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         map = ServiceUtils.cleanRestMetadataMap(
             map, this.getRestHeaderPrefix(), this.getRestMetadataPrefix());
 
-        if (putNonStandardAcl) {
+        if (isExtraAclPutRequired) {
             if (log.isDebugEnabled()) {
                 log.debug("Creating object with a non-canned ACL using REST, so an extra ACL Put is required");
             }

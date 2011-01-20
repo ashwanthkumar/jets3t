@@ -3086,7 +3086,14 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public MultipartUpload multipartStartUpload(String bucketName, String objectKey,
         Map<String, Object> metadata) throws S3ServiceException
     {
-        return multipartStartUploadImpl(bucketName, objectKey, metadata);
+        return multipartStartUpload(bucketName, objectKey, metadata, null, null);
+    }
+
+    public MultipartUpload multipartStartUpload(String bucketName, String objectKey,
+        Map<String, Object> metadata, AccessControlList acl, String storageClass)
+        throws S3ServiceException
+    {
+        return multipartStartUploadImpl(bucketName, objectKey, metadata, acl, storageClass);
     }
 
     public void multipartAbortUpload(MultipartUpload upload) throws S3ServiceException
@@ -3103,7 +3110,15 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public List<MultipartUpload> multipartListUploads(String bucketName)
         throws S3ServiceException
     {
-        return multipartListUploadsImpl(bucketName);
+        return multipartListUploads(bucketName, null, null, null);
+    }
+
+    public List<MultipartUpload> multipartListUploads(String bucketName,
+        String nextKeyMarker, String nextUploadIdMarker, Integer maxUploads)
+        throws S3ServiceException
+    {
+        return multipartListUploadsImpl(
+            bucketName, nextKeyMarker, nextUploadIdMarker, maxUploads);
     }
 
     public List<MultipartPart> multipartListParts(MultipartUpload upload)
@@ -3222,13 +3237,14 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     protected abstract S3BucketVersioningStatus getBucketVersioningStatusImpl(
         String bucketName) throws S3ServiceException;
 
-    protected abstract MultipartUpload multipartStartUploadImpl(String bucketName,
-        String objectKey, Map<String, Object> metadata) throws S3ServiceException;
+    protected abstract MultipartUpload multipartStartUploadImpl(String bucketName, String objectKey,
+        Map<String, Object> metadata, AccessControlList acl, String storageClass) throws S3ServiceException;
 
     protected abstract void multipartAbortUploadImpl(String uploadId, String bucketName,
         String objectKey) throws S3ServiceException;
 
-    protected abstract List<MultipartUpload> multipartListUploadsImpl(String bucketName)
+    protected abstract List<MultipartUpload> multipartListUploadsImpl(String bucketName,
+        String nextKeyMarker, String nextUploadIdMarker, Integer maxUploads)
         throws S3ServiceException;
 
     protected abstract List<MultipartPart> multipartListPartsImpl(String uploadId,

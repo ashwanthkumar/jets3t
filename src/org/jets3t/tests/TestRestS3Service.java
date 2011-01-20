@@ -279,13 +279,28 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
             }
             assertTrue("Expected to find the new upload in listing", foundNewUpload);
 
-            // Delete an incomplete multipart upload
-            service.multipartAbortUpload(testMultipartUpload);
+            // Start a second multipart upload
+            MultipartUpload testMultipartUpload2 =
+                service.multipartStartUpload(bucketName, objectKey + "2", metadata);
 
-            // Ensure the first multipart upload has been deleted
+            // List multipart uploads with markers -- Find second upload only
+            uploads = service.multipartListUploads(bucketName,
+                "multipart-object.txt",
+                testMultipartUpload.getUploadId(),
+                10);
+            assertEquals(1, uploads.size());
+            assertEquals(objectKey + "2", uploads.get(0).getObjectKey());
+
+            // Delete incomplete multipart uploads
+            service.multipartAbortUpload(testMultipartUpload);
+            service.multipartAbortUpload(testMultipartUpload2);
+
+            // Ensure the incomplete multipart uploads hav been deleted
             uploads = service.multipartListUploads(bucketName);
             for (MultipartUpload upload: uploads) {
-                if (upload.getUploadId().equals(testMultipartUpload.getUploadId())) {
+                if (upload.getUploadId().equals(testMultipartUpload.getUploadId())
+                    || upload.getUploadId().equals(testMultipartUpload2.getUploadId()))
+                {
                     fail("Expected multipart upload " + upload.getUploadId()
                         + " to be deleted");
                 }
