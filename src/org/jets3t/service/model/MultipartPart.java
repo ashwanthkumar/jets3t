@@ -18,6 +18,7 @@
  */
 package org.jets3t.service.model;
 
+import java.util.Comparator;
 import java.util.Date;
 
 
@@ -34,10 +35,38 @@ public class MultipartPart {
 
     public MultipartPart(Integer partNumber, Date lastModified, String etag, Long size)
     {
+        if (partNumber == null) {
+            throw new IllegalArgumentException("Null part number not allowed.");
+        }
+        if (lastModified == null) {
+            throw new IllegalArgumentException("Null last modified not allowed.");
+        }
+        if (etag == null) {
+            throw new IllegalArgumentException("Null etag not allowed.");
+        }
+        if (size == null) {
+            throw new IllegalArgumentException("Null size not allowed.");
+        }
         this.partNumber = partNumber;
         this.lastModified = lastModified;
-        this.etag = etag;
         this.size = size;
+        // Strip quote characters from etag value
+        this.etag = etag.replaceAll("\"", "");
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (other == this) {
+            return true;
+        }
+        if (other instanceof MultipartPart) {
+            MultipartPart p = (MultipartPart) other;
+            return this.partNumber.equals(p.partNumber)
+                && this.lastModified.equals(p.lastModified)
+                && this.size.equals(p.size)
+                && this.etag.equals(p.etag);
+        }
+        return false;
     }
 
     @Override
@@ -64,6 +93,16 @@ public class MultipartPart {
 
     public Date getLastModified() {
         return lastModified;
+    }
+
+    public static class PartNumberComparator implements Comparator<MultipartPart> {
+        public int compare(MultipartPart o1, MultipartPart o2) {
+            if (o1 == o2) {
+                return 0;
+            } else {
+                return o1.getPartNumber().compareTo(o2.getPartNumber());
+            }
+        }
     }
 
 }

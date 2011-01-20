@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -878,37 +879,34 @@ public class RestS3Service extends S3Service {
         Map<String, String> requestParameters = new HashMap<String, String>();
         requestParameters.put("uploadId", uploadId);
 
+        // Ensure part list is sorted by part number
+        MultipartPart[] sortedParts = parts.toArray(new MultipartPart[parts.size()]);
+        Arrays.sort(sortedParts, new MultipartPart.PartNumberComparator());
         try {
-            // Calculate the combined content length of all parts
-            long contentLength = 0;
-
             XMLBuilder builder = XMLBuilder
                 .create("CompleteMultipartUpload").a("xmlns", Constants.XML_NAMESPACE);
-            for (MultipartPart part: parts) {
+            for (MultipartPart part: sortedParts) {
                 builder.e("Part")
                     .e("PartNumber").t("" + part.getPartNumber()).up()
                     .e("ETag").t(part.getEtag());
-
-                contentLength += parts.size();
             }
 
-            try {
-                HttpMethodBase postMethod = performRestPostWithXmlBuilder(
-                    bucketName, objectKey, null, requestParameters, builder);
-                CompleteMultipartUploadResultHandler handler = getXmlResponseSaxParser()
-                    .parseCompleteMultipartUploadResult(
-                        new HttpMethodReleaseInputStream(postMethod));
-                // Check whether completion actually suceeded
-                if (handler.getServiceException() != null) {
-                    ServiceException e = handler.getServiceException();
-                    e.setResponseHeaders(RestUtils.convertHeadersToMap(
-                        postMethod.getResponseHeaders()));
-                    throw e;
-                }
-                return handler.getMultipartCompleted();
-            } catch (ServiceException se) {
-                throw new S3ServiceException(se);
+            HttpMethodBase postMethod = performRestPostWithXmlBuilder(
+                bucketName, objectKey, null, requestParameters, builder);
+            CompleteMultipartUploadResultHandler handler = getXmlResponseSaxParser()
+                .parseCompleteMultipartUploadResult(
+                    new HttpMethodReleaseInputStream(postMethod));
+
+            // Check whether completion actually succeeded
+            if (handler.getServiceException() != null) {
+                ServiceException e = handler.getServiceException();
+                e.setResponseHeaders(RestUtils.convertHeadersToMap(
+                    postMethod.getResponseHeaders()));
+                throw e;
             }
+            return handler.getMultipartCompleted();
+        } catch (S3ServiceException se) {
+            throw se;
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         } catch (ParserConfigurationException e) {

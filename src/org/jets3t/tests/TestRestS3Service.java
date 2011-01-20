@@ -24,6 +24,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -47,7 +48,6 @@ import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.multi.StorageServiceEventAdaptor;
-import org.jets3t.service.multi.s3.MultipartUploadsEvent;
 import org.jets3t.service.multi.s3.ThreadedS3Service;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.ProviderCredentials;
@@ -241,6 +241,11 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
         String bucketName = bucket.getName();
 
         try {
+            // Check stripping of double-quote characters from etag
+            MultipartPart testEtagSanitized = new MultipartPart(
+                1, new Date(), "\"fakeEtagWithDoubleQuotes\"", 0l);
+            assertEquals("fakeEtagWithDoubleQuotes", testEtagSanitized.getEtag());
+
             // Create 5MB of test data
             byte[] testData = new byte[5 * 1024 * 1024];
             for (int offset = 0; offset < testData.length; offset++) {
@@ -320,9 +325,12 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
             assertEquals(listedParts.size(), 2);
             assertEquals(listedParts.get(1).getSize().longValue(), partObject.getContentLength());
 
-            // Complete multipart upload.
+            // Reverse order of parts to ensure multipartCompleteUpload corrects the problem
+            Collections.reverse(listedParts);
+
+            // Complete multipart upload, despite badly ordered parts.
             MultipartCompleted multipartCompleted = service.multipartCompleteUpload(
-                testMultipartUpload);
+                testMultipartUpload, listedParts);
             assertEquals(multipartCompleted.getBucketName(), testMultipartUpload.getBucketName());
             assertEquals(multipartCompleted.getObjectKey(), testMultipartUpload.getObjectKey());
 
@@ -358,7 +366,7 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
                 new StorageServiceEventAdaptor());
             threadedS3Service.multipartUploads(threadedMultipartUpload, objectsForThreadedUpload);
 
-            // Complete threaded multipart upload using part listing and normal service.
+            // Complete threaded multipart upload using automatic part listing and normal service.
             MultipartCompleted threadedMultipartCompleted = service.multipartCompleteUpload(
                 threadedMultipartUpload);
 

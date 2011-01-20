@@ -32,6 +32,10 @@ COCKPIT
 - Fixed nasty bug that prevented directories from being included when 
   uploading files.
 
+KUDOS TO:
+
+- gillouxg on BitBucket for patches for Multipart functionality.
+
 
 -------------
 Version 0.8.0

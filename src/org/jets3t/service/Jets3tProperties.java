@@ -126,6 +126,10 @@ public class Jets3tProperties implements Serializable {
                     log.error("Failed to load properties from resource in classpath: "
                         + propertiesFileName, e);
                 }
+            } finally {
+                try {
+                    cpIS.close();
+                } catch (Exception ignored) {}
             }
         }
         return jets3tProperties;
