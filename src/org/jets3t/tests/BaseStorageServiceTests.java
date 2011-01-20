@@ -27,7 +27,9 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -1129,6 +1131,11 @@ public abstract class BaseStorageServiceTests extends TestCase {
             // Retrieve details for multiple objects
             StorageObject[] headObjects = simpleThreadedService.getObjectsHeads(bucketName, objects);
             assertEquals(objects.length, headObjects.length);
+            Arrays.sort(headObjects, new Comparator<StorageObject>() {
+                public int compare(StorageObject o1, StorageObject o2) {
+                    return o1.getKey().compareTo(o2.getKey());
+                }
+            });
             for (int i = 0; i < objects.length; i++) {
                 assertEquals(objects[i].getKey(), headObjects[i].getKey());
                 assertEquals("Some data".length(), headObjects[i].getContentLength());
