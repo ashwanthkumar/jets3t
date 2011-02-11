@@ -54,7 +54,6 @@ import org.jets3t.service.multi.event.ListObjectsEvent;
 import org.jets3t.service.multi.event.LookupACLEvent;
 import org.jets3t.service.multi.event.ServiceEvent;
 import org.jets3t.service.multi.event.UpdateACLEvent;
-import org.jets3t.service.multi.s3.MultipartUploadsEvent;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.ServiceUtils;
 
@@ -81,7 +80,6 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author James Murty
  */
 public class ThreadedStorageService {
-
     private static final Log log = LogFactory.getLog(ThreadedStorageService.class);
 
     protected StorageService storageService = null;
@@ -236,11 +234,7 @@ public class ThreadedStorageService {
                 listener.event((UpdateACLEvent) event);
             } else if (event instanceof DownloadObjectsEvent) {
                 listener.event((DownloadObjectsEvent) event);
-            // Supported by AWS S3 only
-            } else if (event instanceof MultipartUploadsEvent) {
-                listener.event((MultipartUploadsEvent) event);
             }
-
             else {
                 throw new IllegalArgumentException("Listener not invoked for event class: " + event.getClass());
             }

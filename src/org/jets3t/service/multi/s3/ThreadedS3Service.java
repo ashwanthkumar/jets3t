@@ -4,26 +4,47 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.io.InterruptableInputStream;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.io.TempFile;
-import org.jets3t.service.model.MultipartPart;
 import org.jets3t.service.model.MultipartUpload;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.multi.StorageServiceEventListener;
 import org.jets3t.service.multi.ThreadWatcher;
 import org.jets3t.service.multi.ThreadedStorageService;
+import org.jets3t.service.multi.event.ServiceEvent;
 
 public class ThreadedS3Service extends ThreadedStorageService {
+    private static final Log log = LogFactory.getLog(ThreadedS3Service.class);
 
     public ThreadedS3Service(S3Service service, StorageServiceEventListener listener)
         throws ServiceException
     {
         super(service, listener);
+    }
+
+    @Override
+    protected void fireServiceEvent(ServiceEvent event) {
+        if (serviceEventListeners.size() == 0) {
+            if (log.isWarnEnabled()) {
+                log.warn("ThreadedS3Service invoked without any StorageServiceEventListener objects, this is dangerous!");
+            }
+        }
+        for (StorageServiceEventListener listener: this.serviceEventListeners) {
+            if (event instanceof MultipartUploadsEvent) {
+                if (listener instanceof S3ServiceEventListener) {
+                    ((S3ServiceEventListener)listener).event((MultipartUploadsEvent) event);
+                }
+            } else {
+                super.fireServiceEvent(event);
+            }
+        }
     }
 
     /**
@@ -105,6 +126,13 @@ public class ThreadedS3Service extends ThreadedStorageService {
         }).run();
 
         return success[0];
+    }
+
+    public boolean multipartUploads(final MultipartUpload multipartUpload,
+        final List<S3Object> objectList)
+    {
+        return this.multipartUploads(multipartUpload,
+            objectList.toArray(new S3Object[objectList.size()]));
     }
 
     /**
