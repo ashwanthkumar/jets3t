@@ -472,8 +472,13 @@
         </javadoc>
     </target>
     
-    <target name="junit-tests" depends="compile">
-        <junit fork="true" forkmode="perBatch">
+    <target name="tests" depends="compile">
+    	<!-- Ensure test.properties file is available in current directory -->
+    	<available file="test.properties" property="test.properties.available"/>
+    	<fail message="test.properties file must be available in current directory"
+    	      unless="test.properties.available"/>
+
+        <junit fork="on" forkmode="perBatch" printsummary="on" >
             <formatter type="plain"/>
             <classpath>
                 <path refid="classpath"/>
