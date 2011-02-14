@@ -418,24 +418,18 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             assertEquals(1, uploads.size());
             assertEquals(objectKey + "2", uploads.get(0).getObjectKey());
 
-            // Delete incomplete multipart uploads
-            service.multipartAbortUpload(testMultipartUpload);
+            // Delete incomplete/unwanted multipart upload
             service.multipartAbortUpload(testMultipartUpload2);
 
-            // Ensure the incomplete multipart uploads hav been deleted
+            // Ensure the incomplete multipart upload has been deleted
             uploads = service.multipartListUploads(bucketName);
             for (MultipartUpload upload: uploads) {
-                if (upload.getUploadId().equals(testMultipartUpload.getUploadId())
-                    || upload.getUploadId().equals(testMultipartUpload2.getUploadId()))
+                if (upload.getUploadId().equals(testMultipartUpload2.getUploadId()))
                 {
                     fail("Expected multipart upload " + upload.getUploadId()
                         + " to be deleted");
                 }
             }
-
-            // Start another upload
-            testMultipartUpload =
-                service.multipartStartUpload(bucketName, objectKey, metadata);
 
             int partNumber = 0;
 
