@@ -556,6 +556,37 @@ public class ServiceUtils {
     }
 
     /**
+     * Guess whether the given ETag value is also an MD5 hash of an underlying object
+     * in a storage service, as opposed to being some other kind of opaque hash.
+     * <p>
+     * This test was made necessary by Amazon S3's multipart upload feature, where
+     * the ETag value returned after a re-assembled multipart upload is completed
+     * is no longer the same as an MD5 hash of the assembled data.
+     * <p>
+     * An ETag is considered also an MD5 when:
+     * <ul>
+     * <li>The length is exactly 16 characters (excluding surrounding quote characters)</li>
+     * <li>All characters in the string are hexadecimal values, i.e. [0-9a-f] when lowercased</li>
+     * </ul>
+     * <p>
+     * These rules are drawn from the post by Carl@AWS on Nov 11, 2010 10:40 AM here:
+     * https://forums.aws.amazon.com/thread.jspa?messageID=222158&tstart=0
+     *
+     * @return
+     * true if the ETag value can be assumed to also be an MD5 hash.
+     */
+    public static boolean isEtagAlsoAnMD5Hash(String etag) {
+        if (etag == null || etag.length() != 16) {
+            return false;
+        }
+        String nonHexChars = etag.toLowerCase().replaceAll("[a-f0-9]", "");
+        if (nonHexChars.length() > 0) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Identifies the name of a bucket from a given host name, if available.
      * Returns null if the bucket name cannot be identified, as might happen
      * when a bucket name is represented by the path component of a URL instead

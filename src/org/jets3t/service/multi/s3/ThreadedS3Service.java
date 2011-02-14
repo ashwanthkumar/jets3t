@@ -54,15 +54,21 @@ public class ThreadedS3Service extends ThreadedStorageService {
      * The maximum number of threads is controlled by the JetS3t configuration property
      * <tt>threaded-service.max-admin-thread-count</tt>.
      *
-     * @param bucketName
-     * name of the bucket where objects will be stored
-     * @param objects
-     * the objects to create/upload.
+     * @param multipartUpload
+     * identifies an existing multipart upload to which the parts will be added.
+     * @param partObjects
+     * an ordered list of objects representing the part data to upload.
+     * @param partNumberOffset
+     * an offset (1 or greater) used as the starting-point for part numbers uploaded by
+     * this method, useful if you need to make multiple calls to append parts to a
+     * multipart upload.
      *
      * @return
      * true if all the threaded tasks completed successfully, false otherwise.
      */
-    public boolean multipartUploads(final MultipartUpload multipartUpload, final S3Object[] objects) {
+    public boolean multipartUploadParts(final MultipartUpload multipartUpload,
+        List<S3Object> partObjects, int partNumberOffset)
+    {
         if (!(storageService instanceof S3Service)) {
             throw new IllegalStateException(
                 "Multipart uploads are only available in Amazon S3, " +
@@ -74,14 +80,16 @@ public class ThreadedS3Service extends ThreadedStorageService {
         final boolean[] success = new boolean[] {true};
 
         // Start all queries in the background.
-        MultipartUploadObjectRunnable[] runnables = new MultipartUploadObjectRunnable[objects.length];
-        for (int i = 0; i < runnables.length; i++) {
-            incompletedObjectsList.add(objects[i]);
-            BytesProgressWatcher progressMonitor = new BytesProgressWatcher(objects[i].getContentLength());
-            int partNumber = i + 1;
-            runnables[i] = new MultipartUploadObjectRunnable(
-                multipartUpload, partNumber, objects[i], progressMonitor);
+        int partNumber = partNumberOffset;
+        MultipartUploadObjectRunnable[] runnables = new MultipartUploadObjectRunnable[partObjects.size()];
+        int runnablesOffset = 0;
+        for (S3Object partObject: partObjects) {
+            incompletedObjectsList.add(partObject);
+            BytesProgressWatcher progressMonitor = new BytesProgressWatcher(partObject.getContentLength());
+            runnables[runnablesOffset++] = new MultipartUploadObjectRunnable(
+                multipartUpload, partNumber, partObject, progressMonitor);
             progressWatchers.add(progressMonitor);
+            partNumber++;
         }
 
         // Wait for threads to finish, or be canceled.
@@ -128,11 +136,25 @@ public class ThreadedS3Service extends ThreadedStorageService {
         return success[0];
     }
 
-    public boolean multipartUploads(final MultipartUpload multipartUpload,
-        final List<S3Object> objectList)
+    /**
+     * Uploads multiple objects that will constitute a single final object,
+     * and sends {@link MultipartUploadsEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property
+     * <tt>threaded-service.max-admin-thread-count</tt>.
+     *
+     * @param multipartUpload
+     * identifies an existing multipart upload to which the parts will be added.
+     * @param partObjects
+     * an ordered list of objects representing the part data to upload.
+     *
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
+     */
+    public boolean multipartUploadParts(final MultipartUpload multipartUpload,
+        final List<S3Object> partObjects)
     {
-        return this.multipartUploads(multipartUpload,
-            objectList.toArray(new S3Object[objectList.size()]));
+        return this.multipartUploadParts(multipartUpload, partObjects, 1);
     }
 
     /**

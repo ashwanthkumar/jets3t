@@ -16,7 +16,8 @@ TOOLKIT
 
   * S3Service
 
-- Added support for Multipart Uploads.
+- Added support for the Multipart Uploads feature, including the
+  utility class MultipartUtils to make it easier to use.
 
   * ThreadedS3Service
 

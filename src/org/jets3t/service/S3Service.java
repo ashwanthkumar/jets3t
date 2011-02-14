@@ -3098,13 +3098,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
 
     public void multipartAbortUpload(MultipartUpload upload) throws S3ServiceException
     {
-        multipartAbortUpload(upload.getUploadId(), upload.getBucketName(), upload.getObjectKey());
-    }
-
-    public void multipartAbortUpload(String uploadId, String bucketName,
-        String objectKey) throws S3ServiceException
-    {
-        multipartAbortUploadImpl(uploadId, bucketName, objectKey);
+        multipartAbortUploadImpl(upload.getUploadId(), upload.getBucketName(), upload.getObjectKey());
     }
 
     public List<MultipartUpload> multipartListUploads(String bucketName)
@@ -3124,20 +3118,8 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public List<MultipartPart> multipartListParts(MultipartUpload upload)
         throws S3ServiceException
     {
-        return multipartListParts(upload.getUploadId(),
+        return multipartListPartsImpl(upload.getUploadId(),
             upload.getBucketName(), upload.getObjectKey());
-    }
-
-    public List<MultipartPart> multipartListParts(String uploadId,
-        String bucketName, String objectKey) throws S3ServiceException
-    {
-        return multipartListPartsImpl(uploadId, bucketName, objectKey);
-    }
-
-    public MultipartCompleted multipartCompleteUpload(String uploadId, String bucketName,
-        String objectKey, List<MultipartPart> parts) throws S3ServiceException
-    {
-        return multipartCompleteUploadImpl(uploadId, bucketName, objectKey, parts);
     }
 
     public MultipartCompleted multipartCompleteUpload(MultipartUpload upload,
@@ -3162,17 +3144,17 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
             upload.getObjectKey(), parts);
     }
 
-    public MultipartPart multipartUploadPart(String uploadId, String bucketName,
-        Integer partNumber, S3Object object) throws S3ServiceException
-    {
-        return multipartUploadPartImpl(uploadId, bucketName, partNumber, object);
-    }
-
     public MultipartPart multipartUploadPart(MultipartUpload upload, Integer partNumber,
         S3Object object) throws S3ServiceException
     {
-        return multipartUploadPart(upload.getUploadId(),
-            upload.getBucketName(),  partNumber, object);
+        try {
+            MultipartPart part = multipartUploadPartImpl(upload.getUploadId(),
+                upload.getBucketName(),  partNumber, object);
+            upload.addMultipartPartToUploadedList(part);
+            return part;
+        } catch (S3ServiceException e) {
+            throw e;
+        }
     }
 
     ///////////////////////////////////////////////////////////

@@ -18,7 +18,9 @@
  */
 package org.jets3t.service.model;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 
@@ -37,6 +39,7 @@ public class MultipartUpload {
     private S3Owner initiator;
     private S3Owner owner;
     private Date initiatedDate;
+    private List<MultipartPart> multipartsPartsUploaded = new ArrayList<MultipartPart>();
 
     public MultipartUpload(String uploadId, String bucketName, String objectKey)
     {
@@ -67,6 +70,7 @@ public class MultipartUpload {
             + (initiator != null ? ", initiator=" + getInitiator() : "")
             + (owner != null ? ", owner=" + getOwner() : "")
             + (initiatedDate != null ? ", initiatedDate=" + getInitiatedDate() : "")
+            + ", multipartsPartsUploaded=" + multipartsPartsUploaded
             + "]";
     }
 
@@ -108,6 +112,14 @@ public class MultipartUpload {
 
     public S3Owner getInitiator() {
         return initiator;
+    }
+
+    public void addMultipartPartToUploadedList(MultipartPart part) {
+        this.multipartsPartsUploaded.add(part);
+    }
+
+    public List<MultipartPart> getMultipartPartsUploaded() {
+        return this.multipartsPartsUploaded;
     }
 
 }

@@ -2339,15 +2339,25 @@ public class S3ServiceMulti {
                         byte[] dataMD5Hash = messageDigest.digest();
                         String hexMD5OfDownloadedData = ServiceUtils.toHex(dataMD5Hash);
 
-                        if (!hexMD5OfDownloadedData.equals(object.getETag())) {
-                            throw new S3ServiceException("Mismatch between MD5 hash of downloaded data ("
-                                + hexMD5OfDownloadedData + ") and ETag returned by S3 ("
-                                + object.getETag() + ") for object key: "
-                                + object.getKey());
+                        // Don't check MD5 hash against ETag if ETag doesn't look like an MD5 value
+                        if (!ServiceUtils.isEtagAlsoAnMD5Hash(object.getETag())) {
+                            if (log.isWarnEnabled()) {
+                                log.warn("Unable to verify MD5 hash of downloaded data against"
+                                    + " ETag returned by service because ETag value \""
+                                    + object.getETag() + "\" is not an MD5 hash value"
+                                    + ", for object key: " + object.getKey());
+                            }
                         } else {
-                            if (log.isDebugEnabled()) {
-                                log.debug("Object download was automatically verified, the calculated MD5 hash "+
-                                    "value matched the ETag provided by S3: " + object.getKey());
+                            if (!hexMD5OfDownloadedData.equals(object.getETag())) {
+                                throw new S3ServiceException("Mismatch between MD5 hash of downloaded data ("
+                                    + hexMD5OfDownloadedData + ") and ETag returned by S3 ("
+                                    + object.getETag() + ") for object key: "
+                                    + object.getKey());
+                            } else {
+                                if (log.isDebugEnabled()) {
+                                    log.debug("Object download was automatically verified, the calculated MD5 hash "+
+                                        "value matched the ETag provided by S3: " + object.getKey());
+                                }
                             }
                         }
                     }

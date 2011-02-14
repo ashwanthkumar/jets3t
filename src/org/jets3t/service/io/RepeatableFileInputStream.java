@@ -36,10 +36,10 @@ import org.apache.commons.logging.LogFactory;
 public class RepeatableFileInputStream extends InputStream implements InputStreamWrapper {
     private static final Log log = LogFactory.getLog(RepeatableFileInputStream.class);
 
-    private File file = null;
-    private FileInputStream fis = null;
-    private long bytesReadPastMarkPoint = 0;
-    private long markPoint = 0;
+    protected File file = null;
+    protected FileInputStream fis = null;
+    protected long bytesReadPastMarkPoint = 0;
+    protected long markPoint = 0;
 
     /**
      * Creates a repeatable input stream based on a file.
@@ -55,6 +55,13 @@ public class RepeatableFileInputStream extends InputStream implements InputStrea
         this.file = file;
     }
 
+    @Override
+    public long skip(long toSkip) throws IOException {
+        long skipped = this.fis.skip(toSkip);
+        bytesReadPastMarkPoint += skipped;
+        return skipped;
+    }
+
     /**
      * Resets the input stream to the last mark point, or the beginning of the stream if
      * there is no mark point, by creating a new FileInputStream based on the
@@ -63,6 +70,7 @@ public class RepeatableFileInputStream extends InputStream implements InputStrea
      * @throws UnrecoverableIOException
      * when the FileInputStream cannot be re-created.
      */
+    @Override
     public void reset() throws IOException {
         try {
             this.fis.close();
@@ -71,7 +79,7 @@ public class RepeatableFileInputStream extends InputStream implements InputStrea
             long skipped = 0;
             long toSkip = markPoint;
             while (toSkip > 0) {
-                skipped = this.fis.skip(toSkip);
+                skipped = skip(toSkip);
                 toSkip -= skipped;
             }
 
@@ -84,10 +92,12 @@ public class RepeatableFileInputStream extends InputStream implements InputStrea
         }
     }
 
+    @Override
     public boolean markSupported() {
         return true;
     }
 
+    @Override
     public void mark(int readlimit) {
         this.markPoint += bytesReadPastMarkPoint;
         this.bytesReadPastMarkPoint = 0;
@@ -96,14 +106,17 @@ public class RepeatableFileInputStream extends InputStream implements InputStrea
         }
     }
 
+    @Override
     public int available() throws IOException {
         return fis.available();
     }
 
+    @Override
     public void close() throws IOException {
         fis.close();
     }
 
+    @Override
     public int read() throws IOException {
         int byteRead = fis.read();
         if (byteRead != -1) {
@@ -114,6 +127,7 @@ public class RepeatableFileInputStream extends InputStream implements InputStrea
         }
     }
 
+    @Override
     public int read(byte[] arg0, int arg1, int arg2) throws IOException {
         int count = fis.read(arg0, arg1, arg2);
         bytesReadPastMarkPoint += count;

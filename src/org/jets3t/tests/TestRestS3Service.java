@@ -18,11 +18,15 @@
  */
 package org.jets3t.tests;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
@@ -48,9 +52,11 @@ import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.multi.StorageServiceEventAdaptor;
+import org.jets3t.service.multi.s3.S3ServiceEventAdaptor;
 import org.jets3t.service.multi.s3.ThreadedS3Service;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.ProviderCredentials;
+import org.jets3t.service.utils.MultipartUtils;
 import org.jets3t.service.utils.RestUtils;
 
 /**
@@ -58,10 +64,15 @@ import org.jets3t.service.utils.RestUtils;
  *
  * @author James Murty
  */
-public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
+public class TestRestS3Service extends BaseStorageServiceTests {
 
     public TestRestS3Service() throws Exception {
         super();
+    }
+
+    @Override
+    protected AccessControlList buildAccessControlList() {
+        return new AccessControlList();
     }
 
     @Override
@@ -235,6 +246,122 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
         }
     }
 
+    public void testMultipartUtils() throws Exception {
+        RestS3Service service = (RestS3Service) getStorageService(getCredentials());
+        StorageBucket bucket = createBucketForTest("testMultipartUtils");
+        String bucketName = bucket.getName();
+
+        try {
+            // Ensure constructor enforces sanity constraints
+            try {
+                new MultipartUtils(MultipartUtils.MIN_PART_SIZE - 1);
+                fail("Expected failure creating MultipartUtils with illegally small part size");
+            } catch (IllegalArgumentException e) {}
+
+            try {
+                new MultipartUtils(MultipartUtils.MAX_OBJECT_SIZE + 1);
+                fail("Expected failure creating MultipartUtils with illegally large part size");
+            } catch (IllegalArgumentException e) {}
+
+            // Default part size is maximum possible
+            MultipartUtils multipartUtils = new MultipartUtils();
+            assertEquals("Unexpected default part size",
+                MultipartUtils.MAX_OBJECT_SIZE, multipartUtils.getMaxPartSize());
+
+            // Create a util with the minimum part size, for quicker testing
+            multipartUtils = new MultipartUtils(MultipartUtils.MIN_PART_SIZE);
+            assertEquals("Unexpected default part size",
+                MultipartUtils.MIN_PART_SIZE, multipartUtils.getMaxPartSize());
+
+            // Create a large (11 MB) file
+            File largeFile = File.createTempFile("JetS3t-testMultipartUtils-large", ".txt");
+            BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(largeFile));
+            int offset = 0;
+            while (offset < 11 * 1024 * 1024) {
+                bos.write((offset++ % 256));
+            }
+            bos.close();
+
+            // Create a medium (6 MB) file
+            File mediumFile = File.createTempFile("JetS3t-testMultipartUtils-medium", ".txt");
+            bos = new BufferedOutputStream(new FileOutputStream(mediumFile));
+            offset = 0;
+            while (offset < 6 * 1024 * 1024) {
+                bos.write((offset++ % 256));
+            }
+            bos.close();
+
+            // Create a small (5 MB) file
+            File smallFile = File.createTempFile("JetS3t-testMultipartUtils-small", ".txt");
+            bos = new BufferedOutputStream(new FileOutputStream(smallFile));
+            offset = 0;
+            while (offset < 5 * 1024 * 1024) {
+                bos.write((offset++ % 256));
+            }
+            bos.close();
+
+            assertFalse("Expected small file to be <= 5MB",
+                multipartUtils.isFileLargerThanMaxPartSize(smallFile));
+            assertTrue("Expected medium file to be > 5MB",
+                multipartUtils.isFileLargerThanMaxPartSize(mediumFile));
+            assertTrue("Expected large file to be > 5MB",
+                multipartUtils.isFileLargerThanMaxPartSize(largeFile));
+
+            // Split small file into 5MB object parts
+            List<S3Object> parts = multipartUtils.splitFileIntoObjectsByMaxPartSize(smallFile);
+            assertEquals(1, parts.size());
+
+            // Split medium file into 5MB object parts
+            parts = multipartUtils.splitFileIntoObjectsByMaxPartSize(mediumFile);
+            assertEquals(2, parts.size());
+
+            // Split large file into 5MB object parts
+            parts = multipartUtils.splitFileIntoObjectsByMaxPartSize(largeFile);
+            assertEquals(3, parts.size());
+
+            /*
+             * Simplest upload of a multipart file (in-series)
+             */
+            MultipartCompleted multipartCompleted =
+                multipartUtils.uploadFile(mediumFile, service, bucketName,
+                    null, // metadata
+                    null, // acl
+                    null  // storageClass
+                    );
+
+            S3Object completedObject = (S3Object) service.getObjectDetails(
+                bucketName, multipartCompleted.getObjectKey());
+            assertEquals(mediumFile.length(), completedObject.getContentLength());
+            // Confirm mimetype metadata is added automatically
+            assertEquals("text/plain", completedObject.getContentType());
+
+            /*
+             * Upload of a multipart file (in-parrallel)
+             */
+            MultipartUpload largeFileUpload = service.multipartStartUpload(
+                bucketName, largeFile.getName(),
+                null, // metadata
+                null, // acl
+                null  // storageClass
+                );
+            S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor();
+
+            multipartUtils.uploadFile(largeFile,
+                new ThreadedS3Service(service, adaptor),
+                largeFileUpload);
+
+            assertNull(adaptor.getErrorThrown());
+
+            service.multipartCompleteUpload(largeFileUpload);
+
+            completedObject = (S3Object) service.getObjectDetails(
+                bucketName, largeFileUpload.getObjectKey());
+            assertEquals(largeFile.length(), completedObject.getContentLength());
+        } finally {
+            cleanupBucketForTest("testMultipartUtils");
+        }
+    }
+
     public void testMultipartUploads() throws Exception {
         RestS3Service service = (RestS3Service) getStorageService(getCredentials());
         StorageBucket bucket = createBucketForTest("testMultipartUploads");
@@ -360,7 +487,7 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
                 completedObject.getMetadata("test-timestamp-value").toString());
 
             /*
-             *  Perform a threaded multipart upload
+             * Perform a threaded multipart upload
              */
             String objectKeyForThreaded = "threaded-multipart-object.txt";
             Map<String, Object> metadataForThreaded = new HashMap<String, Object>();
@@ -379,7 +506,9 @@ public class TestRestS3Service extends TestRestS3ServiceToGoogleStorage {
             // Create threaded service and perform upload in multiple threads
             ThreadedS3Service threadedS3Service = new ThreadedS3Service(service,
                 new StorageServiceEventAdaptor());
-            threadedS3Service.multipartUploads(threadedMultipartUpload, objectsForThreadedUpload);
+            threadedS3Service.multipartUploadParts(
+                threadedMultipartUpload,
+                Arrays.asList(objectsForThreadedUpload));
 
             // Complete threaded multipart upload using automatic part listing and normal service.
             MultipartCompleted threadedMultipartCompleted = service.multipartCompleteUpload(
