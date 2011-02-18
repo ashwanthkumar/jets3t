@@ -581,7 +581,7 @@ public class ServiceUtils {
      * true if the ETag value can be assumed to also be an MD5 hash.
      */
     public static boolean isEtagAlsoAnMD5Hash(String etag) {
-        if (etag == null || etag.length() != 16) {
+        if (etag == null || etag.length() != 32) {
             return false;
         }
         String nonHexChars = etag.toLowerCase().replaceAll("[a-f0-9]", "");

@@ -638,15 +638,4 @@ public class TestRestS3Service extends BaseStorageServiceTests {
         }
     }
 
-    public void testNonMd5ETag() throws Exception {
-        StorageObject so = new S3Object("");
-
-        so.setETag("12345");
-        String hash = so.getMd5HashAsBase64();
-        assertEquals(null, hash);
-
-        so.setETag("123456-7");
-        hash = so.getMd5HashAsBase64();
-        assertEquals(null, hash);
-    }
 }

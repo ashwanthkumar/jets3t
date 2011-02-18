@@ -1,13 +1,68 @@
 package org.jets3t.tests;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 
 import org.jets3t.service.io.SegmentedRepeatableFileInputStream;
+import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.StorageObject;
+import org.jets3t.service.utils.ServiceUtils;
 
 import junit.framework.TestCase;
 
 public class TestUtilities extends TestCase {
+
+    public void testIsEtagAlsoAnMD5Hash() {
+        // Valid MD5 ETag value
+        assertTrue(ServiceUtils.isEtagAlsoAnMD5Hash(
+            "cb8aaa4056eb349af16b1907280dee18"));
+
+        // Non-MD5 ETag values
+        assertFalse(ServiceUtils.isEtagAlsoAnMD5Hash(
+            "cb8aaa4056eb349af16b1907280dee18-1"));
+
+        assertFalse(ServiceUtils.isEtagAlsoAnMD5Hash(
+            "Xcb8aaa4056eb349af16b1907280dee1"));
+
+        assertFalse(ServiceUtils.isEtagAlsoAnMD5Hash(
+            "cb8aaa4056eb349af16b1907280dee1"));
+
+        assertFalse(ServiceUtils.isEtagAlsoAnMD5Hash(
+            "cb8aaa4056eb349af16b1907280dee18cb"));
+    }
+
+    public void testMd5ETag() throws Exception {
+        StorageObject so = new S3Object("");
+
+        // MD5 ETag values
+        so.setETag("cb8aaa4056eb349af16b1907280dee18");
+        assertEquals("y4qqQFbrNJrxaxkHKA3uGA==", so.getMd5HashAsBase64());
+    }
+
+    public void testNonMd5ETag() throws Exception {
+        StorageObject so = new S3Object("");
+
+        so.setETag("cb8aaa4056eb349af16b1907280dee18-1");
+        assertEquals(null, so.getMd5HashAsBase64());
+
+        so.setETag("cb8aaa4056eb349af16b1907280dee");
+        assertEquals(null, so.getMd5HashAsBase64());
+
+        so.setETag("cb8aaa4056eb349af16b1907280dee1");
+        assertEquals(null, so.getMd5HashAsBase64());
+
+        so.setETag("cb8aaa4056eb349af16b1907280dee18cb");
+        assertEquals(null, so.getMd5HashAsBase64());
+
+        so.setETag("12345");
+        String hash = so.getMd5HashAsBase64();
+        assertEquals(null, hash);
+
+        so.setETag("123456-7");
+        hash = so.getMd5HashAsBase64();
+        assertEquals(null, hash);
+    }
 
     public void testSegmentedRepeatableFileInputStream() throws Exception {
         File testFile = File.createTempFile("JetS3t-testSegmentedRepeatableFileInputStream", null);
@@ -15,14 +70,15 @@ public class TestUtilities extends TestCase {
         SegmentedRepeatableFileInputStream segFIS = null;
 
         // Create a 1 MB file for testing
-        FileOutputStream fos = new FileOutputStream(testFile);
+        BufferedOutputStream bos = new BufferedOutputStream(
+            new FileOutputStream(testFile));
         long testFileLength = 1 * 1024 * 1024;
         int offset = 0;
         while (offset < testFileLength) {
-            fos.write((offset % 256));
+            bos.write((offset % 256));
             offset++;
         }
-        fos.close();
+        bos.close();
 
         // Invalid segment length
         try {
