@@ -103,6 +103,7 @@ import org.jets3t.gui.HyperlinkActivatedListener;
 import org.jets3t.gui.JHtmlLabel;
 import org.jets3t.gui.UserInputFields;
 import org.jets3t.gui.skins.SkinsFactory;
+import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
@@ -154,11 +155,11 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
     private static final Log log = LogFactory.getLog(Uploader.class);
 
-    public static final String APPLICATION_DESCRIPTION = "Uploader/0.8.1";
+    public static final String APPLICATION_DESCRIPTION = "Uploader/" + Constants.JETS3T_VERSION;
 
     public static final String UPLOADER_PROPERTIES_FILENAME = "uploader.properties";
 
-    private static final String UPLOADER_VERSION_ID = "JetS3t Uploader/0.8.1";
+    private static final String UPLOADER_VERSION_ID = "JetS3t Uploader/" + Constants.JETS3T_VERSION;
 
     public static final int WIZARD_SCREEN_1 = 1;
     public static final int WIZARD_SCREEN_2 = 2;

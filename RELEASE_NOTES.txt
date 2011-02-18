@@ -18,6 +18,9 @@ TOOLKIT
 
 - Added support for the Multipart Uploads feature, including the
   utility class MultipartUtils to make it easier to use.
+- Added support for the Website Configuration feature, which allows
+  static S3 bucket to behave more like a dynamic web site with
+  custom index and error documents. 
 
   * ThreadedS3Service
 

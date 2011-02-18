@@ -48,6 +48,7 @@ import org.jets3t.service.model.S3DeleteMarker;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Version;
 import org.jets3t.service.model.StorageBucket;
+import org.jets3t.service.model.WebsiteConfig;
 import org.jets3t.service.mx.MxDelegate;
 import org.jets3t.service.security.AWSDevPayCredentials;
 import org.jets3t.service.security.ProviderCredentials;
@@ -3157,6 +3158,33 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         }
     }
 
+    public void setWebsiteConfig(String bucketName, WebsiteConfig config)
+        throws S3ServiceException
+    {
+        setWebsiteConfigImpl(bucketName, config);
+    }
+
+    public void setWebsiteConfig(String bucketName, String indexDocumentSuffix,
+        String errorDocumentKey) throws S3ServiceException
+    {
+        setWebsiteConfigImpl(bucketName,
+            new WebsiteConfig(indexDocumentSuffix, errorDocumentKey));
+    }
+
+    public void setWebsiteConfig(String bucketName, String indexDocumentSuffix)
+        throws S3ServiceException
+    {
+        setWebsiteConfig(bucketName, indexDocumentSuffix, null);
+    }
+
+    public WebsiteConfig getWebsiteConfig(String bucketName) throws S3ServiceException {
+        return getWebsiteConfigImpl(bucketName);
+    }
+
+    public void deleteWebsiteConfig(String bucketName) throws S3ServiceException {
+        deleteWebsiteConfigImpl(bucketName);
+    }
+
     ///////////////////////////////////////////////////////////
     // Abstract methods that must be implemented by S3 services
     ///////////////////////////////////////////////////////////
@@ -3237,5 +3265,14 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
 
     protected abstract MultipartPart multipartUploadPartImpl(String uploadId, String bucketName,
         Integer partNumber, S3Object object) throws S3ServiceException;
+
+    protected abstract void setWebsiteConfigImpl(String bucketName, WebsiteConfig config)
+        throws S3ServiceException;
+
+    protected abstract WebsiteConfig getWebsiteConfigImpl(String bucketName)
+        throws S3ServiceException;
+
+    protected abstract void deleteWebsiteConfigImpl(String bucketName)
+        throws S3ServiceException;
 
 }

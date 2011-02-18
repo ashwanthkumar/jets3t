@@ -34,10 +34,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.methods.GetMethod;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
+import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.ServiceException;
+import org.jets3t.service.StorageService;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.GrantAndPermission;
 import org.jets3t.service.acl.GroupGrantee;
@@ -47,10 +51,12 @@ import org.jets3t.service.impl.rest.httpclient.RestStorageService;
 import org.jets3t.service.model.MultipartCompleted;
 import org.jets3t.service.model.MultipartPart;
 import org.jets3t.service.model.MultipartUpload;
+import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
+import org.jets3t.service.model.WebsiteConfig;
 import org.jets3t.service.multi.StorageServiceEventAdaptor;
 import org.jets3t.service.multi.s3.S3ServiceEventAdaptor;
 import org.jets3t.service.multi.s3.ThreadedS3Service;
@@ -88,10 +94,24 @@ public class TestRestS3Service extends BaseStorageServiceTests {
     }
 
     @Override
-    protected RestStorageService getStorageService(ProviderCredentials credentials) throws ServiceException {
+    protected RestStorageService getStorageService(ProviderCredentials credentials)
+        throws ServiceException
+    {
+        return getStorageService(credentials, Constants.S3_DEFAULT_HOSTNAME);
+    }
+
+    protected RestStorageService getStorageService(ProviderCredentials credentials,
+        String endpointHostname) throws ServiceException
+    {
         Jets3tProperties properties = new Jets3tProperties();
-        properties.setProperty("s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
+        properties.setProperty("s3service.s3-endpoint", endpointHostname);
         return new RestS3Service(credentials, null, null, properties);
+    }
+
+    protected StorageBucket createBucketForTest(String testName, String location) throws Exception {
+        String bucketName = getBucketNameForTest(testName);
+        StorageService service = getStorageService(getCredentials());
+        return ((S3Service)service).getOrCreateBucket(bucketName, location);
     }
 
     public void testBucketLogging() throws Exception {
@@ -514,6 +534,107 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             assertEquals(testData.length * 2 + 1, finalObjectForThreaded.getContentLength());
         } finally {
             cleanupBucketForTest("testMultipartUploads");
+        }
+    }
+
+    public void testS3WebsiteConfig() throws Exception {
+        // Testing takes place in the us-west-1 location
+        S3Service s3Service = (S3Service) getStorageService(getCredentials());
+        StorageBucket bucket = createBucketForTest(
+            "testS3WebsiteConfig",
+            // Standard US Bucket location
+            S3Bucket.LOCATION_US_WEST);
+        String bucketName = bucket.getName();
+
+        String s3WebsiteURL = "http://" + bucketName + "."
+            // Website location must correspond to bucket location, in this case
+            // the US Standard. For website endpoints see:
+            // docs.amazonwebservices.com/AmazonS3/latest/dev/WebsiteEndpoints.html
+            + "s3-website-us-west-1"
+            + ".amazonaws.com";
+
+        try {
+            HttpClient httpClient = new HttpClient();
+            GetMethod getMethod = null;
+
+            // Check no existing website config
+            try {
+                s3Service.getWebsiteConfig(bucketName);
+                fail("Unexpected website config for bucket " + bucketName);
+            } catch (S3ServiceException e) { }
+
+            // Set index document
+            s3Service.setWebsiteConfig(bucketName, "index.html");
+
+            // Confirm index document set
+            WebsiteConfig config = s3Service.getWebsiteConfig(bucketName);
+            assertTrue(config.isWebsiteConfigActive());
+            assertEquals("index.html", config.getIndexDocumentSuffix());
+            assertNull(config.getErrorDocumentKey());
+
+            // Upload public index document
+            S3Object indexObject = new S3Object("index.html", "index.html contents");
+            indexObject.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ);
+            s3Service.putObject(bucketName, indexObject);
+
+            // Confirm index document is served at explicit path
+            getMethod = new GetMethod(s3WebsiteURL + "/index.html");
+            httpClient.executeMethod(getMethod);
+            assertEquals(200, getMethod.getStatusCode());
+            assertEquals("index.html contents", getMethod.getResponseBodyAsString());
+
+            // Confirm index document is served at root path
+            // (i.e. website config is effective)
+            getMethod = new GetMethod(s3WebsiteURL + "/");
+            httpClient.executeMethod(getMethod);
+            assertEquals(200, getMethod.getStatusCode());
+            assertEquals("index.html contents", getMethod.getResponseBodyAsString());
+
+            // Set index document and error document
+            s3Service.setWebsiteConfig(bucketName, "index.html", "error.html");
+
+            // Confirm index document and error document set
+            config = s3Service.getWebsiteConfig(bucketName);
+            assertTrue(config.isWebsiteConfigActive());
+            assertEquals("index.html", config.getIndexDocumentSuffix());
+            assertEquals("error.html", config.getErrorDocumentKey());
+
+            // Upload public error document
+            S3Object errorObject = new S3Object("error.html", "error.html contents");
+            errorObject.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ);
+            s3Service.putObject(bucketName, errorObject);
+
+            // Confirm error document served at explicit path
+            getMethod = new GetMethod(s3WebsiteURL + "/error.html");
+            httpClient.executeMethod(getMethod);
+            assertEquals(200, getMethod.getStatusCode());
+            assertEquals("error.html contents", getMethod.getResponseBodyAsString());
+
+            // Confirm error document served instead of 404 Not Found
+            getMethod = new GetMethod(s3WebsiteURL + "/does-not-exist");
+            httpClient.executeMethod(getMethod);
+            assertEquals(403, getMethod.getStatusCode()); // TODO: Why a 403?
+            assertEquals("error.html contents", getMethod.getResponseBodyAsString());
+
+            // Upload private document
+            S3Object privateObject = new S3Object("private.html", "private.html contents");
+            s3Service.putObject(bucketName, privateObject);
+
+            // Confirm error document served instead for 403 Forbidden
+            getMethod = new GetMethod(s3WebsiteURL + "/private.html");
+            httpClient.executeMethod(getMethod);
+            assertEquals(403, getMethod.getStatusCode());
+
+            // Delete website config
+            s3Service.deleteWebsiteConfig(bucketName);
+
+            // Confirm website config deleted
+            try {
+                s3Service.getWebsiteConfig(bucketName);
+                fail("Unexpected website config for bucket " + bucketName);
+            } catch (S3ServiceException e) { }
+        } finally {
+            cleanupBucketForTest("testS3WebsiteConfig");
         }
     }
 

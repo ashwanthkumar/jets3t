@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2006-2010 James Murty
+ * Copyright 2006-2011 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,6 +58,7 @@ import org.jets3t.service.model.S3Version;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.StorageOwner;
+import org.jets3t.service.model.WebsiteConfig;
 import org.jets3t.service.utils.ServiceUtils;
 import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
@@ -383,9 +384,17 @@ public class XmlResponsesSaxParser {
         return handler;
     }
 
-    // ////////////
+    public WebsiteConfig parseWebsiteConfigurationResponse(
+        InputStream inputStream) throws ServiceException
+    {
+        WebsiteConfigurationHandler handler = new WebsiteConfigurationHandler();
+        parseXmlInputStream(handler, inputStream);
+        return handler.getWebsiteConfig();
+    }
+
+    //////////////
     // Handlers //
-    // ////////////
+    //////////////
 
     /**
      * Handler for ListBucket response XML documents.
@@ -1463,6 +1472,28 @@ public class XmlResponsesSaxParser {
 
         public void endError(String text) {
             returnControlToParentHandler();
+        }
+    }
+
+    public class WebsiteConfigurationHandler extends DefaultXmlHandler {
+        private WebsiteConfig config = null;
+        private String indexDocumentSuffix = null;
+        private String errorDocumentKey = null;
+
+        public WebsiteConfig getWebsiteConfig() {
+            return config;
+        }
+
+        @Override
+        public void endElement(String name, String elementText) {
+            if (name.equals("Suffix")) {
+                this.indexDocumentSuffix = elementText;
+            } else if (name.equals("Key")) {
+                this.errorDocumentKey = elementText;
+            } else if (name.equals("WebsiteConfiguration")) {
+                this.config = new WebsiteConfig(
+                    indexDocumentSuffix, errorDocumentKey);
+            }
         }
     }
 
