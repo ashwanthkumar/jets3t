@@ -336,8 +336,9 @@ public class StorageObject extends BaseStorageItem implements Cloneable {
         String md5HashBase64 = (String) getMetadata(METADATA_HEADER_CONTENT_MD5);
         if (md5HashBase64 == null) {
             // Try converting the object's ETag (a hex-encoded md5 hash).
-            if (getETag() != null) {
-                return ServiceUtils.toBase64(ServiceUtils.fromHex(getETag()));
+            final String eTag = getETag();
+            if (eTag != null  &&  ServiceUtils.isEtagAlsoAnMD5Hash(eTag)) {
+                return ServiceUtils.toBase64(ServiceUtils.fromHex(eTag));
             }
             // Try converting the object's md5-hash (another hex-encoded md5 hash).
             if (getMd5HashAsHex() != null) {

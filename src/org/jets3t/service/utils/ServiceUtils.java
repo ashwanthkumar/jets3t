@@ -407,6 +407,11 @@ public class ServiceUtils {
      * decoded data from the hex string.
      */
     public static byte[] fromHex(String hexData) {
+        if ((hexData.length() & 1) != 0  ||
+            hexData.replaceAll("[a-fA-F0-9]", "").length() > 0) {
+            throw new java.lang.IllegalArgumentException("'" + hexData + "' is not a hex string");
+        }
+
         byte[] result = new byte[(hexData.length() + 1) / 2];
         String hexNumber = null;
         int stringOffset = 0;
