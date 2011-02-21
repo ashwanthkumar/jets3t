@@ -1217,10 +1217,10 @@ public abstract class BaseStorageServiceTests extends TestCase {
 
             FileComparer comparer = new FileComparer(new Jets3tProperties());
             // Build a file map of local files
-            Map<String, File> fileMap = comparer.buildFileMap(
-                new File[] {parentDir1, parentDir2}, true);
-            assertEquals(5, fileMap.size());
-            assertTrue(fileMap.keySet().contains(local1Path));
+            Map<String, String> objectKeyToFilepathMap = comparer.buildObjectKeyToFilepathMap(
+                new File[] {parentDir1, parentDir2}, "", true);
+            assertEquals(5, objectKeyToFilepathMap.size());
+            assertTrue(objectKeyToFilepathMap.keySet().contains(local1Path));
 
             // Upload local directories and files to storage service
             service.putObject(bucketName, ObjectUtils.createObjectForUpload(
@@ -1236,13 +1236,13 @@ public abstract class BaseStorageServiceTests extends TestCase {
 
             // Build a map of objects in storage service
             Map<String, StorageObject> objectMap = comparer.buildObjectMap(
-                service, bucket.getName(), "", false, null);
+                service, bucket.getName(), "", objectKeyToFilepathMap, null, null);
             assertEquals(5, objectMap.size());
             assertTrue(objectMap.keySet().contains(local3Path));
 
             // Compare local and remote objects -- should be identical
             FileComparerResults comparerResults =
-                comparer.buildDiscrepancyLists(fileMap, objectMap);
+                comparer.buildDiscrepancyLists(objectKeyToFilepathMap, objectMap);
             assertEquals(5, comparerResults.alreadySynchronisedKeys.size());
             assertEquals(0, comparerResults.onlyOnClientKeys.size());
             assertEquals(0, comparerResults.onlyOnServerKeys.size());
@@ -1263,10 +1263,10 @@ public abstract class BaseStorageServiceTests extends TestCase {
             service.putObject(bucketName, remoteObject);
 
             objectMap = comparer.buildObjectMap(
-                service, bucket.getName(), "", false, null);
+                service, bucket.getName(), "", objectKeyToFilepathMap, null, null);
 
             comparerResults =
-                comparer.buildDiscrepancyLists(fileMap, objectMap);
+                comparer.buildDiscrepancyLists(objectKeyToFilepathMap, objectMap);
             assertEquals(3, comparerResults.alreadySynchronisedKeys.size());
             assertEquals(0, comparerResults.onlyOnClientKeys.size());
             assertEquals(0, comparerResults.onlyOnServerKeys.size());
@@ -1281,12 +1281,12 @@ public abstract class BaseStorageServiceTests extends TestCase {
             remoteObject = new StorageObject("new-on-service.txt");
             service.putObject(bucketName, remoteObject);
 
-            fileMap = comparer.buildFileMap(
-                new File[] {parentDir1, parentDir2}, true);
+            objectKeyToFilepathMap = comparer.buildObjectKeyToFilepathMap(
+                new File[] {parentDir1, parentDir2}, "", true);
             objectMap = comparer.buildObjectMap(
-                service, bucket.getName(), "", false, null);
+                service, bucket.getName(), "", objectKeyToFilepathMap, null, null);
 
-            comparerResults = comparer.buildDiscrepancyLists(fileMap, objectMap);
+            comparerResults = comparer.buildDiscrepancyLists(objectKeyToFilepathMap, objectMap);
             assertEquals(3, comparerResults.alreadySynchronisedKeys.size());
             assertTrue(comparerResults.alreadySynchronisedKeys.contains(local2Path));
             assertEquals(1, comparerResults.onlyOnClientKeys.size());
@@ -1306,13 +1306,12 @@ public abstract class BaseStorageServiceTests extends TestCase {
             local3.delete();
             service.deleteObject(bucketName, local1Path);
 
-            fileMap = comparer.buildFileMap(
-                new File[] {parentDir1, parentDir2},
-                true);
+            objectKeyToFilepathMap = comparer.buildObjectKeyToFilepathMap(
+                new File[] {parentDir1, parentDir2}, "", true);
             objectMap = comparer.buildObjectMap(
-                service, bucket.getName(), "", false, null);
+                service, bucket.getName(), "", objectKeyToFilepathMap, null, null);
 
-            comparerResults = comparer.buildDiscrepancyLists(fileMap, objectMap);
+            comparerResults = comparer.buildDiscrepancyLists(objectKeyToFilepathMap, objectMap);
             assertEquals(1, comparerResults.onlyOnClientKeys.size());
             assertTrue(comparerResults.onlyOnClientKeys.contains(local1Path));
             assertEquals(1, comparerResults.onlyOnServerKeys.size());

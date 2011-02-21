@@ -21,9 +21,13 @@ package org.jets3t.apps.synchronize;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -92,7 +96,6 @@ public class Synchronize {
     private boolean isEncryptionEnabled = false; // Files will be encrypted prior to upload if true.
     private boolean isMoveEnabled = false;
     private boolean isBatchMode = false;
-    private boolean isSkipMetadata = false;
     private int reportLevel = REPORT_LEVEL_ALL;
     private String cryptoPassword = null;
     private Jets3tProperties properties = null;
@@ -130,10 +133,6 @@ public class Synchronize {
      * once. This mode is useful for large buckets where listing all the
      * objects and their details at once may consume a large amount of time
      * and memory.
-     * @param isSkipMetadata
-     * If true, no metadata information about objects will be downloaded.
-     * This will make the synchronize process faster, but it will also
-     * reduce the amount of information Synchronize will have to make decisions.
      * @param isNoDelete
      * Files will not be deleted if true, but may be replaced.
      * @param isGzipEnabled
@@ -149,7 +148,7 @@ public class Synchronize {
     public Synchronize(StorageService service, boolean doAction, boolean isQuiet,
         boolean isNoProgress, boolean isForce, boolean isKeepFiles,
         boolean isNoDelete, boolean isMoveEnabled, boolean isBatchMode,
-        boolean isSkipMetadata, boolean isGzipEnabled, boolean isEncryptionEnabled,
+        boolean isGzipEnabled, boolean isEncryptionEnabled,
         int reportLevel, Jets3tProperties properties)
     {
         this.storageService = service;
@@ -161,7 +160,6 @@ public class Synchronize {
         this.isNoDelete = isNoDelete;
         this.isMoveEnabled = isMoveEnabled;
         this.isBatchMode = isBatchMode;
-        this.isSkipMetadata = isSkipMetadata;
         this.isGzipEnabled = isGzipEnabled;
         this.isEncryptionEnabled = isEncryptionEnabled;
         this.reportLevel = reportLevel;
@@ -283,6 +281,47 @@ public class Synchronize {
         System.out.print(temporaryLine + blanks + "\r");
     }
 
+    protected ComparisonResult compareLocalAndRemoteFiles(
+        FileComparerResults mergedDiscrepancyResults,
+        String bucketName, String rootObjectPath,
+        String priorLastKey, Map<String, String> objectKeyToFilepathMap,
+        BytesProgressWatcher md5GenerationProgressWatcher)
+        throws ServiceException, NoSuchAlgorithmException, FileNotFoundException,
+        IOException, ParseException
+    {
+        // List objects in service. Listing may be complete, or partial.
+        printProgressLine("Listing objects in service"
+            + (isBatchMode ? " (Batch mode. Objects listed so far: "
+                + mergedDiscrepancyResults.getCountOfItemsCompared() + ")" : ""));
+
+        PartialObjectListing partialListing = fileComparer.buildObjectMapPartial(
+            storageService, bucketName, rootObjectPath, priorLastKey,
+            objectKeyToFilepathMap, !isBatchMode,
+            md5GenerationProgressWatcher, serviceEventAdaptor);
+        if (serviceEventAdaptor.wasErrorThrown()) {
+            throw new ServiceException("Unable to build map of objects",
+                serviceEventAdaptor.getErrorThrown());
+        }
+        md5GenerationProgressWatcher.resetWatcher();
+
+        // Retrieve details from listing.
+        priorLastKey = partialListing.getPriorLastKey();
+        Map<String, StorageObject> objectsMap = partialListing.getObjectsMap();
+
+        // Compare the listed objects with the local system.
+        printProgressLine("Comparing service contents with local system");
+        FileComparerResults discrepancyResults = fileComparer.buildDiscrepancyLists(
+            objectKeyToFilepathMap, objectsMap, md5GenerationProgressWatcher);
+
+        // Merge objects and discrepancies to track overall changes.
+        mergedDiscrepancyResults.merge(discrepancyResults);
+
+        ComparisonResult result = new ComparisonResult();
+        result.objectsMap = objectsMap;
+        result.discrepancyResults = discrepancyResults;
+        return result;
+    }
+
     /**
      * Copies the contents of a local directory to a service, storing them in the given root path.
      * <p>
@@ -314,19 +353,18 @@ public class Synchronize {
      * the root path where objects are put (will be created if necessary)
      * @param aclString
      * the ACL to apply to the uploaded object
-     * @param progressWatcher
+     * @param md5GenerationProgressWatcher
      * a class that reports on the progress of this method
      *
      * @throws Exception
      */
     public void uploadLocalDirectory(Map<String, String> objectKeyToFilepathMap,
         StorageBucket bucket, String rootObjectPath, String aclString,
-        BytesProgressWatcher progressWatcher) throws Exception
+        BytesProgressWatcher md5GenerationProgressWatcher) throws Exception
     {
         FileComparerResults mergedDiscrepancyResults = new FileComparerResults();
         String priorLastKey = null;
         String lastFileKeypathChecked = "";
-        long totalObjectsListed = 0;
 
         EncryptionUtil encryptionUtil = null;
         if (isEncryptionEnabled) {
@@ -337,34 +375,10 @@ public class Synchronize {
 
         // Repeat upload actions until all objects in bucket have been listed.
         do {
-            // List objects in service. Listing may be complete, or partial.
-            printProgressLine("Listing objects in service"
-                + (isBatchMode ? " (Batch mode. Objects listed so far: "
-                    + totalObjectsListed + ")" : ""));
-
-            PartialObjectListing partialListing = fileComparer.buildObjectMapPartial(
-                storageService, bucket.getName(), rootObjectPath, priorLastKey, !isBatchMode,
-                isSkipMetadata, serviceEventAdaptor);
-            if (serviceEventAdaptor.wasErrorThrown()) {
-                throw new Exception("Unable to build map of objects",
-                    serviceEventAdaptor.getErrorThrown());
-            }
-
-            // Retrieve details from listing.
-            priorLastKey = partialListing.getPriorLastKey();
-            Map<String, StorageObject> objectsMap = partialListing.getObjectsMap();
-            totalObjectsListed += partialListing.getObjectsMap().size();
-
-            List<String> sortedObjectKeys = new ArrayList<String>(objectsMap.keySet());
-            Collections.sort(sortedObjectKeys);
-
-            // Compare the listed objects with the local system.
-            printProgressLine("Comparing service contents with local system");
-            FileComparerResults discrepancyResults = fileComparer.buildDiscrepancyLists(
-                objectKeyToFilepathMap, objectsMap, progressWatcher);
-
-            // Merge objects and discrepancies to track overall changes.
-            mergedDiscrepancyResults.merge(discrepancyResults);
+            ComparisonResult result =
+                compareLocalAndRemoteFiles(mergedDiscrepancyResults, bucket.getName(), rootObjectPath,
+                    priorLastKey, objectKeyToFilepathMap, md5GenerationProgressWatcher);
+            FileComparerResults discrepancyResults = result.discrepancyResults;
 
             // Sort upload file candidates by path.
             List<String> sortedFilesKeys = new ArrayList<String>(objectKeyToFilepathMap.keySet());
@@ -597,49 +611,28 @@ public class Synchronize {
      * @param localDirectory the directory to which the objects will be restored
      * @param bucket
      * the bucket into which files were backed up
-     * @param progressWatcher
+     * @param md5GenerationProgressWatcher
      * a class that reports on the progress of this method
      *
      * @throws Exception
      */
     public void restoreToLocalDirectory(Map<String, String> objectKeyToFilepathMap,
         String rootObjectPath, File localDirectory, StorageBucket bucket,
-        BytesProgressWatcher progressWatcher) throws Exception
+        BytesProgressWatcher md5GenerationProgressWatcher) throws Exception
     {
         FileComparerResults mergedDiscrepancyResults = new FileComparerResults();
         String priorLastKey = null;
-        long totalObjectsListed = 0;
 
         // Repeat download actions until all objects in bucket have been listed.
         do {
-            // List objects in service. Listing may be complete, or partial.
-            printProgressLine("Listing objects in service"
-                + (isBatchMode ? " (Batch mode. Already listed: "
-                    + totalObjectsListed + ")" : ""));
-
-            PartialObjectListing partialListing = fileComparer.buildObjectMapPartial(
-                storageService, bucket.getName(), rootObjectPath, priorLastKey, !isBatchMode,
-                isSkipMetadata, serviceEventAdaptor);
-            if (serviceEventAdaptor.wasErrorThrown()) {
-                throw new Exception("Unable to build map of objects",
-                    serviceEventAdaptor.getErrorThrown());
-            }
-
-            // Retrieve details from listing.
-            priorLastKey = partialListing.getPriorLastKey();
-            Map<String, StorageObject> objectsMap = partialListing.getObjectsMap();
-            totalObjectsListed += partialListing.getObjectsMap().size();
+            ComparisonResult result =
+                compareLocalAndRemoteFiles(mergedDiscrepancyResults, bucket.getName(), rootObjectPath,
+                    priorLastKey, objectKeyToFilepathMap, md5GenerationProgressWatcher);
+            FileComparerResults discrepancyResults = result.discrepancyResults;
+            Map<String, StorageObject> objectsMap = result.objectsMap;
 
             List<String> sortedObjectKeys = new ArrayList<String>(objectsMap.keySet());
             Collections.sort(sortedObjectKeys);
-
-            // Compare the listed objects with the local sytem.
-            printProgressLine("Comparing service contents with local system");
-            FileComparerResults discrepancyResults = fileComparer.buildDiscrepancyLists(
-                objectKeyToFilepathMap, objectsMap, progressWatcher);
-
-            // Merge objects and discrepancies to track overall changes.
-            mergedDiscrepancyResults.merge(discrepancyResults);
 
             // Download objects to local files/directories.
             List<DownloadPackage> downloadPackagesList = new ArrayList<DownloadPackage>();
@@ -839,7 +832,7 @@ public class Synchronize {
      *
      * @throws Exception
      */
-    public void run(String servicePath, Set<File> fileSet, String actionCommand, String cryptoPassword,
+    public void run(String servicePath, File[] files, String actionCommand, String cryptoPassword,
         String aclString, String providerId) throws Exception
     {
         String bucketName = null;
@@ -858,14 +851,12 @@ public class Synchronize {
         if ("UP".equals(actionCommand)) {
             String uploadPathSummary = null;
 
-            if (fileSet.size() > 3) {
+            if (files.length > 1) {
                 int dirsCount = 0;
                 int filesCount = 0;
 
-                Iterator<File> pathIter = fileSet.iterator();
-                while (pathIter.hasNext()) {
-                    File path = pathIter.next();
-                    if (path.isDirectory()) {
+                for (File file: files) {
+                    if (file.isDirectory()) {
                         dirsCount++;
                     } else {
                         filesCount++;
@@ -876,7 +867,7 @@ public class Synchronize {
                     + dirsCount + (dirsCount == 1 ? " directory" : " directories")
                     + ", " + filesCount + (filesCount == 1 ? " file" : " files") + "]";
             } else {
-                uploadPathSummary = fileSet.toString();
+                uploadPathSummary = Arrays.toString(files);
             }
 
             printOutputLine("UP "
@@ -884,12 +875,12 @@ public class Synchronize {
                 + "Local " + uploadPathSummary + " => " + providerId + "[" + servicePath + "]",
                 REPORT_LEVEL_NONE);
         } else if ("DOWN".equals(actionCommand)) {
-            if (fileSet.size() != 1) {
+            if (files.length != 1) {
                 throw new SynchronizeException("Only one target directory is allowed for downloads");
             }
             printOutputLine("DOWN "
                 + (doAction ? "" : "[No Action] ")
-                + providerId + "[" + servicePath + "] => Local" + fileSet, REPORT_LEVEL_NONE);
+                + providerId + "[" + servicePath + "] => Local " + files[0], REPORT_LEVEL_NONE);
         } else {
             throw new SynchronizeException("Action string must be 'UP' or 'DOWN'");
         }
@@ -927,52 +918,43 @@ public class Synchronize {
         boolean storeEmptyDirectories = properties
             .getBoolProperty("uploads.storeEmptyDirectories", true);
 
-        // Compare contents of local directory with contents of service path and identify any disrepancies.
+        // Generate of object key names to absolute paths of local files
         printProgressLine("Listing files in local file system");
         String fileKeyPrefix = "";
         Map<String, String> objectKeyToFilepathMap = null;
         if ("UP".equals(actionCommand)) {
             // Ensure all files/directories chosen for upload exist and are accessible
-            for (File file: fileSet) {
+            for (File file: files) {
                 if (!file.exists()) {
                     throw new IOException("File '" + file.getPath() + "' does not exist");
                 }
             }
-
             objectKeyToFilepathMap = fileComparer.buildObjectKeyToFilepathMap(
-                fileSet, fileKeyPrefix, storeEmptyDirectories);
+                files, fileKeyPrefix, storeEmptyDirectories);
         } else if ("DOWN".equals(actionCommand)) {
             objectKeyToFilepathMap = fileComparer.buildObjectKeyToFilepathMap(
-                fileSet, fileKeyPrefix, true);
-        }
-
-        // Calculate total files size.
-        final long filesSizeTotal[] = new long[] { 0 };
-        for (String filePath: objectKeyToFilepathMap.values()) {
-            File file = new File(filePath);
-            filesSizeTotal[0] += file.length();
+                files, fileKeyPrefix, true);
         }
 
         // Monitor generation of MD5 hashes, and provide feedback via progress messages.
-        BytesProgressWatcher progressWatcher = new BytesProgressWatcher(filesSizeTotal[0]) {
-            @Override
-            public void updateBytesTransferred(long byteCount) {
-                super.updateBytesTransferred(byteCount);
-
-                int percentage = (int)((double)getBytesTransferred() * 100 / getBytesToTransfer());
-                printProgressLine("Comparing files: " + percentage + "% of " +
-                    byteFormatter.formatByteSize(filesSizeTotal[0]));
-            }
-        };
+        final long filesSizeTotal[] = new long[] { 0 }; // Don't know how much comparison req'd
+        BytesProgressWatcher md5GenerationProgressWatcher =
+            new BytesProgressWatcher(filesSizeTotal[0]) {
+                @Override
+                public void updateBytesTransferred(long byteCount) {
+                    super.updateBytesTransferred(byteCount);
+                    printProgressLine("Comparing files: " +
+                        byteFormatter.formatByteSize(super.getBytesTransferred()));
+                }
+            };
 
         // Perform the requested action on the set of disrepancies.
         if ("UP".equals(actionCommand)) {
             uploadLocalDirectory(objectKeyToFilepathMap, bucket, objectPath,
-                aclString, progressWatcher);
+                aclString, md5GenerationProgressWatcher);
         } else if ("DOWN".equals(actionCommand)) {
-            File targetDirectory = fileSet.iterator().next();
             restoreToLocalDirectory(objectKeyToFilepathMap, objectPath,
-                targetDirectory, bucket, progressWatcher);
+                files[0], bucket, md5GenerationProgressWatcher);
         }
     }
 
@@ -1057,6 +1039,11 @@ public class Synchronize {
         }
     };
 
+    private class ComparisonResult {
+        public FileComparerResults discrepancyResults;
+        public Map<String, StorageObject> objectsMap;
+    }
+
     /**
      * Prints usage/help information and forces the application to exit with errorcode 1.
      */
@@ -1133,13 +1120,6 @@ public class Synchronize {
         System.out.println("   option will reduce the memory required to synchronize large buckets, and will");
         System.out.println("   ensure file transfers commence as soon as possible. When this option is");
         System.out.println("   enabled, the progress status lines refer only to the progress of a single batch.");
-        System.out.println("");
-        System.out.println("-s | --skipmetadata");
-        System.out.println("   Skip the retrieval of object metadata information from online. This will make the");
-        System.out.println("   synch process much faster for large buckets, but it will leave Synchronize");
-        System.out.println("   with less information to make decisions. If this option is enabled, empty");
-        System.out.println("   files or directories will not be synchronized reliably.");
-        System.out.println("   This option cannot be used with the --gzip or --crypto options.");
         System.out.println("");
         System.out.println("-g | --gzip");
         System.out.println("   Compress (GZip) files when backing up and Decompress gzipped files");
@@ -1228,7 +1208,6 @@ public class Synchronize {
         boolean isEncryptionEnabled = false;
         boolean isMoveEnabled = false;
         boolean isBatchMode = false;
-        boolean isSkipMetadata = false;
         String aclString = null;
         int reportLevel = REPORT_LEVEL_ALL;
         ProviderCredentials providerCredentials = null;
@@ -1260,7 +1239,7 @@ public class Synchronize {
                 } else if (arg.equalsIgnoreCase("-m") || arg.equalsIgnoreCase("--move")) {
                     isMoveEnabled = true;
                 } else if (arg.equalsIgnoreCase("-s") || arg.equalsIgnoreCase("--skipmetadata")) {
-                    isSkipMetadata = true;
+                    System.err.print("WARNING: --skipmetadata is obsolete since JetS3t 0.8.1, it has no effect");
                 } else if (arg.equalsIgnoreCase("-b") || arg.equalsIgnoreCase("--batch")) {
                     isBatchMode = true;
                 } else if (arg.equalsIgnoreCase("--provider")) {
@@ -1424,12 +1403,6 @@ public class Synchronize {
             printHelpAndExit(false);
         }
 
-        if (isSkipMetadata && (isGzipEnabled || isEncryptionEnabled)) {
-            // Incompatible options.
-            System.err.println("ERROR: The --skipmetadata option cannot be used with the --gzip or --crypto options");
-            printHelpAndExit(false);
-        }
-
         // Ensure the Synchronize properties file contains everything we need, and prompt
         // for any required information that is missing.
         if (!myProperties.containsKey("accesskey")
@@ -1508,9 +1481,11 @@ public class Synchronize {
         // Perform the UPload/DOWNload.
         Synchronize client = new Synchronize(
             service, doAction, isQuiet, isNoProgress, isForce, isKeepFiles, isNoDelete,
-            isMoveEnabled, isBatchMode, isSkipMetadata, isGzipEnabled,
-            isEncryptionEnabled, reportLevel, myProperties);
-        client.run(servicePath, fileSet, actionCommand,
+            isMoveEnabled, isBatchMode, isGzipEnabled, isEncryptionEnabled,
+            reportLevel, myProperties);
+        client.run(servicePath,
+            fileSet.toArray(new File[fileSet.size()]),
+            actionCommand,
             myProperties.getStringProperty("password", null), aclString,
             providerId.toUpperCase());
     }

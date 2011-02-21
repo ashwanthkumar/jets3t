@@ -87,6 +87,14 @@ public class FileComparerResults {
         onlyOnServerKeys.removeAll(alreadySynchronisedLocalPaths);
     }
 
+    public long getCountOfItemsCompared() {
+        return this.updatedOnServerKeys.size()
+            + this.updatedOnClientKeys.size()
+            + this.onlyOnServerKeys.size()
+            + this.onlyOnClientKeys.size()
+            + this.alreadySynchronisedKeys.size();
+    }
+
     @Override
     public String toString() {
         return "onlyOnServerKeys: " + onlyOnServerKeys

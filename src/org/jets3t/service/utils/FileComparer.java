@@ -199,8 +199,7 @@ public class FileComparer {
             }
         }
 
-        if (jets3tProperties.getBoolProperty("filecomparer.skip-upload-of-md5-files", false))
-        {
+        if (isSkipMd5FileUpload()) {
             Pattern pattern = Pattern.compile(".*\\.md5");
             if (log.isDebugEnabled()) {
                 log.debug("Skipping upload of pre-computed MD5 files with path '*.md5' using the regexp: "
@@ -228,7 +227,7 @@ public class FileComparer {
      * true if the file should be ignored, false otherwise.
      */
     protected boolean isIgnored(List<Pattern> ignorePatternList, File file) {
-        if (jets3tProperties.getBoolProperty("filecomparer.skip-symlinks", false)) {
+        if (isSkipSymlinks()) {
             /*
              * Check whether this file is actually a symlink/alias, and skip it if so.
              * Since Java IO libraries do not provide an official way to determine whether
@@ -315,7 +314,7 @@ public class FileComparer {
      * a Map of file path keys to File objects.
      */
     public Map<String, String> buildObjectKeyToFilepathMap(
-        Set<File> fileList, String fileKeyPrefix, boolean includeDirectories)
+        File[] fileList, String fileKeyPrefix, boolean includeDirectories)
     {
         if (fileKeyPrefix == null || fileKeyPrefix.trim().length() == 0) {
             fileKeyPrefix = "";
@@ -613,14 +612,17 @@ public class FileComparer {
      * @throws ServiceException
      */
     public Map<String, StorageObject> buildObjectMap(StorageService service, String bucketName,
-        String targetPath, boolean skipMetadata, StorageServiceEventListener eventListener)
+        String targetPath, Map<String, String> objectKeyToFilepathMap,
+        BytesProgressWatcher progressWatcher, StorageServiceEventListener eventListener)
         throws ServiceException
     {
         String prefix = (targetPath.length() > 0 ? targetPath : null);
         StorageObject[] objectsIncomplete = this.listObjectsThreaded(
             service, bucketName, prefix);
-        return buildObjectMap(service, bucketName, targetPath, objectsIncomplete,
-            skipMetadata, eventListener);
+        return lookupObjectMetadataForPotentialClashes(
+            service, bucketName, targetPath,
+            objectsIncomplete, objectKeyToFilepathMap,
+            progressWatcher, eventListener);
     }
 
 
@@ -644,6 +646,8 @@ public class FileComparer {
      * @param targetPath
      * @param priorLastKey
      * the prior last key value returned by a prior invocation of this method, if any.
+     * @param objectKeyToFilepathMap
+     * map of '/'-delimited object key names to local file absolute paths
      * @param completeListing
      * if true, this method will perform a complete listing of a service target.
      * If false, the method will list a partial set of objects commencing from the
@@ -655,8 +659,9 @@ public class FileComparer {
      * @throws ServiceException
      */
     public PartialObjectListing buildObjectMapPartial(StorageService service,
-        String bucketName, String targetPath, String priorLastKey, boolean completeListing,
-        boolean skipMetadata, StorageServiceEventListener eventListener)
+        String bucketName, String targetPath, String priorLastKey,
+        Map<String, String> objectKeyToFilepathMap, boolean completeListing,
+        BytesProgressWatcher progressWatcher, StorageServiceEventListener eventListener)
         throws ServiceException
     {
         String prefix = (targetPath.length() > 0 ? targetPath : null);
@@ -672,15 +677,19 @@ public class FileComparer {
             resultPriorLastKey = chunk.getPriorLastKey();
         }
 
-        Map<String, StorageObject> objectsMap = buildObjectMap(service, bucketName,
-            targetPath, objects, skipMetadata, eventListener);
+        Map<String, StorageObject> objectsMap = lookupObjectMetadataForPotentialClashes(
+            service, bucketName, targetPath, objects, objectKeyToFilepathMap,
+            progressWatcher, eventListener);
         return new PartialObjectListing(objectsMap, resultPriorLastKey);
     }
 
     /**
-     * Builds a service Object Map containing all the given objects, by retrieving HEAD details about
-     * all the objects and using {@link #populateObjectMap(String, StorageObject[])}
-     * to product an object/key map.
+     * Given a set of storage objects for which only minimal information is available,
+     * retrieve metadata information for any objects that potentially clash with
+     * local files. An object is considered a potential clash when it has the same
+     * object key name as a local file pending upload/download, and when the hash
+     * value of the object data contents either differs from the local file's hash
+     * or the hash comparison cannot be performed without the metadata information.
      *
      * @see #buildDiscrepancyLists(Map, Map)
      * @see #buildFileMap(File[], boolean)
@@ -689,24 +698,61 @@ public class FileComparer {
      * @param bucketName
      * @param targetPath
      * @param skipMetadata
-     * @param objectsIncomplete
+     * @param objectsWithoutMetadata
      * @return
      * mapping of keys to StorageObjects
      * @throws ServiceException
      */
-    public Map<String, StorageObject> buildObjectMap(StorageService service, String bucketName,
-        String targetPath, StorageObject[] objectsIncomplete, boolean skipMetadata,
-        StorageServiceEventListener eventListener)
+    public Map<String, StorageObject> lookupObjectMetadataForPotentialClashes(
+        StorageService service, String bucketName, String targetPath,
+        StorageObject[] objectsWithoutMetadata, Map<String, String> objectKeyToFilepathMap,
+        BytesProgressWatcher progressWatcher, StorageServiceEventListener eventListener)
         throws ServiceException
     {
-        StorageObject[] objects = null;
+        Map<String, StorageObject> objectMap = populateObjectMap(targetPath, objectsWithoutMetadata);
 
-        if (skipMetadata) {
-            objects = objectsIncomplete;
-        } else {
-            // Retrieve the complete information about all objects listed via GetObjectsHeads.
+        // Identify objects that might clash with local files
+        Set<StorageObject> objectsForMetadataRetrieval = new HashSet<StorageObject>();
+        for (StorageObject object: objectsWithoutMetadata) {
+            String objectKey = object.getKey();
+            if (!objectKeyToFilepathMap.containsKey(objectKey)) {
+                // No local file corresponding to this object
+                continue;
+            }
+            if (object.isMetadataComplete()) {
+                // We already have this object's metadata
+                continue;
+            }
+            // Compare object's minimal ETag value against File's MD5 hash.
+            File file = new File(objectKeyToFilepathMap.get(objectKey));
+            String fileHashAsHex = null;
+            try {
+                if (file.isDirectory()) {
+                    // Use MD5 hash of an empty item for directories.
+                    fileHashAsHex = ServiceUtils.toHex(
+                        ServiceUtils.computeMD5Hash(new byte[] {}));
+                } else {
+                    fileHashAsHex = ServiceUtils.toHex(
+                        generateFileMD5Hash(file, objectKey, progressWatcher));
+                }
+            } catch (Exception e) {
+                throw new ServiceException(
+                    "Unable to generate MD5 hash for file " + file.getPath(), e);
+            }
+
+            if (object.getETag() != null && object.getETag().equals(fileHashAsHex)) {
+                // Object's ETag value is available and matches the MD5 hex hash of the file
+                continue;
+            }
+            // Cannot tell whether local file and object are the same,
+            // we will need all the object's metadata.
+            objectsForMetadataRetrieval.add(object);
+        }
+
+        if (objectsForMetadataRetrieval.size() > 0) {
+            // Retrieve the complete metadata information for selected objects
             final List<StorageObject> objectsCompleteList =
-                new ArrayList<StorageObject>(objectsIncomplete.length);
+                new ArrayList<StorageObject>(objectsWithoutMetadata.length);
             final ServiceException serviceExceptions[] = new ServiceException[1];
             ThreadedStorageService threadedService = new ThreadedStorageService(service,
                 new StorageServiceEventAdaptor() {
@@ -727,14 +773,18 @@ public class FileComparer {
             if (eventListener != null) {
                 threadedService.addServiceEventListener(eventListener);
             }
-            threadedService.getObjectsHeads(bucketName, objectsIncomplete);
+            threadedService.getObjectsHeads(bucketName,
+                objectsForMetadataRetrieval.toArray(new StorageObject[] {}));
             if (serviceExceptions[0] != null) {
                 throw serviceExceptions[0];
             }
-            objects = objectsCompleteList.toArray(new StorageObject[objectsCompleteList.size()]);
+
+            StorageObject[] objectsWithMetadata =
+                objectsCompleteList.toArray(new StorageObject[objectsCompleteList.size()]);
+            objectMap.putAll(populateObjectMap(targetPath, objectsWithMetadata));
         }
 
-        return populateObjectMap(targetPath, objects);
+        return objectMap;
     }
 
     /**
@@ -774,6 +824,89 @@ public class FileComparer {
             }
         }
         return map;
+    }
+
+    /**
+     *
+     * @param file
+     * @param relativeFilePath
+     * @param useMd5Files
+     * @param generateMd5Files
+     * @param md5FilesRootDirectory
+     * @param progressWatcher
+     * @return
+     * @throws NoSuchAlgorithmException
+     */
+    public byte[] generateFileMD5Hash(File file, String relativeFilePath,
+        BytesProgressWatcher progressWatcher)
+        throws IOException, NoSuchAlgorithmException
+    {
+        byte[] computedHash = null;
+
+        // Check whether a pre-computed MD5 hash file is available
+        File computedHashFile = (getMd5FilesRootDirectoryFile() != null
+            ? new File(getMd5FilesRootDirectoryFile(), relativeFilePath + ".md5")
+            : new File(file.getPath() + ".md5"));
+        if (isUseMd5Files()
+            && computedHashFile.canRead()
+            && computedHashFile.lastModified() > file.lastModified())
+        {
+            BufferedReader br = null;
+            try {
+                // A pre-computed MD5 hash file is available, try to read this hash value
+                br = new BufferedReader(new FileReader(computedHashFile));
+                computedHash = ServiceUtils.fromHex(br.readLine().split("\\s")[0]);
+            } catch (Exception e) {
+                if (log.isWarnEnabled()) {
+                    log.warn("Unable to read hash from computed MD5 file", e);
+                }
+            } finally {
+                if (br != null) {
+                    br.close();
+                }
+            }
+        }
+
+        if (computedHash == null) {
+            // A pre-computed hash file was not available, or could not be read.
+            // Calculate the hash value anew.
+            InputStream hashInputStream = null;
+            if (progressWatcher != null) {
+                hashInputStream = new ProgressMonitoredInputStream( // Report on MD5 hash progress.
+                    new FileInputStream(file), progressWatcher);
+            } else {
+                hashInputStream = new FileInputStream(file);
+            }
+            computedHash = ServiceUtils.computeMD5Hash(hashInputStream);
+        }
+
+        if (isGenerateMd5Files() && !file.getName().endsWith(".md5") &&
+            (!computedHashFile.exists()
+            || computedHashFile.lastModified() < file.lastModified()))
+        {
+            // Create parent directory for new hash file if necessary
+            File parentDir = computedHashFile.getParentFile();
+            if (parentDir != null && !parentDir.exists()) {
+                parentDir.mkdirs();
+            }
+
+            // Create or update a pre-computed MD5 hash file.
+            FileWriter fw = null;
+            try {
+                fw = new FileWriter(computedHashFile);
+                fw.write(ServiceUtils.toHex(computedHash));
+            } catch (Exception e) {
+                if (log.isWarnEnabled()) {
+                    log.warn("Unable to write computed MD5 hash to a file", e);
+                }
+            } finally {
+                if (fw != null) {
+                    fw.close();
+                }
+            }
+        }
+
+        return computedHash;
     }
 
     /**
@@ -832,25 +965,6 @@ public class FileComparer {
         Set<String> alreadySynchronisedKeys = new HashSet<String>();
         Set<String> alreadySynchronisedLocalPaths = new HashSet<String>();
 
-        // Read property settings for file comparison.
-        boolean useMd5Files = jets3tProperties
-            .getBoolProperty("filecomparer.use-md5-files", false);
-        boolean generateMd5Files = jets3tProperties
-            .getBoolProperty("filecomparer.generate-md5-files", false);
-        boolean assumeLocalLatestInMismatch = jets3tProperties
-            .getBoolProperty("filecomparer.assume-local-latest-in-mismatch", false);
-        String md5FilesRootDirectoryPath = jets3tProperties
-            .getStringProperty("filecomparer.md5-files-root-dir", null);
-        File md5FilesRootDirectory = null;
-        if (md5FilesRootDirectoryPath != null) {
-            md5FilesRootDirectory = new File(md5FilesRootDirectoryPath);
-            if (!md5FilesRootDirectory.isDirectory()) {
-                throw new FileNotFoundException(
-                    "filecomparer.md5-files-root-dir path is not a directory: "
-                    + md5FilesRootDirectoryPath);
-            }
-        }
-
         // Check files on server against local client files.
         Iterator<Map.Entry<String, StorageObject>> objectsMapIter = objectsMap.entrySet().iterator();
         while (objectsMapIter.hasNext()) {
@@ -882,72 +996,8 @@ public class FileComparer {
                     }
                     // Compare file hashes.
                     else {
-                        byte[] computedHash = null;
-
-                        // Check whether a pre-computed MD5 hash file is available
-                        File computedHashFile = (md5FilesRootDirectory != null
-                            ? new File(md5FilesRootDirectory, localPath + ".md5")
-                            : new File(file.getPath() + ".md5"));
-                        if (useMd5Files
-                            && computedHashFile.canRead()
-                            && computedHashFile.lastModified() > file.lastModified())
-                        {
-                            BufferedReader br = null;
-                            try {
-                                // A pre-computed MD5 hash file is available, try to read this hash value
-                                br = new BufferedReader(new FileReader(computedHashFile));
-                                computedHash = ServiceUtils.fromHex(br.readLine().split("\\s")[0]);
-                            } catch (Exception e) {
-                                if (log.isWarnEnabled()) {
-                                    log.warn("Unable to read hash from computed MD5 file", e);
-                                }
-                            } finally {
-                                if (br != null) {
-                                    br.close();
-                                }
-                            }
-                        }
-
-                        if (computedHash == null) {
-                            // A pre-computed hash file was not available, or could not be read.
-                            // Calculate the hash value anew.
-                            InputStream hashInputStream = null;
-                            if (progressWatcher != null) {
-                                hashInputStream = new ProgressMonitoredInputStream( // Report on MD5 hash progress.
-                                    new FileInputStream(file), progressWatcher);
-                            } else {
-                                hashInputStream = new FileInputStream(file);
-                            }
-                            computedHash = ServiceUtils.computeMD5Hash(hashInputStream);
-                        }
-
-                        String fileHashAsBase64 = ServiceUtils.toBase64(computedHash);
-
-                        if (generateMd5Files && !file.getName().endsWith(".md5") &&
-                            (!computedHashFile.exists()
-                            || computedHashFile.lastModified() < file.lastModified()))
-                        {
-                            // Create parent directory for new hash file if necessary
-                            File parentDir = computedHashFile.getParentFile();
-                            if (parentDir != null && !parentDir.exists()) {
-                                parentDir.mkdirs();
-                            }
-
-                            // Create or update a pre-computed MD5 hash file.
-                            FileWriter fw = null;
-                            try {
-                                fw = new FileWriter(computedHashFile);
-                                fw.write(ServiceUtils.toHex(computedHash));
-                            } catch (Exception e) {
-                                if (log.isWarnEnabled()) {
-                                    log.warn("Unable to write computed MD5 hash to a file", e);
-                                }
-                            } finally {
-                                if (fw != null) {
-                                    fw.close();
-                                }
-                            }
-                        }
+                        String fileHashAsBase64 = ServiceUtils.toBase64(
+                            generateFileMD5Hash(file, localPath, progressWatcher));
 
                         // Get the service object's Base64 hash.
                         String objectHash = null;
@@ -976,7 +1026,7 @@ public class FileComparer {
 
                             if (metadataLocalFileDate == null) {
                                 // This is risky as local file times and service times don't match!
-                                if (!assumeLocalLatestInMismatch && log.isWarnEnabled()) {
+                                if (!isAssumeLocalLatestInMismatch() && log.isWarnEnabled()) {
                                     log.warn("Using service last modified date as file date. This is not reliable "
                                     + "as the time according to service can differ from your local system time. "
                                     + "Please use the metadata item "
@@ -995,7 +1045,7 @@ public class FileComparer {
                                 // Local file date and service object date values match exactly, yet the
                                 // local file has a different hash. This shouldn't ever happen, but
                                 // sometimes does with Excel files.
-                                if (assumeLocalLatestInMismatch) {
+                                if (isAssumeLocalLatestInMismatch()) {
                                     if (log.isWarnEnabled()) {
                                         log.warn("Backed-up object " + storageObject.getKey()
                                         + " and local file " + file.getName()
@@ -1044,6 +1094,41 @@ public class FileComparer {
             dirPathsInOrder[i] = myPath;
         }
         return dirPathsInOrder;
+    }
+
+    public boolean isSkipSymlinks() {
+        return jets3tProperties.getBoolProperty("filecomparer.skip-symlinks", false);
+    }
+
+    public boolean isUseMd5Files() {
+        return jets3tProperties.getBoolProperty("filecomparer.use-md5-files", false);
+    }
+
+    public boolean isGenerateMd5Files() {
+        return jets3tProperties.getBoolProperty("filecomparer.generate-md5-files", false);
+    }
+
+    public boolean isSkipMd5FileUpload() {
+        return jets3tProperties.getBoolProperty("filecomparer.skip-upload-of-md5-files", false);
+    }
+
+    public boolean isAssumeLocalLatestInMismatch() {
+        return jets3tProperties.getBoolProperty(
+            "filecomparer.assume-local-latest-in-mismatch", false);
+    }
+
+    public File getMd5FilesRootDirectoryFile() throws FileNotFoundException {
+        String dirPath = jets3tProperties.getStringProperty(
+            "filecomparer.md5-files-root-dir", null);
+        if (dirPath != null) {
+            File dirFile = new File(dirPath);
+            if (!dirFile.isDirectory()) {
+                throw new FileNotFoundException(
+                    "filecomparer.md5-files-root-dir path is not a directory: " + dirPath);
+            }
+            return dirFile;
+        }
+        return null;
     }
 
     public class PartialObjectListing {
