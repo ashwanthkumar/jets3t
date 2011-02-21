@@ -26,10 +26,12 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
 
 import org.jets3t.service.Constants;
@@ -304,16 +306,21 @@ public class Synchronize {
      * <li>An MD5 hash of file data, as {@link StorageObject#METADATA_HEADER_HASH_MD5}</li>
      * </ul>
      *
-     * @param filesMap      a map of the local <code>File</code>s with '/'-delimited file paths as keys
-     * @param bucket        the bucket to put the objects in (will be created if necessary)
-     * @param rootObjectPath    the root path where objects are put (will be created if necessary)
-     * @param aclString     the ACL to apply to the uploaded object
-     * @param progressWatcher a class that reports on the progress of this method
+     * @param objectKeyToFilepathMap
+     * map of '/'-delimited object key names to local file absolute paths
+     * @param bucket
+     * the bucket to put the objects in (will be created if necessary)
+     * @param rootObjectPath
+     * the root path where objects are put (will be created if necessary)
+     * @param aclString
+     * the ACL to apply to the uploaded object
+     * @param progressWatcher
+     * a class that reports on the progress of this method
      *
      * @throws Exception
      */
-    public void uploadLocalDirectory(Map<String, File> filesMap, StorageBucket bucket,
-        String rootObjectPath, String aclString,
+    public void uploadLocalDirectory(Map<String, String> objectKeyToFilepathMap,
+        StorageBucket bucket, String rootObjectPath, String aclString,
         BytesProgressWatcher progressWatcher) throws Exception
     {
         FileComparerResults mergedDiscrepancyResults = new FileComparerResults();
@@ -351,16 +358,16 @@ public class Synchronize {
             List<String> sortedObjectKeys = new ArrayList<String>(objectsMap.keySet());
             Collections.sort(sortedObjectKeys);
 
-            // Compare the listed objects with the local sytem.
+            // Compare the listed objects with the local system.
             printProgressLine("Comparing service contents with local system");
             FileComparerResults discrepancyResults = fileComparer.buildDiscrepancyLists(
-                filesMap, objectsMap, progressWatcher);
+                objectKeyToFilepathMap, objectsMap, progressWatcher);
 
             // Merge objects and discrepancies to track overall changes.
             mergedDiscrepancyResults.merge(discrepancyResults);
 
             // Sort upload file candidates by path.
-            List<String> sortedFilesKeys = new ArrayList<String>(filesMap.keySet());
+            List<String> sortedFilesKeys = new ArrayList<String>(objectKeyToFilepathMap.keySet());
             Collections.sort(sortedFilesKeys);
 
             List<LazyPreparedUploadObject> objectsToUpload = new ArrayList<LazyPreparedUploadObject>();
@@ -393,7 +400,7 @@ public class Synchronize {
                     }
                 }
 
-                File file = filesMap.get(relativeKeyPath);
+                File file = new File(objectKeyToFilepathMap.get(relativeKeyPath));
 
                 if (discrepancyResults.onlyOnClientKeys.contains(relativeKeyPath)) {
                     printOutputLine("N " + targetKey, REPORT_LEVEL_ACTIONS);
@@ -521,7 +528,7 @@ public class Synchronize {
             Iterator<String> filesMovedIter = filesMoved.iterator();
             while (filesMovedIter.hasNext()) {
                 String keyPath = filesMovedIter.next();
-                File file = filesMap.get(keyPath);
+                File file = new File(objectKeyToFilepathMap.get(keyPath));
 
                 printOutputLine("M " + keyPath, REPORT_LEVEL_ACTIONS);
                 if (doAction) {
@@ -583,16 +590,20 @@ public class Synchronize {
      * restored with only the gzip option set, as files are gzipped prior to being encrypted and cannot
      * be inflated without first being decrypted.
      *
-     * @param filesMap      a map of the local <code>File</code>s with '/'-delimited file paths as keys
-     * @param rootObjectPath    the root path in service where backed-up objects were stored
+     * @param objectKeyToFilepathMap
+     * map of '/'-delimited object key names to local file absolute paths
+     * @param rootObjectPath
+     * the root path in service where backed-up objects were stored
      * @param localDirectory the directory to which the objects will be restored
-     * @param bucket        the bucket into which files were backed up
-     * @param progressWatcher a class that reports on the progress of this method
+     * @param bucket
+     * the bucket into which files were backed up
+     * @param progressWatcher
+     * a class that reports on the progress of this method
      *
      * @throws Exception
      */
-    public void restoreToLocalDirectory(Map<String, File> filesMap, String rootObjectPath,
-        File localDirectory, StorageBucket bucket,
+    public void restoreToLocalDirectory(Map<String, String> objectKeyToFilepathMap,
+        String rootObjectPath, File localDirectory, StorageBucket bucket,
         BytesProgressWatcher progressWatcher) throws Exception
     {
         FileComparerResults mergedDiscrepancyResults = new FileComparerResults();
@@ -625,7 +636,7 @@ public class Synchronize {
             // Compare the listed objects with the local sytem.
             printProgressLine("Comparing service contents with local system");
             FileComparerResults discrepancyResults = fileComparer.buildDiscrepancyLists(
-                filesMap, objectsMap, progressWatcher);
+                objectKeyToFilepathMap, objectsMap, progressWatcher);
 
             // Merge objects and discrepancies to track overall changes.
             mergedDiscrepancyResults.merge(discrepancyResults);
@@ -725,7 +736,7 @@ public class Synchronize {
         Iterator<String> clientOnlyIter = mergedDiscrepancyResults.onlyOnClientKeys.iterator();
         while (clientOnlyIter.hasNext()) {
             String keyPath = clientOnlyIter.next();
-            File file = filesMap.get(keyPath);
+            File file = new File(objectKeyToFilepathMap.get(keyPath));
 
             if (isKeepFiles || isNoDelete) {
                 printOutputLine("d " + keyPath, REPORT_LEVEL_DIFFERENCES);
@@ -817,8 +828,8 @@ public class Synchronize {
      *
      * @param servicePath
      * the path in service (including the bucket name) to which files are backed-up, or from which files are restored.
-     * @param fileList
-     * a list one or more of File objects for Uploads, or a single target directory for Downloads.
+     * @param fileSet
+     * a set of one or more of File objects for Uploads, or a single target directory for Downloads.
      * @param actionCommand
      * the action to perform, UP(load) or DOWN(load)
      * @param cryptoPassword
@@ -828,7 +839,7 @@ public class Synchronize {
      *
      * @throws Exception
      */
-    public void run(String servicePath, List<File> fileList, String actionCommand, String cryptoPassword,
+    public void run(String servicePath, Set<File> fileSet, String actionCommand, String cryptoPassword,
         String aclString, String providerId) throws Exception
     {
         String bucketName = null;
@@ -847,11 +858,11 @@ public class Synchronize {
         if ("UP".equals(actionCommand)) {
             String uploadPathSummary = null;
 
-            if (fileList.size() > 3) {
+            if (fileSet.size() > 3) {
                 int dirsCount = 0;
                 int filesCount = 0;
 
-                Iterator<File> pathIter = fileList.iterator();
+                Iterator<File> pathIter = fileSet.iterator();
                 while (pathIter.hasNext()) {
                     File path = pathIter.next();
                     if (path.isDirectory()) {
@@ -865,7 +876,7 @@ public class Synchronize {
                     + dirsCount + (dirsCount == 1 ? " directory" : " directories")
                     + ", " + filesCount + (filesCount == 1 ? " file" : " files") + "]";
             } else {
-                uploadPathSummary = fileList.toString();
+                uploadPathSummary = fileSet.toString();
             }
 
             printOutputLine("UP "
@@ -873,12 +884,12 @@ public class Synchronize {
                 + "Local " + uploadPathSummary + " => " + providerId + "[" + servicePath + "]",
                 REPORT_LEVEL_NONE);
         } else if ("DOWN".equals(actionCommand)) {
-            if (fileList.size() != 1) {
+            if (fileSet.size() != 1) {
                 throw new SynchronizeException("Only one target directory is allowed for downloads");
             }
             printOutputLine("DOWN "
                 + (doAction ? "" : "[No Action] ")
-                + providerId + "[" + servicePath + "] => Local" + fileList, REPORT_LEVEL_NONE);
+                + providerId + "[" + servicePath + "] => Local" + fileSet, REPORT_LEVEL_NONE);
         } else {
             throw new SynchronizeException("Action string must be 'UP' or 'DOWN'");
         }
@@ -918,25 +929,28 @@ public class Synchronize {
 
         // Compare contents of local directory with contents of service path and identify any disrepancies.
         printProgressLine("Listing files in local file system");
-        Map<String, File> filesMap = null;
+        String fileKeyPrefix = "";
+        Map<String, String> objectKeyToFilepathMap = null;
         if ("UP".equals(actionCommand)) {
-            File[] files = fileList.toArray(new File[fileList.size()]);
-            for (int i = 0; i < files.length; i++) {
-                if (!files[i].exists()) {
-                    throw new IOException("File '" + files[i].getPath() + "' does not exist");
+            // Ensure all files/directories chosen for upload exist and are accessible
+            for (File file: fileSet) {
+                if (!file.exists()) {
+                    throw new IOException("File '" + file.getPath() + "' does not exist");
                 }
             }
 
-            filesMap = fileComparer.buildFileMap(files, storeEmptyDirectories);
+            objectKeyToFilepathMap = fileComparer.buildObjectKeyToFilepathMap(
+                fileSet, fileKeyPrefix, storeEmptyDirectories);
         } else if ("DOWN".equals(actionCommand)) {
-            filesMap = fileComparer.buildFileMap(fileList.get(0), null, true);
+            objectKeyToFilepathMap = fileComparer.buildObjectKeyToFilepathMap(
+                fileSet, fileKeyPrefix, true);
         }
 
         // Calculate total files size.
         final long filesSizeTotal[] = new long[] { 0 };
-        File[] files = filesMap.values().toArray(new File[filesMap.size()]);
-        for (int i = 0; i < files.length; i++) {
-            filesSizeTotal[0] += files[i].length();
+        for (String filePath: objectKeyToFilepathMap.values()) {
+            File file = new File(filePath);
+            filesSizeTotal[0] += file.length();
         }
 
         // Monitor generation of MD5 hashes, and provide feedback via progress messages.
@@ -953,11 +967,12 @@ public class Synchronize {
 
         // Perform the requested action on the set of disrepancies.
         if ("UP".equals(actionCommand)) {
-            uploadLocalDirectory(filesMap, bucket, objectPath,
+            uploadLocalDirectory(objectKeyToFilepathMap, bucket, objectPath,
                 aclString, progressWatcher);
         } else if ("DOWN".equals(actionCommand)) {
-            restoreToLocalDirectory(filesMap, objectPath,
-                fileList.get(0), bucket, progressWatcher);
+            File targetDirectory = fileSet.iterator().next();
+            restoreToLocalDirectory(objectKeyToFilepathMap, objectPath,
+                targetDirectory, bucket, progressWatcher);
         }
     }
 
@@ -1200,7 +1215,7 @@ public class Synchronize {
         String actionCommand = null;
         String servicePath = null;
         int reqArgCount = 0;
-        List<File> fileList = new ArrayList<File>();
+        Set<File> fileSet = new HashSet<File>();
 
         // Options
         boolean doAction = true;
@@ -1383,13 +1398,13 @@ public class Synchronize {
                             }
                         }
                     }
-                    fileList.add(file);
+                    fileSet.add(file);
                 }
                 reqArgCount++;
             }
         }
 
-        if (fileList.size() < 1
+        if (fileSet.size() < 1
             && !myProperties.getBoolProperty("upload.ignoreMissingPaths", false))
         {
             // Missing one or more required parameters.
@@ -1495,7 +1510,7 @@ public class Synchronize {
             service, doAction, isQuiet, isNoProgress, isForce, isKeepFiles, isNoDelete,
             isMoveEnabled, isBatchMode, isSkipMetadata, isGzipEnabled,
             isEncryptionEnabled, reportLevel, myProperties);
-        client.run(servicePath, fileList, actionCommand,
+        client.run(servicePath, fileSet, actionCommand,
             myProperties.getStringProperty("password", null), aclString,
             providerId.toUpperCase());
     }
