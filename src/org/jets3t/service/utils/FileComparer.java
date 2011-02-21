@@ -287,15 +287,23 @@ public class FileComparer {
     }
 
     /**
-     * Builds a File Map containing the given files. If any of the given files are actually
-     * directories, the contents of the directory are included.
+     * Builds a map of files and directories that exist on the local system, where the map
+     * keys are the object key names that will be used for the files in a remote storage
+     * service, and the map values are absolute paths (Strings) to that file in the local
+     * file system. The entire local file hierarchy within the given set of files and
+     * directories is traversed (i.e. sub-directories are included.)
      * <p>
-     * File keys are delimited with '/' characters.
+     * A file/directory hierarchy is represented using '/' delimiter characters in
+     * object key names.
      * <p>
      * Any file or directory matching a path in a <code>.jets3t-ignore</code> file will be ignored.
      *
-     * @param files
-     * the set of files/directories to include in the file map.
+     * @param fileList
+     * the set of files and directories to include in the file map.
+     * @param fileKeyPrefix
+     * A prefix added to each file path key in the map, e.g. the name of the root directory the
+     * files belong to. If provided, a '/' suffix is always added to the end of the prefix. If null
+     * or empty, no prefix is used.
      * @param includeDirectories
      * If true all directories, including empty ones, will be included in the Map. These directories
      * will be mere place-holder objects with a trailing slash (/) character in the name and the
@@ -306,15 +314,19 @@ public class FileComparer {
      * @return
      * a Map of file path keys to File objects.
      */
-    public Map<String, File> buildFileMap(File[] files, boolean includeDirectories) {
+    public Map<String, String> buildObjectKeyToFilepathMap(
+        Set<File> fileList, String fileKeyPrefix, boolean includeDirectories)
+    {
+        if (fileKeyPrefix == null || fileKeyPrefix.trim().length() == 0) {
+            fileKeyPrefix = "";
+        }
+
         // Build map of files proposed for upload or download.
-        Map<String, File> fileMap = new HashMap<String, File>();
+        Map<String, String> objectKeyToFilepathMap = new HashMap<String, String>();
         List<Pattern> ignorePatternList = null;
         List<Pattern> ignorePatternListForCurrentDir = null;
 
-        for (int i = 0; i < files.length; i++) {
-            File file = files[i];
-
+        for (File file: fileList) {
             if (file.getParentFile() == null) {
                 // For direct references to a file or dir, look for a .jets3t-ignore file
                 // in the current directory - only do this once for the current dir.
@@ -330,70 +342,32 @@ public class FileComparer {
                 if (!file.exists()) {
                     continue;
                 }
+                String objectKeyName = normalizeUnicode(file.getName());
                 if (!file.isDirectory()) {
-                    fileMap.put(normalizeUnicode(file.getName()), file);
-                }
-                if (file.isDirectory() && includeDirectories) {
-                    String fileName = normalizeUnicode(file.getName() + Constants.FILE_PATH_DELIM);
-                    fileMap.put(fileName, file);
-                    buildFileMapImpl(file, fileName, fileMap, includeDirectories, ignorePatternList);
+                    objectKeyToFilepathMap.put(objectKeyName, file.getAbsolutePath());
+                } else {
+                    objectKeyName += Constants.FILE_PATH_DELIM;
+                    if (includeDirectories) {
+                        objectKeyToFilepathMap.put(objectKeyName, file.getAbsolutePath());
+                    }
+                    buildObjectKeyToFilepathMapForDirectory(
+                        file, objectKeyName, objectKeyToFilepathMap,
+                        includeDirectories, ignorePatternList);
                 }
             }
         }
-        return fileMap;
+        return objectKeyToFilepathMap;
     }
 
     /**
-     * Builds a File Map containing all the files and directories inside the given root directory,
-     * where the map's key for each file is the relative path to the file.
+     * Recursively builds a map of object key names to file paths that contains
+     * all the files and directories inside the given directory. The map
+     * keys are the object key names that will be used for the files in a remote storage
+     * service, and the map values are absolute paths (Strings) to that file in the local
+     * file system.
      * <p>
-     * File keys are delimited with '/' characters.
-     * <p>
-     * Any file or directory matching a path in a <code>.jets3t-ignore</code> file will be ignored.
-     *
-     * @see #buildDiscrepancyLists(Map, Map)
-     * @see #buildObjectMap(StorageService, String, String, boolean, StorageServiceEventListener)
-     *
-     * @param rootDirectory
-     * The root directory containing the files/directories of interest. The root directory is <b>not</b>
-     * included in the result map.
-     * @param fileKeyPrefix
-     * A prefix added to each file path key in the map, e.g. the name of the root directory the
-     * files belong to. If provided, a '/' suffix is always added to the end of the prefix. If null
-     * or empty, no prefix is used.
-     * @param includeDirectories
-     * If true all directories, including empty ones, will be included in the Map. These directories
-     * will be mere place-holder objects with a trailing slash (/) character in the name and the
-     * content type {@link Mimetypes#MIMETYPE_BINARY_OCTET_STREAM}.
-     * If this variable is false directory objects will not be included in the Map, and it will not
-     * be possible to store empty directories in the service.
-     *
-     * @return A Map of file path keys to File objects.
-     */
-    public Map<String, File> buildFileMap(File rootDirectory, String fileKeyPrefix,
-        boolean includeDirectories)
-    {
-        Map<String, File> fileMap = new HashMap<String, File>();
-        List<Pattern> ignorePatternList = buildIgnoreRegexpList(rootDirectory, null);
-
-        if (!isIgnored(ignorePatternList, rootDirectory)) {
-            if (fileKeyPrefix == null || fileKeyPrefix.length() == 0) {
-                fileKeyPrefix = "";
-            } else {
-                if (!fileKeyPrefix.endsWith(Constants.FILE_PATH_DELIM)) {
-                    fileKeyPrefix += Constants.FILE_PATH_DELIM;
-                }
-            }
-            buildFileMapImpl(rootDirectory, fileKeyPrefix, fileMap, includeDirectories, ignorePatternList);
-        }
-        return fileMap;
-    }
-
-    /**
-     * Recursively builds a File Map containing all the files and directories inside the given directory,
-     * where the map's key for each file is the relative path to the file.
-     * <p>
-     * File keys are delimited with '/' characters.
+     * A file/directory hierarchy is represented using '/' delimiter characters in
+     * object key names.
      * <p>
      * Any file or directory matching a path in a <code>.jets3t-ignore</code> file will be ignored.
      *
@@ -417,24 +391,26 @@ public class FileComparer {
      * See {@link #buildIgnoreRegexpList(File, List)} for more information.
      * If this parameter is null, no parent ignore patterns are applied.
      */
-    protected void buildFileMapImpl(File directory, String fileKeyPrefix,
-        Map<String, File> fileMap, boolean includeDirectories, List<Pattern> parentIgnorePatternList)
+    protected void buildObjectKeyToFilepathMapForDirectory(File directory, String fileKeyPrefix,
+        Map<String, String> objectKeyToFilepathMap, boolean includeDirectories,
+        List<Pattern> parentIgnorePatternList)
     {
         List<Pattern> ignorePatternList = buildIgnoreRegexpList(directory, parentIgnorePatternList);
 
-        File children[] = directory.listFiles();
-        for (int i = 0; children != null && i < children.length; i++) {
-            if (!isIgnored(ignorePatternList, children[i])) {
-                String filePath = normalizeUnicode(fileKeyPrefix + children[i].getName());
-                if (children[i].isDirectory() && includeDirectories) {
-                    fileMap.put(filePath + Constants.FILE_PATH_DELIM, children[i]);
-                } else if (!children[i].isDirectory()) {
-                    fileMap.put(filePath, children[i]);
-                }
-                if (children[i].isDirectory()) {
-                    buildFileMapImpl(
-                        children[i], filePath + Constants.FILE_PATH_DELIM,
-                        fileMap, includeDirectories, ignorePatternList);
+        for (File childFile: directory.listFiles()) {
+            if (!isIgnored(ignorePatternList, childFile)) {
+                String objectKeyName = normalizeUnicode(fileKeyPrefix + childFile.getName());
+
+                if (!childFile.isDirectory()) {
+                    objectKeyToFilepathMap.put(objectKeyName, childFile.getAbsolutePath());
+                } else {
+                    objectKeyName += Constants.FILE_PATH_DELIM;
+                    if (includeDirectories) {
+                        objectKeyToFilepathMap.put(objectKeyName, childFile.getAbsolutePath());
+                    }
+                    buildObjectKeyToFilepathMapForDirectory(
+                        childFile, objectKeyName, objectKeyToFilepathMap,
+                        includeDirectories, ignorePatternList);
                 }
             }
         }
@@ -805,8 +781,8 @@ public class FileComparer {
      * resource. This comparison is performed on a map of files and a map of service objects previously
      * generated using other methods in this class.
      *
-     * @param filesMap
-     * a map of keys/Files built using the method {@link #buildFileMap(File, String, boolean)}
+     * @param objectKeyToFilepathMap
+     * map of '/'-delimited object key names to local file absolute paths
      * @param objectsMap
      * a map of keys to StorageObjects built using the method
      * {@link #buildObjectMap(StorageService, String, String, boolean, StorageServiceEventListener)}
@@ -818,11 +794,11 @@ public class FileComparer {
      * @throws IOException
      * @throws ParseException
      */
-    public FileComparerResults buildDiscrepancyLists(Map<String, File> filesMap,
-        Map<String, StorageObject> objectsMap)
+    public FileComparerResults buildDiscrepancyLists(
+        Map<String, String> objectKeyToFilepathMap, Map<String, StorageObject> objectsMap)
         throws NoSuchAlgorithmException, FileNotFoundException, IOException, ParseException
     {
-        return buildDiscrepancyLists(filesMap, objectsMap, null);
+        return buildDiscrepancyLists(objectKeyToFilepathMap, objectsMap, null);
     }
 
     /**
@@ -830,8 +806,8 @@ public class FileComparer {
      * resource. This comparison is performed on a map of files and a map of service objects previously
      * generated using other methods in this class.
      *
-     * @param filesMap
-     * a map of keys/Files built using the method {@link #buildFileMap(File, String, boolean)}
+     * @param objectKeyToFilepathMap
+     * map of '/'-delimited object key names to local file absolute paths
      * @param objectsMap
      * a map of keys to StorageObjects built using the method
      * {@link #buildObjectMap(StorageService, String, String, boolean, StorageServiceEventListener)}
@@ -845,7 +821,7 @@ public class FileComparer {
      * @throws IOException
      * @throws ParseException
      */
-    public FileComparerResults buildDiscrepancyLists(Map<String, File> filesMap,
+    public FileComparerResults buildDiscrepancyLists(Map<String, String> objectKeyToFilepathMap,
         Map<String, StorageObject> objectsMap, BytesProgressWatcher progressWatcher)
         throws NoSuchAlgorithmException, FileNotFoundException, IOException, ParseException
     {
@@ -890,9 +866,9 @@ public class FileComparer {
                 componentCount += 1;
 
                 // Check whether local file is already on server
-                if (filesMap.containsKey(localPath)) {
+                if (objectKeyToFilepathMap.containsKey(localPath)) {
                     // File has been backed up in the past, is it still up-to-date?
-                    File file = filesMap.get(localPath);
+                    File file = new File(objectKeyToFilepathMap.get(localPath));
 
                     // We don't care about directory date changes, as long as it's present.
                     if (file.isDirectory()) {
@@ -1045,7 +1021,7 @@ public class FileComparer {
         }
 
         // Any local files not already put into another list only exist locally.
-        onlyOnClientKeys.addAll(filesMap.keySet());
+        onlyOnClientKeys.addAll(objectKeyToFilepathMap.keySet());
         onlyOnClientKeys.removeAll(updatedOnClientKeys);
         onlyOnClientKeys.removeAll(updatedOnServerKeys);
         onlyOnClientKeys.removeAll(alreadySynchronisedKeys);
