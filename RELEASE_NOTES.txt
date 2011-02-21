@@ -13,6 +13,8 @@ TOOLKIT
   files within directories from being noticed and removed from the
   remote service. Also affected JetS3t's Synchronize and Cockpit apps.
   See https://bitbucket.org/jmurty/jets3t/issue/69
+- Greatly reduced memory usage in FileComparer file comparison
+  utilities when working with large numbers of files.
 
   * S3Service
 
@@ -31,6 +33,23 @@ TOOLKIT
 
 - Added support for custom (non-S3) distribution origins (API 2010-11-01).
 
+SYNCHRONIZE
+
+- Added support for the Amazon S3 service's Multipart Upload feature,
+  which allows large files to be uploaded in smaller parts for improved
+  transfer performance or to upload files larger than 5 GB.
+- Added new property "upload.max-part-size" to synchronize.properties
+  file, to allow the maximum upload part size to be configured when
+  using the Amazon S3 service. The maximum part size defaults to 5 GB.
+- Improved batching algorithm to reduce memory usage when working with
+  large numbers of files.
+- Improved file comparison logic so object metadata is only retrieved
+  from a service when it is required.
+- Removed support for "--skip-metadata" option. This option is no longer
+  necessary since metadata retrieval is more intelligent, and is not
+  desirable because metadata retrieval is now required to compare any
+  object uploaded using the Multipart Upload mechanism. 
+
 COCKPIT
 
 - Fixed nasty bug that prevented directories from being included when 
@@ -39,6 +58,7 @@ COCKPIT
 KUDOS TO:
 
 - gillouxg on BitBucket for patches for Multipart functionality.
+- Tim Sylvester for patches related to Multipart Uploads.
 
 
 -------------

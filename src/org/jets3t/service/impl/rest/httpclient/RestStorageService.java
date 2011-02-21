@@ -1660,7 +1660,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
 
         // Apply per-object or default storage class when uploading object,
         // unless object is part of a multipart upload
-        if (!requestParams.containsKey("uploadId")) {
+        if (requestParams == null || !requestParams.containsKey("uploadId")) {
             prepareStorageClass(metadata, storageClass, objectKey);
         }
 

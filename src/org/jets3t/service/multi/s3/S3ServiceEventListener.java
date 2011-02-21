@@ -29,4 +29,8 @@ public interface S3ServiceEventListener extends StorageServiceEventListener {
 
     public void event(MultipartUploadsEvent event);
 
+    public void event(MultipartStartsEvent event);
+
+    public void event(MultipartCompletesEvent event);
+
 }

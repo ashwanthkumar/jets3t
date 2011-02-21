@@ -2059,14 +2059,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         downloadDirectory = fileChooser.getSelectedFile();
 
         // Find clashing files
-        final Map filesAlreadyInDownloadDirectoryMap = new HashMap();
+        final Map<String, String> objectKeyToFilepathMap = new HashMap<String, String>();
         S3Object[] objectsForDownload = getSelectedObjects();
         for (int i = 0; i < objectsForDownload.length; i++) {
-            File file = new File(downloadDirectory,
-                objectsForDownload[i].getKey());
+            File file = new File(downloadDirectory, objectsForDownload[i].getKey());
             if (file.exists()) {
-                filesAlreadyInDownloadDirectoryMap.put(
-                    objectsForDownload[i].getKey(), file);
+                objectKeyToFilepathMap.put(objectsForDownload[i].getKey(),
+                    file.getAbsolutePath());
             }
         }
 
@@ -2085,8 +2084,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
                 try {
                     final FileComparerResults comparisonResults = compareRemoteAndLocalFiles(
-                        filesAlreadyInDownloadDirectoryMap,
-                        s3DownloadObjectsMap);
+                        objectKeyToFilepathMap, s3DownloadObjectsMap);
 
                     DownloadPackage[] downloadPackages =
                         buildDownloadPackageList(comparisonResults, s3DownloadObjectsMap);
@@ -2202,10 +2200,9 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             startProgressDialog(statusText, "", 0, 100, null, null);
 
             // Calculate total files size.
-            File[] files = objectKeyToFilepathMap.values().toArray(new File[objectKeyToFilepathMap.size()]);
             final long filesSizeTotal[] = new long[1];
-            for (int i = 0; i < files.length; i++) {
-                filesSizeTotal[0] += files[i].length();
+            for (String filepath: objectKeyToFilepathMap.values()) {
+                filesSizeTotal[0] += (new File(filepath)).length();
             }
 
             // Monitor generation of MD5 hash, and provide feedback via the progress bar.

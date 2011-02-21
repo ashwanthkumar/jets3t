@@ -715,6 +715,12 @@ public class FileComparer {
         Set<StorageObject> objectsForMetadataRetrieval = new HashSet<StorageObject>();
         for (StorageObject object: objectsWithoutMetadata) {
             String objectKey = object.getKey();
+            if (!ServiceUtils.isEtagAlsoAnMD5Hash(object.getETag())) {
+                // Always retrieve metadata for objects whose ETags are
+                // not MD5 hash values (e.g. multipart uploads)
+                objectsForMetadataRetrieval.add(object);
+                continue;
+            }
             if (!objectKeyToFilepathMap.containsKey(objectKey)) {
                 // No local file corresponding to this object
                 continue;
@@ -1125,6 +1131,7 @@ public class FileComparer {
         return jets3tProperties.getBoolProperty(
             "filecomparer.assume-local-latest-in-mismatch", false);
     }
+
 
     public File getMd5FilesRootDirectoryFile() throws FileNotFoundException {
         String dirPath = jets3tProperties.getStringProperty(

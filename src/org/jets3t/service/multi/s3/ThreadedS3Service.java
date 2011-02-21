@@ -12,6 +12,7 @@ import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.io.InterruptableInputStream;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.io.TempFile;
+import org.jets3t.service.model.MultipartCompleted;
 import org.jets3t.service.model.MultipartUpload;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageObject;
@@ -37,14 +38,180 @@ public class ThreadedS3Service extends ThreadedStorageService {
             }
         }
         for (StorageServiceEventListener listener: this.serviceEventListeners) {
-            if (event instanceof MultipartUploadsEvent) {
-                if (listener instanceof S3ServiceEventListener) {
+            if (listener instanceof S3ServiceEventListener) {
+                if (event instanceof MultipartUploadsEvent) {
                     ((S3ServiceEventListener)listener).event((MultipartUploadsEvent) event);
+                } else if (event instanceof MultipartStartsEvent) {
+                    ((S3ServiceEventListener)listener).event((MultipartStartsEvent) event);
+                } else if (event instanceof MultipartCompletesEvent) {
+                    ((S3ServiceEventListener)listener).event((MultipartCompletesEvent) event);
+                } else {
+                    super.fireServiceEvent(event);
                 }
             } else {
                 super.fireServiceEvent(event);
             }
         }
+    }
+
+    private void assertIsS3Service() {
+        if (!(storageService instanceof S3Service)) {
+            throw new IllegalStateException(
+                "Multipart uploads are only available in Amazon S3, " +
+                "you must use the S3Service implementation of StorageService");
+        }
+    }
+
+    /**
+     * Starts multiple multipart uploads and sends {@link MultipartStartsEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property
+     * <tt>threaded-service.max-admin-thread-count</tt>.
+     *
+     * @param bucketName
+     * the target bucket.
+     * @param objects
+     * a list of objects representing the overall multipart object.
+     *
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
+     */
+    public boolean multipartStartUploads(final String bucketName, final List<StorageObject> objects)
+    {
+        assertIsS3Service();
+        final List<StorageObject> incompletedObjectsList = new ArrayList<StorageObject>();
+        final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final boolean[] success = new boolean[] {true};
+
+        // Start all queries in the background.
+        List<MultipartStartRunnable> runnableList = new ArrayList<MultipartStartRunnable>();
+        for (StorageObject object: objects) {
+            incompletedObjectsList.add(object);
+            runnableList.add(new MultipartStartRunnable(bucketName, object));
+        }
+
+        // Wait for threads to finish, or be canceled.
+        ThreadWatcher threadWatcher = new ThreadWatcher(runnableList.size());
+        (new ThreadGroupManager(runnableList.toArray(new MultipartStartRunnable[] {}),
+            threadWatcher, this.storageService.getJetS3tProperties(), true)
+        {
+            @Override
+            public void fireStartEvent(ThreadWatcher threadWatcher) {
+                fireServiceEvent(MultipartStartsEvent.newStartedEvent(threadWatcher, uniqueOperationId));
+            }
+            @Override
+            public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
+                MultipartUpload[] completedObjects = (MultipartUpload[]) completedResults
+                    .toArray(new MultipartUpload[completedResults.size()]);
+                // Hack way to remove completed objects from incomplete list
+                List<StorageObject> completedStorageObjects = new ArrayList<StorageObject>();
+                for (MultipartUpload upload: completedObjects) {
+                    for (StorageObject object: incompletedObjectsList) {
+                        if (object.getKey().equals(upload.getObjectKey())) {
+                            completedStorageObjects.add(object);
+                        }
+                    }
+                }
+                incompletedObjectsList.removeAll(completedStorageObjects);
+
+                fireServiceEvent(MultipartStartsEvent.newInProgressEvent(threadWatcher,
+                    completedObjects, uniqueOperationId));
+            }
+            @Override
+            public void fireCancelEvent() {
+                StorageObject[] incompletedObjects = incompletedObjectsList
+                    .toArray(new StorageObject[incompletedObjectsList.size()]);
+                success[0] = false;
+                fireServiceEvent(MultipartStartsEvent.newCancelledEvent(incompletedObjects, uniqueOperationId));
+            }
+            @Override
+            public void fireCompletedEvent() {
+                fireServiceEvent(MultipartStartsEvent.newCompletedEvent(uniqueOperationId));
+            }
+            @Override
+            public void fireErrorEvent(Throwable throwable) {
+                success[0] = false;
+                fireServiceEvent(MultipartStartsEvent.newErrorEvent(throwable, uniqueOperationId));
+            }
+            @Override
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                success[0] = false;
+                fireServiceEvent(MultipartStartsEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
+            }
+        }).run();
+
+        return success[0];
+    }
+
+    /**
+     * Completes multiple multipart uploads and sends {@link MultipartCompletesEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property
+     * <tt>threaded-service.max-admin-thread-count</tt>.
+     *
+     * @param bucketName
+     * the target bucket.
+     * @param objects
+     * a list of objects representing the overall multipart object.
+     *
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
+     */
+    public boolean multipartCompleteUploads(final List<MultipartUpload> multipartUploads)
+    {
+        assertIsS3Service();
+        final List<MultipartUpload> incompletedObjectsList = new ArrayList<MultipartUpload>();
+        final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
+        final boolean[] success = new boolean[] {true};
+
+        // Start all queries in the background.
+        List<MultipartCompleteRunnable> runnableList = new ArrayList<MultipartCompleteRunnable>();
+        for (MultipartUpload multipartUpload: multipartUploads) {
+            incompletedObjectsList.add(multipartUpload);
+            runnableList.add(new MultipartCompleteRunnable(multipartUpload));
+        }
+
+        // Wait for threads to finish, or be canceled.
+        ThreadWatcher threadWatcher = new ThreadWatcher(runnableList.size());
+        (new ThreadGroupManager(runnableList.toArray(new MultipartCompleteRunnable[] {}),
+            threadWatcher, this.storageService.getJetS3tProperties(), true)
+        {
+            @Override
+            public void fireStartEvent(ThreadWatcher threadWatcher) {
+                fireServiceEvent(MultipartCompletesEvent.newStartedEvent(threadWatcher, uniqueOperationId));
+            }
+            @Override
+            public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
+                incompletedObjectsList.removeAll(completedResults);
+                MultipartCompleted[] completedObjects = (MultipartCompleted[]) completedResults
+                    .toArray(new MultipartCompleted[completedResults.size()]);
+                fireServiceEvent(MultipartCompletesEvent.newInProgressEvent(threadWatcher,
+                    completedObjects, uniqueOperationId));
+            }
+            @Override
+            public void fireCancelEvent() {
+                MultipartUpload[] incompletedObjects = incompletedObjectsList
+                    .toArray(new MultipartUpload[incompletedObjectsList.size()]);
+                success[0] = false;
+                fireServiceEvent(MultipartCompletesEvent.newCancelledEvent(incompletedObjects, uniqueOperationId));
+            }
+            @Override
+            public void fireCompletedEvent() {
+                fireServiceEvent(MultipartCompletesEvent.newCompletedEvent(uniqueOperationId));
+            }
+            @Override
+            public void fireErrorEvent(Throwable throwable) {
+                success[0] = false;
+                fireServiceEvent(MultipartCompletesEvent.newErrorEvent(throwable, uniqueOperationId));
+            }
+            @Override
+            public void fireIgnoredErrorsEvent(ThreadWatcher threadWatcher, Throwable[] ignoredErrors) {
+                success[0] = false;
+                fireServiceEvent(MultipartCompletesEvent.newIgnoredErrorsEvent(threadWatcher, ignoredErrors, uniqueOperationId));
+            }
+        }).run();
+
+        return success[0];
     }
 
     /**
@@ -54,25 +221,16 @@ public class ThreadedS3Service extends ThreadedStorageService {
      * The maximum number of threads is controlled by the JetS3t configuration property
      * <tt>threaded-service.max-admin-thread-count</tt>.
      *
-     * @param multipartUpload
-     * identifies an existing multipart upload to which the parts will be added.
-     * @param partObjects
-     * an ordered list of objects representing the part data to upload.
-     * @param partNumberOffset
-     * an offset (1 or greater) used as the starting-point for part numbers uploaded by
-     * this method, useful if you need to make multiple calls to append parts to a
-     * multipart upload.
+     * @param uploadAndPartsList
+     * list of wrapper objects containing a previously-started MultipartUpload and a
+     * list of objects representing the parts that will make up the final object.
      *
      * @return
      * true if all the threaded tasks completed successfully, false otherwise.
      */
     public boolean multipartUploadParts(List<MultipartUploadAndParts> uploadAndPartsList)
     {
-        if (!(storageService instanceof S3Service)) {
-            throw new IllegalStateException(
-                "Multipart uploads are only available in Amazon S3, " +
-                "you must use the S3Service implementation of StorageService");
-        }
+        assertIsS3Service();
         final List<StorageObject> incompletedObjectsList = new ArrayList<StorageObject>();
         final List<BytesProgressWatcher> progressWatchers = new ArrayList<BytesProgressWatcher>();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
@@ -136,6 +294,75 @@ public class ThreadedS3Service extends ThreadedStorageService {
         }).run();
 
         return success[0];
+    }
+
+
+    /**
+     * Thread for starting a single multipart object upload.
+     */
+    private class MultipartStartRunnable extends AbstractRunnable {
+        private String bucketName = null;
+        private StorageObject object = null;
+
+        private Object result = null;
+
+        public MultipartStartRunnable(String bucketName, StorageObject object)
+        {
+            this.bucketName = bucketName;
+            this.object = object;
+        }
+
+        public void run() {
+            try {
+                result = ((S3Service)storageService).multipartStartUpload(bucketName,
+                    object.getKey(), object.getMetadataMap(),
+                    object.getAcl(), object.getStorageClass());
+            } catch (ServiceException e) {
+                result = e;
+            }
+        }
+
+        @Override
+        public Object getResult() {
+            return result;
+        }
+
+        @Override
+        public void forceInterruptCalled() {
+            super.forceInterrupt();
+        }
+    }
+
+    /**
+     * Thread for completing a single multipart object upload.
+     */
+    private class MultipartCompleteRunnable extends AbstractRunnable {
+        private MultipartUpload multipartUpload = null;
+
+        private Object result = null;
+
+        public MultipartCompleteRunnable(MultipartUpload multipartUpload)
+        {
+            this.multipartUpload = multipartUpload;
+        }
+
+        public void run() {
+            try {
+                result = ((S3Service)storageService).multipartCompleteUpload(multipartUpload);
+            } catch (ServiceException e) {
+                result = e;
+            }
+        }
+
+        @Override
+        public Object getResult() {
+            return result;
+        }
+
+        @Override
+        public void forceInterruptCalled() {
+            super.forceInterrupt();
+        }
     }
 
     /**

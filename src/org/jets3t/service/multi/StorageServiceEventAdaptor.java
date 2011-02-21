@@ -113,4 +113,19 @@ public class StorageServiceEventAdaptor implements StorageServiceEventListener {
         return t[0];
     }
 
+    /**
+     * @throws Exception
+     * throws first error thrown by an event, or does nothing if no error occurred.
+     */
+    public void throwErrorIfPresent() throws Exception {
+        if (this.wasErrorThrown()) {
+            Throwable thrown = this.getErrorThrown();
+            if (thrown instanceof Exception) {
+                throw (Exception) thrown;
+            } else {
+                throw new Exception(thrown);
+            }
+        }
+    }
+
 }

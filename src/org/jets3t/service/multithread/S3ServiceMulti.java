@@ -2341,11 +2341,14 @@ public class S3ServiceMulti {
 
                         // Don't check MD5 hash against ETag if ETag doesn't look like an MD5 value
                         if (!ServiceUtils.isEtagAlsoAnMD5Hash(object.getETag())) {
-                            if (log.isWarnEnabled()) {
-                                log.warn("Unable to verify MD5 hash of downloaded data against"
-                                    + " ETag returned by service because ETag value \""
-                                    + object.getETag() + "\" is not an MD5 hash value"
-                                    + ", for object key: " + object.getKey());
+                            // Use JetS3t's own MD5 hash metadata value for comparison, if it's available
+                            if (!hexMD5OfDownloadedData.equals(object.getMd5HashAsHex())) {
+                                if (log.isWarnEnabled()) {
+                                    log.warn("Unable to verify MD5 hash of downloaded data against"
+                                        + " ETag returned by service because ETag value \""
+                                        + object.getETag() + "\" is not an MD5 hash value"
+                                        + ", for object key: " + object.getKey());
+                                }
                             }
                         } else {
                             if (!hexMD5OfDownloadedData.equals(object.getETag())) {

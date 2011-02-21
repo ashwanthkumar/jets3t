@@ -60,6 +60,8 @@ import org.jets3t.service.multi.event.DeleteObjectsEvent;
 import org.jets3t.service.multi.event.DownloadObjectsEvent;
 import org.jets3t.service.multi.event.GetObjectHeadsEvent;
 import org.jets3t.service.multi.event.ServiceEvent;
+import org.jets3t.service.multi.s3.MultipartCompletesEvent;
+import org.jets3t.service.multi.s3.MultipartStartsEvent;
 import org.jets3t.service.multi.s3.MultipartUploadAndParts;
 import org.jets3t.service.multi.s3.MultipartUploadsEvent;
 import org.jets3t.service.multi.s3.S3ServiceEventAdaptor;
@@ -383,8 +385,13 @@ public class Synchronize {
             encryptionUtil = new EncryptionUtil(cryptoPassword, algorithm, EncryptionUtil.DEFAULT_VERSION);
         }
 
-        // TODO Make configurable
-        MultipartUtils multipartUtils = new MultipartUtils(5 * 1024 * 1024);
+        // Support for multipart uploads -- currently available for Amazon S3 only
+        MultipartUtils multipartUtils = null;
+        if (storageService instanceof S3Service) {
+            long maxUploadPartSize = properties.getLongProperty(
+                "upload.max-part-size", MultipartUtils.MAX_OBJECT_SIZE);
+            multipartUtils = new MultipartUtils(maxUploadPartSize);
+        }
 
         // Repeat list and upload actions until all objects in bucket have been listed.
         do {
@@ -490,7 +497,9 @@ public class Synchronize {
                         LazyPreparedUploadObject lazyObj = objectsToUpload.remove(0);
                         StorageObject object = lazyObj.prepareUploadObject();
 
-                        if (multipartUtils.isFileLargerThanMaxPartSize(lazyObj.getFile())) {
+                        if (multipartUtils != null
+                            && multipartUtils.isFileLargerThanMaxPartSize(lazyObj.getFile()))
+                        {
                             objectsForMultipartUpload.add(object);
                         } else {
                             objectsForStandardPut.add(object);
@@ -501,62 +510,73 @@ public class Synchronize {
                     if (objectsForStandardPut.size() > 0) {
                         (new ThreadedStorageService(storageService, serviceEventAdaptor)).putObjects(
                             bucket.getName(), objectsForStandardPut.toArray(new StorageObject[] {}));
-                        if (serviceEventAdaptor.wasErrorThrown()) {
-                            Throwable thrown = serviceEventAdaptor.getErrorThrown();
-                            if (thrown instanceof Exception) {
-                                throw (Exception) thrown;
-                            } else {
-                                throw new Exception(thrown);
-                            }
-                        }
+                        serviceEventAdaptor.throwErrorIfPresent();
                     }
 
                     // Perform multipart uploads
                     if (objectsForMultipartUpload.size() > 0) {
-                        if (!(storageService instanceof S3Service)) {
-                            throw new IllegalStateException(
-                                "Multipart uploads are only available via an S3Service");
-                        }
                         S3Service s3Service = (S3Service) storageService;
 
-                        List<MultipartUpload> multipartUploadList =
+                        final List<MultipartUpload> multipartUploadList =
                             new ArrayList<MultipartUpload>();
-                        List<MultipartUploadAndParts> uploadAndPartsList =
+                        final List<MultipartUploadAndParts> uploadAndPartsList =
                             new ArrayList<MultipartUploadAndParts>();
 
-                        // Start multipart uploads and generate parts
-                        for (StorageObject mpObject: objectsForMultipartUpload) {
-                            // TODO: Make multi-threaded?
-                            MultipartUpload multipartUpload = s3Service.multipartStartUpload(
-                                bucket.getName(), mpObject.getKey(), mpObject.getMetadataMap(),
-                                mpObject.getAcl(), mpObject.getStorageClass());
-                            multipartUploadList.add(multipartUpload);
+                        // Build map from object key to storage object
+                        final Map<String, StorageObject> objectsByKey =
+                            new HashMap<String, StorageObject>();
+                        for (StorageObject object: objectsForMultipartUpload) {
+                            objectsByKey.put(object.getKey(), object);
+                        }
 
+                        // Event adaptor to handle multipart creation/completion events
+                        StorageServiceEventAdaptor multipartEventAdaptor = new S3ServiceEventAdaptor() {
+                            @Override
+                            public void event(MultipartStartsEvent event) {
+                                super.event(event);
+                                if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+                                    for (MultipartUpload upload: event.getStartedUploads()) {
+                                        multipartUploadList.add(upload);
+                                    }
+                                    displayProgressStatus("Starting large file uploads: ",
+                                        event.getThreadWatcher());
+                                }
+                            }
+                            @Override
+                            public void event(MultipartCompletesEvent event) {
+                                super.event(event);
+                                if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+                                    displayProgressStatus("Completing large file uploads: ",
+                                        event.getThreadWatcher());
+                                }
+                            }
+                        };
+
+                        // Start all multipart uploads
+                        (new ThreadedS3Service(s3Service, multipartEventAdaptor))
+                            .multipartStartUploads(bucket.getName(), objectsForMultipartUpload);
+                        serviceEventAdaptor.throwErrorIfPresent();
+
+                        // Build upload and part lists from new multipart uploads
+                        for (MultipartUpload upload: multipartUploadList) {
+                            StorageObject object = objectsByKey.get(upload.getObjectKey());
                             List<S3Object> partObjects =
                                 multipartUtils.splitFileIntoObjectsByMaxPartSize(
-                                    mpObject.getKey(), mpObject.getDataInputFile());
+                                    upload.getObjectKey(),
+                                    object.getDataInputFile());
                             uploadAndPartsList.add(
-                                new MultipartUploadAndParts(multipartUpload, partObjects));
+                                new MultipartUploadAndParts(upload, partObjects));
                         }
 
                         // Upload all parts for all multipart uploads
                         (new ThreadedS3Service(s3Service, serviceEventAdaptor))
                             .multipartUploadParts(uploadAndPartsList);
-                        if (serviceEventAdaptor.wasErrorThrown()) {
-                            Throwable thrown = serviceEventAdaptor.getErrorThrown();
-                            if (thrown instanceof Exception) {
-                                throw (Exception) thrown;
-                            } else {
-                                throw new Exception(thrown);
-                            }
-                        }
+                        serviceEventAdaptor.throwErrorIfPresent();
 
-                        // Complete multipart uploads
-                        for (MultipartUpload multipartUpload: multipartUploadList) {
-                            // TODO: Retrieve MultipartPart objects from service adaptor?
-                            // TODO: Make multi-threaded?
-                            s3Service.multipartCompleteUpload(multipartUpload);
-                        }
+                        // Complete all multipart uploads
+                        (new ThreadedS3Service(s3Service, multipartEventAdaptor))
+                            .multipartCompleteUploads(multipartUploadList);
+                        serviceEventAdaptor.throwErrorIfPresent();
                     }
                 }
             } while (objectKeyIter.hasNext()); // End of upload loop
@@ -593,14 +613,7 @@ public class Synchronize {
         if (objectsToDelete.size() > 0) {
             StorageObject[] objects = objectsToDelete.toArray(new StorageObject[objectsToDelete.size()]);
             (new ThreadedStorageService(storageService, serviceEventAdaptor)).deleteObjects(bucket.getName(), objects);
-            if (serviceEventAdaptor.wasErrorThrown()) {
-                Throwable thrown = serviceEventAdaptor.getErrorThrown();
-                if (thrown instanceof Exception) {
-                    throw (Exception) thrown;
-                } else {
-                    throw new Exception(thrown);
-                }
-            }
+            serviceEventAdaptor.throwErrorIfPresent();
         }
 
         // Delete local files that have been moved to service.
@@ -799,14 +812,7 @@ public class Synchronize {
                         new DownloadPackage[downloadPackagesList.size()]);
                     (new ThreadedStorageService(storageService, serviceEventAdaptor)).downloadObjects(
                         bucket.getName(), downloadPackages);
-                    if (serviceEventAdaptor.wasErrorThrown()) {
-                        Throwable thrown = serviceEventAdaptor.getErrorThrown();
-                        if (thrown instanceof Exception) {
-                            throw (Exception) thrown;
-                        } else {
-                            throw new Exception(thrown);
-                        }
-                    }
+                    serviceEventAdaptor.throwErrorIfPresent();
                 }
             } while (objectKeyIter.hasNext());
 
@@ -867,14 +873,7 @@ public class Synchronize {
                     new StorageObject[objectsToDelete.size()]);
                 (new ThreadedStorageService(storageService, serviceEventAdaptor)).deleteObjects(
                     bucket.getName(), objects);
-                if (serviceEventAdaptor.wasErrorThrown()) {
-                    Throwable thrown = serviceEventAdaptor.getErrorThrown();
-                    if (thrown instanceof Exception) {
-                        throw (Exception) thrown;
-                    } else {
-                        throw new Exception(thrown);
-                    }
-                }
+                serviceEventAdaptor.throwErrorIfPresent();
             }
         }
 
@@ -1044,29 +1043,29 @@ public class Synchronize {
         }
     }
 
-    StorageServiceEventAdaptor serviceEventAdaptor = new S3ServiceEventAdaptor() {
-        private void displayProgressStatus(String prefix, ThreadWatcher watcher) {
-            String progressMessage = prefix + watcher.getCompletedThreads() + "/" + watcher.getThreadCount();
+    private void displayProgressStatus(String prefix, ThreadWatcher watcher) {
+        String progressMessage = prefix + watcher.getCompletedThreads() + "/" + watcher.getThreadCount();
 
-            // Show percentage of bytes transferred, if this info is available.
-            if (watcher.isBytesTransferredInfoAvailable()) {
-                String bytesTotalStr = byteFormatter.formatByteSize(watcher.getBytesTotal());
-                long percentage = (int)
-                    (((double)watcher.getBytesTransferred() / watcher.getBytesTotal()) * 100);
+        // Show percentage of bytes transferred, if this info is available.
+        if (watcher.isBytesTransferredInfoAvailable()) {
+            String bytesTotalStr = byteFormatter.formatByteSize(watcher.getBytesTotal());
+            long percentage = (int)
+                (((double)watcher.getBytesTransferred() / watcher.getBytesTotal()) * 100);
 
-                String detailsText = formatTransferDetails(watcher);
+            String detailsText = formatTransferDetails(watcher);
 
-                progressMessage += " - " + percentage + "% of " + bytesTotalStr
-                    + (detailsText.length() > 0 ? " (" + detailsText + ")" : "");
-            } else {
-                long percentage = (int)
-                    (((double)watcher.getCompletedThreads() / watcher.getThreadCount()) * 100);
+            progressMessage += " - " + percentage + "% of " + bytesTotalStr
+                + (detailsText.length() > 0 ? " (" + detailsText + ")" : "");
+        } else {
+            long percentage = (int)
+                (((double)watcher.getCompletedThreads() / watcher.getThreadCount()) * 100);
 
-                progressMessage += " - " + percentage + "%";
-            }
-            printProgressLine(progressMessage);
+            progressMessage += " - " + percentage + "%";
         }
+        printProgressLine(progressMessage);
+    }
 
+    StorageServiceEventAdaptor serviceEventAdaptor = new S3ServiceEventAdaptor() {
         private void displayIgnoredErrors(ServiceEvent event) {
             if (ServiceEvent.EVENT_IGNORED_ERRORS == event.getEventCode()) {
                 Throwable[] throwables = event.getIgnoredErrors();
@@ -1090,7 +1089,7 @@ public class Synchronize {
             super.event(event);
             displayIgnoredErrors(event);
             if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
-                displayProgressStatus("Large File Upload: ", event.getThreadWatcher());
+                displayProgressStatus("Upload large file parts: ", event.getThreadWatcher());
             }
         }
 

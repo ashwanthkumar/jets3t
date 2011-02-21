@@ -24,7 +24,7 @@ import org.jets3t.service.multi.ThreadedStorageService;
 
 /**
  * Simple implementation of {@link S3ServiceEventListener} to listen for events produced by
- * {@link ThreadedStorageService}.
+ * {@link ThreadedS3Service} and {@link ThreadedStorageService}.
  * <p>
  * By default this adaptor does nothing but store the first Error event it comes across, if any,
  * and make it available through {@link #getErrorThrown()}.
@@ -38,9 +38,19 @@ import org.jets3t.service.multi.ThreadedStorageService;
  *
  * @author James Murty
  */
-public class S3ServiceEventAdaptor extends StorageServiceEventAdaptor {
+public class S3ServiceEventAdaptor extends StorageServiceEventAdaptor
+                                implements S3ServiceEventListener
+{
 
     public void event(MultipartUploadsEvent event) {
+        storeThrowable(event);
+    }
+
+    public void event(MultipartStartsEvent event) {
+        storeThrowable(event);
+    }
+
+    public void event(MultipartCompletesEvent event) {
         storeThrowable(event);
     }
 
