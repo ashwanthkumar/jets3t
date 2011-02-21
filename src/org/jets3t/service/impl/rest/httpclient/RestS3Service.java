@@ -786,15 +786,23 @@ public class RestS3Service extends S3Service {
 
     @Override
     protected MultipartUpload multipartStartUploadImpl(String bucketName, String objectKey,
-        Map<String, Object> metadata, AccessControlList acl, String storageClass)
+        Map<String, Object> metadataProvided, AccessControlList acl, String storageClass)
         throws S3ServiceException
     {
         Map<String, String> requestParameters = new HashMap<String, String>();
         requestParameters.put("uploads", "");
 
-        if (metadata == null) {
-            metadata = new HashMap<String, Object>();
+        Map<String, Object> metadata = new HashMap<String, Object>();
+
+        // Use metadata provided, but ignore some items that don't make sense
+        if (metadataProvided != null) {
+            for (Map.Entry<String, Object> entry: metadataProvided.entrySet()) {
+                if (!entry.getKey().toLowerCase().equals("content-length")) {
+                    metadata.put(entry.getKey(), entry.getValue());
+                }
+            }
         }
+
         // Apply per-object or default storage class when uploading object
         prepareStorageClass(metadata, storageClass, objectKey);
 
@@ -819,12 +827,11 @@ public class RestS3Service extends S3Service {
         requestParameters.put("uploadId", uploadId);
         requestParameters.put("partNumber", "" + partNumber);
 
-        // Remove metadata (non-HTTP headers) from object, multipart upload parts cannot have any.
-        Set<String> metadataNames = renameMetadataKeys(object.getMetadataMap()).keySet();
-        for (String name: metadataNames) {
-            if (name.startsWith(this.getRestMetadataPrefix())) {
+        // Remove all non-HTTP headers from object metadata for multipart part uploads
+        for (String name: object.getMetadataMap().keySet()) {
+            if (!RestUtils.HTTP_HEADER_METADATA_NAMES.contains(name.toLowerCase())) {
                 // Actual metadata name in object does not include the prefix
-                object.removeMetadata(name.substring(this.getRestMetadataPrefix().length()));
+                object.removeMetadata(name);
             }
         }
 

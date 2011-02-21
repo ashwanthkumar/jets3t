@@ -40,12 +40,15 @@ import java.util.Map.Entry;
 
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
+import org.jets3t.service.S3Service;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.StorageService;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.io.BytesProgressWatcher;
+import org.jets3t.service.model.MultipartUpload;
+import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.multi.DownloadPackage;
@@ -57,6 +60,10 @@ import org.jets3t.service.multi.event.DeleteObjectsEvent;
 import org.jets3t.service.multi.event.DownloadObjectsEvent;
 import org.jets3t.service.multi.event.GetObjectHeadsEvent;
 import org.jets3t.service.multi.event.ServiceEvent;
+import org.jets3t.service.multi.s3.MultipartUploadAndParts;
+import org.jets3t.service.multi.s3.MultipartUploadsEvent;
+import org.jets3t.service.multi.s3.S3ServiceEventAdaptor;
+import org.jets3t.service.multi.s3.ThreadedS3Service;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.EncryptionUtil;
 import org.jets3t.service.security.GSCredentials;
@@ -65,6 +72,7 @@ import org.jets3t.service.utils.ByteFormatter;
 import org.jets3t.service.utils.FileComparer;
 import org.jets3t.service.utils.FileComparerResults;
 import org.jets3t.service.utils.Mimetypes;
+import org.jets3t.service.utils.MultipartUtils;
 import org.jets3t.service.utils.ObjectUtils;
 import org.jets3t.service.utils.TimeFormatter;
 import org.jets3t.service.utils.FileComparer.PartialObjectListing;
@@ -105,11 +113,6 @@ public class Synchronize {
     private FileComparer fileComparer = null;
     private int maxTemporaryStringLength = 0;
     private final Map<String, Object> customMetadata = new HashMap<String, Object>();
-
-    // Hacky variables to track progress of batched uploads for transformed files.
-    private long partialUploadObjectsTotal = -1;
-    private long partialUploadObjectsProgressCount = 0;
-
 
     /**
      * Constructs the application with a pre-initialised service and the user-specified options.
@@ -295,8 +298,10 @@ public class Synchronize {
     {
         // List objects in service. Listing may be complete, or partial.
         printProgressLine("Listing objects in service"
-            + (isBatchMode ? " (Batch mode. Objects listed so far: "
-                + mergedDiscrepancyResults.getCountOfItemsCompared() + ")" : ""));
+            + (isBatchMode && mergedDiscrepancyResults.getCountOfItemsCompared() > 0
+                ? " (Continuing in batches, objects listed previously: "
+                    + mergedDiscrepancyResults.getCountOfItemsCompared() + ")"
+                : ""));
 
         PartialObjectListing partialListing = fileComparer.buildObjectMapPartial(
             storageService, bucketName, rootObjectPath, priorLastKey,
@@ -378,6 +383,9 @@ public class Synchronize {
             encryptionUtil = new EncryptionUtil(cryptoPassword, algorithm, EncryptionUtil.DEFAULT_VERSION);
         }
 
+        // TODO Make configurable
+        MultipartUtils multipartUtils = new MultipartUtils(5 * 1024 * 1024);
+
         // Repeat list and upload actions until all objects in bucket have been listed.
         do {
             ComparisonResult result =
@@ -455,6 +463,9 @@ public class Synchronize {
                     if (isBatchMode
                         && objectsToUpload.size() >= Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE)
                     {
+                        printOutputLine(
+                            "Uploading batch of " + objectsToUpload.size() + " files",
+                            REPORT_LEVEL_ACTIONS);
                         break;
                     }
                 }
@@ -467,34 +478,86 @@ public class Synchronize {
                     // Limit uploads to small batches in batch mode -- based on the
                     // number of upload threads that are available.
                     uploadBatchSize = properties.getIntProperty("upload.transformed-files-batch-size", 1000);
-                    partialUploadObjectsTotal = objectsToUpload.size();
-                    partialUploadObjectsProgressCount = 0;
-                } else {
-                    partialUploadObjectsTotal = -1;
                 }
 
                 // Upload New/Updated/Forced/Replaced objects.
                 while (doAction && objectsToUpload.size() > 0) {
                     List<StorageObject> objectsForStandardPut = new ArrayList<StorageObject>();
+                    List<StorageObject> objectsForMultipartUpload = new ArrayList<StorageObject>();
 
                     // Invoke lazy upload object creator.
                     for (int i = 0; i < uploadBatchSize; i++) {
                         LazyPreparedUploadObject lazyObj = objectsToUpload.remove(0);
                         StorageObject object = lazyObj.prepareUploadObject();
-                        objectsForStandardPut.add(object);
-                    }
 
-                    (new ThreadedStorageService(storageService, serviceEventAdaptor)).putObjects(
-                        bucket.getName(), objectsForStandardPut.toArray(new StorageObject[] {}));
-                    if (serviceEventAdaptor.wasErrorThrown()) {
-                        Throwable thrown = serviceEventAdaptor.getErrorThrown();
-                        if (thrown instanceof Exception) {
-                            throw (Exception) thrown;
+                        if (multipartUtils.isFileLargerThanMaxPartSize(lazyObj.getFile())) {
+                            objectsForMultipartUpload.add(object);
                         } else {
-                            throw new Exception(thrown);
+                            objectsForStandardPut.add(object);
                         }
                     }
-                    partialUploadObjectsProgressCount += objectsForStandardPut.size();
+
+                    // Perform standard object uploads
+                    if (objectsForStandardPut.size() > 0) {
+                        (new ThreadedStorageService(storageService, serviceEventAdaptor)).putObjects(
+                            bucket.getName(), objectsForStandardPut.toArray(new StorageObject[] {}));
+                        if (serviceEventAdaptor.wasErrorThrown()) {
+                            Throwable thrown = serviceEventAdaptor.getErrorThrown();
+                            if (thrown instanceof Exception) {
+                                throw (Exception) thrown;
+                            } else {
+                                throw new Exception(thrown);
+                            }
+                        }
+                    }
+
+                    // Perform multipart uploads
+                    if (objectsForMultipartUpload.size() > 0) {
+                        if (!(storageService instanceof S3Service)) {
+                            throw new IllegalStateException(
+                                "Multipart uploads are only available via an S3Service");
+                        }
+                        S3Service s3Service = (S3Service) storageService;
+
+                        List<MultipartUpload> multipartUploadList =
+                            new ArrayList<MultipartUpload>();
+                        List<MultipartUploadAndParts> uploadAndPartsList =
+                            new ArrayList<MultipartUploadAndParts>();
+
+                        // Start multipart uploads and generate parts
+                        for (StorageObject mpObject: objectsForMultipartUpload) {
+                            // TODO: Make multi-threaded?
+                            MultipartUpload multipartUpload = s3Service.multipartStartUpload(
+                                bucket.getName(), mpObject.getKey(), mpObject.getMetadataMap(),
+                                mpObject.getAcl(), mpObject.getStorageClass());
+                            multipartUploadList.add(multipartUpload);
+
+                            List<S3Object> partObjects =
+                                multipartUtils.splitFileIntoObjectsByMaxPartSize(
+                                    mpObject.getKey(), mpObject.getDataInputFile());
+                            uploadAndPartsList.add(
+                                new MultipartUploadAndParts(multipartUpload, partObjects));
+                        }
+
+                        // Upload all parts for all multipart uploads
+                        (new ThreadedS3Service(s3Service, serviceEventAdaptor))
+                            .multipartUploadParts(uploadAndPartsList);
+                        if (serviceEventAdaptor.wasErrorThrown()) {
+                            Throwable thrown = serviceEventAdaptor.getErrorThrown();
+                            if (thrown instanceof Exception) {
+                                throw (Exception) thrown;
+                            } else {
+                                throw new Exception(thrown);
+                            }
+                        }
+
+                        // Complete multipart uploads
+                        for (MultipartUpload multipartUpload: multipartUploadList) {
+                            // TODO: Retrieve MultipartPart objects from service adaptor?
+                            // TODO: Make multi-threaded?
+                            s3Service.multipartCompleteUpload(multipartUpload);
+                        }
+                    }
                 }
             } while (objectKeyIter.hasNext()); // End of upload loop
 
@@ -631,108 +694,122 @@ public class Synchronize {
         BytesProgressWatcher md5GenerationProgressWatcher) throws Exception
     {
         FileComparerResults mergedDiscrepancyResults = new FileComparerResults();
+
         String priorLastKey = null;
 
         // Repeat download actions until all objects in bucket have been listed.
         do {
             ComparisonResult result =
-                compareLocalAndRemoteFiles(mergedDiscrepancyResults, bucket.getName(), rootObjectPath,
-                    priorLastKey, objectKeyToFilepathMap, md5GenerationProgressWatcher);
+                compareLocalAndRemoteFiles(mergedDiscrepancyResults, bucket.getName(),
+                    rootObjectPath, priorLastKey, objectKeyToFilepathMap,
+                    md5GenerationProgressWatcher);
             priorLastKey = result.priorLastKey;
             FileComparerResults discrepancyResults = result.discrepancyResults;
             Map<String, StorageObject> objectsMap = result.objectsMap;
 
-            List<String> sortedObjectKeys = new ArrayList<String>(objectsMap.keySet());
-            Collections.sort(sortedObjectKeys);
-
             // Download objects to local files/directories.
-            List<DownloadPackage> downloadPackagesList = new ArrayList<DownloadPackage>();
-            Iterator<String> objectKeyIter = sortedObjectKeys.iterator();
-            while (objectKeyIter.hasNext()) {
-                String keyPath = objectKeyIter.next();
-                StorageObject object = objectsMap.get(keyPath);
-                String localPath = keyPath;
+            Iterator<String> objectKeyIter = objectsMap.keySet().iterator();
 
-                // If object metadata is not available, skip zero-byte objects that
-                // are not definitively directory place-holders, since we can't tell
-                // whether they are directory place-holders or normal empty files.
-                if (!object.isMetadataComplete()
-                    && object.getContentLength() == 0
-                    && !object.isDirectoryPlaceholder())
-                {
-                    continue;
-                }
+            // Optionally download objects in batches to minimize memory use
+            do {
+                List<DownloadPackage> downloadPackagesList = new ArrayList<DownloadPackage>();
+                while (objectKeyIter.hasNext()) {
+                    String keyPath = objectKeyIter.next();
+                    StorageObject object = objectsMap.get(keyPath);
+                    String localPath = keyPath;
 
-                File fileTarget = new File(localDirectory, keyPath);
-                // Create local directories corresponding to objects flagged as dirs.
-                if (object.isDirectoryPlaceholder()) {
-                    localPath = ObjectUtils.convertDirPlaceholderKeyNameToDirName(keyPath);
-                    fileTarget = new File(localDirectory, localPath);
-                    if (doAction) {
-                        fileTarget.mkdirs();
+                    // If object metadata is not available, skip zero-byte objects that
+                    // are not definitively directory place-holders, since we can't tell
+                    // whether they are directory place-holders or normal empty files.
+                    if (!object.isMetadataComplete()
+                        && object.getContentLength() == 0
+                        && !object.isDirectoryPlaceholder())
+                    {
+                        continue;
                     }
-                }
 
-                if (discrepancyResults.onlyOnServerKeys.contains(keyPath)) {
-                    printOutputLine("N " + localPath, REPORT_LEVEL_ACTIONS);
-                    DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
-                        object, fileTarget, isGzipEnabled, isEncryptionEnabled, cryptoPassword);
-                    if (downloadPackage != null) {
-                        downloadPackagesList.add(downloadPackage);
+                    File fileTarget = new File(localDirectory, keyPath);
+                    // Create local directories corresponding to objects flagged as dirs.
+                    if (object.isDirectoryPlaceholder()) {
+                        localPath = ObjectUtils.convertDirPlaceholderKeyNameToDirName(keyPath);
+                        fileTarget = new File(localDirectory, localPath);
+                        if (doAction) {
+                            fileTarget.mkdirs();
+                        }
                     }
-                } else if (discrepancyResults.updatedOnServerKeys.contains(keyPath)) {
-                    printOutputLine("U " + localPath, REPORT_LEVEL_ACTIONS);
-                    DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
-                        object, fileTarget, isGzipEnabled, isEncryptionEnabled, cryptoPassword);
-                    if (downloadPackage != null) {
-                        downloadPackagesList.add(downloadPackage);
-                    }
-                } else if (discrepancyResults.alreadySynchronisedKeys.contains(keyPath)) {
-                    if (isForce) {
-                        printOutputLine("F " + localPath, REPORT_LEVEL_ACTIONS);
+
+                    if (discrepancyResults.onlyOnServerKeys.contains(keyPath)) {
+                        printOutputLine("N " + localPath, REPORT_LEVEL_ACTIONS);
                         DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
                             object, fileTarget, isGzipEnabled, isEncryptionEnabled, cryptoPassword);
                         if (downloadPackage != null) {
                             downloadPackagesList.add(downloadPackage);
                         }
-                    } else {
-                        printOutputLine("- " + localPath, REPORT_LEVEL_ALL);
-                    }
-                } else if (discrepancyResults.updatedOnClientKeys.contains(keyPath)) {
-                    // This file has been updated on the client-side.
-                    if (isKeepFiles) {
-                        printOutputLine("r " + localPath, REPORT_LEVEL_DIFFERENCES);
-                    } else {
-                        printOutputLine("R " + localPath, REPORT_LEVEL_ACTIONS);
+                    } else if (discrepancyResults.updatedOnServerKeys.contains(keyPath)) {
+                        printOutputLine("U " + localPath, REPORT_LEVEL_ACTIONS);
                         DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
                             object, fileTarget, isGzipEnabled, isEncryptionEnabled, cryptoPassword);
                         if (downloadPackage != null) {
                             downloadPackagesList.add(downloadPackage);
                         }
-                    }
-                } else {
-                    // Uh oh, program error here. The safest thing to do is abort!
-                    throw new SynchronizeException("Invalid discrepancy comparison details for object "
-                        + localPath
-                        + ". Sorry, this is a program error - aborting to keep your data safe");
-                }
-            }
-
-            // Download New/Updated/Forced/Replaced objects from service.
-            if (doAction && downloadPackagesList.size() > 0) {
-                DownloadPackage[] downloadPackages = downloadPackagesList.toArray(
-                    new DownloadPackage[downloadPackagesList.size()]);
-                (new ThreadedStorageService(storageService, serviceEventAdaptor)).downloadObjects(
-                    bucket.getName(), downloadPackages);
-                if (serviceEventAdaptor.wasErrorThrown()) {
-                    Throwable thrown = serviceEventAdaptor.getErrorThrown();
-                    if (thrown instanceof Exception) {
-                        throw (Exception) thrown;
+                    } else if (discrepancyResults.alreadySynchronisedKeys.contains(keyPath)) {
+                        if (isForce) {
+                            printOutputLine("F " + localPath, REPORT_LEVEL_ACTIONS);
+                            DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
+                                object, fileTarget, isGzipEnabled, isEncryptionEnabled, cryptoPassword);
+                            if (downloadPackage != null) {
+                                downloadPackagesList.add(downloadPackage);
+                            }
+                        } else {
+                            printOutputLine("- " + localPath, REPORT_LEVEL_ALL);
+                        }
+                    } else if (discrepancyResults.updatedOnClientKeys.contains(keyPath)) {
+                        // This file has been updated on the client-side.
+                        if (isKeepFiles) {
+                            printOutputLine("r " + localPath, REPORT_LEVEL_DIFFERENCES);
+                        } else {
+                            printOutputLine("R " + localPath, REPORT_LEVEL_ACTIONS);
+                            DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
+                                object, fileTarget, isGzipEnabled, isEncryptionEnabled, cryptoPassword);
+                            if (downloadPackage != null) {
+                                downloadPackagesList.add(downloadPackage);
+                            }
+                        }
                     } else {
-                        throw new Exception(thrown);
+                        // Uh oh, program error here. The safest thing to do is abort!
+                        throw new SynchronizeException("Invalid discrepancy comparison details for object "
+                            + localPath
+                            + ". Sorry, this is a program error - aborting to keep your data safe");
+                    }
+
+                    // Optionally break up download sets into batches
+                    if (isBatchMode
+                        && downloadPackagesList.size() >= Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE)
+                    {
+                        printOutputLine(
+                            "Downloading batch of " + downloadPackagesList.size() + " objects",
+                            REPORT_LEVEL_ACTIONS);
+                        break;
                     }
                 }
-            }
+
+                // Download New/Updated/Forced/Replaced objects from service.
+                if (doAction && downloadPackagesList.size() > 0) {
+                    DownloadPackage[] downloadPackages = downloadPackagesList.toArray(
+                        new DownloadPackage[downloadPackagesList.size()]);
+                    (new ThreadedStorageService(storageService, serviceEventAdaptor)).downloadObjects(
+                        bucket.getName(), downloadPackages);
+                    if (serviceEventAdaptor.wasErrorThrown()) {
+                        Throwable thrown = serviceEventAdaptor.getErrorThrown();
+                        if (thrown instanceof Exception) {
+                            throw (Exception) thrown;
+                        } else {
+                            throw new Exception(thrown);
+                        }
+                    }
+                }
+            } while (objectKeyIter.hasNext());
+
         } while (priorLastKey != null);
 
         // Delete local files that don't correspond with service objects.
@@ -931,7 +1008,6 @@ public class Synchronize {
 
         // Generate of object key names to absolute paths of local files
         printProgressLine("Listing files in local file system");
-        String fileKeyPrefix = "";
         Map<String, String> objectKeyToFilepathMap = null;
         if ("UP".equals(actionCommand)) {
             // Ensure all files/directories chosen for upload exist and are accessible
@@ -941,10 +1017,10 @@ public class Synchronize {
                 }
             }
             objectKeyToFilepathMap = fileComparer.buildObjectKeyToFilepathMap(
-                files, fileKeyPrefix, storeEmptyDirectories);
+                files, "", storeEmptyDirectories);
         } else if ("DOWN".equals(actionCommand)) {
             objectKeyToFilepathMap = fileComparer.buildObjectKeyToFilepathMap(
-                files, fileKeyPrefix, true);
+                files[0].listFiles(), "", true);
         }
 
         // Watcher to provide feedback during generation of MD5 hash values
@@ -968,7 +1044,7 @@ public class Synchronize {
         }
     }
 
-    StorageServiceEventAdaptor serviceEventAdaptor = new StorageServiceEventAdaptor() {
+    StorageServiceEventAdaptor serviceEventAdaptor = new S3ServiceEventAdaptor() {
         private void displayProgressStatus(String prefix, ThreadWatcher watcher) {
             String progressMessage = prefix + watcher.getCompletedThreads() + "/" + watcher.getThreadCount();
 
@@ -1005,19 +1081,16 @@ public class Synchronize {
             super.event(event);
             displayIgnoredErrors(event);
             if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
-                if (partialUploadObjectsTotal > event.getThreadWatcher().getThreadCount()) {
-                    long progressCount = partialUploadObjectsProgressCount + event.getThreadWatcher().getCompletedThreads();
+                displayProgressStatus("Upload: ", event.getThreadWatcher());
+            }
+        }
 
-                    long percentage = (int)
-                        (((double)progressCount / partialUploadObjectsTotal) * 100);
-
-                    String progressMessage = "Batched Upload: " +
-                        progressCount + "/" + partialUploadObjectsTotal +
-                        " - " + percentage + "%";
-                    printProgressLine(progressMessage);
-                } else {
-                    displayProgressStatus("Upload: ", event.getThreadWatcher());
-                }
+        @Override
+        public void event(MultipartUploadsEvent event) {
+            super.event(event);
+            displayIgnoredErrors(event);
+            if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+                displayProgressStatus("Large File Upload: ", event.getThreadWatcher());
             }
         }
 

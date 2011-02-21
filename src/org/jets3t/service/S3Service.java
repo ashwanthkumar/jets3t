@@ -3097,6 +3097,13 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         return multipartStartUploadImpl(bucketName, objectKey, metadata, acl, storageClass);
     }
 
+    public MultipartUpload multipartStartUpload(String bucketName, S3Object object)
+        throws S3ServiceException
+    {
+        return multipartStartUploadImpl(bucketName, object.getKey(),
+            object.getMetadataMap(), object.getAcl(), object.getStorageClass());
+    }
+
     public void multipartAbortUpload(MultipartUpload upload) throws S3ServiceException
     {
         multipartAbortUploadImpl(upload.getUploadId(), upload.getBucketName(), upload.getObjectKey());

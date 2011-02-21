@@ -26,6 +26,7 @@ import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
@@ -58,6 +59,7 @@ import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.WebsiteConfig;
 import org.jets3t.service.multi.StorageServiceEventAdaptor;
+import org.jets3t.service.multi.s3.MultipartUploadAndParts;
 import org.jets3t.service.multi.s3.S3ServiceEventAdaptor;
 import org.jets3t.service.multi.s3.ThreadedS3Service;
 import org.jets3t.service.security.AWSCredentials;
@@ -523,9 +525,10 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             // Create threaded service and perform upload in multiple threads
             ThreadedS3Service threadedS3Service = new ThreadedS3Service(service,
                 new StorageServiceEventAdaptor());
-            threadedS3Service.multipartUploadParts(
-                threadedMultipartUpload,
-                Arrays.asList(objectsForThreadedUpload));
+            List<MultipartUploadAndParts> uploadAndParts = new ArrayList<MultipartUploadAndParts>();
+            uploadAndParts.add(new MultipartUploadAndParts(
+                threadedMultipartUpload, Arrays.asList(objectsForThreadedUpload)));
+            threadedS3Service.multipartUploadParts(uploadAndParts);
 
             // Complete threaded multipart upload using automatic part listing and normal service.
             MultipartCompleted threadedMultipartCompleted = service.multipartCompleteUpload(

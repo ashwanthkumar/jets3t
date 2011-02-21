@@ -58,6 +58,7 @@ CP=$CP:$JETS3T_HOME/libs/commons-codec/commons-codec-1.3.jar
 CP=$CP:$JETS3T_HOME/libs/commons-httpclient/commons-httpclient-3.1.jar
 CP=$CP:$JETS3T_HOME/libs/logging-log4j/log4j-1.2.15.jar
 CP=$CP:$JETS3T_HOME/libs/bouncycastle/bcprov-jdk14-138.jar
+CP=$CP:$JETS3T_HOME/libs/java-xmlbuilder/java-xmlbuilder-0.4.jar
 
 # Convert classpath for cygwin bash
 case "`uname -s`" in

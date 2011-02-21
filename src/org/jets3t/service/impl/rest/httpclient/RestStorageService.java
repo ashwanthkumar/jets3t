@@ -409,7 +409,10 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                     if (log.isWarnEnabled()) {
                         String requestDescription =
                             httpMethod.getName()
-                            + " '" + httpMethod.getPath() + "'"
+                            + " '" + httpMethod.getPath()
+                            + (httpMethod.getQueryString().length() > 0
+                                ? "?" + httpMethod.getQueryString() : "")
+                            + "'"
                             + " -- ResponseCode: " + httpMethod.getStatusCode()
                             + ", ResponseStatus: " + httpMethod.getStatusText()
                             + ", Request Headers: [" + ServiceUtils.join(httpMethod.getRequestHeaders(), ", ") + "]"
@@ -1655,8 +1658,12 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             metadata.put("Content-Type", Mimetypes.MIMETYPE_OCTET_STREAM);
         }
 
-        // Apply per-object or default storage class when uploading object
-        prepareStorageClass(metadata, storageClass, objectKey);
+        // Apply per-object or default storage class when uploading object,
+        // unless object is part of a multipart upload
+        if (!requestParams.containsKey("uploadId")) {
+            prepareStorageClass(metadata, storageClass, objectKey);
+        }
+
         boolean isExtraAclPutRequired = !prepareCannedAcl(metadata, acl);
 
         if (log.isDebugEnabled()) {

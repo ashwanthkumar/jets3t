@@ -1074,8 +1074,14 @@ public class FileComparer {
                     }
                 } else {
                     // File is not in local file system, so it's only on the service.
-                    onlyOnServerKeys.add(keyPath);
-                    onlyOnClientKeys.remove(keyPath);
+
+                    // Only flag key path as already synced if the current localPath
+                    // is also equivalent to the *full* path of the object in the storage
+                    // service, not just an object's parent directory.
+                    if (componentCount == splitPathComponents.length) {
+                        onlyOnServerKeys.add(keyPath);
+                        onlyOnClientKeys.remove(keyPath);
+                    }
                 }
             }
         }

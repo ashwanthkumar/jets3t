@@ -38,6 +38,7 @@ import org.jets3t.service.model.MultipartCompleted;
 import org.jets3t.service.model.MultipartPart;
 import org.jets3t.service.model.MultipartUpload;
 import org.jets3t.service.model.S3Object;
+import org.jets3t.service.multi.s3.MultipartUploadAndParts;
 import org.jets3t.service.multi.s3.ThreadedS3Service;
 
 public class MultipartUtils {
@@ -248,7 +249,9 @@ public class MultipartUtils {
         throws NoSuchAlgorithmException, IOException
     {
         List<S3Object> objects = splitFileIntoObjectsByMaxPartSize(upload.getObjectKey(), file);
-        service.multipartUploadParts(upload, objects);
+        List<MultipartUploadAndParts> uploadAndPartsList = new ArrayList<MultipartUploadAndParts>();
+        uploadAndPartsList.add(new MultipartUploadAndParts(upload, objects));
+        service.multipartUploadParts(uploadAndPartsList);
     }
 
 }
