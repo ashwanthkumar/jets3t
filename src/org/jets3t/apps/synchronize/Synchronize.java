@@ -936,7 +936,7 @@ public class Synchronize {
                 files, fileKeyPrefix, true);
         }
 
-        // Monitor generation of MD5 hashes, and provide feedback via progress messages.
+        // Watcher to provide feedback during generation of MD5 hash values
         final long filesSizeTotal[] = new long[] { 0 }; // Don't know how much comparison req'd
         BytesProgressWatcher md5GenerationProgressWatcher =
             new BytesProgressWatcher(filesSizeTotal[0]) {
@@ -948,7 +948,6 @@ public class Synchronize {
                 }
             };
 
-        // Perform the requested action on the set of disrepancies.
         if ("UP".equals(actionCommand)) {
             uploadLocalDirectory(objectKeyToFilepathMap, bucket, objectPath,
                 aclString, md5GenerationProgressWatcher);

@@ -2124,15 +2124,16 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
         try {
             // Build map of files proposed for upload.
-            final Map filesForUploadMap = FileComparer.getInstance()
-                .buildFileMap(uploadFiles, true);
+            final Map<String, String> objectKeyToFilepathMap =
+                FileComparer.getInstance()
+                    .buildObjectKeyToFilepathMap(uploadFiles, "", true);
 
             // Build map of objects already existing in target S3 bucket with keys
             // matching the proposed upload keys.
             List objectsWithExistingKeys = new ArrayList();
             S3Object[] existingObjects = objectTableModel.getObjects();
             for (int i = 0; i < existingObjects.length; i++) {
-                if (filesForUploadMap.keySet().contains(existingObjects[i].getKey()))
+                if (objectKeyToFilepathMap.containsKey(existingObjects[i].getKey()))
                 {
                     objectsWithExistingKeys.add(existingObjects[i]);
                 }
@@ -2157,10 +2158,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
                    try {
                        FileComparerResults comparisonResults =
-                           compareRemoteAndLocalFiles(filesForUploadMap, s3ExistingObjectsMap);
+                           compareRemoteAndLocalFiles(objectKeyToFilepathMap, s3ExistingObjectsMap);
 
                         S3Object[] uploadObjects = buildUploadObjectsList(
-                            comparisonResults, filesForUploadMap);
+                            comparisonResults, objectKeyToFilepathMap);
 
                         if (uploadObjects == null) {
                             return;
@@ -2188,18 +2189,20 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
     }
 
-    private FileComparerResults compareRemoteAndLocalFiles(final Map localFilesMap, final Map s3ObjectsMap)
+    private FileComparerResults compareRemoteAndLocalFiles(
+        final Map<String, String> objectKeyToFilepathMap, final Map s3ObjectsMap)
         throws Exception
     {
         try {
             // Compare objects being downloaded and existing local files.
             final String statusText =
                 "Comparing " + s3ObjectsMap.size() + " object" + (s3ObjectsMap.size() > 1 ? "s" : "") +
-                " in S3 with " + localFilesMap.size() + " local file" + (localFilesMap.size() > 1 ? "s" : "");
+                " in S3 with " + objectKeyToFilepathMap.size()
+                + " local file" + (objectKeyToFilepathMap.size() > 1 ? "s" : "");
             startProgressDialog(statusText, "", 0, 100, null, null);
 
             // Calculate total files size.
-            File[] files = (File[]) localFilesMap.values().toArray(new File[localFilesMap.size()]);
+            File[] files = objectKeyToFilepathMap.values().toArray(new File[objectKeyToFilepathMap.size()]);
             final long filesSizeTotal[] = new long[1];
             for (int i = 0; i < files.length; i++) {
                 filesSizeTotal[0] += files[i].length();
@@ -2218,7 +2221,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             };
 
             FileComparerResults comparisonResults = FileComparer.getInstance()
-                    .buildDiscrepancyLists(localFilesMap, s3ObjectsMap, progressWatcher);
+                    .buildDiscrepancyLists(objectKeyToFilepathMap, s3ObjectsMap, progressWatcher);
 
             stopProgressDialog();
 
@@ -2406,7 +2409,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
 
     private S3Object[] buildUploadObjectsList(FileComparerResults comparisonResults,
-        Map uploadingFilesMap) throws Exception
+        Map<String, String> objectKeyToFilepathMap) throws Exception
     {
         // Determine which files to upload, prompting user whether to over-write existing files
         List fileKeysForUpload = new ArrayList();
@@ -2421,7 +2424,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             // Ask user whether to replace existing unchanged and/or existing changed files.
             log.debug("Files for upload clash with existing S3 objects, prompting user to choose which files to replace");
             List options = new ArrayList();
-            String message = "Of the " + uploadingFilesMap.size()
+            String message = "Of the " + objectKeyToFilepathMap.size()
                 + " files being uploaded:\n\n";
 
             if (newFiles > 0) {
@@ -2472,7 +2475,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
         long bytesToProcess = 0;
         for (Iterator iter = fileKeysForUpload.iterator(); iter.hasNext();) {
-            File file = (File) uploadingFilesMap.get(iter.next().toString());
+            File file = new File(objectKeyToFilepathMap.get(iter.next().toString()));
             bytesToProcess += file.length() *
                 (cockpitPreferences.isUploadEncryptionActive() || cockpitPreferences.isUploadCompressionActive() ? 3 : 1);
         }
@@ -2493,7 +2496,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         int objectIndex = 0;
         for (Iterator iter = fileKeysForUpload.iterator(); iter.hasNext();) {
             String fileKey = iter.next().toString();
-            File file = (File) uploadingFilesMap.get(fileKey);
+            File file = new File(objectKeyToFilepathMap.get(fileKey));
 
             S3Object newObject = ObjectUtils
                 .createObjectForUpload(fileKey, file,
