@@ -229,6 +229,10 @@ public class Synchronize {
 
             return newObject;
         }
+
+        public File getFile() {
+            return file;
+        }
     }
 
 
@@ -317,6 +321,7 @@ public class Synchronize {
         mergedDiscrepancyResults.merge(discrepancyResults);
 
         ComparisonResult result = new ComparisonResult();
+        result.priorLastKey = priorLastKey;
         result.objectsMap = objectsMap;
         result.discrepancyResults = discrepancyResults;
         return result;
@@ -373,122 +378,127 @@ public class Synchronize {
             encryptionUtil = new EncryptionUtil(cryptoPassword, algorithm, EncryptionUtil.DEFAULT_VERSION);
         }
 
-        // Repeat upload actions until all objects in bucket have been listed.
+        // Repeat list and upload actions until all objects in bucket have been listed.
         do {
             ComparisonResult result =
                 compareLocalAndRemoteFiles(mergedDiscrepancyResults, bucket.getName(), rootObjectPath,
                     priorLastKey, objectKeyToFilepathMap, md5GenerationProgressWatcher);
+            priorLastKey = result.priorLastKey;
             FileComparerResults discrepancyResults = result.discrepancyResults;
 
-            // Sort upload file candidates by path.
-            List<String> sortedFilesKeys = new ArrayList<String>(objectKeyToFilepathMap.keySet());
-            Collections.sort(sortedFilesKeys);
+            // Repeat upload actions until all local files have been uploaded (or we repeat listing loop)
+            Iterator<String> objectKeyIter = objectKeyToFilepathMap.keySet().iterator();
+            do {
+                List<LazyPreparedUploadObject> objectsToUpload = new ArrayList<LazyPreparedUploadObject>();
 
-            List<LazyPreparedUploadObject> objectsToUpload = new ArrayList<LazyPreparedUploadObject>();
+                // Iterate through local files and perform the necessary action to synchronize them.
+                while (objectKeyIter.hasNext()) {
+                    String relativeKeyPath = objectKeyIter.next();
 
-            // Iterate through local files and perform the necessary action to synchronize them.
-            Iterator<String> fileKeyIter = sortedFilesKeys.iterator();
-            while (fileKeyIter.hasNext()) {
-                String relativeKeyPath = fileKeyIter.next();
+                    String targetKey = relativeKeyPath;
+                    if (rootObjectPath.length() > 0) {
+                        if (rootObjectPath.endsWith(Constants.FILE_PATH_DELIM)) {
+                            targetKey = rootObjectPath + targetKey;
+                        } else {
+                            targetKey = rootObjectPath + Constants.FILE_PATH_DELIM + targetKey;
+                        }
+                    }
 
-                String targetKey = relativeKeyPath;
-                if (rootObjectPath.length() > 0) {
-                    if (rootObjectPath.endsWith(Constants.FILE_PATH_DELIM)) {
-                        targetKey = rootObjectPath + targetKey;
+                    if (isBatchMode) {
+                        if (priorLastKey != null && targetKey.compareTo(priorLastKey) > 0) {
+                            // We do not yet have the object listing to compare this file.
+                            continue;
+                        }
+
+                        if (targetKey.compareTo(lastFileKeypathChecked) <= 0) {
+                            // We have already handled this file in a prior batch.
+                            continue;
+                        } else {
+                            lastFileKeypathChecked = targetKey;
+                        }
+                    }
+
+                    File file = new File(objectKeyToFilepathMap.get(relativeKeyPath));
+
+                    if (discrepancyResults.onlyOnClientKeys.contains(relativeKeyPath)) {
+                        printOutputLine("N " + targetKey, REPORT_LEVEL_ACTIONS);
+                        objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
+                    } else if (discrepancyResults.updatedOnClientKeys.contains(relativeKeyPath)) {
+                        printOutputLine("U " + targetKey, REPORT_LEVEL_ACTIONS);
+                        objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
+                    } else if (discrepancyResults.alreadySynchronisedKeys.contains(relativeKeyPath)
+                               || discrepancyResults.alreadySynchronisedLocalPaths.contains(relativeKeyPath))
+                    {
+                        if (isForce) {
+                            printOutputLine("F " + targetKey, REPORT_LEVEL_ACTIONS);
+                            objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
+                        } else {
+                            printOutputLine("- " + targetKey, REPORT_LEVEL_ALL);
+                        }
+                    } else if (discrepancyResults.updatedOnServerKeys.contains(relativeKeyPath)) {
+                        // This file has been updated on the server-side.
+                        if (isKeepFiles) {
+                            printOutputLine("r " + targetKey, REPORT_LEVEL_DIFFERENCES);
+                        } else {
+                            printOutputLine("R " + targetKey, REPORT_LEVEL_ACTIONS);
+                            objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
+                        }
                     } else {
-                        targetKey = rootObjectPath + Constants.FILE_PATH_DELIM + targetKey;
+                        // Uh oh, program error here. The safest thing to do is abort!
+                        throw new SynchronizeException("Invalid discrepancy comparison details for file "
+                            + file.getPath()
+                            + ". Sorry, this is a program error - aborting to keep your data safe");
+                    }
+
+                    // If we're batching, break out of upload preparation loop and
+                    // actually upload files once we have our quota.
+                    if (isBatchMode
+                        && objectsToUpload.size() >= Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE)
+                    {
+                        break;
                     }
                 }
 
-                if (isBatchMode) {
-                    if (priorLastKey != null && targetKey.compareTo(priorLastKey) > 0) {
-                        // We do not yet have the object listing to compare this file.
-                        continue;
-                    }
-
-                    if (targetKey.compareTo(lastFileKeypathChecked) <= 0) {
-                        // We have already handled this file in a prior batch.
-                        continue;
-                    } else {
-                        lastFileKeypathChecked = targetKey;
-                    }
-                }
-
-                File file = new File(objectKeyToFilepathMap.get(relativeKeyPath));
-
-                if (discrepancyResults.onlyOnClientKeys.contains(relativeKeyPath)) {
-                    printOutputLine("N " + targetKey, REPORT_LEVEL_ACTIONS);
-                    objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
-                } else if (discrepancyResults.updatedOnClientKeys.contains(relativeKeyPath)) {
-                    printOutputLine("U " + targetKey, REPORT_LEVEL_ACTIONS);
-                    objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
-                } else if (discrepancyResults.alreadySynchronisedKeys.contains(relativeKeyPath)
-                           || discrepancyResults.alreadySynchronisedLocalPaths.contains(relativeKeyPath))
+                // Break uploads into (smaller) batches if we are transforming files during upload
+                int uploadBatchSize = objectsToUpload.size();
+                if ((isEncryptionEnabled || isGzipEnabled)
+                    && properties.containsKey("upload.transformed-files-batch-size"))
                 {
-                    if (isForce) {
-                        printOutputLine("F " + targetKey, REPORT_LEVEL_ACTIONS);
-                        objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
-                    } else {
-                        printOutputLine("- " + targetKey, REPORT_LEVEL_ALL);
-                    }
-                } else if (discrepancyResults.updatedOnServerKeys.contains(relativeKeyPath)) {
-                    // This file has been updated on the server-side.
-                    if (isKeepFiles) {
-                        printOutputLine("r " + targetKey, REPORT_LEVEL_DIFFERENCES);
-                    } else {
-                        printOutputLine("R " + targetKey, REPORT_LEVEL_ACTIONS);
-                        objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
-                    }
+                    // Limit uploads to small batches in batch mode -- based on the
+                    // number of upload threads that are available.
+                    uploadBatchSize = properties.getIntProperty("upload.transformed-files-batch-size", 1000);
+                    partialUploadObjectsTotal = objectsToUpload.size();
+                    partialUploadObjectsProgressCount = 0;
                 } else {
-                    // Uh oh, program error here. The safest thing to do is abort!
-                    throw new SynchronizeException("Invalid discrepancy comparison details for file "
-                        + file.getPath()
-                        + ". Sorry, this is a program error - aborting to keep your data safe");
-                }
-            }
-
-            int uploadBatchSize = objectsToUpload.size();
-            if ((isEncryptionEnabled || isGzipEnabled)
-                && properties.containsKey("upload.transformed-files-batch-size"))
-            {
-                // Limit uploads to small batches in batch mode -- based on the
-                // number of upload threads that are available.
-                uploadBatchSize = properties.getIntProperty("upload.transformed-files-batch-size", 1000);
-                partialUploadObjectsTotal = objectsToUpload.size();
-                partialUploadObjectsProgressCount = 0;
-            } else {
-                partialUploadObjectsTotal = -1;
-            }
-
-            // Upload New/Updated/Forced/Replaced objects.
-            while (doAction && objectsToUpload.size() > 0) {
-                StorageObject[] objects = null;
-                if (uploadBatchSize > objectsToUpload.size()) {
-                    objects = new StorageObject[objectsToUpload.size()];
-                } else {
-                    objects = new StorageObject[uploadBatchSize];
+                    partialUploadObjectsTotal = -1;
                 }
 
-                // Invoke lazy upload object creator.
-                for (int i = 0; i < objects.length; i++) {
-                    LazyPreparedUploadObject lazyObj =
-                        objectsToUpload.remove(0);
-                    objects[i] = lazyObj.prepareUploadObject();
-                }
+                // Upload New/Updated/Forced/Replaced objects.
+                while (doAction && objectsToUpload.size() > 0) {
+                    List<StorageObject> objectsForStandardPut = new ArrayList<StorageObject>();
 
-                (new ThreadedStorageService(storageService, serviceEventAdaptor)).putObjects(
-                    bucket.getName(), objects);
-                if (serviceEventAdaptor.wasErrorThrown()) {
-                    Throwable thrown = serviceEventAdaptor.getErrorThrown();
-                    if (thrown instanceof Exception) {
-                        throw (Exception) thrown;
-                    } else {
-                        throw new Exception(thrown);
+                    // Invoke lazy upload object creator.
+                    for (int i = 0; i < uploadBatchSize; i++) {
+                        LazyPreparedUploadObject lazyObj = objectsToUpload.remove(0);
+                        StorageObject object = lazyObj.prepareUploadObject();
+                        objectsForStandardPut.add(object);
                     }
+
+                    (new ThreadedStorageService(storageService, serviceEventAdaptor)).putObjects(
+                        bucket.getName(), objectsForStandardPut.toArray(new StorageObject[] {}));
+                    if (serviceEventAdaptor.wasErrorThrown()) {
+                        Throwable thrown = serviceEventAdaptor.getErrorThrown();
+                        if (thrown instanceof Exception) {
+                            throw (Exception) thrown;
+                        } else {
+                            throw new Exception(thrown);
+                        }
+                    }
+                    partialUploadObjectsProgressCount += objectsForStandardPut.size();
                 }
-                partialUploadObjectsProgressCount += objects.length;
-            }
-        } while (priorLastKey != null);
+            } while (objectKeyIter.hasNext()); // End of upload loop
+
+        } while (priorLastKey != null); // End of list and upload loop
 
         // Delete objects that don't correspond with local files.
         List<StorageObject> objectsToDelete = new ArrayList<StorageObject>();
@@ -628,6 +638,7 @@ public class Synchronize {
             ComparisonResult result =
                 compareLocalAndRemoteFiles(mergedDiscrepancyResults, bucket.getName(), rootObjectPath,
                     priorLastKey, objectKeyToFilepathMap, md5GenerationProgressWatcher);
+            priorLastKey = result.priorLastKey;
             FileComparerResults discrepancyResults = result.discrepancyResults;
             Map<String, StorageObject> objectsMap = result.objectsMap;
 
@@ -1039,6 +1050,7 @@ public class Synchronize {
     };
 
     private class ComparisonResult {
+        public String priorLastKey;
         public FileComparerResults discrepancyResults;
         public Map<String, StorageObject> objectsMap;
     }

@@ -33,13 +33,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.TreeMap;
 import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
@@ -321,7 +321,7 @@ public class FileComparer {
         }
 
         // Build map of files proposed for upload or download.
-        Map<String, String> objectKeyToFilepathMap = new HashMap<String, String>();
+        Map<String, String> objectKeyToFilepathMap = new TreeMap<String, String>();
         List<Pattern> ignorePatternList = null;
         List<Pattern> ignorePatternListForCurrentDir = null;
 
@@ -797,7 +797,7 @@ public class FileComparer {
      * a map of keys to StorageObjects.
      */
     public Map<String, StorageObject> populateObjectMap(String targetPath, StorageObject[] objects) {
-        Map<String, StorageObject> map = new HashMap<String, StorageObject>();
+        Map<String, StorageObject> map = new TreeMap<String, StorageObject>();
         for (int i = 0; i < objects.length; i++) {
             String relativeKey = objects[i].getKey();
             if (targetPath.length() > 0) {
@@ -958,12 +958,16 @@ public class FileComparer {
         Map<String, StorageObject> objectsMap, BytesProgressWatcher progressWatcher)
         throws NoSuchAlgorithmException, FileNotFoundException, IOException, ParseException
     {
-        Set<String> onlyOnServerKeys = new HashSet<String>();
-        Set<String> updatedOnServerKeys = new HashSet<String>();
-        Set<String> updatedOnClientKeys = new HashSet<String>();
-        Set<String> onlyOnClientKeys = new HashSet<String>();
-        Set<String> alreadySynchronisedKeys = new HashSet<String>();
-        Set<String> alreadySynchronisedLocalPaths = new HashSet<String>();
+        List<String> onlyOnServerKeys = new ArrayList<String>();
+        List<String> updatedOnServerKeys = new ArrayList<String>();
+        List<String> updatedOnClientKeys = new ArrayList<String>();
+        List<String> onlyOnClientKeys = new ArrayList<String>();
+        List<String> alreadySynchronisedKeys = new ArrayList<String>();
+        List<String> alreadySynchronisedLocalPaths = new ArrayList<String>();
+
+        // Start by assuming all items are local to client. Items will be removed
+        // from this set as we proceed.
+        onlyOnClientKeys.addAll(objectKeyToFilepathMap.keySet());
 
         // Check files on server against local client files.
         Iterator<Map.Entry<String, StorageObject>> objectsMapIter = objectsMap.entrySet().iterator();
@@ -992,6 +996,7 @@ public class FileComparer {
                         if (componentCount == splitPathComponents.length) {
                             alreadySynchronisedKeys.add(keyPath);
                             alreadySynchronisedLocalPaths.add(localPath);
+                            onlyOnClientKeys.remove(keyPath);
                         }
                     }
                     // Compare file hashes.
@@ -1018,6 +1023,7 @@ public class FileComparer {
                             // Hashes match so file is already synchronised.
                             alreadySynchronisedKeys.add(keyPath);
                             alreadySynchronisedLocalPaths.add(localPath);
+                            onlyOnClientKeys.remove(keyPath);
                         } else {
                             // File is out-of-synch. Check which version has the latest date.
                             Date objectLastModified = null;
@@ -1039,8 +1045,10 @@ public class FileComparer {
                             }
                             if (objectLastModified.getTime() > file.lastModified()) {
                                 updatedOnServerKeys.add(keyPath);
+                                onlyOnClientKeys.remove(keyPath);
                             } else if (objectLastModified.getTime() < file.lastModified()) {
                                 updatedOnClientKeys.add(keyPath);
+                                onlyOnClientKeys.remove(keyPath);
                             } else {
                                 // Local file date and service object date values match exactly, yet the
                                 // local file has a different hash. This shouldn't ever happen, but
@@ -1053,6 +1061,7 @@ public class FileComparer {
                                         + "Assuming local file is the latest version.");
                                     }
                                     updatedOnClientKeys.add(keyPath);
+                                    onlyOnClientKeys.remove(keyPath);
                                 } else {
                                     throw new IOException("Backed-up object " + storageObject.getKey()
                                         + " and local file " + file.getName()
@@ -1066,16 +1075,10 @@ public class FileComparer {
                 } else {
                     // File is not in local file system, so it's only on the service.
                     onlyOnServerKeys.add(keyPath);
+                    onlyOnClientKeys.remove(keyPath);
                 }
             }
         }
-
-        // Any local files not already put into another list only exist locally.
-        onlyOnClientKeys.addAll(objectKeyToFilepathMap.keySet());
-        onlyOnClientKeys.removeAll(updatedOnClientKeys);
-        onlyOnClientKeys.removeAll(updatedOnServerKeys);
-        onlyOnClientKeys.removeAll(alreadySynchronisedKeys);
-        onlyOnClientKeys.removeAll(alreadySynchronisedLocalPaths);
 
         return new FileComparerResults(onlyOnServerKeys, updatedOnServerKeys, updatedOnClientKeys,
             onlyOnClientKeys, alreadySynchronisedKeys, alreadySynchronisedLocalPaths);

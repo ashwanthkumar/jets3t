@@ -328,15 +328,18 @@ public class TestRestS3Service extends BaseStorageServiceTests {
                 multipartUtils.isFileLargerThanMaxPartSize(largeFile));
 
             // Split small file into 5MB object parts
-            List<S3Object> parts = multipartUtils.splitFileIntoObjectsByMaxPartSize(smallFile);
+            List<S3Object> parts = multipartUtils.splitFileIntoObjectsByMaxPartSize(
+                smallFile.getName(), smallFile);
             assertEquals(1, parts.size());
 
             // Split medium file into 5MB object parts
-            parts = multipartUtils.splitFileIntoObjectsByMaxPartSize(mediumFile);
+            parts = multipartUtils.splitFileIntoObjectsByMaxPartSize(
+                mediumFile.getName(), mediumFile);
             assertEquals(2, parts.size());
 
             // Split large file into 5MB object parts
-            parts = multipartUtils.splitFileIntoObjectsByMaxPartSize(largeFile);
+            parts = multipartUtils.splitFileIntoObjectsByMaxPartSize(
+                largeFile.getName(), largeFile);
             assertEquals(3, parts.size());
 
             /*

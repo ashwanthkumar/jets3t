@@ -75,7 +75,7 @@ public class MultipartUtils {
     }
 
     /**
-     * Use default value for maximum part size: {@link #MIN_PART_SIZE}.
+     * Use default value for maximum part size: {@link #MAX_OBJECT_SIZE}.
      */
     public MultipartUtils() {
     }
@@ -107,7 +107,7 @@ public class MultipartUtils {
      * @throws IOException
      * @throws NoSuchAlgorithmException
      */
-    public List<S3Object> splitFileIntoObjectsByMaxPartSize(File file)
+    public List<S3Object> splitFileIntoObjectsByMaxPartSize(String objectKey, File file)
         throws IOException, NoSuchAlgorithmException
     {
         long fileLength = file.length();
@@ -123,7 +123,7 @@ public class MultipartUtils {
         SegmentedRepeatableFileInputStream segFIS = null;
 
         for (long offset = 0; offset < partCount; offset++) {
-            S3Object object = new S3Object(file.getName());
+            S3Object object = new S3Object(objectKey);
             if (offset < partCount - 1) {
                 object.setContentLength(maxPartSize);
                 segFIS = new SegmentedRepeatableFileInputStream(
@@ -219,7 +219,7 @@ public class MultipartUtils {
     public List<MultipartPart> uploadFile(File file, S3Service service, MultipartUpload upload)
         throws NoSuchAlgorithmException, IOException, ServiceException
     {
-        List<S3Object> objects = splitFileIntoObjectsByMaxPartSize(file);
+        List<S3Object> objects = splitFileIntoObjectsByMaxPartSize(upload.getObjectKey(), file);
         List<MultipartPart> parts = new ArrayList<MultipartPart>();
         int partNumber = 1;
         for (S3Object object: objects) {
@@ -247,7 +247,7 @@ public class MultipartUtils {
     public void uploadFile(File file, ThreadedS3Service service, MultipartUpload upload)
         throws NoSuchAlgorithmException, IOException
     {
-        List<S3Object> objects = splitFileIntoObjectsByMaxPartSize(file);
+        List<S3Object> objects = splitFileIntoObjectsByMaxPartSize(upload.getObjectKey(), file);
         service.multipartUploadParts(upload, objects);
     }
 
