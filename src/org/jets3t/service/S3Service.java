@@ -41,6 +41,7 @@ import org.jets3t.service.model.BaseVersionOrDeleteMarker;
 import org.jets3t.service.model.MultipartCompleted;
 import org.jets3t.service.model.MultipartPart;
 import org.jets3t.service.model.MultipartUpload;
+import org.jets3t.service.model.NotificationConfig;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3BucketVersioningStatus;
@@ -3171,25 +3172,26 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         setWebsiteConfigImpl(bucketName, config);
     }
 
-    public void setWebsiteConfig(String bucketName, String indexDocumentSuffix,
-        String errorDocumentKey) throws S3ServiceException
-    {
-        setWebsiteConfigImpl(bucketName,
-            new WebsiteConfig(indexDocumentSuffix, errorDocumentKey));
-    }
-
-    public void setWebsiteConfig(String bucketName, String indexDocumentSuffix)
-        throws S3ServiceException
-    {
-        setWebsiteConfig(bucketName, indexDocumentSuffix, null);
-    }
-
     public WebsiteConfig getWebsiteConfig(String bucketName) throws S3ServiceException {
         return getWebsiteConfigImpl(bucketName);
     }
 
     public void deleteWebsiteConfig(String bucketName) throws S3ServiceException {
         deleteWebsiteConfigImpl(bucketName);
+    }
+
+    public void setNotificationConfig(String bucketName, NotificationConfig config)
+        throws S3ServiceException
+    {
+        setNotificationConfigImpl(bucketName, config);
+    }
+
+    public NotificationConfig getNotificationConfig(String bucketName) throws S3ServiceException {
+        return getNotificationConfigImpl(bucketName);
+    }
+
+    public void unsetNotificationConfig(String bucketName) throws S3ServiceException {
+        setNotificationConfigImpl(bucketName, new NotificationConfig());
     }
 
     ///////////////////////////////////////////////////////////
@@ -3280,6 +3282,12 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         throws S3ServiceException;
 
     protected abstract void deleteWebsiteConfigImpl(String bucketName)
+        throws S3ServiceException;
+
+    protected abstract void setNotificationConfigImpl(String bucketName, NotificationConfig config)
+        throws S3ServiceException;
+
+    protected abstract NotificationConfig getNotificationConfigImpl(String bucketName)
         throws S3ServiceException;
 
 }

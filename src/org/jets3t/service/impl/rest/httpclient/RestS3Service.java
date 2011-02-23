@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
@@ -53,6 +52,7 @@ import org.jets3t.service.model.BaseVersionOrDeleteMarker;
 import org.jets3t.service.model.MultipartCompleted;
 import org.jets3t.service.model.MultipartPart;
 import org.jets3t.service.model.MultipartUpload;
+import org.jets3t.service.model.NotificationConfig;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3BucketVersioningStatus;
 import org.jets3t.service.model.S3Object;
@@ -370,7 +370,7 @@ public class RestS3Service extends S3Service {
             "requestPayment",
             "versions", "versioning", "versionId",
             "uploads", "uploadId", "partNumber",
-            "website"
+            "website", "notification"
         });
     }
 
@@ -1080,6 +1080,50 @@ public class RestS3Service extends S3Service {
             performRestDelete(bucketName, null, requestParameters, null, null);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
+        }
+    }
+
+    @Override
+    protected NotificationConfig getNotificationConfigImpl(String bucketName)
+        throws S3ServiceException
+    {
+        try {
+            Map<String, String> requestParameters = new HashMap<String, String>();
+            requestParameters.put("notification", "");
+
+            HttpMethodBase getMethod = performRestGet(bucketName, null, requestParameters, null);
+            return getXmlResponseSaxParser().parseNotificationConfigurationResponse(
+                new HttpMethodReleaseInputStream(getMethod));
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
+    }
+
+    @Override
+    protected void setNotificationConfigImpl(String bucketName, NotificationConfig config)
+        throws S3ServiceException
+    {
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put("notification", "");
+
+        Map<String, Object> metadata = new HashMap<String, Object>();
+
+        String xml = null;
+        try {
+            xml = config.toXml();
+        } catch (Exception e) {
+            throw new S3ServiceException("Unable to build NotificationConfig XML document", e);
+        }
+
+        try {
+            metadata.put("Content-Length", xml.length());
+            performRestPut(bucketName, null, metadata, requestParameters,
+                new StringRequestEntity(xml, "text/plain", Constants.DEFAULT_ENCODING),
+                true);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        } catch (UnsupportedEncodingException e) {
+            throw new S3ServiceException("Unable to encode XML document", e);
         }
     }
 

@@ -52,12 +52,14 @@ import org.jets3t.service.impl.rest.httpclient.RestStorageService;
 import org.jets3t.service.model.MultipartCompleted;
 import org.jets3t.service.model.MultipartPart;
 import org.jets3t.service.model.MultipartUpload;
+import org.jets3t.service.model.NotificationConfig;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.WebsiteConfig;
+import org.jets3t.service.model.NotificationConfig.TopicConfig;
 import org.jets3t.service.multi.StorageServiceEventAdaptor;
 import org.jets3t.service.multi.s3.MultipartUploadAndParts;
 import org.jets3t.service.multi.s3.S3ServiceEventAdaptor;
@@ -570,7 +572,10 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             } catch (S3ServiceException e) { }
 
             // Set index document
-            s3Service.setWebsiteConfig(bucketName, "index.html");
+            s3Service.setWebsiteConfig(bucketName,
+                new WebsiteConfig("index.html"));
+
+            Thread.sleep(5000);
 
             // Confirm index document set
             WebsiteConfig config = s3Service.getWebsiteConfig(bucketName);
@@ -597,7 +602,10 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             assertEquals("index.html contents", getMethod.getResponseBodyAsString());
 
             // Set index document and error document
-            s3Service.setWebsiteConfig(bucketName, "index.html", "error.html");
+            s3Service.setWebsiteConfig(bucketName,
+                new WebsiteConfig("index.html", "error.html"));
+
+            Thread.sleep(5000);
 
             // Confirm index document and error document set
             config = s3Service.getWebsiteConfig(bucketName);
@@ -634,6 +642,8 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             // Delete website config
             s3Service.deleteWebsiteConfig(bucketName);
 
+            Thread.sleep(5000);
+
             // Confirm website config deleted
             try {
                 s3Service.getWebsiteConfig(bucketName);
@@ -644,4 +654,48 @@ public class TestRestS3Service extends BaseStorageServiceTests {
         }
     }
 
+    public void testNotificationConfig() throws Exception {
+        // Testing takes place in the us-west-1 location
+        S3Service s3Service = (S3Service) getStorageService(getCredentials());
+        StorageBucket bucket = createBucketForTest("testNotificationConfig");
+        String bucketName = bucket.getName();
+
+        try {
+            // Check no existing notification config
+            NotificationConfig notificationConfig =
+                s3Service.getNotificationConfig(bucketName);
+            assertEquals(0, notificationConfig.getTopicConfigs().size());
+
+            // Public SNS topic for testing
+            String topicArn =
+                "arn:aws:sns:us-east-1:916472402845:"
+                + "JetS3t-Test-S3-Bucket-NotificationConfig";
+            String event = NotificationConfig.EVENT_REDUCED_REDUNDANCY_LOST_OBJECT;
+
+            // Set notification config
+            notificationConfig = new NotificationConfig();
+            notificationConfig.addTopicConfig(notificationConfig.new TopicConfig(topicArn, event));
+            s3Service.setNotificationConfig(bucketName, notificationConfig);
+
+            Thread.sleep(5000);
+
+            // Get notification config
+            notificationConfig = s3Service.getNotificationConfig(bucketName);
+            assertEquals(1, notificationConfig.getTopicConfigs().size());
+            TopicConfig topicConfig = notificationConfig.getTopicConfigs().get(0);
+            assertEquals(topicArn, topicConfig.getTopic());
+            assertEquals(event, topicConfig.getEvent());
+
+            // Unset/clear notification config
+            s3Service.unsetNotificationConfig(bucketName);
+
+            Thread.sleep(5000);
+
+            // Confirm notification config is no longer set
+            notificationConfig = s3Service.getNotificationConfig(bucketName);
+            assertEquals(0, notificationConfig.getTopicConfigs().size());
+        } finally {
+            cleanupBucketForTest("testNotificationConfig");
+        }
+    }
 }

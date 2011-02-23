@@ -18,42 +18,39 @@
  */
 package org.jets3t.service.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 
-import org.jets3t.service.Constants;
-
 import com.jamesmurty.utils.XMLBuilder;
 
 /**
- * Represents the website configuraton of a bucket
+ * Represents the notification configuraton of a bucket
  *
  * @author James Murty
  */
-public class WebsiteConfig {
-    private String indexDocumentSuffix = null;
-    private String errorDocumentKey = null;
+public class NotificationConfig {
+    public static final String EVENT_REDUCED_REDUNDANCY_LOST_OBJECT =
+        "s3:ReducedRedundancyLostObject";
 
-    public WebsiteConfig(String indexDocumentSuffix, String errorDocumentKey) {
-        this.indexDocumentSuffix = indexDocumentSuffix;
-        this.errorDocumentKey = errorDocumentKey;
+    private List<TopicConfig> topicConfigs = new ArrayList<TopicConfig>();
+
+    public NotificationConfig(List<TopicConfig> topicConfigs) {
+        this.topicConfigs = topicConfigs;
     }
 
-    public WebsiteConfig(String indexDocumentSuffix) {
-        this(indexDocumentSuffix, null);
+    public NotificationConfig() {
     }
 
-    public String getIndexDocumentSuffix() {
-        return indexDocumentSuffix;
+    public List<TopicConfig> getTopicConfigs() {
+        return topicConfigs;
     }
 
-    public String getErrorDocumentKey() {
-        return errorDocumentKey;
-    }
-
-    public boolean isWebsiteConfigActive() {
-        return (indexDocumentSuffix != null);
+    public void addTopicConfig(TopicConfig config) {
+        this.topicConfigs.add(config);
     }
 
     /**
@@ -68,14 +65,32 @@ public class WebsiteConfig {
     public String toXml() throws ParserConfigurationException,
         FactoryConfigurationError, TransformerException
     {
-        XMLBuilder builder = XMLBuilder.create("WebsiteConfiguration")
-            .attr("xmlns", Constants.XML_NAMESPACE)
-            .elem("IndexDocument").elem("Suffix").text(this.indexDocumentSuffix)
-            .up().up();
-        if (this.errorDocumentKey != null && this.errorDocumentKey.length() > 0) {
-            builder.elem("ErrorDocument").elem("Key").text(this.errorDocumentKey);
+        XMLBuilder builder = XMLBuilder.create("NotificationConfiguration");
+        for (TopicConfig topicConfig: this.topicConfigs) {
+            builder
+                .elem("TopicConfiguration")
+                    .elem("Topic").text(topicConfig.topic).up()
+                    .elem("Event").text(topicConfig.event);
         }
         return builder.asString();
+    }
+
+    public class TopicConfig {
+        protected String topic;
+        protected String event;
+
+        public TopicConfig(String topic, String event) {
+            this.topic = topic;
+            this.event = event;
+        }
+
+        public String getTopic() {
+            return topic;
+        }
+
+        public String getEvent() {
+            return event;
+        }
     }
 
 }

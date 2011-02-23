@@ -48,6 +48,7 @@ import org.jets3t.service.model.GSOwner;
 import org.jets3t.service.model.MultipartCompleted;
 import org.jets3t.service.model.MultipartPart;
 import org.jets3t.service.model.MultipartUpload;
+import org.jets3t.service.model.NotificationConfig;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3BucketVersioningStatus;
@@ -390,6 +391,14 @@ public class XmlResponsesSaxParser {
         WebsiteConfigurationHandler handler = new WebsiteConfigurationHandler();
         parseXmlInputStream(handler, inputStream);
         return handler.getWebsiteConfig();
+    }
+
+    public NotificationConfig parseNotificationConfigurationResponse(
+        InputStream inputStream) throws ServiceException
+    {
+        NotificationConfigurationHandler handler = new NotificationConfigurationHandler();
+        parseXmlInputStream(handler, inputStream);
+        return handler.getNotificationConfig();
     }
 
     //////////////
@@ -1493,6 +1502,28 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("WebsiteConfiguration")) {
                 this.config = new WebsiteConfig(
                     indexDocumentSuffix, errorDocumentKey);
+            }
+        }
+    }
+
+    public class NotificationConfigurationHandler extends DefaultXmlHandler {
+        private NotificationConfig config = new NotificationConfig();
+        private String lastTopic = null;
+        private String lastEvent = null;
+
+        public NotificationConfig getNotificationConfig() {
+            return config;
+        }
+
+        @Override
+        public void endElement(String name, String elementText) {
+            if (name.equals("Topic")) {
+                this.lastTopic = elementText;
+            } else if (name.equals("Event")) {
+                this.lastEvent = elementText;
+                config.addTopicConfig(config.new TopicConfig(
+                    this.lastTopic, this.lastEvent));
+            } else if (name.equals("NotificationConfiguration")) {
             }
         }
     }

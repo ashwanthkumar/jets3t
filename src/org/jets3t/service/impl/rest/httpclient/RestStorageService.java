@@ -410,7 +410,8 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                         String requestDescription =
                             httpMethod.getName()
                             + " '" + httpMethod.getPath()
-                            + (httpMethod.getQueryString().length() > 0
+                            + (httpMethod.getQueryString() != null
+                               && httpMethod.getQueryString().length() > 0
                                 ? "?" + httpMethod.getQueryString() : "")
                             + "'"
                             + " -- ResponseCode: " + httpMethod.getStatusCode()

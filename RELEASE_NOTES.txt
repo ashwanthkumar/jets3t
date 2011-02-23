@@ -15,6 +15,8 @@ TOOLKIT
   See https://bitbucket.org/jmurty/jets3t/issue/69
 - Greatly reduced memory usage in FileComparer file comparison
   utilities when working with large numbers of files.
+- Added support for configuring buckets to send Simple Notification
+  Service (SNS) messages.
 
   * S3Service
 
