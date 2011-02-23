@@ -631,9 +631,8 @@ public class StorageObject extends BaseStorageItem implements Cloneable {
         {
             return true;
         }
-        // Recognize legacy JetS3t directory place-holder objects.
-        if (this.getContentLength() == 0
-            && Mimetypes.MIMETYPE_JETS3T_DIRECTORY.equals(this.getContentType()))
+        // Recognize s3sync.rb directory placeholders by MD5/ETag value.
+        if ("d66759af42f282e1ba19144df2d405d0".equals(this.getETag()))
         {
             return true;
         }
@@ -641,6 +640,13 @@ public class StorageObject extends BaseStorageItem implements Cloneable {
         // or S3 Organizer Firefox extension.
         if (this.getKey().endsWith("_$folder$")
             && this.getContentLength() == 0)
+        {
+            return true;
+        }
+        // Recognize legacy JetS3t directory place-holder objects, only gives
+        // accurate results if an object's metadata is populated.
+        if (this.getContentLength() == 0
+            && Mimetypes.MIMETYPE_JETS3T_DIRECTORY.equals(this.getContentType()))
         {
             return true;
         }
