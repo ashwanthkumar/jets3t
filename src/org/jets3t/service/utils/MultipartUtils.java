@@ -22,23 +22,25 @@ import java.io.File;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.jets3t.service.Constants;
+import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.ServiceException;
-import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.io.SegmentedRepeatableFileInputStream;
-import org.jets3t.service.model.MultipartCompleted;
-import org.jets3t.service.model.MultipartPart;
 import org.jets3t.service.model.MultipartUpload;
 import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.StorageObject;
+import org.jets3t.service.multi.StorageServiceEventAdaptor;
+import org.jets3t.service.multi.event.ServiceEvent;
+import org.jets3t.service.multi.s3.MultipartStartsEvent;
 import org.jets3t.service.multi.s3.MultipartUploadAndParts;
+import org.jets3t.service.multi.s3.S3ServiceEventAdaptor;
+import org.jets3t.service.multi.s3.S3ServiceEventListener;
 import org.jets3t.service.multi.s3.ThreadedS3Service;
 
 public class MultipartUtils {
@@ -153,105 +155,115 @@ public class MultipartUtils {
     }
 
     /**
-     * Upload a file to S3 using a multipart upload where each part is
-     * uploaded in series (i.e. one at a time).
+     * Upload one or more file-based objects to S3 as multipart uploads, where each
+     * object's underlying file is split into parts based on the value of
+     * {@link #maxPartSize}.
      *
-     * This method performs all the work of an upload, including creating
-     * and completing the multipart upload job.
+     * Objects are uploaded in parallel using a {@link ThreadedS3Service} class
+     * that is created within this method, so uploads will take place using as
+     * many connections and threads as are configured in your service's
+     * {@link Jets3tProperties}.
      *
-     * @param file
-     * @param service
+     * This method can upload small files that don't need to be split into parts,
+     * but because there is extra overhead in performing unnecessary multipart upload
+     * operations you should avoid doing so unless it's really necessary.
+     *
      * @param bucketName
-     * @param metadata
-     * @param acl
-     * @param storageClass
-     * @throws NoSuchAlgorithmException
-     * @throws IOException
-     * @throws ServiceException
+     * the target bucket name
+     * @param s3Service
+     * the S3 service that will perform the work
+     * @param objectsForMultipartUpload
+     * a list of one or more objects that will be uploaded, potentially in multiple
+     * parts if the object's underlying file is larger than {@link #maxPartSize}
+     * @param eventListener
+     * an event listener to monitor progress event notifications, which should
+     * recognize and handle error events. May be null, in which case a standard
+     * {@link S3ServiceEventAdaptor} is used which won't report on events but will
+     * throw an exception if there is a failure.
+     *
+     * @throws Exception
      */
-    public MultipartCompleted uploadFile(File file, S3Service service, String bucketName,
-        Map<String, Object> metadata, AccessControlList acl, String storageClass)
-        throws NoSuchAlgorithmException, IOException, ServiceException
+    public void uploadObjects(String bucketName, S3Service s3Service,
+        List<StorageObject> objectsForMultipartUpload,
+        S3ServiceEventListener eventListener) throws Exception
     {
-        MultipartUpload upload = null;
+        if (objectsForMultipartUpload == null || objectsForMultipartUpload.size() < 1) {
+            return;
+        }
+
+        final List<MultipartUpload> multipartUploadList =
+            new ArrayList<MultipartUpload>();
+        final List<MultipartUploadAndParts> uploadAndPartsList =
+            new ArrayList<MultipartUploadAndParts>();
+
+        if (eventListener == null) {
+            eventListener = new S3ServiceEventAdaptor();
+        }
+
+        // Adaptor solely to capture newly-created MultipartUpload objects, which we
+        // will need when it comes time to upload parts or complete the uploads.
+        StorageServiceEventAdaptor captureMultipartUploadObjectsEventAdaptor =
+            new S3ServiceEventAdaptor() {
+                @Override
+                public void event(MultipartStartsEvent event) {
+                    if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+                        for (MultipartUpload upload: event.getStartedUploads()) {
+                            multipartUploadList.add(upload);
+                        }
+                    }
+                }
+            };
+
         try {
-            if (metadata == null) {
-                metadata = new HashMap<String, Object>();
+            ThreadedS3Service threadedS3Service =
+                new ThreadedS3Service(s3Service, eventListener);
+            threadedS3Service.addServiceEventListener(
+                captureMultipartUploadObjectsEventAdaptor);
+
+            // Build map from object key to storage object
+            final Map<String, StorageObject> objectsByKey =
+                new HashMap<String, StorageObject>();
+            for (StorageObject object: objectsForMultipartUpload) {
+                objectsByKey.put(object.getKey(), object);
             }
-            if (!metadata.containsKey(S3Object.METADATA_HEADER_CONTENT_TYPE)) {
-                metadata.put(S3Object.METADATA_HEADER_CONTENT_TYPE,
-                    Mimetypes.getInstance().getMimetype(file));
+
+            // Start all multipart uploads
+            threadedS3Service.multipartStartUploads(bucketName, objectsForMultipartUpload);
+            throwServiceEventAdaptorErrorIfPresent(eventListener);
+
+            // Build upload and part lists from new multipart uploads, where new
+            // MultipartUpload objects were captured by this method's
+            // captureMultipartUploadObjectsEventAdaptor)
+            for (MultipartUpload upload: multipartUploadList) {
+                StorageObject object = objectsByKey.get(upload.getObjectKey());
+                if (object.getDataInputFile() == null) {
+                    throw new ServiceException();
+                }
+                List<S3Object> partObjects = splitFileIntoObjectsByMaxPartSize(
+                    upload.getObjectKey(),
+                    object.getDataInputFile());
+                uploadAndPartsList.add(
+                    new MultipartUploadAndParts(upload, partObjects));
             }
-            if (!metadata.containsKey(Constants.METADATA_JETS3T_LOCAL_FILE_DATE)) {
-                metadata.put(Constants.METADATA_JETS3T_LOCAL_FILE_DATE,
-                    ServiceUtils.formatIso8601Date(new Date(file.lastModified())));
-            }
-            upload = service.multipartStartUpload(
-                bucketName, file.getName(), metadata, acl, storageClass);
-            List<MultipartPart> parts = uploadFile(file, service, upload);
-            return service.multipartCompleteUpload(upload, parts);
+
+            // Upload all parts for all multipart uploads
+            threadedS3Service.multipartUploadParts(uploadAndPartsList);
+            throwServiceEventAdaptorErrorIfPresent(eventListener);
+
+            // Complete all multipart uploads
+            threadedS3Service.multipartCompleteUploads(multipartUploadList);
+            throwServiceEventAdaptorErrorIfPresent(eventListener);
         } catch (Exception e) {
-            if (upload != null) {
-                service.multipartAbortUpload(upload);
-            }
-            if (e instanceof ServiceException) {
-                throw (ServiceException) e;
-            } else {
-                throw new ServiceException(e);
-            }
+            throw new Exception("Multipart upload failed", e);
         }
     }
 
-    /**
-     * Upload a file to S3 using an existing multipart upload; each part is
-     * uploaded in series (i.e. one at a time). It is the caller's responsibility
-     * to complete the multipart upload job by calling
-     * {@link S3Service#multipartCompleteUpload(MultipartUpload, List)} or
-     * {@link S3Service#multipartCompleteUpload(MultipartUpload)}.
-     *
-     * @param file
-     * @param service
-     * @param upload
-     * @return
-     * @throws NoSuchAlgorithmException
-     * @throws IOException
-     * @throws ServiceException
-     */
-    public List<MultipartPart> uploadFile(File file, S3Service service, MultipartUpload upload)
-        throws NoSuchAlgorithmException, IOException, ServiceException
+    protected void throwServiceEventAdaptorErrorIfPresent(
+        S3ServiceEventListener eventListener) throws Exception
     {
-        List<S3Object> objects = splitFileIntoObjectsByMaxPartSize(upload.getObjectKey(), file);
-        List<MultipartPart> parts = new ArrayList<MultipartPart>();
-        int partNumber = 1;
-        for (S3Object object: objects) {
-            parts.add(
-                service.multipartUploadPart(upload, partNumber, object));
-            partNumber++;
+        if (eventListener instanceof S3ServiceEventAdaptor) {
+            ((S3ServiceEventAdaptor)eventListener).throwErrorIfPresent();
         }
-        return parts;
-    }
-
-    /**
-     * Upload a file to S3 using an existing multipart upload; each part is
-     * uploaded in parallel according to the threading and connection settings
-     * of the givent {@link ThreadedS3Service}.
-     * It is the caller's responsibility to complete the multipart upload job by
-     * calling {@link S3Service#multipartCompleteUpload(MultipartUpload, List)}
-     * or {@link S3Service#multipartCompleteUpload(MultipartUpload)}.
-     *
-     * @param file
-     * @param service
-     * @param upload
-     * @throws NoSuchAlgorithmException
-     * @throws IOException
-     */
-    public void uploadFile(File file, ThreadedS3Service service, MultipartUpload upload)
-        throws NoSuchAlgorithmException, IOException
-    {
-        List<S3Object> objects = splitFileIntoObjectsByMaxPartSize(upload.getObjectKey(), file);
-        List<MultipartUploadAndParts> uploadAndPartsList = new ArrayList<MultipartUploadAndParts>();
-        uploadAndPartsList.add(new MultipartUploadAndParts(upload, objects));
-        service.multipartUploadParts(uploadAndPartsList);
     }
 
 }

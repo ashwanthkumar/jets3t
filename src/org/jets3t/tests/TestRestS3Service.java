@@ -62,11 +62,11 @@ import org.jets3t.service.model.WebsiteConfig;
 import org.jets3t.service.model.NotificationConfig.TopicConfig;
 import org.jets3t.service.multi.StorageServiceEventAdaptor;
 import org.jets3t.service.multi.s3.MultipartUploadAndParts;
-import org.jets3t.service.multi.s3.S3ServiceEventAdaptor;
 import org.jets3t.service.multi.s3.ThreadedS3Service;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.MultipartUtils;
+import org.jets3t.service.utils.ObjectUtils;
 import org.jets3t.service.utils.RestUtils;
 
 /**
@@ -347,42 +347,41 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             assertEquals(3, parts.size());
 
             /*
-             * Simplest upload of a multipart file (in-series)
+             * Upload medium-sized file as object in multiple parts
              */
-            MultipartCompleted multipartCompleted =
-                multipartUtils.uploadFile(mediumFile, service, bucketName,
-                    null, // metadata
-                    null, // acl
-                    null  // storageClass
-                    );
+            List<StorageObject> objects = new ArrayList<StorageObject>();
+            objects.add(
+                ObjectUtils.createObjectForUpload(
+                    mediumFile.getName(),
+                    mediumFile,
+                    null, // encryptionUtil
+                    false // gzipFile
+                ));
+
+            multipartUtils.uploadObjects(bucketName, service, objects, null);
 
             S3Object completedObject = (S3Object) service.getObjectDetails(
-                bucketName, multipartCompleted.getObjectKey());
+                bucketName, mediumFile.getName());
             assertEquals(mediumFile.length(), completedObject.getContentLength());
-            // Confirm mimetype metadata is added automatically
+            // Confirm object's mimetype metadata was applied
             assertEquals("text/plain", completedObject.getContentType());
 
             /*
-             * Upload of a multipart file (in-parrallel)
+             * Upload large-sized file as object in multiple parts
              */
-            MultipartUpload largeFileUpload = service.multipartStartUpload(
-                bucketName, largeFile.getName(),
-                null, // metadata
-                null, // acl
-                null  // storageClass
-                );
-            S3ServiceEventAdaptor adaptor = new S3ServiceEventAdaptor();
+            objects = new ArrayList<StorageObject>();
+            objects.add(
+                ObjectUtils.createObjectForUpload(
+                    largeFile.getName(),
+                    largeFile,
+                    null, // encryptionUtil
+                    false // gzipFile
+                ));
 
-            multipartUtils.uploadFile(largeFile,
-                new ThreadedS3Service(service, adaptor),
-                largeFileUpload);
-
-            assertNull(adaptor.getErrorThrown());
-
-            service.multipartCompleteUpload(largeFileUpload);
+            multipartUtils.uploadObjects(bucketName, service, objects, null);
 
             completedObject = (S3Object) service.getObjectDetails(
-                bucketName, largeFileUpload.getObjectKey());
+                bucketName, largeFile.getName());
             assertEquals(largeFile.length(), completedObject.getContentLength());
         } finally {
             cleanupBucketForTest("testMultipartUtils");
