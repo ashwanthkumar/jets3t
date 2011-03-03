@@ -596,7 +596,7 @@ public class FileComparer {
     }
 
     /**
-     * Builds an service Object Map containing all the objects within the given target path,
+     * Builds a service Object Map containing all the objects within the given target path,
      * where the map's key for each object is the relative path to the object.
      *
      * @see #buildDiscrepancyLists(Map, Map)
@@ -721,22 +721,40 @@ public class FileComparer {
                 objectsForMetadataRetrieval.add(object);
                 continue;
             }
-            if (!objectKeyToFilepathMap.containsKey(objectKey)) {
-                // No local file corresponding to this object
-                continue;
-            }
             if (object.isMetadataComplete()) {
                 // We already have this object's metadata
                 continue;
             }
+
+            String filepath = objectKeyToFilepathMap.get(objectKey);
+
+            // Backwards-compatibility with JetS3t's old directory place-holders
+            // key names that do not end with a slash (/).
+            if (filepath == null && object.getContentLength() == 0
+                && !objectKey.endsWith("/")
+                && "d41d8cd98f00b204e9800998ecf8427e".equals(object.getETag()))
+            {
+                // Reasonable chance this is a directory place-holder, see if
+                // there's a matching local directory.
+                filepath = objectKeyToFilepathMap.get(objectKey + "/");
+                // If not, bail out.
+                if (filepath == null || !(new File(filepath).isDirectory())) {
+                    continue;
+                }
+            }
+
+            if (filepath == null) {
+                // Give up
+                continue;
+            }
+
             // Compare object's minimal ETag value against File's MD5 hash.
-            File file = new File(objectKeyToFilepathMap.get(objectKey));
+            File file = new File(filepath);
             String fileHashAsHex = null;
             try {
                 if (file.isDirectory()) {
-                    // Use MD5 hash of an empty item for directories.
-                    fileHashAsHex = ServiceUtils.toHex(
-                        ServiceUtils.computeMD5Hash(new byte[] {}));
+                    // Dummy value, always retrieve metadata for directory place-holder objects
+                    fileHashAsHex = "";
                 } else {
                     fileHashAsHex = ServiceUtils.toHex(
                         generateFileMD5Hash(file, objectKey, progressWatcher));
@@ -989,10 +1007,12 @@ public class FileComparer {
             for (String localPath: splitPathComponents) {
                 componentCount += 1;
 
+                String filepath = objectKeyToFilepathMap.get(localPath);
+
                 // Check whether local file is already on server
-                if (objectKeyToFilepathMap.containsKey(localPath)) {
+                if (filepath != null) {
                     // File has been backed up in the past, is it still up-to-date?
-                    File file = new File(objectKeyToFilepathMap.get(localPath));
+                    File file = new File(filepath);
 
                     // We don't care about directory date changes, as long as it's present.
                     if (file.isDirectory()) {
@@ -1002,7 +1022,15 @@ public class FileComparer {
                         if (componentCount == splitPathComponents.length) {
                             alreadySynchronisedKeys.add(keyPath);
                             alreadySynchronisedLocalPaths.add(localPath);
-                            onlyOnClientKeys.remove(keyPath);
+                            boolean wasRemoved = onlyOnClientKeys.remove(keyPath);
+
+                            // Backwards-compatibility with JetS3t directory place-holders
+                            // without trailing slash (/) suffixes
+                            if (!wasRemoved && !keyPath.endsWith("/")
+                                && storageObject.isDirectoryPlaceholder())
+                            {
+                                onlyOnClientKeys.remove(keyPath + "/");
+                            }
                         }
                     }
                     // Compare file hashes.

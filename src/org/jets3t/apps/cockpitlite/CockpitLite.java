@@ -1370,8 +1370,10 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         // Build map of existing local files.
         Map<String, String> objectKeyToFilepathMap = null;
         try {
+            boolean storeEmptyDirectories = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+                .getBoolProperty("uploads.storeEmptyDirectories", true);
             objectKeyToFilepathMap = FileComparer.getInstance()
-                .buildObjectKeyToFilepathMap(new File[] {downloadDirectory}, null, true);
+                .buildObjectKeyToFilepathMap(downloadDirectory.listFiles(), "", storeEmptyDirectories);
         } catch (Exception e) {
             String message = "Unable to review files in targetted download directory";
             log.error(message, e);

@@ -2058,20 +2058,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
         downloadDirectory = fileChooser.getSelectedFile();
 
-        // Find clashing files
-        final Map<String, String> objectKeyToFilepathMap = new HashMap<String, String>();
-        S3Object[] objectsForDownload = getSelectedObjects();
-        for (int i = 0; i < objectsForDownload.length; i++) {
-            File file = new File(downloadDirectory, objectsForDownload[i].getKey());
-            if (file.exists()) {
-                objectKeyToFilepathMap.put(objectsForDownload[i].getKey(),
-                    file.getAbsolutePath());
-            }
-        }
+        boolean storeEmptyDirectories = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+            .getBoolProperty("uploads.storeEmptyDirectories", true);
+        final Map<String, String> objectKeyToFilepathMap = FileComparer.getInstance()
+            .buildObjectKeyToFilepathMap(downloadDirectory.listFiles(), "", storeEmptyDirectories);
 
         // Build map of S3 Objects being downloaded.
         final Map s3DownloadObjectsMap = FileComparer.getInstance()
-            .populateObjectMap("", objectsForDownload);
+            .populateObjectMap("", getSelectedObjects());
 
         final HyperlinkActivatedListener hyperlinkListener = this;
 
@@ -2122,9 +2116,10 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
         try {
             // Build map of files proposed for upload.
-            final Map<String, String> objectKeyToFilepathMap =
-                FileComparer.getInstance()
-                    .buildObjectKeyToFilepathMap(uploadFiles, "", true);
+            boolean storeEmptyDirectories = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
+                .getBoolProperty("uploads.storeEmptyDirectories", true);
+            final Map<String, String> objectKeyToFilepathMap = FileComparer.getInstance()
+                .buildObjectKeyToFilepathMap(uploadFiles, "", storeEmptyDirectories);
 
             // Build map of objects already existing in target S3 bucket with keys
             // matching the proposed upload keys.

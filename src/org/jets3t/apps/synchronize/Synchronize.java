@@ -1019,7 +1019,7 @@ public class Synchronize {
                 files, "", storeEmptyDirectories);
         } else if ("DOWN".equals(actionCommand)) {
             objectKeyToFilepathMap = fileComparer.buildObjectKeyToFilepathMap(
-                files[0].listFiles(), "", true);
+                files[0].listFiles(), "", storeEmptyDirectories);
         }
 
         // Watcher to provide feedback during generation of MD5 hash values
@@ -1443,9 +1443,15 @@ public class Synchronize {
                                 + " for " + actionCommand);
                             printHelpAndExit(false);
                         }
+                        if (!file.exists() || !file.isDirectory()) {
+                            System.err.println(
+                                "ERROR: Target download location is not a directory: " + file);
+                            System.exit(1);
+                        }
                         if (file.exists() && !file.isDirectory()) {
-                            System.err.println("ERROR: Target download location already exists but is not a directory: "
-                                + file);
+                            System.err.println(
+                                "ERROR: Target download location already exists but is not a directory: " + file);
+                            System.exit(1);
                         }
                     } else {
                         if (!file.canRead()) {
