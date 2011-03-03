@@ -17,6 +17,9 @@ TOOLKIT
   utilities when working with large numbers of files.
 - Added support for configuring buckets to send Simple Notification
   Service (SNS) messages.
+- Service credentials classes now always return ProviderCredentials
+  from #load methods, where the actual credentials instance is 
+  AWSCredentials by default or GSCredentials if explicitly loaded.
 
   * S3Service
 

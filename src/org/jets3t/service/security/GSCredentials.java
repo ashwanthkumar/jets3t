@@ -18,6 +18,11 @@
  */
 package org.jets3t.service.security;
 
+import java.io.BufferedInputStream;
+import java.io.File;
+
+import org.jets3t.service.ServiceException;
+
 /**
  * Class to contain the Google Storage (GS) credentials of a user.
  *
@@ -64,6 +69,20 @@ public class GSCredentials extends ProviderCredentials {
     @Override
     public String getVersionPrefix() {
         return "jets3t GS Credentials, version: ";
+    }
+
+    public static ProviderCredentials load(String password, File file) throws ServiceException {
+        ProviderCredentials credentials = ProviderCredentials.load(password, file);
+        return new GSCredentials(
+            credentials.accessKey, credentials.getSecretKey(), credentials.getFriendlyName());
+    }
+
+    public static ProviderCredentials load(String password, BufferedInputStream inputStream)
+        throws ServiceException
+    {
+        ProviderCredentials credentials = ProviderCredentials.load(password, inputStream);
+        return new GSCredentials(
+            credentials.accessKey, credentials.getSecretKey(), credentials.getFriendlyName());
     }
 
 }

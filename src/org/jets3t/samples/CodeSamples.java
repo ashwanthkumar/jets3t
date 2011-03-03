@@ -43,6 +43,7 @@ import org.jets3t.service.multithread.DownloadPackage;
 import org.jets3t.service.multithread.S3ServiceSimpleMulti;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.AWSDevPayCredentials;
+import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.ServiceUtils;
 
 /**
@@ -666,7 +667,7 @@ public class CodeSamples {
         awsCredentials.save("password", credFile);
 
         // Load encrypted credentials from a file.
-        AWSCredentials loadedCredentials = AWSCredentials.load("password", credFile);
+        ProviderCredentials loadedCredentials = AWSCredentials.load("password", credFile);
         System.out.println("AWS Key loaded from file: " + loadedCredentials.getAccessKey());
 
         // You won't get far if you use the wrong password...

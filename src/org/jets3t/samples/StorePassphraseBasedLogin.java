@@ -29,6 +29,7 @@ import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
+import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.ServiceUtils;
 
 /**
@@ -102,7 +103,7 @@ public class StorePassphraseBasedLogin {
         S3Object retrievedCredsObject = s3Service.getObject(bucket, credentialObjectName);
 
         // Decrypt the credentials object.
-        AWSCredentials retrievedCreds = AWSCredentials.load(password,
+        ProviderCredentials retrievedCreds = AWSCredentials.load(password,
             new BufferedInputStream(retrievedCredsObject.getDataInputStream()));
 
         System.out.println("Retrieved credentials from S3: "

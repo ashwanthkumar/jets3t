@@ -144,7 +144,7 @@ public abstract class ProviderCredentials {
     protected abstract String getVersionPrefix();
 
     /**
-     * Encrypts AWS Credentials with the given password and saves the encrypted data to a file.
+     * Encrypts ProviderCredentials with the given password and saves the encrypted data to a file.
      *
      * @param password
      * the password used to encrypt the credentials.
@@ -180,7 +180,7 @@ public abstract class ProviderCredentials {
     }
 
     /**
-     * Encrypts AWS Credentials with the given password and saves the encrypted data to a file
+     * Encrypts ProviderCredentials with the given password and saves the encrypted data to a file
      * using the default algorithm {@link EncryptionUtil#DEFAULT_ALGORITHM}.
      *
      * @param password
@@ -207,7 +207,7 @@ public abstract class ProviderCredentials {
     }
 
     /**
-     * Encrypts AWS Credentials with the given password and writes the encrypted data to an
+     * Encrypts ProviderCredentials with the given password and writes the encrypted data to an
      * output stream.
      *
      * @param password
@@ -237,7 +237,7 @@ public abstract class ProviderCredentials {
         EncryptionUtil encryptionUtil = new EncryptionUtil(password, algorithm, EncryptionUtil.DEFAULT_VERSION);
         bufferedOS = new BufferedOutputStream(outputStream);
 
-        // Encrypt AWS credentials
+        // Encrypt credentials
         byte[] encryptedData = encryptionUtil.encrypt(getDataToEncrypt());
 
         // Write plain-text header information to file.
@@ -251,7 +251,7 @@ public abstract class ProviderCredentials {
     }
 
     /**
-     * Encrypts AWS Credentials with the given password and writes the encrypted data to an
+     * Encrypts ProviderCredentials with the given password and writes the encrypted data to an
      * output stream using the default algorithm {@link EncryptionUtil#DEFAULT_ALGORITHM}.
      *
      * @param password
@@ -282,16 +282,16 @@ public abstract class ProviderCredentials {
      * Loads encrypted credentials from a file.
      *
      * @param password
-     * the password used to decrypt the credentials. If null, the AWS Credentials are not decrypted
+     * the password used to decrypt the credentials. If null, the credentials are not decrypted
      * and only the version and friendly-name information is loaded.
      * @param file
-     * a file containing an encrypted data encoding of an AWSCredentials object.
+     * a file containing an encrypted data encoding of an ProviderCredentials object.
      * @return
      * the decrypted credentials in an object.
      *
      * @throws S3ServiceException
      */
-    public static AWSCredentials load(String password, File file) throws ServiceException {
+    public static ProviderCredentials load(String password, File file) throws ServiceException {
         if (log.isDebugEnabled()) {
             log.debug("Loading credentials from file: " + file.getAbsolutePath());
         }
@@ -300,7 +300,7 @@ public abstract class ProviderCredentials {
             fileIS = new BufferedInputStream(new FileInputStream(file));
             return load(password, fileIS);
         } catch (Throwable t) {
-            throw new ServiceException("Failed to load AWS credentials", t);
+            throw new ServiceException("Failed to load credentials", t);
         } finally {
             if (fileIS != null) {
                 try {
@@ -315,24 +315,26 @@ public abstract class ProviderCredentials {
      * Loads encrypted credentials from a data input stream.
      *
      * @param password
-     * the password used to decrypt the credentials. If null, the AWS Credentials are not decrypted
+     * the password used to decrypt the credentials. If null, the credentials are not decrypted
      * and only the version and friendly-name information is loaded.
      * @param inputStream
-     * an input stream containing an encrypted  data encoding of an AWSCredentials object.
+     * an input stream containing an encrypted  data encoding of an ProviderCredentials object.
      * @return
      * the decrypted credentials in an object.
      *
      * @throws S3ServiceException
      */
-    public static AWSCredentials load(String password, BufferedInputStream inputStream) throws ServiceException {
+    public static ProviderCredentials load(String password, BufferedInputStream inputStream)
+        throws ServiceException
+    {
         boolean partialReadOnly = (password == null);
         if (partialReadOnly) {
             if (log.isDebugEnabled()) {
-                log.debug("Loading partial information about AWS Credentials from input stream");
+                log.debug("Loading partial information about credentials from input stream");
             }
         } else {
             if (log.isDebugEnabled()) {
-                log.debug("Loading AWS Credentials from input stream");
+                log.debug("Loading credentials from input stream");
             }
         }
 
@@ -347,7 +349,7 @@ public abstract class ProviderCredentials {
             String friendlyName = "";
             boolean usingDevPay = false;
 
-            // Read version information from AWS credentials file.
+            // Read version information from credentials file.
             version = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);
 
             // Extract the version number
@@ -367,6 +369,7 @@ public abstract class ProviderCredentials {
                 usingDevPay = ("devpay".equals(credentialsType));
             }
 
+            // Use AWS credentials classes as default non-abstract implementation
             if (partialReadOnly) {
                 if (usingDevPay) {
                     return new AWSDevPayCredentials(null, null, friendlyName);
@@ -384,18 +387,21 @@ public abstract class ProviderCredentials {
             String[] parts = keys.split((3 <= versionNum)? V3_KEYS_DELIMITER : V2_KEYS_DELIMITER);
             int expectedParts = (usingDevPay? 4 : 2);
             if (parts.length != expectedParts) {
-                throw new Exception("Number of parts (" + parts.length + ") did not match the expected number of parts (" + expectedParts + ") for this version (" + versionNum + ")");
+                throw new Exception("Number of parts (" + parts.length
+                    + ") did not match the expected number of parts (" + expectedParts
+                    + ") for this version (" + versionNum + ")");
             }
 
+            // Use AWS credentials classes as default non-abstract implementation
             if (usingDevPay) {
                 return new AWSDevPayCredentials(parts[0], parts[1], parts[2], parts[3], friendlyName);
             } else {
                 return new AWSCredentials(parts[0], parts[1], friendlyName);
             }
         } catch (BadPaddingException bpe) {
-            throw new ServiceException("Unable to decrypt AWS credentials. Is your password correct?", bpe);
+            throw new ServiceException("Unable to decrypt credentials. Is your password correct?", bpe);
         } catch (Throwable t) {
-            throw new ServiceException("Failed to load AWS credentials", t);
+            throw new ServiceException("Failed to load credentials", t);
         } finally {
             if (inputStream != null) {
                 try {
