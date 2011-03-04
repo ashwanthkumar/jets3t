@@ -31,7 +31,21 @@ public class S3Bucket extends StorageBucket {
     public static final String LOCATION_US_STANDARD = null;
     public static final String LOCATION_US_WEST = "us-west-1";
     public static final String LOCATION_EUROPE = "EU";
-    public static final String LOCATION_ASIA_PACIFIC = "ap-southeast-1";
+    public static final String LOCATION_ASIA_PACIFIC_SOUTHEAST = "ap-southeast-1";
+    /**
+     * Alias of {@link #LOCATION_ASIA_PACIFIC_SOUTHEAST}
+     */
+    public static final String LOCATION_ASIA_PACIFIC = LOCATION_ASIA_PACIFIC_SOUTHEAST;
+    /**
+     * Alias of {@link #LOCATION_ASIA_PACIFIC_SOUTHEAST}
+     */
+    public static final String LOCATION_ASIA_PACIFIC_SINGAPORE = LOCATION_ASIA_PACIFIC_SOUTHEAST;
+    public static final String LOCATION_ASIA_PACIFIC_NORTHEAST = "ap-northeast-1";
+    /**
+     * Alias of {@link #LOCATION_ASIA_PACIFIC_NORTHEAST}
+     */
+    public static final String LOCATION_ASIA_PACIFIC_TOKYO = LOCATION_ASIA_PACIFIC_NORTHEAST;
+
 
     private String location = LOCATION_US;
     private boolean isLocationKnown = false;
