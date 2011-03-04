@@ -889,12 +889,13 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         // Add all request headers.
         addRequestHeadersToConnection(httpMethod, requestHeaders);
 
-        int expectedStatusCode = 200;
+        int[] expectedStatusCodes = {200}; // 200 is normally the expected response code
         if (requestHeaders != null && requestHeaders.containsKey("Range")) {
-            // Partial data responses have a status code of 206.
-            expectedStatusCode = 206;
+            // Partial data responses have a status code of 206, or sometimes 200
+            // for complete responses (issue #80)
+            expectedStatusCodes = new int[] {206, 200};
         }
-        performRequest(httpMethod, new int[] {expectedStatusCode});
+        performRequest(httpMethod, expectedStatusCodes);
 
         return httpMethod;
     }
