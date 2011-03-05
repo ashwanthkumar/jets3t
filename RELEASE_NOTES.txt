@@ -18,8 +18,12 @@ TOOLKIT
 - Added support for configuring buckets to send Simple Notification
   Service (SNS) messages.
 - Service credentials classes now always return ProviderCredentials
-  from #load methods, where the actual credentials instance is 
+  from #load methods, where the actual credentials instance is
   AWSCredentials by default or GSCredentials if explicitly loaded.
+- FileComparer utility now skips/ignores 'special' files on the local
+  file system, to avoid problems synchronizing system directories
+  that contain files that are not really data and cannot be
+  synchronized to a storage service.
 
   * S3Service
 
@@ -27,7 +31,7 @@ TOOLKIT
   utility class MultipartUtils to make it easier to use.
 - Added support for the Website Configuration feature, which allows
   static S3 bucket to behave more like a dynamic web site with
-  custom index and error documents. 
+  custom index and error documents.
 
   * ThreadedS3Service
 
@@ -53,11 +57,11 @@ SYNCHRONIZE
 - Removed support for "--skip-metadata" option. This option is no longer
   necessary since metadata retrieval is more intelligent, and is not
   desirable because metadata retrieval is now required to compare any
-  object uploaded using the Multipart Upload mechanism. 
+  object uploaded using the Multipart Upload mechanism.
 
 COCKPIT
 
-- Fixed nasty bug that prevented directories from being included when 
+- Fixed nasty bug that prevented directories from being included when
   uploading files.
 
 KUDOS TO:

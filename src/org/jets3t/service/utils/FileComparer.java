@@ -239,7 +239,8 @@ public class FileComparer {
                 if (!file.getAbsolutePath().equals(file.getCanonicalPath())) {
                     if (log.isDebugEnabled()) {
                         log.debug("Ignoring symlink "
-                            + (file.isDirectory() ? "directory" : "file") + ": " + file.getName());
+                            + (file.isDirectory() ? "directory" : "file")
+                            + ": " + file.getPath());
                     }
                     // Skip symlink.
                     return true;
@@ -251,6 +252,14 @@ public class FileComparer {
             }
         }
 
+        // Skip 'special' files that are neither files nor directories
+        if (!file.isFile() && !file.isDirectory()) {
+            if (log.isDebugEnabled()) {
+                log.debug("Ignoring special file: " + file.getPath());
+            }
+            return true;
+        }
+
         Iterator<Pattern> patternIter = ignorePatternList.iterator();
         while (patternIter.hasNext()) {
             Pattern pattern = patternIter.next();
@@ -258,7 +267,7 @@ public class FileComparer {
             if (pattern.matcher(file.getName()).matches()) {
                 if (log.isDebugEnabled()) {
                     log.debug("Ignoring " + (file.isDirectory() ? "directory" : "file")
-                    + " matching pattern '" + pattern.pattern() + "': " + file.getName());
+                    + " matching pattern '" + pattern.pattern() + "': " + file.getPath());
                 }
                 return true;
             }
