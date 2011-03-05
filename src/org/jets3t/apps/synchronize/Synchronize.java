@@ -373,6 +373,9 @@ public class Synchronize {
         String priorLastKey = null;
         String lastFileKeypathChecked = "";
 
+        boolean skipMissingFiles =
+            this.properties.getBoolProperty("upload.ignoreMissingPaths", false);
+
         EncryptionUtil encryptionUtil = null;
         if (isEncryptionEnabled) {
             String algorithm = properties
@@ -490,7 +493,20 @@ public class Synchronize {
                     // Invoke lazy upload object creator.
                     for (int i = 0; i < uploadBatchSize; i++) {
                         LazyPreparedUploadObject lazyObj = objectsToUpload.remove(0);
-                        StorageObject object = lazyObj.prepareUploadObject();
+                        StorageObject object = null;
+
+                        try {
+                            object = lazyObj.prepareUploadObject();
+                        } catch (FileNotFoundException e) {
+                            if (skipMissingFiles) {
+                                printOutputLine(
+                                    "WARNING: Skipping unreadable file: "
+                                    + lazyObj.getFile().getAbsolutePath(),
+                                    REPORT_LEVEL_NONE);
+                            } else {
+                                throw e;
+                            }
+                        }
 
                         if (multipartUtils != null
                             && multipartUtils.isFileLargerThanMaxPartSize(lazyObj.getFile()))
