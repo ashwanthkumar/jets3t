@@ -503,6 +503,7 @@ public class Synchronize {
                                     "WARNING: Skipping unreadable file: "
                                     + lazyObj.getFile().getAbsolutePath(),
                                     REPORT_LEVEL_NONE);
+                                continue;
                             } else {
                                 throw e;
                             }
