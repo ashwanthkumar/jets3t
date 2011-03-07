@@ -49,10 +49,12 @@ import org.jets3t.service.model.S3DeleteMarker;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Version;
 import org.jets3t.service.model.StorageBucket;
+import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.WebsiteConfig;
 import org.jets3t.service.mx.MxDelegate;
 import org.jets3t.service.security.AWSDevPayCredentials;
 import org.jets3t.service.security.ProviderCredentials;
+import org.jets3t.service.utils.MultipartUtils;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.utils.signedurl.SignedUrlHandler;
@@ -3083,6 +3085,130 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         throws S3ServiceException
     {
         setRequesterPaysBucketImpl(bucketName, requesterPays);
+    }
+
+    /**
+     * Convenience method that uploads a file-based object to a storage service using
+     * the regular {@link #putObject(String, StorageObject)} mechanism, or as a
+     * multipart upload if the object's file data is larger than the given maximum
+     * part size parameter.
+     *
+     * If a multipart upload is performed this method will perform all the necessary
+     * steps, including:
+     * <ol>
+     * <li>Start a new multipart upload process, based on the object's key name,
+     *     metadata, ACL etc.</li>
+     * <li>Poll the service for a little while to ensure the just-started upload
+     *     is actually available for use before proceeding -- this can take some
+     *     time, we give up after 5 seconds (with 1 lookup attempt per second)</li>
+     * <li>Divide the object's underlying file into parts with size <= the given
+     *     maximum part size</li>
+     * <li>Upload each of these parts in turn, with part numbers 1..n</li>
+     * <li>Complete the upload once all the parts have been uploaded, or...</li>
+     * <li>If there was a failure uploading parts or completing the upload, attempt
+     *     to clean up by calling {@link #multipartAbortUpload(MultipartUpload)}
+     *     then throw the original exception</li>
+     * </ol>
+     * This means that any multipart upload will involve sending around 2 + n separate
+     * HTTP requests, where n is ceil(objectDataSize / maxPartSize).
+     *
+     * @param bucketName
+     * the name of the bucket in which the object will be stored.
+     * @param object
+     * a file-based object containing all information that will be written to the service.
+     * If the object provided is not file-based -- i.e. it returns null from
+     * {@link StorageObject#getDataInputFile()} -- an exception will be thrown immediately.
+     * @param maxPartSize
+     * the maximum size in bytes for any single upload part. If the given object's data is
+     * less than this value it will be uploaded using a regular PUT. If the object has more
+     * data than this value it will be uploaded using a multipart upload.
+     * The maximum part size value should be <= 5 GB and >= 5 MB.
+     *
+     * @throws ServiceException
+     */
+    public void putObjectMaybeAsMultipart(String bucketName, StorageObject object,
+        long maxPartSize) throws ServiceException
+    {
+        // Only file-based objects are supported
+        if (object.getDataInputFile() == null) {
+            throw new ServiceException(
+                "multipartUpload method only supports file-based objects");
+        }
+
+        MultipartUtils multipartUtils = new MultipartUtils(maxPartSize);
+
+        // Upload object normally if it doesn't exceed maxPartSize
+        if (!multipartUtils.isFileLargerThanMaxPartSize(object.getDataInputFile())) {
+            log.debug("Performing normal PUT upload for object with data <= " + maxPartSize);
+            putObject(bucketName, object);
+        } else {
+            log.debug("Performing multipart upload for object with data > " + maxPartSize);
+
+            // Start upload
+            MultipartUpload upload = multipartStartUpload(bucketName, object.getKey(),
+                object.getMetadataMap(), object.getAcl(), object.getStorageClass());
+
+            // Ensure upload is present on service-side, might take a little time
+            boolean foundUpload = false;
+            int maxTries = 5; // Allow up to 5 lookups for upload before we give up
+            int tries = 0;
+            do {
+                try {
+                    multipartListParts(upload);
+                    foundUpload = true;
+                } catch (S3ServiceException e) {
+                    if ("NoSuchUpload".equals(e.getErrorCode())) {
+                        tries++;
+                        try {
+                            Thread.sleep(1000); // Wait for a second
+                        } catch (InterruptedException ie) {
+                            tries = maxTries;
+                        }
+                    } else {
+                        // Bail out if we get a (relatively) unexpected exception
+                        throw e;
+                    }
+                }
+            } while (!foundUpload && tries < maxTries);
+
+            if (!foundUpload) {
+                throw new ServiceException(
+                    "Multipart upload was started but unavailable for use after "
+                    + tries + " attempts, giving up");
+            }
+
+            // Will attempt to delete multipart upload upon failure.
+            try {
+                List<S3Object> partObjects = multipartUtils.splitFileIntoObjectsByMaxPartSize(
+                    object.getKey(), object.getDataInputFile());
+
+                List<MultipartPart> parts = new ArrayList<MultipartPart>();
+                int partNumber = 1;
+                for (S3Object partObject: partObjects) {
+                    MultipartPart part = multipartUploadPart(upload, partNumber, partObject);
+                    parts.add(part);
+                    partNumber++;
+                }
+
+                multipartCompleteUpload(upload, parts);
+            } catch (RuntimeException e) {
+                throw e;
+            } catch (Exception e) {
+                // If upload fails for any reason after the upload was started, try to clean up.
+                log.warn("Multipart upload failed, attempting clean-up by aborting upload", e);
+                try {
+                    multipartAbortUpload(upload);
+                } catch (S3ServiceException e2) {
+                    log.warn("Multipart upload failed and could not clean-up by aborting upload", e2);
+                }
+                // Throw original failure exception
+                if (e instanceof ServiceException) {
+                    throw (ServiceException) e;
+                } else {
+                    throw new ServiceException("Multipart upload failed", e);
+                }
+            }
+        }
     }
 
     public MultipartUpload multipartStartUpload(String bucketName, String objectKey,

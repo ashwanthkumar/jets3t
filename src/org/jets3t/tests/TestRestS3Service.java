@@ -60,14 +60,15 @@ import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.WebsiteConfig;
 import org.jets3t.service.model.NotificationConfig.TopicConfig;
-import org.jets3t.service.multi.StorageServiceEventAdaptor;
 import org.jets3t.service.multi.s3.MultipartUploadAndParts;
+import org.jets3t.service.multi.s3.S3ServiceEventAdaptor;
 import org.jets3t.service.multi.s3.ThreadedS3Service;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.MultipartUtils;
 import org.jets3t.service.utils.ObjectUtils;
 import org.jets3t.service.utils.RestUtils;
+import org.jets3t.service.utils.ServiceUtils;
 
 /**
  * Test the RestS3Service against the S3 endpoint, and apply tests specific to S3.
@@ -394,13 +395,15 @@ public class TestRestS3Service extends BaseStorageServiceTests {
         String bucketName = bucket.getName();
 
         try {
+            int fiveMb = 5 * 1024 * 1024;
+
             // Check stripping of double-quote characters from etag
             MultipartPart testEtagSanitized = new MultipartPart(
                 1, new Date(), "\"fakeEtagWithDoubleQuotes\"", 0l);
             assertEquals("fakeEtagWithDoubleQuotes", testEtagSanitized.getEtag());
 
             // Create 5MB of test data
-            byte[] testData = new byte[5 * 1024 * 1024];
+            byte[] testData = new byte[fiveMb];
             for (int offset = 0; offset < testData.length; offset++) {
                 testData[offset] = (byte) (offset % 256);
             }
@@ -507,6 +510,53 @@ public class TestRestS3Service extends BaseStorageServiceTests {
                 completedObject.getMetadata("test-timestamp-value").toString());
 
             /*
+             * Perform a multipart upload using the convenience method.
+             * The object in this case *must* be file-based.
+             */
+
+            byte[] testDataOverLimit = new byte[fiveMb + 100];
+            for (int i = 0; i < testDataOverLimit.length; i++) {
+                testDataOverLimit[i] = (byte) (i % 256);
+            }
+
+            // Confirm that non-file-based objects are not accepted
+            try {
+                StorageObject myObject = new StorageObject();
+                service.putObjectMaybeAsMultipart(bucketName, myObject, fiveMb);
+                fail("");
+            } catch (ServiceException se) {
+            }
+
+            // Create file for testing
+            File testDataFile = File.createTempFile("JetS3t-testMultipartUploads", ".txt");
+            BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(testDataFile));
+            bos.write(testDataOverLimit);
+            bos.close();
+            testDataOverLimit = null; // Free up a some memory
+
+            // Setup file-based object
+            StorageObject objectViaConvenienceMethod = new StorageObject(testDataFile);
+            objectViaConvenienceMethod.setKey("multipart-object-via-convenience-method.txt");
+            objectViaConvenienceMethod.addMetadata("my-metadata", "convenient? yes!");
+            objectViaConvenienceMethod.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ);
+            objectViaConvenienceMethod.setStorageClass(S3Object.STORAGE_CLASS_REDUCED_REDUNDANCY);
+
+            // Upload object
+            service.putObjectMaybeAsMultipart(bucketName, objectViaConvenienceMethod, fiveMb);
+
+            // Confirm completed object exists and has expected metadata
+            objectViaConvenienceMethod = service.getObjectDetails(
+                bucketName, objectViaConvenienceMethod.getKey());
+            assertEquals(
+                "convenient? yes!",
+                objectViaConvenienceMethod.getMetadata("my-metadata"));
+
+            // Confirm completed object was indeed uploaded as a multipart upload,
+            // not a standard PUT (ETag is not a valid MD5 hash in this case)
+            assertFalse(ServiceUtils.isEtagAlsoAnMD5Hash(
+                objectViaConvenienceMethod.getETag()));
+
+            /*
              * Perform a threaded multipart upload
              */
             String objectKeyForThreaded = "threaded-multipart-object.txt";
@@ -525,7 +575,7 @@ public class TestRestS3Service extends BaseStorageServiceTests {
 
             // Create threaded service and perform upload in multiple threads
             ThreadedS3Service threadedS3Service = new ThreadedS3Service(service,
-                new StorageServiceEventAdaptor());
+                new S3ServiceEventAdaptor());
             List<MultipartUploadAndParts> uploadAndParts = new ArrayList<MultipartUploadAndParts>();
             uploadAndParts.add(new MultipartUploadAndParts(
                 threadedMultipartUpload, Arrays.asList(objectsForThreadedUpload)));
