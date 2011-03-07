@@ -1,6 +1,5 @@
 package org.jets3t.service.multi.s3;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,7 +10,6 @@ import org.jets3t.service.ServiceException;
 import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.io.InterruptableInputStream;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
-import org.jets3t.service.io.TempFile;
 import org.jets3t.service.model.MultipartCompleted;
 import org.jets3t.service.model.MultipartUpload;
 import org.jets3t.service.model.S3Object;
@@ -391,8 +389,6 @@ public class ThreadedS3Service extends ThreadedStorageService {
 
         public void run() {
             try {
-                File underlyingFile = object.getDataInputFile();
-
                 if (object.getDataInputStream() != null) {
                     interruptableInputStream = new InterruptableInputStream(object.getDataInputStream());
                     ProgressMonitoredInputStream pmInputStream = new ProgressMonitoredInputStream(
@@ -402,10 +398,6 @@ public class ThreadedS3Service extends ThreadedStorageService {
                 ((S3Service)storageService).multipartUploadPart(
                     multipartUpload, partNumber, object);
                 result = object;
-
-                if (underlyingFile instanceof TempFile) {
-                    underlyingFile.delete();
-                }
             } catch (ServiceException e) {
                 result = e;
             }
