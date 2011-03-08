@@ -27,6 +27,7 @@ import java.awt.event.ActionListener;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.regex.Matcher;
 
 import javax.swing.AbstractAction;
 import javax.swing.ButtonGroup;
@@ -242,6 +243,7 @@ public class CopyObjectsDialog extends JDialog implements ActionListener {
         previewTableModel = new DefaultTableModel(new Object[] {"Object Key"}, 0) {
             private static final long serialVersionUID = -2859341917353477009L;
 
+            @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
@@ -408,12 +410,12 @@ public class CopyObjectsDialog extends JDialog implements ActionListener {
 
         // Perform substitutions to generate new names.
         String newName = renamePatternTextField.getText();
-        newName = newName.replaceAll("\\{key\\}", key);
-        newName = newName.replaceAll("\\{count\\}", count);
-        newName = newName.replaceAll("\\{path\\}", path);
-        newName = newName.replaceAll("\\{filename\\}", filename);
-        newName = newName.replaceAll("\\{ext\\}", ext);
-        newName = newName.replaceAll("\\{basename\\}", basename);
+        newName = newName.replaceAll("\\{key\\}", Matcher.quoteReplacement(key));
+        newName = newName.replaceAll("\\{count\\}", Matcher.quoteReplacement(count));
+        newName = newName.replaceAll("\\{path\\}", Matcher.quoteReplacement(path));
+        newName = newName.replaceAll("\\{filename\\}", Matcher.quoteReplacement(filename));
+        newName = newName.replaceAll("\\{ext\\}", Matcher.quoteReplacement(ext));
+        newName = newName.replaceAll("\\{basename\\}", Matcher.quoteReplacement(basename));
 
         return newName;
     }
