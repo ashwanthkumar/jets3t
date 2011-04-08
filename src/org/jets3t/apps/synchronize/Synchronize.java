@@ -861,8 +861,8 @@ public class Synchronize {
      *
      * @param servicePath
      * the path in service (including the bucket name) to which files are backed-up, or from which files are restored.
-     * @param fileSet
-     * a set of one or more of File objects for Uploads, or a single target directory for Downloads.
+     * @param file
+     * an array of one or more File objects for Uploads, or a single target directory for Downloads.
      * @param actionCommand
      * the action to perform, UP(load) or DOWN(load)
      * @param cryptoPassword
@@ -994,6 +994,29 @@ public class Synchronize {
             restoreToLocalDirectory(objectKeyToFilepathMap, objectPath,
                 files[0], bucket, md5GenerationProgressWatcher);
         }
+    }
+
+    /**
+     * Runs the application, performing the action specified on the given service and local directory paths.
+     *
+     * @param servicePath
+     * the path in service (including the bucket name) to which files are backed-up, or from which files are restored.
+     * @param fileSet
+     * a set of one or more of File objects for Uploads, or a single target directory for Downloads.
+     * @param actionCommand
+     * the action to perform, UP(load) or DOWN(load)
+     * @param cryptoPassword
+     * if non-null, an {@link EncryptionUtil} object is created with the provided password to encrypt or decrypt files.
+     * @param aclString
+     * the ACL to apply to the uploaded object
+     *
+     * @throws Exception
+     */
+    public void run(String servicePath, List<File> files, String actionCommand, String cryptoPassword,
+        String aclString, String providerId) throws Exception
+    {
+        File[] filesArray = files.toArray(new File[files.size()]);
+        this.run(servicePath, filesArray, actionCommand, cryptoPassword, aclString, providerId);
     }
 
     private void displayProgressStatus(String prefix, ThreadWatcher watcher) {
