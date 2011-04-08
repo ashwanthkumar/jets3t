@@ -722,7 +722,7 @@ public class ServiceUtils {
      * user agent string. This value may be null.
      * @return
      * a string built with the following components (some elements may not be available):
-     * <tt>jets3t/</tt><i>{@link S3Service#VERSION_NO__JETS3T_TOOLKIT}</i>
+     * <tt>JetS3t/</tt><i>{@link Constants#JETS3T_VERSION}</i>
      * (<i>os.name</i>/<i>os.version</i>; <i>os.arch</i>; <i>user.region</i>;
      * <i>user.region</i>; <i>user.language</i>) <i>applicationDescription</i></tt>
      *

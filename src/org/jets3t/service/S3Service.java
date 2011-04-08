@@ -3269,7 +3269,10 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * multipart upload's component parts.
      *
      * @param upload
+     * object containing information about the multipart-upload.
      * @return
+     * object containing information about the completed multi-part upload.
+     *
      * @throws S3ServiceException
      */
     public MultipartCompleted multipartCompleteUpload(MultipartUpload upload) throws S3ServiceException

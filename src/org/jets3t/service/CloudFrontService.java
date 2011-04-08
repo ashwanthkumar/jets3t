@@ -517,6 +517,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      *
      * @param origin
      * @return
+     * XML document representing an origin
+     *
      * @throws TransformerException
      * @throws ParserConfigurationException
      * @throws FactoryConfigurationError
@@ -1259,10 +1261,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @param loggingStatus
      * Logging status settings (bucket, prefix) for the distribution. If this value
      * is null, logging will be disabled for the distribution.
-     * @param originAccessIdentityId
-     * Identifier of the origin access identity that can authorize access to
-     * S3 objects via a private distribution. If provided the distribution will be
-     * private, if null the distribution will be be public.
+     * @param origin
+     * the origin to associate with the distribution, either an Amazon S3 bucket or
+     * a custom HTTP/S-accessible location.
      * @param trustedSignerSelf
      * If true the owner of the distribution (you) will be be allowed to generate
      * signed URLs for a private distribution. Note: If either trustedSignerSelf or
@@ -1367,7 +1368,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     /**
      * Convenience method to disable a distribution that you intend to delete.
      * This method merely calls the
-     * {@link #updateDistributionConfig(String, String[], String, boolean, LoggingStatus)}
+     * {@link #updateDistributionConfig(String, Origin, String[], String, boolean, LoggingStatus)}
      * method with default values for most of the distribution's configuration
      * settings.
      * <p>
@@ -1389,7 +1390,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     /**
      * Convenience method to disable a streaming distribution that you intend to delete.
      * This method merely calls the
-     * {@link #updateStreamingDistributionConfig(String, String[], String, boolean, LoggingStatus)}
+     * {@link #updateStreamingDistributionConfig(String, Origin, String[], String, boolean, LoggingStatus)}
      * method with default values for most of the distribution's configuration
      * settings.
      * <p>

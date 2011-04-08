@@ -62,7 +62,7 @@ import org.jets3t.service.multi.event.ListObjectsEvent;
  * File comparison utility to compare files on the local computer with objects present in a service
  * account and determine whether there are any differences. This utility contains methods to
  * build maps of the contents of the local file system or service account for comparison, and
- * <tt>buildDiscrepancyLists</tt> methods to find differences in these maps.
+ * methods to find differences in these maps.
  * <p>
  * File comparisons are based primarily on MD5 hashes of the files' contents. If a local file does
  * not match an object in the service with the same name, this utility determine which of the items is
@@ -385,8 +385,8 @@ public class FileComparer {
      * @param fileKeyPrefix
      * A prefix added to each file path key in the map, e.g. the name of the root directory the
      * files belong to. This prefix <b>must</b> end with a '/' character.
-     * @param fileMap
-     * a map of path keys to File objects, that this method adds items to.
+     * @param objectKeyToFilepathMap
+     * map of '/'-delimited object key names to local file absolute paths, to which this method adds items.
      * @param includeDirectories
      * If true all directories, including empty ones, will be included in the Map. These directories
      * will be mere place-holder objects with a trailing slash (/) character in the name and the
@@ -608,13 +608,13 @@ public class FileComparer {
      * Builds a service Object Map containing all the objects within the given target path,
      * where the map's key for each object is the relative path to the object.
      *
-     * @see #buildDiscrepancyLists(Map, Map)
-     * @see #buildFileMap(File, String, boolean)
+     * @see #lookupObjectMetadataForPotentialClashes(StorageService, String, String, StorageObject[], Map, BytesProgressWatcher, StorageServiceEventListener)
      *
      * @param service
      * @param bucketName
      * @param targetPath
-     * @param skipMetadata
+     * @param objectKeyToFilepathMap
+     * map of '/'-delimited object key names to local file absolute paths
      * @param eventListener
      * @return
      * mapping of keys to StorageObjects
@@ -647,8 +647,7 @@ public class FileComparer {
      * If the method is asked to perform only a partial listing, no bucket name
      * partitioning will be applied.
      *
-     * @see #buildDiscrepancyLists(Map, Map)
-     * @see #buildFileMap(File, String, boolean)
+     * @see #lookupObjectMetadataForPotentialClashes(StorageService, String, String, StorageObject[], Map, BytesProgressWatcher, StorageServiceEventListener)
      *
      * @param service
      * @param bucketName
@@ -700,14 +699,15 @@ public class FileComparer {
      * value of the object data contents either differs from the local file's hash
      * or the hash comparison cannot be performed without the metadata information.
      *
-     * @see #buildDiscrepancyLists(Map, Map)
-     * @see #buildFileMap(File[], boolean)
+     * @see #populateObjectMap(String, StorageObject[])
      *
      * @param service
      * @param bucketName
      * @param targetPath
-     * @param skipMetadata
      * @param objectsWithoutMetadata
+     * @param objectKeyToFilepathMap
+     * @param progressWatcher
+     * @param eventListener
      * @return
      * mapping of keys to StorageObjects
      * @throws ServiceException
@@ -863,11 +863,10 @@ public class FileComparer {
      *
      * @param file
      * @param relativeFilePath
-     * @param useMd5Files
-     * @param generateMd5Files
-     * @param md5FilesRootDirectory
      * @param progressWatcher
      * @return
+     * MD5 hash as bytes
+     *
      * @throws NoSuchAlgorithmException
      */
     public byte[] generateFileMD5Hash(File file, String relativeFilePath,
@@ -950,8 +949,7 @@ public class FileComparer {
      * @param objectKeyToFilepathMap
      * map of '/'-delimited object key names to local file absolute paths
      * @param objectsMap
-     * a map of keys to StorageObjects built using the method
-     * {@link #buildObjectMap(StorageService, String, String, boolean, StorageServiceEventListener)}
+     * a map of keys to StorageObjects.
      * @return
      * an object containing the results of the file comparison.
      *
@@ -975,8 +973,7 @@ public class FileComparer {
      * @param objectKeyToFilepathMap
      * map of '/'-delimited object key names to local file absolute paths
      * @param objectsMap
-     * a map of keys to StorageObjects built using the method
-     * {@link #buildObjectMap(StorageService, String, String, boolean, StorageServiceEventListener)}
+     * a map of keys to StorageObjects.
      * @param progressWatcher
      * watches the progress of file hash generation.
      * @return

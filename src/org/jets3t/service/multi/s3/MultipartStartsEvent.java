@@ -30,7 +30,7 @@ import org.jets3t.service.multi.event.ServiceEvent;
  * <p>
  * EVENT_IN_PROGRESS events include an array of the {@link S3Object}s that have been created
  * since the last progress event was fired. These objects are available via
- * {@link #getCreatedObjects()}.
+ * {@link #getStartedUploads()}.
  * <p>
  * EVENT_CANCELLED events include an array of the {@link S3Object}s that had not been created
  * before the operation was cancelled. These objects are available via

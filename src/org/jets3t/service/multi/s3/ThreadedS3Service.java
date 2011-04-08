@@ -147,10 +147,8 @@ public class ThreadedS3Service extends ThreadedStorageService {
      * The maximum number of threads is controlled by the JetS3t configuration property
      * <tt>threaded-service.max-admin-thread-count</tt>.
      *
-     * @param bucketName
-     * the target bucket.
-     * @param objects
-     * a list of objects representing the overall multipart object.
+     * @param multipartUploads
+     * a list of objects representing the multipart-uploads that will be completed.
      *
      * @return
      * true if all the threaded tasks completed successfully, false otherwise.

@@ -20,18 +20,18 @@ package org.jets3t.service.multi.s3;
 
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.multi.ThreadWatcher;
-import org.jets3t.service.multi.ThreadedStorageService;
+import org.jets3t.service.multi.s3.ThreadedS3Service;
 import org.jets3t.service.multi.event.ServiceEvent;
 
 /**
  * Multi-threaded service event fired by
- * {@link ThreadedStorageService#multipartUpload}.
+ * {@link ThreadedS3Service#multipartUploadParts(java.util.List)}.
  * <p>
- * EVENT_IN_PROGRESS events include an array of the {@link S3Object}s that have been created
+ * EVENT_IN_PROGRESS events include an array of the {@link StorageObject}s that have been created
  * since the last progress event was fired. These objects are available via
- * {@link #getCreatedObjects()}.
+ * {@link #getUploadedObjects()}.
  * <p>
- * EVENT_CANCELLED events include an array of the {@link S3Object}s that had not been created
+ * EVENT_CANCELLED events include an array of the {@link StorageObject}s that had not been created
  * before the operation was cancelled. These objects are available via
  * {@link #getCancelledObjects()}.
  *

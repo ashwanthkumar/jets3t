@@ -861,7 +861,7 @@ public class Synchronize {
      *
      * @param servicePath
      * the path in service (including the bucket name) to which files are backed-up, or from which files are restored.
-     * @param file
+     * @param files
      * an array of one or more File objects for Uploads, or a single target directory for Downloads.
      * @param actionCommand
      * the action to perform, UP(load) or DOWN(load)
@@ -1001,7 +1001,7 @@ public class Synchronize {
      *
      * @param servicePath
      * the path in service (including the bucket name) to which files are backed-up, or from which files are restored.
-     * @param fileSet
+     * @param files
      * a set of one or more of File objects for Uploads, or a single target directory for Downloads.
      * @param actionCommand
      * the action to perform, UP(load) or DOWN(load)
