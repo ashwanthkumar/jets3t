@@ -489,7 +489,20 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                             if (log.isDebugEnabled()) {
                                 log.debug("Following Temporary Redirect to: " + httpMethod.getURI().toString());
                             }
-                        } else {
+                        }
+
+                        // Special handling for S3 object PUT failures causing NoSuchKey errors - Issue #85
+                        else if (responseCode == 404
+                                   && "PUT".equalsIgnoreCase(httpMethod.getName())
+                                   && "NoSuchKey".equals(exception.getErrorCode()))
+                        {
+                            // Retrying after mysterious PUT NoSuchKey error caused by S3, don't throw exception.
+                            if (log.isDebugEnabled()) {
+                                log.debug("Ignoring NoSuchKey/404 error on PUT to: " + httpMethod.getURI().toString());
+                            }
+                        }
+
+                        else {
                             throw exception;
                         }
                     } else {
