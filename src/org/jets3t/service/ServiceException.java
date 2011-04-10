@@ -18,11 +18,19 @@
  */
 package org.jets3t.service;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.xml.parsers.ParserConfigurationException;
+
 import org.jets3t.service.mx.MxDelegate;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+
+import com.jamesmurty.utils.XMLBuilder;
 
 /**
  * Exception for use by {@link StorageService} and related utilities.
@@ -196,6 +204,27 @@ public class ServiceException extends Exception {
      */
     public String getXmlMessage() {
         return xmlMessage;
+    }
+
+    /**
+     * @return
+     * an XML error message returned by the services as an <code>XMLBuilder</code>
+     * object that allows for simple XPath querying via {@link XMLBuilder#xpathFind(String)},
+     * or null if no XML error document is available.
+     *
+     * @throws IOException
+     * @throws ParserConfigurationException
+     * @throws SAXException
+     */
+    public XMLBuilder getXmlMessageAsBuilder()
+        throws IOException, ParserConfigurationException, SAXException
+    {
+        if (this.xmlMessage == null) {
+            return null;
+        }
+        XMLBuilder builder = XMLBuilder.parse(
+            new InputSource(new StringReader(this.xmlMessage)));
+        return builder;
     }
 
     public boolean isParsedFromXmlMessage() {
