@@ -77,11 +77,14 @@ import org.jets3t.service.utils.FileComparer.PartialObjectListing;
 /**
  * Console application to synchronize the local file system with a storage service.
  * For more information and help please see the
- * <a href="http://jets3t.s3.amazonaws.com/applications/synchronize.html">Synchronize Guide</a>.
+ * <a href="http://www.jets3t.org/applications/synchronize.html">Synchronize Guide</a>.
  *
  * @author James Murty
  */
 public class Synchronize {
+    /**
+     * String provided to service as User-Agent description.
+     */
     public static final String APPLICATION_DESCRIPTION = "Synchronize/" + Constants.JETS3T_VERSION;
 
     protected static final int REPORT_LEVEL_NONE = 0;
@@ -120,6 +123,8 @@ public class Synchronize {
      * Files will only be transferred if true.
      * @param isQuiet
      * Report will only include summary of actions if true.
+     * @param isNoProgress
+     * Upload/download progress updates will not be printed.
      * @param isForce
      * Files will be overwritten when unchanged if true.
      * @param isKeepFiles
@@ -870,6 +875,8 @@ public class Synchronize {
      * if non-null, an {@link EncryptionUtil} object is created with the provided password to encrypt or decrypt files.
      * @param aclString
      * the ACL to apply to the uploaded object
+     * @param providerId
+     * service provider name: "S3" or "GS"
      *
      * @throws Exception
      */
@@ -1010,6 +1017,8 @@ public class Synchronize {
      * if non-null, an {@link EncryptionUtil} object is created with the provided password to encrypt or decrypt files.
      * @param aclString
      * the ACL to apply to the uploaded object
+     * @param providerId
+     * service provider name: "S3" or "GS"
      *
      * @throws Exception
      */
@@ -1142,8 +1151,8 @@ public class Synchronize {
         System.out.println("Required properties can be provided via: a file named 'synchronize.properties'");
         System.out.println("in the classpath, a file specified with the --properties option, or by typing");
         System.out.println("them in when prompted on the command line. Required properties are:");
-        System.out.println("          accesskey : Your AWS Access Key (Required)");
-        System.out.println("          secretkey : Your AWS Secret Key (Required)");
+        System.out.println("          accesskey : Your Access Key (Required)");
+        System.out.println("          secretkey : Your Secret Key (Required)");
         System.out.println("          password  : Encryption password (only required when using crypto)");
         System.out.println("Properties specified in this file will override those in jets3t.properties.");
         if (!fullHelp) {
@@ -1212,7 +1221,7 @@ public class Synchronize {
         System.out.println("   a synchronizer.properties file in the classpath.");
         System.out.println("");
         System.out.println("--credentials <filename>");
-        System.out.println("   Load your AWS credentials from an encrypted file, rather than from the");
+        System.out.println("   Load your service credentials from an encrypted file, rather than from the");
         System.out.println("   synchronizer.properties file. This encrypted file can be created using");
         System.out.println("   the Cockpit application, or the JetS3t API library.");
         System.out.println("");
@@ -1253,6 +1262,7 @@ public class Synchronize {
     /**
      * Runs this application from the console, accepts and checks command-line parameters and runs an
      * upload or download operation when all the necessary parameters are provided.
+     * @param args
      * @throws Exception
      */
     public static void main(String args[]) throws Exception {
@@ -1317,7 +1327,7 @@ public class Synchronize {
                 } else if (arg.equalsIgnoreCase("-m") || arg.equalsIgnoreCase("--move")) {
                     isMoveEnabled = true;
                 } else if (arg.equalsIgnoreCase("-s") || arg.equalsIgnoreCase("--skipmetadata")) {
-                    System.err.print("WARNING: --skipmetadata is obsolete since JetS3t 0.8.1, it has no effect");
+                    System.err.println("WARNING: --skipmetadata is obsolete since JetS3t 0.8.1, it has no effect");
                 } else if (arg.equalsIgnoreCase("-b") || arg.equalsIgnoreCase("--batch")) {
                     isBatchMode = true;
                 } else if (arg.equalsIgnoreCase("--provider")) {
@@ -1407,7 +1417,7 @@ public class Synchronize {
                                 myProperties.setProperty("accesskey", "");
                                 myProperties.setProperty("secretkey", "");
                             } catch (ServiceException e) {
-                                System.out.println("Failed to read AWS credentials from the file '" + credentialsFile + "'");
+                                System.out.println("Failed to read credentials from the file '" + credentialsFile + "'");
                             }
                         }
                     } else {
@@ -1496,11 +1506,11 @@ public class Synchronize {
             System.out.println("Please enter the required properties that have not been provided in a properties file:");
             BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in));
             if (!myProperties.containsKey("accesskey")) {
-                System.out.print("AWS Acccess Key: ");
+                System.out.print("Acccess Key: ");
                 myProperties.setProperty("accesskey", inputReader.readLine());
             }
             if (!myProperties.containsKey("secretkey")) {
-                System.out.print("AWS Secret Key: ");
+                System.out.print("Secret Key: ");
                 myProperties.setProperty("secretkey", inputReader.readLine());
             }
             if (isEncryptionEnabled && !myProperties.containsKey("password")) {
@@ -1517,7 +1527,7 @@ public class Synchronize {
             }
         }
 
-        // Use property values for the AWS credentials, if we haven't already been
+        // Use property values for the credentials, if we haven't already been
         // given the credentials through the --credentials argument.
         if (providerCredentials == null) {
             if ("S3".equalsIgnoreCase(providerId)) {
@@ -1531,8 +1541,8 @@ public class Synchronize {
             }
         }
 
-        // Sanity-check AWS credentials -- if both are null or empty strings,
-        // then nullify the AWSCredentials object to get an anonymous connection.
+        // Sanity-check credentials -- if both are null or empty strings,
+        // then nullify the credentials object to get an anonymous connection.
         if (providerCredentials.getAccessKey() == null || providerCredentials.getAccessKey().length() == 0
             || providerCredentials.getSecretKey() == null || providerCredentials.getSecretKey().length() == 0)
         {
