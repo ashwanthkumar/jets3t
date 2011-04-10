@@ -187,10 +187,7 @@ public class Synchronize {
     /**
      * Prepares a file to be uploaded to the service, creating an object with the
      * appropriate key and with some jets3t-specific metadata items set.
-     *
-     * @throws Exception
      */
-
     class LazyPreparedUploadObject {
         private final String targetKey;
         private final File file;
@@ -198,10 +195,14 @@ public class Synchronize {
         private final EncryptionUtil encryptionUtil;
 
         /**
-         * @param bucket    the bucket to create the object in
-         * @param targetKey the key name for the object
-         * @param file      the file to upload
-         * @param aclString the ACL to apply to the uploaded object
+         * @param targetKey
+         * the key name for the object
+         * @param file
+         * the file to upload
+         * @param aclString
+         * the ACL to apply to the uploaded object
+         * @param encryptionUtil
+         * the object to apply encryption, or null if no encryption is required
          */
         public LazyPreparedUploadObject(String targetKey, File file, String aclString, EncryptionUtil encryptionUtil) {
             this.targetKey = targetKey;

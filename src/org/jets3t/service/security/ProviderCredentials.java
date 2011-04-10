@@ -289,7 +289,7 @@ public abstract class ProviderCredentials {
      * @return
      * the decrypted credentials in an object.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public static ProviderCredentials load(String password, File file) throws ServiceException {
         if (log.isDebugEnabled()) {
@@ -322,7 +322,7 @@ public abstract class ProviderCredentials {
      * @return
      * the decrypted credentials in an object.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public static ProviderCredentials load(String password, BufferedInputStream inputStream)
         throws ServiceException

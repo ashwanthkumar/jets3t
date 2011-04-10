@@ -59,8 +59,6 @@ public class RepeatableInputStream extends InputStream implements InputStreamWra
      * read, up to the buffer limit specified.
      * @param bufferSize
      * the number of bytes buffered by this class.
-     *
-     * @throws java.io.FileNotFoundException
      */
     public RepeatableInputStream(InputStream inputStream, int bufferSize) {
         if (inputStream == null) {
@@ -84,6 +82,7 @@ public class RepeatableInputStream extends InputStream implements InputStreamWra
      * when the available buffer size has been exceeded, in which case the input stream data cannot
      * be repeated.
      */
+    @Override
     public void reset() throws IOException {
         if (bytesReadPastMark <= bufferSize) {
             if (log.isDebugEnabled()) {
@@ -97,6 +96,7 @@ public class RepeatableInputStream extends InputStream implements InputStreamWra
         }
     }
 
+    @Override
     public boolean markSupported() {
         return true;
     }
@@ -105,6 +105,7 @@ public class RepeatableInputStream extends InputStream implements InputStreamWra
      * This method can only be used while less data has been read from the input
      * stream than fits into the buffer. The readLimit parameter is ignored entirely.
      */
+    @Override
     public synchronized void mark(int readlimit) {
         if (log.isDebugEnabled()) {
             log.debug("Input stream marked at " + bytesReadPastMark + " bytes");
@@ -125,14 +126,17 @@ public class RepeatableInputStream extends InputStream implements InputStreamWra
         }
     }
 
+    @Override
     public int available() throws IOException {
         return is.available();
     }
 
+    @Override
     public void close() throws IOException {
         is.close();
     }
 
+    @Override
     public int read(byte[] out, int outOffset, int outLength) throws IOException {
         byte[] tmp = new byte[outLength];
 
@@ -177,6 +181,7 @@ public class RepeatableInputStream extends InputStream implements InputStreamWra
         return count;
     }
 
+    @Override
     public int read() throws IOException {
         byte[] tmp = new byte[1];
         int count = read(tmp);

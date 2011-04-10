@@ -114,9 +114,7 @@ public class S3BucketLoggingStatus {
      * @return
      * An XML representation of the object suitable for use as an input to the REST/HTTP interface.
      *
-     * @throws FactoryConfigurationError
-     * @throws ParserConfigurationException
-     * @throws TransformerException
+     * @throws S3ServiceException
      */
     public String toXml() throws S3ServiceException {
         try {

@@ -125,7 +125,7 @@ public class ServiceUtils {
      * @param canonicalString
      * canonical string representing the request to sign.
      * @return Signature
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public static String signWithHmacSha1(String awsSecretKey, String canonicalString)
         throws ServiceException

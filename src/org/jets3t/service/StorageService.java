@@ -65,8 +65,21 @@ public abstract class StorageService {
 
     private static final Log log = LogFactory.getLog(StorageService.class);
 
+    /**
+     * Status code returned by {@link #checkBucketStatus(String)} for a bucket
+     * that exists and is owned by the service user.
+     */
     public static final int BUCKET_STATUS__MY_BUCKET = 0;
+    /**
+     * Status code returned by {@link #checkBucketStatus(String)} for a bucket
+     * that does not exist.
+     */
     public static final int BUCKET_STATUS__DOES_NOT_EXIST = 1;
+    /**
+     * Status code returned by {@link #checkBucketStatus(String)} for a bucket
+     * that exists but is not owned by the service user (i.e. another user has
+     * already created this bucket in the service's namespace).
+     */
     public static final int BUCKET_STATUS__ALREADY_CLAIMED = 2;
 
     protected Jets3tProperties jets3tProperties = null;
@@ -158,6 +171,7 @@ public abstract class StorageService {
      *
      * After calling this method the service instance will no longer be usable -- a new
      * instance must be created to do more work.
+     * @throws ServiceException
      */
     public void shutdown() throws ServiceException {
         this.isShutdown = true;
@@ -464,6 +478,7 @@ public abstract class StorageService {
      * @return
      * false if the object is not found in the bucket, true if the object
      * exists (although it may be inaccessible to you).
+     * @throws ServiceException
      */
     public boolean isObjectInBucket(String bucketName, String objectKey)
         throws ServiceException
@@ -628,7 +643,9 @@ public abstract class StorageService {
      * @param bucketName
      * the name of the the bucket whose contents will be listed.
      * @param prefix
-     * only objects with a key that starts with this prefix will be listed
+     * only objects with a key that starts with this prefix will be listed, may be null.
+     * @param delimiter
+     * only list objects with key names up to this delimiter, may be null.
      * @param maxListingLength
      * the maximum number of objects to include in each result chunk
      * @param priorLastKey
@@ -667,7 +684,9 @@ public abstract class StorageService {
      * @param bucketName
      * the name of the the bucket whose contents will be listed.
      * @param prefix
-     * only objects with a key that starts with this prefix will be listed
+     * only objects with a key that starts with this prefix will be listed, may be null.
+     * @param delimiter
+     * only objects with a key that starts with this prefix will be listed, may be null.
      * @param maxListingLength
      * the maximum number of objects to include in each result chunk
      * @param priorLastKey
@@ -1157,6 +1176,8 @@ public abstract class StorageService {
      * the name of the bucket containing the object to modify.
      * @param objectKey
      * the key name of the object with ACL settings that will be applied.
+     * @param acl
+     * the ACL to apply.
      * @throws ServiceException
      */
     public void putObjectAcl(String bucketName, String objectKey, AccessControlList acl)
@@ -1203,6 +1224,8 @@ public abstract class StorageService {
      *
      * @param bucketName
      * a name of the bucket with ACL settings to apply.
+     * @param acl
+     * the ACL to apply.
      * @throws ServiceException
      */
     public void putBucketAcl(String bucketName, AccessControlList acl) throws ServiceException {
@@ -1308,6 +1331,8 @@ public abstract class StorageService {
      * This method can be implemented by attempting to list the objects in a bucket. If the listing
      * is successful return true, if the listing failed for any reason return false.
      *
+     * @param bucketName
+     * the bucket to check.
      * @return
      * true if the bucket exists and is accessible to the service user, false otherwise.
      * @throws ServiceException
@@ -1373,7 +1398,9 @@ public abstract class StorageService {
      *
      * @param bucketName
      * @param prefix
+     * only objects with a key that starts with this prefix will be listed, may be null.
      * @param delimiter
+     * only list objects with key names up to this delimiter, may be null.
      * @param maxListingLength
      * @return
      * the objects in a bucket.
@@ -1395,7 +1422,9 @@ public abstract class StorageService {
      *
      * @param bucketName
      * @param prefix
+     * only objects with a key that starts with this prefix will be listed, may be null.
      * @param delimiter
+     * only list objects with key names up to this delimiter, may be null.
      * @param maxListingLength
      * @param priorLastKey
      * @param completeListing
@@ -1496,11 +1525,31 @@ public abstract class StorageService {
 
     protected abstract void shutdownImpl() throws ServiceException;
 
+    /**
+     * @return
+     * the URL end-point of the target service.
+     */
     public abstract String getEndpoint();
     protected abstract String getVirtualPath();
     protected abstract String getSignatureIdentifier();
+    /**
+     * @return
+     * the REST header prefix used by the target service.
+     */
     public abstract String getRestHeaderPrefix();
+    /**
+     * @return
+     * GET parameter names that represent specific resources in the target
+     * service, as opposed to representing REST operation "plumbing". For
+     * example the "acl" parameter might be used to represent a resource's
+     * access control list settings.
+     */
     public abstract List<String> getResourceParameterNames();
+    /**
+     * @return
+     * the REST header prefix used by the target service to identify
+     * metadata information.
+     */
     public abstract String getRestMetadataPrefix();
     protected abstract int getHttpPort();
     protected abstract int getHttpsPort();

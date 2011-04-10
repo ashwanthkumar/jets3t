@@ -615,6 +615,8 @@ public class FileComparer {
      * @param targetPath
      * @param objectKeyToFilepathMap
      * map of '/'-delimited object key names to local file absolute paths
+     * @param progressWatcher
+     * watcher to monitor bytes read during comparison operations, may be null.
      * @param eventListener
      * @return
      * mapping of keys to StorageObjects
@@ -660,6 +662,9 @@ public class FileComparer {
      * if true, this method will perform a complete listing of a service target.
      * If false, the method will list a partial set of objects commencing from the
      * given prior last key.
+     * @param progressWatcher
+     * watcher to monitor bytes read during comparison operations, may be null.
+     * @param eventListener
      *
      * @return
      * an object containing a mapping of key names to StorageObjects, and the prior last
@@ -707,6 +712,7 @@ public class FileComparer {
      * @param objectsWithoutMetadata
      * @param objectKeyToFilepathMap
      * @param progressWatcher
+     * watcher to monitor bytes read during comparison operations, may be null.
      * @param eventListener
      * @return
      * mapping of keys to StorageObjects
@@ -864,9 +870,10 @@ public class FileComparer {
      * @param file
      * @param relativeFilePath
      * @param progressWatcher
+     * watcher to monitor bytes read during comparison operations, may be null.
      * @return
      * MD5 hash as bytes
-     *
+     * @throws IOException
      * @throws NoSuchAlgorithmException
      */
     public byte[] generateFileMD5Hash(File file, String relativeFilePath,
@@ -975,7 +982,7 @@ public class FileComparer {
      * @param objectsMap
      * a map of keys to StorageObjects.
      * @param progressWatcher
-     * watches the progress of file hash generation.
+     * watcher to monitor bytes read during comparison operations, may be null.
      * @return
      * an object containing the results of the file comparison.
      *
@@ -1145,28 +1152,54 @@ public class FileComparer {
         return dirPathsInOrder;
     }
 
+    /**
+     * @return
+     * true if the "filecomparer.skip-symlinks" configuration option is set.
+     */
     public boolean isSkipSymlinks() {
         return jets3tProperties.getBoolProperty("filecomparer.skip-symlinks", false);
     }
 
+    /**
+     * @return
+     * true if the "filecomparer.use-md5-files" configuration option is set.
+     */
     public boolean isUseMd5Files() {
         return jets3tProperties.getBoolProperty("filecomparer.use-md5-files", false);
     }
 
+    /**
+     * @return
+     * true if the "filecomparer.generate-md5-files" configuration option is set.
+     */
     public boolean isGenerateMd5Files() {
         return jets3tProperties.getBoolProperty("filecomparer.generate-md5-files", false);
     }
 
+    /**
+     * @return
+     * true if the "filecomparer.skip-upload-of-md5-files" configuration option is set.
+     */
     public boolean isSkipMd5FileUpload() {
         return jets3tProperties.getBoolProperty("filecomparer.skip-upload-of-md5-files", false);
     }
 
+    /**
+     * @return
+     * true if the "filecomparer.assume-local-latest-in-mismatch" configuration option is set.
+     */
     public boolean isAssumeLocalLatestInMismatch() {
         return jets3tProperties.getBoolProperty(
             "filecomparer.assume-local-latest-in-mismatch", false);
     }
 
 
+    /**
+     * @return
+     * the file represented by the configuration option "filecomparer.md5-files-root-dir"
+     * or null if this option is not specified.
+     * @throws FileNotFoundException
+     */
     public File getMd5FilesRootDirectoryFile() throws FileNotFoundException {
         String dirPath = jets3tProperties.getStringProperty(
             "filecomparer.md5-files-root-dir", null);

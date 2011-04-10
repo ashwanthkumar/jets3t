@@ -62,7 +62,8 @@ public class ServiceException extends Exception {
     private String requestHost = null;
 
     /**
-     * Constructor that includes the XML error document returned by service.
+     * Create a service exception that includes the XML error document returned by service.
+     *
      * @param message
      * @param xmlMessage
      */
@@ -70,6 +71,14 @@ public class ServiceException extends Exception {
         this(message, xmlMessage, null);
     }
 
+    /**
+     * Create a service exception that includes a specific message, an optional XML error
+     * document returned by service, and an optional underlying cause exception.
+     *
+     * @param message
+     * @param xmlMessage
+     * @param cause
+     */
     public ServiceException(String message, String xmlMessage, Throwable cause) {
         super(message, cause);
         if (xmlMessage != null) {
@@ -78,18 +87,38 @@ public class ServiceException extends Exception {
         MxDelegate.getInstance().registerS3ServiceExceptionEvent(getErrorCode());
     }
 
+    /**
+     * Create a service exception without any useful information.
+     */
     public ServiceException() {
         super();
     }
 
+    /**
+     * Create a service exception that includes a specific message and an
+     * optional underlying cause exception.
+     *
+     * @param message
+     * @param cause
+     */
     public ServiceException(String message, Throwable cause) {
         super(message, cause);
     }
 
+    /**
+     * Create a service exception that includes a specific message.
+     *
+     * @param message
+     */
     public ServiceException(String message) {
         super(message);
     }
 
+    /**
+     * Create a service exception that includes an underlying cause exception.
+     *
+     * @param cause
+     */
     public ServiceException(Throwable cause) {
         super(cause);
     }
@@ -158,6 +187,10 @@ public class ServiceException extends Exception {
         return this.errorCode;
     }
 
+    /**
+     * Set the exception's error code; for internal use only.
+     * @param code
+     */
     public void setErrorCode(String code) {
         this.errorCode = code;
     }
@@ -170,6 +203,10 @@ public class ServiceException extends Exception {
         return this.errorMessage;
     }
 
+    /**
+     * Set the exception's error message; for internal use only.
+     * @param message
+     */
     public void setErrorMessage(String message) {
         this.errorMessage= message;
     }
@@ -182,6 +219,10 @@ public class ServiceException extends Exception {
         return errorHostId;
     }
 
+    /**
+     * Set the exception's host ID; for internal use only.
+     * @param hostId
+     */
     public void setErrorHostId(String hostId) {
         this.errorHostId = hostId;
     }
@@ -194,6 +235,10 @@ public class ServiceException extends Exception {
         return errorRequestId;
     }
 
+    /**
+     * Set the exception's request ID; for internal use only.
+     * @param requestId
+     */
     public void setErrorRequestId(String requestId) {
         this.errorRequestId = requestId;
     }
@@ -227,6 +272,11 @@ public class ServiceException extends Exception {
         return builder;
     }
 
+    /**
+     * @return
+     * true if this exception contains information from an XML error
+     * document returned by a service, e.g. with error code details.
+     */
     public boolean isParsedFromXmlMessage() {
         return (xmlMessage != null);
     }
@@ -239,27 +289,43 @@ public class ServiceException extends Exception {
         return responseCode;
     }
 
+    /**
+     * Set the exception's HTTP response code; for internal use only.
+     * @param responseCode
+     */
     public void setResponseCode(int responseCode) {
         this.responseCode = responseCode;
     }
 
     /**
-     * @return The HTTP Status message returned by the service, if an HTTP response is available.
+     * @return
+     * The HTTP Status message returned by the service, if an HTTP response is available.
      * For example: "Forbidden", "Not Found", "Internal Server Error"
      */
     public String getResponseStatus() {
         return responseStatus;
     }
 
+    /**
+     * Set the exception's HTTP response status; for internal use only.
+     * @param responseStatus
+     */
     public void setResponseStatus(String responseStatus) {
         this.responseStatus = responseStatus;
     }
 
-
+    /**
+     * @return
+     * The exception's HTTP response date, if any.
+     */
     public String getResponseDate() {
         return responseDate;
     }
 
+    /**
+     * Set the exception's HTTP response date; for internal use only.
+     * @param responseDate
+     */
     public void setResponseDate(String responseDate) {
         this.responseDate = responseDate;
     }
@@ -272,22 +338,42 @@ public class ServiceException extends Exception {
         return requestVerb;
     }
 
+    /**
+     * Set the exception's HTTP request verb; for internal use only.
+     * @param requestVerb
+     */
     public void setRequestVerb(String requestVerb) {
         this.requestVerb = requestVerb;
     }
 
+    /**
+     * @return
+     * the exception's HTTP request path; if any.
+     */
     public String getRequestPath() {
         return requestPath;
     }
 
+    /**
+     * Set the exception's HTTP request path; for internal use only.
+     * @param requestPath
+     */
     public void setRequestPath(String requestPath) {
         this.requestPath = requestPath;
     }
 
+    /**
+     * @return
+     * the exception's HTTP request hostname; if any.
+     */
     public String getRequestHost() {
         return requestHost;
     }
 
+    /**
+     * Set the exception's HTTP request hostname; for internal use only.
+     * @param requestHost
+     */
     public void setRequestHost(String requestHost) {
         this.requestHost = requestHost;
     }
@@ -307,10 +393,18 @@ public class ServiceException extends Exception {
         this.errorHostId = errorHostId;
     }
 
+    /**
+     * @return
+     * the exception's HTTP response headers, if any.
+     */
     public Map<String, String> getResponseHeaders() {
         return responseHeaders;
     }
 
+    /**
+     * Set the exception's HTTP response headers; for internal use only.
+     * @param responseHeaders
+     */
     public void setResponseHeaders(Map<String, String> responseHeaders) {
         this.responseHeaders = responseHeaders;
     }

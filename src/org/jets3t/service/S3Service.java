@@ -993,7 +993,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * the name of the object.
      * @return
      * a URL to a Torrent file representing the object.
-     * @throws S3ServiceException
      */
     public String createTorrentUrl(String bucketName, String objectKey)
     {
@@ -1694,6 +1693,8 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * This method can be performed by anonymous services. Anonymous services
      * can get a publicly-readable object's details.
      *
+     * @param versionId
+     * object's version identifier
      * @param bucketName
      * the name of the versioned bucket containing the object.
      * @param objectKey
@@ -1846,6 +1847,8 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * the name of the versioned bucket whose contents will be listed.
      * @param prefix
      * only objects with a key that starts with this prefix will be listed
+     * @param delimiter
+     * only list objects with key names up to this delimiter, may be null.
      * @param maxListingLength
      * the maximum number of objects to include in each result chunk
      * @param priorLastKey
@@ -2082,6 +2085,8 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @param bucketName
      * the name of the bucket.
+     * @return
+     * versioning status of bucket
      * @throws S3ServiceException
      */
     public S3BucketVersioningStatus getBucketVersioningStatus(String bucketName)
@@ -2721,7 +2726,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * @param bucketName
      * the name of the versioned bucket containing the object to modify.
      * @param objectKey
-     * the key name of the object with ACL settings that will be applied.
+     * the key name of the object to which ACL settings will be applied.
+     * @param acl
+     * ACL settings to apply.
      * @throws S3ServiceException
      */
     public void putVersionedObjectAcl(String versionId, String bucketName,
@@ -3211,12 +3218,44 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         }
     }
 
+    /**
+     * Start a multipart upload process for a given object; must be done before
+     * individual parts can be uploaded.
+     *
+     * @param bucketName
+     * the name of the bucket in which the object will be stored.
+     * @param objectKey
+     * the key name of the object.
+     * @param metadata
+     * metadata to apply to the completed object, may be null.
+     * @return
+     * object representing this multipart upload.
+     * @throws S3ServiceException
+     */
     public MultipartUpload multipartStartUpload(String bucketName, String objectKey,
         Map<String, Object> metadata) throws S3ServiceException
     {
         return multipartStartUpload(bucketName, objectKey, metadata, null, null);
     }
 
+    /**
+     * Start a multipart upload process for a given object; must be done before
+     * individual parts can be uploaded.
+     *
+     * @param bucketName
+     * the name of the bucket in which the object will be stored.
+     * @param objectKey
+     * the key name of the object.
+     * @param metadata
+     * metadata to apply to the completed object, may be null.
+     * @param acl
+     * ACL to apply to the completed upload, may be null.
+     * @param storageClass
+     * storage class to apply to the completed upload, may be null.
+     * @return
+     * object representing this multipart upload.
+     * @throws S3ServiceException
+     */
     public MultipartUpload multipartStartUpload(String bucketName, String objectKey,
         Map<String, Object> metadata, AccessControlList acl, String storageClass)
         throws S3ServiceException
@@ -3224,6 +3263,19 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         return multipartStartUploadImpl(bucketName, objectKey, metadata, acl, storageClass);
     }
 
+    /**
+     * Start a multipart upload process for a given object; must be done before
+     * individual parts can be uploaded.
+     *
+     * @param bucketName
+     * the name of the bucket in which the object will be stored.
+     * @param object
+     * object containing details to apply to the completed object, including:
+     * key name, metadata, ACL, storage class
+     * @return
+     * object representing this multipart upload.
+     * @throws S3ServiceException
+     */
     public MultipartUpload multipartStartUpload(String bucketName, S3Object object)
         throws S3ServiceException
     {
@@ -3231,17 +3283,51 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
             object.getMetadataMap(), object.getAcl(), object.getStorageClass());
     }
 
+    /**
+     * Abort the given multipart upload process. Also deletes any parts that may
+     * have already been uploaded.
+     *
+     * @param upload
+     * the multipart upload to abort.
+     * @throws S3ServiceException
+     */
     public void multipartAbortUpload(MultipartUpload upload) throws S3ServiceException
     {
         multipartAbortUploadImpl(upload.getUploadId(), upload.getBucketName(), upload.getObjectKey());
     }
 
+    /**
+     * List the multipart uploads that have been started within a bucket and
+     * have not yet been completed or aborted.
+     *
+     * @param bucketName
+     * the bucket whose multipart uploads will be listed.
+     * @return
+     * a list of incomplete multipart uploads.
+     * @throws S3ServiceException
+     */
     public List<MultipartUpload> multipartListUploads(String bucketName)
         throws S3ServiceException
     {
         return multipartListUploads(bucketName, null, null, null);
     }
 
+    /**
+     * List a subset of the multipart uploads that have been started within
+     * a bucket and have not yet been completed or aborted.
+     *
+     * @param bucketName
+     * the bucket whose multipart uploads will be listed.
+     * @param nextKeyMarker
+     * marker indicating where this list subset should start by key name.
+     * @param nextUploadIdMarker
+     * marker indicating where this list subset should start by upload ID.
+     * @param maxUploads
+     * maximum number of uploads to list in a subset.
+     * @return
+     * a list of incomplete multipart uploads.
+     * @throws S3ServiceException
+     */
     public List<MultipartUpload> multipartListUploads(String bucketName,
         String nextKeyMarker, String nextUploadIdMarker, Integer maxUploads)
         throws S3ServiceException
@@ -3250,6 +3336,15 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
             bucketName, nextKeyMarker, nextUploadIdMarker, maxUploads);
     }
 
+    /**
+     * List the parts that have been uploaded for a given multipart upload.
+     *
+     * @param upload
+     * the multipart upload whose parts will be listed.
+     * @return
+     * a list of multipart parts that have been successfully uploaded.
+     * @throws S3ServiceException
+     */
     public List<MultipartPart> multipartListParts(MultipartUpload upload)
         throws S3ServiceException
     {
@@ -3257,6 +3352,18 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
             upload.getBucketName(), upload.getObjectKey());
     }
 
+    /**
+     * Complete a multipart upload by combining all the given parts into
+     * the final object.
+     *
+     * @param upload
+     * the multipart upload whose parts will be completed.
+     * @param parts
+     * the parts comprising the final object.
+     * @return
+     * information about the completion operation.
+     * @throws S3ServiceException
+     */
     public MultipartCompleted multipartCompleteUpload(MultipartUpload upload,
         List<MultipartPart> parts) throws S3ServiceException
     {
@@ -3265,14 +3372,16 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     }
 
     /**
-     * Convenience method to complete a multipart upload -- automatically find the
-     * multipart upload's component parts.
+     * Convenience method to complete a multipart upload by automatically finding
+     * its parts. This method does more work than the lower-level
+     * {@link #multipartCompleteUpload(MultipartUpload, List)} API operation, but
+     * relieves the caller of having to keep track of all the parts uploaded
+     * for a multipart upload.
      *
      * @param upload
-     * object containing information about the multipart-upload.
+     * the multipart upload whose parts will be completed.
      * @return
-     * object containing information about the completed multi-part upload.
-     *
+     * information about the completion operation.
      * @throws S3ServiceException
      */
     public MultipartCompleted multipartCompleteUpload(MultipartUpload upload) throws S3ServiceException
@@ -3282,6 +3391,22 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
             upload.getObjectKey(), parts);
     }
 
+    /**
+     * Upload an individual part that will comprise a piece of a multipart upload object.
+     *
+     * @param upload
+     * the multipart upload to which this part will be added.
+     * @param partNumber
+     * the part's number; must be between 1 and 10,000 and must uniquely identify a given
+     * part and represent its order compared to all other parts. Part numbers need not
+     * be sequential.
+     * @param object
+     * an object containing a input stream with data that will be sent to the storage service.
+     * @return
+     * information about the uploaded part, retain this information to eventually complete
+     * the object with {@link #multipartCompleteUpload(MultipartUpload, List)}.
+     * @throws S3ServiceException
+     */
     public MultipartPart multipartUploadPart(MultipartUpload upload, Integer partNumber,
         S3Object object) throws S3ServiceException
     {
@@ -3295,30 +3420,78 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         }
     }
 
+    /**
+     * Apply a website configuration to a bucket.
+     *
+     * @param bucketName
+     * bucket to which the website configuration will be applied.
+     * @param config
+     * the website configuration details.
+     * @throws S3ServiceException
+     */
     public void setWebsiteConfig(String bucketName, WebsiteConfig config)
         throws S3ServiceException
     {
         setWebsiteConfigImpl(bucketName, config);
     }
 
+    /**
+     * @param bucketName
+     * a bucket with a website configuration.
+     * @return
+     * the website configuration details.
+     * @throws S3ServiceException
+     */
     public WebsiteConfig getWebsiteConfig(String bucketName) throws S3ServiceException {
         return getWebsiteConfigImpl(bucketName);
     }
 
+    /**
+     * Delete a bucket's website configuration; removes the effect of any
+     * previously-applied configuration.
+     *
+     * @param bucketName
+     * a bucket with a website configuration.
+     * @throws S3ServiceException
+     */
     public void deleteWebsiteConfig(String bucketName) throws S3ServiceException {
         deleteWebsiteConfigImpl(bucketName);
     }
 
+    /**
+     * Apply a notification configuration to a bucket.
+     *
+     * @param bucketName
+     * the bucket to which the notification configuration will be applied.
+     * @param config
+     * the notification configuration to apply.
+     * @throws S3ServiceException
+     */
     public void setNotificationConfig(String bucketName, NotificationConfig config)
         throws S3ServiceException
     {
         setNotificationConfigImpl(bucketName, config);
     }
 
+    /**
+     * @param bucketName
+     * a bucket with a notification configuration.
+     * @return
+     * the notification configuration details.
+     * @throws S3ServiceException
+     */
     public NotificationConfig getNotificationConfig(String bucketName) throws S3ServiceException {
         return getNotificationConfigImpl(bucketName);
     }
 
+    /**
+     * Unset (delete) a bucket's notification configuration; removes the effect of any
+     * previously-applied configuration.
+     *
+     * @param bucketName
+     * a bucket with a notification configuration.
+     * @throws S3ServiceException
+     */
     public void unsetNotificationConfig(String bucketName) throws S3ServiceException {
         setNotificationConfigImpl(bucketName, new NotificationConfig());
     }
@@ -3367,6 +3540,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * @param bucketName
      * @param prefix
      * @param delimiter
+     * only list objects with key names up to this delimiter, may be null.
      * @param maxListingLength
      * @param priorLastKey
      * @param completeListing

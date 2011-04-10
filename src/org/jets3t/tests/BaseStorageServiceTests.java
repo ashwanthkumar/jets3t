@@ -83,8 +83,8 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author James Murty
  */
 public abstract class BaseStorageServiceTests extends TestCase {
-    public static final String TARGET_SERVICE_S3 = "AmazonS3";
-    public static final String TARGET_SERVICE_GS = "GoogleStorage";
+    protected static final String TARGET_SERVICE_S3 = "AmazonS3";
+    protected static final String TARGET_SERVICE_GS = "GoogleStorage";
 
     protected String TEST_PROPERTIES_FILENAME = "test.properties";
     protected Properties testProperties = null;

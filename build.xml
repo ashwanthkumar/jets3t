@@ -209,7 +209,7 @@
         <!-- Copy text file notices etc -->
         <copy             
             todir="${dir.dist}/jets3t-${version}">
-            <fileset dir="." includes="*.txt"/>
+            <fileset dir="." includes="*.txt,RELEASE_NOTES.markdown"/>
         </copy>
 
         <!-- Create zip archive -->

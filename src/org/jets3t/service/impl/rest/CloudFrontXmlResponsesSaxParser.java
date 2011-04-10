@@ -123,7 +123,7 @@ public class CloudFrontXmlResponsesSaxParser {
      * XML data input stream.
      * @return
      * the XML handler object populated with data parsed from the XML stream.
-     * @throws S3ServiceException
+     * @throws CloudFrontServiceException
      */
     public DistributionListHandler parseDistributionListResponse(InputStream inputStream)
         throws CloudFrontServiceException

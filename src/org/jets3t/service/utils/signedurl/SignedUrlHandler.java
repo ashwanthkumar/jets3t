@@ -55,7 +55,7 @@ public interface SignedUrlHandler {
      * the S3Object put to S3. The S3Object returned will be identical to the object provided,
      * except that the data input stream (if any) will have been consumed.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public S3Object putObjectWithSignedUrl(String signedPutUrl, S3Object object) throws ServiceException;
 
@@ -69,7 +69,7 @@ public interface SignedUrlHandler {
      * @param signedDeleteUrl
      * a signed DELETE URL.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public void deleteObjectWithSignedUrl(String signedDeleteUrl) throws ServiceException;
 
@@ -86,7 +86,7 @@ public interface SignedUrlHandler {
      * @return
      * the S3Object in S3 including all metadata and the object's data input stream.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public S3Object getObjectWithSignedUrl(String signedGetUrl) throws ServiceException;
 
@@ -103,7 +103,7 @@ public interface SignedUrlHandler {
      * @return
      * the S3Object in S3 including all metadata, but without the object's data input stream.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public S3Object getObjectDetailsWithSignedUrl(String signedHeadUrl) throws ServiceException;
 
@@ -117,7 +117,7 @@ public interface SignedUrlHandler {
      * @return
      * the AccessControlList settings of the object in S3.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public AccessControlList getObjectAclWithSignedUrl(String signedAclUrl) throws ServiceException;
 
@@ -130,7 +130,7 @@ public interface SignedUrlHandler {
      * @param acl
      * the ACL settings to apply to the object represented by the signed URL.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public void putObjectAclWithSignedUrl(String signedAclUrl, AccessControlList acl) throws ServiceException;
 

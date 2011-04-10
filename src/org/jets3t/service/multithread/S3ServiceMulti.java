@@ -87,7 +87,8 @@ public class S3ServiceMulti {
     private S3Service s3Service = null;
     private final boolean[] isShutdown = new boolean[] { false };
 
-    private final ArrayList serviceEventListeners = new ArrayList();
+    private final ArrayList<S3ServiceEventListener> serviceEventListeners =
+        new ArrayList<S3ServiceEventListener>();
     private final long sleepTime;
 
     /**
@@ -155,6 +156,8 @@ public class S3ServiceMulti {
      * service such as HTTP connections, connection pools, threads etc. After calling
      * this method the service instance will no longer be usable -- a new instance must
      * be created to do more work.
+     *
+     * @throws S3ServiceException
      */
     public void shutdown() throws S3ServiceException {
         this.isShutdown[0] = true;
@@ -217,9 +220,9 @@ public class S3ServiceMulti {
                 log.warn("S3ServiceMulti invoked without any S3ServiceEventListener objects, this is dangerous!");
             }
         }
-        Iterator listenerIter = serviceEventListeners.iterator();
+        Iterator<S3ServiceEventListener> listenerIter = serviceEventListeners.iterator();
         while (listenerIter.hasNext()) {
-            S3ServiceEventListener listener = (S3ServiceEventListener) listenerIter.next();
+            S3ServiceEventListener listener = listenerIter.next();
 
             if (event instanceof CreateObjectsEvent) {
                 listener.s3ServiceEventPerformed((CreateObjectsEvent) event);

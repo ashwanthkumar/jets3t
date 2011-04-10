@@ -43,16 +43,24 @@ import org.jets3t.service.multi.s3.S3ServiceEventAdaptor;
 import org.jets3t.service.multi.s3.S3ServiceEventListener;
 import org.jets3t.service.multi.s3.ThreadedS3Service;
 
+/**
+ * Tool to simplify working with the multipart uploads feature offered by
+ * Amazon S3.
+ *
+ * @author jmurty
+ */
 public class MultipartUtils {
     private static final Log log = LogFactory.getLog(MultipartUtils.class);
 
     /**
-     * Minimum multipart upload part size supported by S3: 5 MB
+     * Minimum multipart upload part size supported by S3: 5 MB.
+     * NOTE: This minimum size does not apply to the last part in a
+     * multipart upload, which may be 1 byte or larger.
      */
     public static final long MIN_PART_SIZE = 5 * (1024 * 1024);
 
     /**
-     * Minimum object size supported by S3: 5 GB
+     * Maximum object size supported by S3: 5 GB
      */
     public static final long MAX_OBJECT_SIZE = 5 * (1024 * 1024 * 1024);
 
@@ -83,6 +91,10 @@ public class MultipartUtils {
     public MultipartUtils() {
     }
 
+    /**
+     * @return
+     * maximum part size as set in constructor.
+     */
     public long getMaxPartSize() {
         return maxPartSize;
     }
@@ -100,9 +112,12 @@ public class MultipartUtils {
      * Split the given file into objects such that no object has a size greater than
      * the defined maximum part size. Each object uses a
      * {@link SegmentedRepeatableFileInputStream} input stream to manage its own
-     * part of the underlying file.
+     * byte range within the underlying file.
      *
+     * @param objectKey
+     * the object key name to apply to all objects returned by this method.
      * @param file
+     * a file to split into multiple parts.
      * @return
      * an ordered list of objects that can be uploaded as multipart parts to S3 to
      * re-constitute the given file in the service.

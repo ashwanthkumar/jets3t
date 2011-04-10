@@ -204,8 +204,6 @@ public class Jets3tProperties implements Serializable {
      * a name for the source of the properties, such as a properties file name or identifier. This
      * is only used to generate meaningful debug messages when properties are updated, so it is
      * possible to tell where the updated property value came from.
-     *
-     * @throws IOException
      */
     public void loadAndReplaceProperties(Jets3tProperties properties, String propertiesSource) {
         Properties newProperties = properties.getProperties();
@@ -222,8 +220,6 @@ public class Jets3tProperties implements Serializable {
      * a name for the source of the properties, such as a properties file name or identifier. This
      * is only used to generate meaningful debug messages when properties are updated, so it is
      * possible to tell where the updated property value came from.
-     *
-     * @throws IOException
      */
     public void loadAndReplaceProperties(Properties newProperties, String propertiesSource) {
         Iterator<Map.Entry<Object, Object>> propsIter = newProperties.entrySet().iterator();

@@ -211,7 +211,10 @@ public class StorageObject extends BaseStorageItem implements Cloneable {
      * integrity of the data you read from this stream using one of the
      * {@link #verifyData(InputStream)} methods.
      *
-     * @throws S3ServiceException
+     * @return
+     * input stream containing the object's service-side data, or null if no data.
+     *
+     * @throws ServiceException
      */
     public InputStream getDataInputStream() throws ServiceException {
         if (dataInputStream == null && dataInputFile != null) {
@@ -623,6 +626,7 @@ public class StorageObject extends BaseStorageItem implements Cloneable {
         return objectMetadata;
     }
 
+    @SuppressWarnings("deprecation")
     public boolean isDirectoryPlaceholder() {
         // Recognize "standard" directory place-holder indications used by
         // Amazon's AWS Console and Panic's Transmit.
