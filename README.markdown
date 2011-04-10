@@ -6,10 +6,13 @@ Amazon Simple Storage Service (Amazon S3), Amazon CloudFront content
 delivery network, and Google Storage for Developers.
 
 For further information, documentation, and links to discussion lists and
-other resources, please visit the [JetS3t web site][jets3t].
+other resources, please visit the [JetS3t web site][jets3t]. There are also 
+[release notes][jets3t-releasenotes] summarizing the changes in past JetS3t
+releases.
 
 [jets3t]: http://www.jets3t.org/
 [jets3t-toolkit]: http://www.jets3t.org/toolkit/toolkit.html
+[jets3t-releasenotes]: http://www.jets3t.org/RELEASE_NOTES.txt
 
 [jets3t-cockpit]: http://www.jets3t.org/applications/cockpit.html
 [jets3t-synchronize]: http://www.jets3t.org/applications/synchronize.html
