@@ -22,8 +22,10 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import org.jets3t.service.Constants;
@@ -39,11 +41,13 @@ import org.jets3t.service.model.BaseVersionOrDeleteMarker;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketVersioningStatus;
 import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.multithread.DownloadPackage;
 import org.jets3t.service.multithread.S3ServiceSimpleMulti;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.AWSDevPayCredentials;
 import org.jets3t.service.security.ProviderCredentials;
+import org.jets3t.service.utils.MultipartUtils;
 import org.jets3t.service.utils.ServiceUtils;
 
 /**
@@ -794,6 +798,43 @@ public class CodeSamples {
             privateBucket.getName(), privateObject.getKey(), expiryDate, false);
         System.out.println("Signed URL: " + signedUrl);
 
+        /*
+         * Multipart uploads
+         */
+
+        // Amazon S3 offers an alternative method for uploading objects for
+        // users with advanced requirements, called Multipart Uploads. This
+        // mechanism involves uploading an object's data in parts instead of
+        // all at once, which can give the following advantages:
+        //  * large files can be uploaded in smaller pieces to reduce the
+        //    impact of transient uploading/networking errors
+        //  * objects larger than 5 GB can be stored
+        //  * objects can be constructed from data that is uploaded over a
+        //    period of time, when it may not all be available in advance.
+
+        // JetS3t's MultipartUtils class makes it easy to perform mutipart
+        // uploads of your files. To upload a file in 20MB parts:
+
+        S3Object largeFileObject = new S3Object(new File("/path/to/large/file"));
+
+        List<StorageObject> objectsToUploadAsMultipart = new ArrayList<StorageObject>();
+        objectsToUploadAsMultipart.add(largeFileObject);
+
+        long maxSizeForAPartInBytes = 20 * 1024 * 1024;
+        MultipartUtils mpUtils = new MultipartUtils(maxSizeForAPartInBytes);
+
+        mpUtils.uploadObjects(BUCKET_NAME, s3Service, objectsToUploadAsMultipart,
+            null // eventListener : Provide one to monitor the upload progress
+            );
+
+        // The S3Service API also provides the underlying low-level multipart operations
+        // if you need more control over the process. See the method names that
+        // start with "multipart", and the example code in
+        // TestRestS3Service#testMultipartUploads
+
+        // IMPORTANT: The objects in S3 created by a multipart upload process do not
+        // have ETag header values that can be used to perform MD5 hash verification
+        // of the object data. See https://forums.aws.amazon.com/thread.jspa?messageID=234579
 
         /*
          * Create an S3 POST form
