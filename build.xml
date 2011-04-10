@@ -435,7 +435,7 @@
         <!-- Copy Release Notes document to website directory -->
         <copy
             todir="${dir.website}">
-            <fileset dir="." includes="RELEASE_NOTES.txt"/>
+            <fileset dir="." includes="RELEASE_NOTES.markdown"/>
         </copy>
         
         <!-- Copy API documentation to website -->

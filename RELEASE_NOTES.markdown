@@ -18,8 +18,6 @@ General:
    See https://bitbucket.org/jmurty/jets3t/issue/69
  * Greatly reduced memory usage in FileComparer file comparison
    utilities when working with large numbers of files.
- * Added support for configuring buckets to send Simple Notification
-   Service (SNS) messages.
  * Service credentials classes now always return ProviderCredentials
    from #load methods, where the actual credentials instance is
    AWSCredentials by default or GSCredentials if explicitly loaded.
@@ -35,6 +33,8 @@ S3Service:
  * Added support for the Website Configuration feature, which allows
    static S3 bucket to behave more like a dynamic web site with
    custom index and error documents.
+ * Added support for configuring buckets to send Simple Notification
+   Service (SNS) messages.
 
 ThreadedS3Service:
 
@@ -44,6 +44,9 @@ ThreadedS3Service:
 CloudFrontService:
 
  * Added support for custom (non-S3) distribution origins (API 2010-11-01).
+   This improvement involved changes to the CloudFrontService API which
+   are not backwards-compatible, so code that relies on the prior version
+   will need to be updated.
 
 ### SYNCHRONIZE
 
@@ -57,7 +60,7 @@ CloudFrontService:
    using the Amazon S3 service. The maximum part size defaults to 5 GB.
  * Improved file comparison logic so object metadata is only retrieved
    from a service when it is required.
- * Removed support for `--skip-metadata` option. This option is no longer
+ * Removed support for `--skipmetadata` option. This option is no longer
    necessary since metadata retrieval is more intelligent, and is not
    desirable because metadata retrieval is no longer optional when
    comparing objects uploaded using the Multipart Upload mechanism.
