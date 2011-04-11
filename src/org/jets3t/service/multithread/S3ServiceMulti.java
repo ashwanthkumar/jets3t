@@ -72,7 +72,7 @@ import org.jets3t.service.utils.signedurl.SignedUrlHandler;
  * <p>
  * This class uses properties obtained through {@link Jets3tProperties}. For more information on
  * these properties please refer to
- * <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html">JetS3t Configuration</a>
+ * <a href="http://www.jets3t.org/toolkit/configuration.html">JetS3t Configuration</a>
  * </p>
  *
  * @deprecated 0.8.0 use {@link org.jets3t.service.multi.ThreadedStorageService} instead.

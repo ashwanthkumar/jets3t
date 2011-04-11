@@ -52,7 +52,7 @@ import org.jets3t.service.utils.ServiceUtils;
 
 /**
  * This class includes all the code samples as listed in the JetS3t
- * <a href="http://jets3t.s3.amazonaws.com/toolkit/guide.html">Programmer Guide</a>.
+ * <a href="http://www.jets3t.org/toolkit/guide.html">Programmer Guide</a>.
  * <p>
  * This code is provided as a convenience for those who are reading through the guide and don't want
  * to type out the examples themselves.

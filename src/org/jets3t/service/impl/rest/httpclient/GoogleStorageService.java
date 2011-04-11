@@ -38,7 +38,7 @@ import org.jets3t.service.security.ProviderCredentials;
  * <p>
  * This class uses properties obtained through {@link org.jets3t.service.Jets3tProperties}. For more information on
  * these properties please refer to
- * <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html">JetS3t Configuration</a>
+ * <a href="http://www.jets3t.org/toolkit/configuration.html">JetS3t Configuration</a>
  * </p>
  *
  * @author Google Developers

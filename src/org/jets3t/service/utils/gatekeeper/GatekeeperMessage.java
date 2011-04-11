@@ -37,7 +37,7 @@ import org.jets3t.service.utils.ServiceUtils;
  * encodings of messages.
  * <p>
  * For more information about the Gatekeeper message format, please see:
- * <a href="http://jets3t.s3.amazonaws.com/applications/gatekeeper-concepts.html">
+ * <a href="http://www.jets3t.org/applications/gatekeeper-concepts.html">
  * Gatekeeper Concepts</a>
  *
  * @author James Murty

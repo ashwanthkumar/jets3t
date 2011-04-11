@@ -156,7 +156,7 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
 /**
  * Cockpit is a graphical Java application for viewing and managing the contents of an Amazon S3 account.
  * For more information and help please see the
- * <a href="http://jets3t.s3.amazonaws.com/applications/cockpit.html">Cockpit Guide</a>.
+ * <a href="http://www.jets3t.org/applications/cockpit.html">Cockpit Guide</a>.
  * <p>
  * This is the Cockpit application class; it may be run as a stand-alone application or as an Applet.
  *
@@ -169,7 +169,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
     private static final Log log = LogFactory.getLog(Cockpit.class);
 
-    public static final String JETS3T_COCKPIT_HELP_PAGE = "http://jets3t.s3.amazonaws.com/applications/cockpit.html";
+    public static final String JETS3T_COCKPIT_HELP_PAGE = "http://www.jets3t.org/applications/cockpit.html";
     public static final String AMAZON_S3_PAGE = "http://www.amazon.com/s3";
     public static final String OS_NAME_MAC = "Mac OS X";
 

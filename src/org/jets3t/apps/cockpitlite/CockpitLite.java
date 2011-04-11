@@ -149,7 +149,7 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
  * access to the S3 account, authorizing each of the user's interactions before
  * it can be executed.
  * <p>
- * <a href="http://jets3t.s3.amazonaws.com/applications/cockpitlite.html">CockpitLite Guide</a>.
+ * <a href="http://www.jets3t.org/applications/cockpitlite.html">CockpitLite Guide</a>.
  * <p>
  * This is the CockpitLite application class; it may be run as a stand-alone
  * application or as an Applet.

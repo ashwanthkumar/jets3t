@@ -45,7 +45,7 @@ import org.apache.commons.logging.LogFactory;
  * considered comments. Lines that have a mimetype but no associated extensions are also ignored.
  * <p>
  * For more information about Mimetype settings please see:
- * <a href="http://jets3t.s3.amazonaws.com/toolkit/configuration.html">JetS3t Configuration</a>
+ * <a href="http://www.jets3t.org/toolkit/configuration.html">JetS3t Configuration</a>
  *
  * @author James Murty
  */

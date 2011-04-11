@@ -40,7 +40,7 @@ import org.jets3t.servlets.gatekeeper.impl.DefaultUrlSigner;
 
 /**
  * A servlet implementation of an S3 Gatekeeper, as described in the document
- * <a href="http://jets3t.s3.amazonaws.com/applications/gatekeeper-concepts.html">
+ * <a href="http://www.jets3t.org/applications/gatekeeper-concepts.html">
  * Gatekeeper Concepts</a>.
  * <p>
  * This servlet offers an easily configurable and extensible approach, where key
@@ -58,7 +58,7 @@ import org.jets3t.servlets.gatekeeper.impl.DefaultUrlSigner;
  * unconfigured the default JetS3t implementations are used.
  * <p>
  * For more information about this servlet please refer to:
- * <a href="http://jets3t.s3.amazonaws.com/applications/gatekeeper.html">
+ * <a href="http://www.jets3t.org/applications/gatekeeper.html">
  * JetS3t Gatekeeper</a>
  *
  * @author James Murty
@@ -108,6 +108,7 @@ public class GatekeeperServlet extends HttpServlet {
      * Initialises the pluggable implementation classes for {@link Authorizer},
      * {@link TransactionIdProvider}, and {@link UrlSigner}
      */
+    @Override
     public void init(ServletConfig servletConfig) throws ServletException {
         if (log.isInfoEnabled()) {
             log.info("Initialising GatekeeperServlet");
@@ -225,6 +226,7 @@ public class GatekeeperServlet extends HttpServlet {
     /**
      * Sends a simple HTML page in response to GET requests, indicating that the servlet is running.
      */
+    @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         if (log.isDebugEnabled()) {
             log.debug("Handling GET request");
@@ -242,6 +244,7 @@ public class GatekeeperServlet extends HttpServlet {
      * sends a plain text response document containing the Gatekeeper response message encoded as
      * a properties file.
      */
+    @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         if (log.isDebugEnabled()) {
             log.debug("Handling POST request");
@@ -288,7 +291,7 @@ public class GatekeeperServlet extends HttpServlet {
                 }
                 // Process each signature request.
                 for (int i = 0; i < gatekeeperMessage.getSignatureRequests().length; i++) {
-                    SignatureRequest signatureRequest = (SignatureRequest) gatekeeperMessage.getSignatureRequests()[i];
+                    SignatureRequest signatureRequest = gatekeeperMessage.getSignatureRequests()[i];
 
                     // Determine whether the request will be allowed. If the request is not allowed, the
                     // reason will be made available in the signature request object (with signatureRequest.declineRequest())
