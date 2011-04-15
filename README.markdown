@@ -1,12 +1,12 @@
 JetS3t
 ======
 
-JetS3t is a free, open-source Java toolkit and application suite for 
-Amazon Simple Storage Service (Amazon S3), Amazon CloudFront content 
+JetS3t is a free, open-source Java toolkit and application suite for
+Amazon Simple Storage Service (Amazon S3), Amazon CloudFront content
 delivery network, and Google Storage for Developers.
 
 For further information, documentation, and links to discussion lists and
-other resources, please visit the [JetS3t web site][jets3t]. There are also 
+other resources, please visit the [JetS3t web site][jets3t]. There are also
 [historic release notes][jets3t-releasenotes-hist] summarizing the changes
 in past JetS3t releases, and [pending release notes][jets3t-releasenotes-pend]
 that include details about the up-coming release.
@@ -52,24 +52,24 @@ directory in the classpath when running JetS3t apps.
 
 The configuration files include:
 
- * `jets3t.properties`  
+ * `jets3t.properties`
     Low-level toolkit configuration.
- * `synchronize.properties`  
+ * `synchronize.properties`
     Properties for the Synchronize application
- * `uploader.properties`  
+ * `uploader.properties`
     Properties for the Uploader application
- * `cockpitlite.properties`  
+ * `cockpitlite.properties`
     Properties for the CockpitLite application
- * `mime.types`  
+ * `mime.types`
     Maps file extensions to the appropriate mime/content type.
     For example, the "txt" extension maps to "text/plain".
- * `commons-logging.properties`  
+ * `commons-logging.properties`
     Defines which logging implementation to use.
- * `log4j.properties`  
-    When Log4J is the chosen logging implementation, 
-    these settings control how much logging information is displayed, and 
+ * `log4j.properties`
+    When Log4J is the chosen logging implementation,
+    these settings control how much logging information is displayed, and
     the way it is displayed.
- * `simplelog.properties`  
+ * `simplelog.properties`
     When SimpleLog is the chosen logging implementation,
     these settings control the logging information that is displayed.
 
@@ -80,7 +80,7 @@ JAR files
 The compiled JetS3t code jar files are available in the _jars_ directory,
 and include the following:
 
- * `jets3t-x.y.z.jar`  
+ * `jets3t-x.y.z.jar`
 
    The [JetS3t toolkit][jets3t-toolkit], including the JetS3t service implemention
    which underlies all the other JetS3t applications.
@@ -109,8 +109,8 @@ and include the following:
 
  * `uploader-x.y.z.jar`
 
-   [Uploader][jets3t-uploader], a wizard-based GUI application/applet that S3 
-   account holders (Service Providers) may provide to clients to allow them to 
+   [Uploader][jets3t-uploader], a wizard-based GUI application/applet that S3
+   account holders (Service Providers) may provide to clients to allow them to
    upload files to S3 without requiring access to the Service Provider's S3
    credentials
 
@@ -148,5 +148,5 @@ Servlets
 --------
 
 The JetS3t application suite includes a servlet implementation of a Gatekeeper
-to offer mediated third-party access to your S3 resources. The deployable WAR 
+to offer mediated third-party access to your S3 resources. The deployable WAR
 file for this servlet is located in the _servlets/gatekeeper_ directory.
