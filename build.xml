@@ -243,6 +243,7 @@
                 <include name="**/commons-codec/*.jar"/>
                 <include name="**/commons-httpclient/*.jar"/>
                 <include name="**/bouncycastle/*.jar"/>
+                <include name="**/java-xmlbuilder/*.jar"/>
             </fileset>
         </copy>
 
