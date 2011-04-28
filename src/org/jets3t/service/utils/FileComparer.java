@@ -405,7 +405,16 @@ public class FileComparer {
     {
         List<Pattern> ignorePatternList = buildIgnoreRegexpList(directory, parentIgnorePatternList);
 
-        for (File childFile: directory.listFiles()) {
+        File[] files = directory.listFiles();
+
+        // Report directory listing errors in a more useful way
+        if (files == null) {
+            throw new IllegalStateException(
+                "Failed to list files in directory path "
+                + directory.getAbsolutePath());
+        }
+
+        for (File childFile: files) {
             if (!isIgnored(ignorePatternList, childFile)) {
                 String objectKeyName = normalizeUnicode(fileKeyPrefix + childFile.getName());
 
