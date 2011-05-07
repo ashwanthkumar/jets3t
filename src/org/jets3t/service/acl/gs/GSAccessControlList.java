@@ -68,16 +68,15 @@ public class GSAccessControlList extends AccessControlList {
     public XMLBuilder toXMLBuilder() throws ServiceException, ParserConfigurationException,
         FactoryConfigurationError, TransformerException
     {
-        if (owner == null) {
-            throw new ServiceException("Invalid AccessControlList: missing an Owner");
-        }
         XMLBuilder builder = XMLBuilder.create("AccessControlList");
 
         // Owner
-        XMLBuilder ownerBuilder = builder.elem("Owner");
-        ownerBuilder.elem("ID").text(owner.getId()).up();
-        if (owner.getDisplayName() != null) {
-            ownerBuilder.elem("Name").text(owner.getDisplayName());
+        if (owner != null) {
+            XMLBuilder ownerBuilder = builder.elem("Owner");
+            ownerBuilder.elem("ID").text(owner.getId()).up();
+            if (owner.getDisplayName() != null) {
+                ownerBuilder.elem("Name").text(owner.getDisplayName());
+            }
         }
 
         XMLBuilder accessControlList = builder.elem("Entries");

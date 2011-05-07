@@ -715,27 +715,16 @@ public abstract class BaseStorageServiceTests extends TestCase {
             assertEquals("Expected denied access (403) error", 403, ((HttpURLConnection) url
                 .openConnection()).getResponseCode());
 
-            // Get ACL details for private object so we can determine the bucket owner.
-            AccessControlList bucketACL = service.getBucketAcl(bucketName);
-            StorageOwner bucketOwner = bucketACL.getOwner();
+            // Get ACL details for private object so we can determine the account owner ID.
+            AccessControlList objectACL = service.getObjectAcl(bucketName, privateKey);
+            StorageOwner accountOwner = objectACL.getOwner();
 
             // Create a public object.
             String publicKey = "Public Object - " + System.currentTimeMillis();
             object = new StorageObject(publicKey, "Public object sample text");
             AccessControlList acl = buildAccessControlList();
-            acl.setOwner(bucketOwner);
+            acl.setOwner(accountOwner);
             acl.grantPermission(allUsersGrantee, Permission.PERMISSION_READ);
-            // TODO: Google Storage quirk: Must *always* explicitly grant owner full control in ACL
-            if (TARGET_SERVICE_GS.equals(getTargetService())) {
-                // Apply S3 or GS ACL object, depending on the service type we're using
-                if (service instanceof GoogleStorageService) {
-                    acl.grantPermission(
-                        new UserByIdGrantee(bucketOwner.getId()), Permission.PERMISSION_FULL_CONTROL);
-                } else {
-                    acl.grantPermission(
-                        new CanonicalGrantee(bucketOwner.getId()), Permission.PERMISSION_FULL_CONTROL);
-                }
-            }
             object.setAcl(acl);
             service.putObject(bucketName, object);
             url = new URL(linkUrlPrefix + "/" + bucketName + "/" + RestUtils.encodeUrlString(publicKey));
