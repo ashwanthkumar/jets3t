@@ -979,8 +979,13 @@ public class Synchronize {
             objectKeyToFilepathMap = fileComparer.buildObjectKeyToFilepathMap(
                 files, "", storeEmptyDirectories);
         } else if ("DOWN".equals(actionCommand)) {
+            File[] filesInTargetDir = files[0].listFiles();
+            if (filesInTargetDir == null) {
+                throw new IOException("Unable to list files in download target directory: "
+                    + files[0].getAbsolutePath());
+            }
             objectKeyToFilepathMap = fileComparer.buildObjectKeyToFilepathMap(
-                files[0].listFiles(), "", storeEmptyDirectories);
+                filesInTargetDir, "", storeEmptyDirectories);
         }
 
         // Watcher to provide feedback during generation of MD5 hash values
@@ -1456,6 +1461,21 @@ public class Synchronize {
                         if (file.exists() && !file.isDirectory()) {
                             System.err.println(
                                 "ERROR: Target download location already exists but is not a directory: " + file);
+                            System.exit(1);
+                        }
+                        if (!file.canWrite() || !file.canWrite()) {
+                            System.err.println(
+                                "ERROR: Invalid permissions on target download location, cannot "
+                                + (!file.canRead()
+                                    ? "read from" + (!file.canWrite()? " or " : "")
+                                    : "")
+                                + (!file.canWrite() ? "write to" : "")
+                                + " directory: " + file.getAbsolutePath());
+                            System.exit(1);
+                        }
+                        if (!file.canWrite()) {
+                            System.err.println(
+                                "ERROR: Cannot write to target download location: " + file);
                             System.exit(1);
                         }
                     } else {
