@@ -27,10 +27,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.httpclient.HostConfiguration;
-import org.apache.commons.httpclient.auth.CredentialsProvider;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.client.CredentialsProvider;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.GrantAndPermission;
 import org.jets3t.service.acl.GroupGrantee;
@@ -85,11 +84,10 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     private static final Log log = LogFactory.getLog(S3Service.class);
 
     protected S3Service(ProviderCredentials credentials, String invokingApplicationDescription,
-        CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties,
-        HostConfiguration hostConfig)
+        CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties)
     {
         super(credentials, invokingApplicationDescription, credentialsProvider,
-            jets3tProperties, hostConfig);
+            jets3tProperties);
     }
 
     /**
@@ -3262,7 +3260,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     {
         return multipartStartUploadImpl(bucketName, objectKey, metadata, acl, storageClass);
     }
-
+    
     /**
      * Start a multipart upload process for a given object; must be done before
      * individual parts can be uploaded.
@@ -3566,9 +3564,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         String objectKey) throws S3ServiceException;
 
     protected abstract List<MultipartUpload> multipartListUploadsImpl(String bucketName,
-        String nextKeyMarker, String nextUploadIdMarker, Integer maxUploads)
+        String nextKeyMarker, String nextUploadIdMarker, Integer maxUploads) 
         throws S3ServiceException;
-
+    
     protected abstract List<MultipartPart> multipartListPartsImpl(String uploadId,
         String bucketName, String objectKey) throws S3ServiceException;
 

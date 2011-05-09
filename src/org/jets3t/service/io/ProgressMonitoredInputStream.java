@@ -30,7 +30,7 @@ import java.io.InputStream;
  */
 public class ProgressMonitoredInputStream extends InputStream implements InputStreamWrapper {
     private InputStream inputStream = null;
-    private BytesProgressWatcher progressWatcher = null;
+    protected BytesProgressWatcher progressWatcher = null;
 
     /**
      * Construts the input stream around an underlying stream and sends notification messages
@@ -65,6 +65,7 @@ public class ProgressMonitoredInputStream extends InputStream implements InputSt
         progressWatcher.resetWatcher();
     }
 
+    @Override
     public int read() throws IOException {
         int read = inputStream.read();
         if (read != -1) {
@@ -73,6 +74,7 @@ public class ProgressMonitoredInputStream extends InputStream implements InputSt
         return read;
     }
 
+    @Override
     public int read(byte[] b, int off, int len) throws IOException {
         int read = inputStream.read(b, off, len);
         if (read != -1) {
@@ -81,6 +83,7 @@ public class ProgressMonitoredInputStream extends InputStream implements InputSt
         return read;
     }
 
+    @Override
     public int read(byte[] b) throws IOException {
         int read = inputStream.read(b);
         if (read != -1) {
@@ -89,12 +92,18 @@ public class ProgressMonitoredInputStream extends InputStream implements InputSt
         return read;
     }
 
+    @Override
     public int available() throws IOException {
         return inputStream.available();
     }
 
+    @Override
     public void close() throws IOException {
-        inputStream.close();
+        try {
+            inputStream.close();
+        } finally {
+            progressWatcher.streamClosed();
+        }
     }
 
     public InputStream getWrappedInputStream() {

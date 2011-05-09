@@ -22,14 +22,13 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-import org.apache.commons.httpclient.Credentials;
-import org.apache.commons.httpclient.NTCredentials;
-import org.apache.commons.httpclient.UsernamePasswordCredentials;
-import org.apache.commons.httpclient.auth.AuthScheme;
-import org.apache.commons.httpclient.auth.CredentialsNotAvailableException;
-import org.apache.commons.httpclient.auth.CredentialsProvider;
-import org.apache.commons.httpclient.auth.NTLMScheme;
-import org.apache.commons.httpclient.auth.RFC2617Scheme;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.Credentials;
+import org.apache.http.auth.NTCredentials;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+
 
 /**
  * Prompts for the user to enter HTTP Proxy authentication credentials via the
@@ -39,6 +38,23 @@ import org.apache.commons.httpclient.auth.RFC2617Scheme;
  */
 public class CommandLineCredentialsProvider implements CredentialsProvider {
 
+    private final CredentialsProvider mCredentialProvider;
+
+    
+    
+    public CommandLineCredentialsProvider(){
+        mCredentialProvider = new BasicCredentialsProvider();
+    }
+    
+    public void setCredentials(AuthScope authscope, Credentials credentials){
+        mCredentialProvider.setCredentials(authscope, credentials);
+    }
+
+    public void clear(){
+        mCredentialProvider.clear();
+    }
+    
+
     /**
      * Implementation method for the CredentialsProvider interface.
      * <p>
@@ -46,29 +62,34 @@ public class CommandLineCredentialsProvider implements CredentialsProvider {
      * <a href="http://svn.apache.org/viewvc/jakarta/commons/proper/httpclient/trunk/src/examples/InteractiveAuthenticationExample.java?view=markup">InteractiveAuthenticationExample</a>
      *
      */
-    public Credentials getCredentials(AuthScheme authscheme, String host, int port, boolean proxy) throws CredentialsNotAvailableException {
-        if (authscheme == null) {
+    //public Credentials getCredentials(AuthScheme authscheme, String host, int port, boolean proxy) throws CredentialsNotAvailableException {
+    public Credentials getCredentials(AuthScope scope){
+        if (scope == null || scope.getScheme() == null) {
             return null;
         }
+        Credentials credentials = mCredentialProvider.getCredentials(scope);
+        if (credentials!=null){
+            return credentials;
+        }
         try {
-            Credentials credentials = null;
             BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in));
 
-            if (authscheme instanceof NTLMScheme) {
+            // authscheme instanceof NTLMScheme
+            if (scope.getScheme().equals("ntlm")) {
                 System.out.println("Proxy Authentication Required -- " +
-                    "Host " + host + ":" + port + " requires Windows authentication");
+                    "Host " + scope.getHost() + ":" + scope.getPort() + " requires Windows authentication");
                 System.out.print("Username: ");
                 String username = inputReader.readLine();
                 System.out.print("Password: ");
                 String password = inputReader.readLine();
                 System.out.print("Domain: ");
                 String domain = inputReader.readLine();
-
-                credentials = new NTCredentials(username, password, host, domain);
-            } else
-            if (authscheme instanceof RFC2617Scheme) {
+                credentials = new NTCredentials(username, password, scope.getHost(), domain);
+            } else if (scope.getScheme().equals("basic")
+                    || scope.getScheme().equals("digest")) {
+                //if (authscheme instanceof RFC2617Scheme) {
                 System.out.println("Proxy Authentication Required -- " +
-                    "Host " + host + ":" + port + " requires authentication for the realm: " + authscheme.getRealm());
+                    "Host " + scope.getHost() + ":" + scope.getPort() + " requires authentication for the realm: " + scope.getRealm());
                 System.out.print("Username: ");
                 String username = inputReader.readLine();
                 System.out.print("Password: ");
@@ -76,12 +97,15 @@ public class CommandLineCredentialsProvider implements CredentialsProvider {
 
                 credentials = new UsernamePasswordCredentials(username, password);
             } else {
-                throw new CredentialsNotAvailableException("Unsupported authentication scheme: " +
-                    authscheme.getSchemeName());
+                throw new IllegalArgumentException("Unsupported authentication scheme: " +
+                    scope.getScheme());
+            }
+            if (credentials != null){
+                mCredentialProvider.setCredentials(scope, credentials);
             }
             return credentials;
         } catch (IOException e) {
-            throw new CredentialsNotAvailableException(e.getMessage(), e);
+            throw new IllegalArgumentException(e.getMessage(), e);
         }
     }
 

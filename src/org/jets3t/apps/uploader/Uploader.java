@@ -74,28 +74,28 @@ import javax.swing.border.Border;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import org.apache.commons.httpclient.Credentials;
-import org.apache.commons.httpclient.Header;
-import org.apache.commons.httpclient.HostConfiguration;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpException;
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.HttpMethodRetryHandler;
-import org.apache.commons.httpclient.NTCredentials;
-import org.apache.commons.httpclient.ProxyHost;
-import org.apache.commons.httpclient.UsernamePasswordCredentials;
-import org.apache.commons.httpclient.auth.AuthScheme;
-import org.apache.commons.httpclient.auth.CredentialsNotAvailableException;
-import org.apache.commons.httpclient.auth.CredentialsProvider;
-import org.apache.commons.httpclient.auth.NTLMScheme;
-import org.apache.commons.httpclient.auth.RFC2617Scheme;
 import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.httpclient.params.HttpClientParams;
-import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
-import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.Header;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.Credentials;
+import org.apache.http.auth.NTCredentials;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.params.ConnRoutePNames;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.params.HttpParams;
+import org.apache.http.params.HttpProtocolParams;
 import org.jets3t.gui.AuthenticationDialog;
 import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.GuiUtils;
@@ -129,6 +129,7 @@ import org.jets3t.service.multithread.UpdateACLEvent;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.ByteFormatter;
 import org.jets3t.service.utils.Mimetypes;
+import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.utils.TimeFormatter;
 import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
@@ -233,7 +234,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
     private int currentState = 0;
 
-    private boolean isRunningAsApplet = false;
+    private final boolean isRunningAsApplet;
 
     private HashMap parametersMap = new HashMap();
 
@@ -292,11 +293,20 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      */
     private Exception priorFailureException = null;
 
+
+    private final CredentialsProvider mCredentialProvider;
+    
+
+    private Uploader(boolean pIsRunningApplet){
+        isRunningAsApplet = pIsRunningApplet;
+        mCredentialProvider = new BasicCredentialsProvider();
+    }
+    
     /**
      * Constructor to run this application as an Applet.
      */
     public Uploader() {
-        isRunningAsApplet = true;
+        this(true);
     }
 
     /**
@@ -306,9 +316,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * @throws S3ServiceException
      */
     public Uploader(JFrame ownerFrame, Properties standAloneArgumentProperties) throws S3ServiceException {
+        this(false);
         this.ownerFrame = ownerFrame;
         this.standAloneArgumentProperties = standAloneArgumentProperties;
-        isRunningAsApplet = false;
 
         init();
 
@@ -845,7 +855,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * @throws Exception
      */
     private GatekeeperMessage contactGatewayServer(S3Object[] objects)
-        throws HttpException, Exception
+        throws Exception
     {
         // Retrieve credentials from URL location value by the property 'credentialsServiceUrl'.
         String gatekeeperUrl = uploaderProperties.getStringProperty(
@@ -885,15 +895,18 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
          */
 
         // Add all properties/parameters to credentials POST request.
-        PostMethod postMethod = new PostMethod(gatekeeperUrl);
+        HttpPost postMethod = new HttpPost(gatekeeperUrl);
         Properties properties = gatekeeperMessage.encodeToProperties();
-        Iterator propsIter = properties.entrySet().iterator();
+        
+        Iterator<Map.Entry<Object, Object>> propsIter = properties.entrySet().iterator();
+        List<NameValuePair> parameters = new ArrayList<NameValuePair>(properties.size());
         while (propsIter.hasNext()) {
-            Map.Entry entry = (Map.Entry) propsIter.next();
+            Map.Entry<Object, Object> entry = propsIter.next();
             String fieldName = (String) entry.getKey();
             String fieldValue = (String) entry.getValue();
-            postMethod.setParameter(fieldName, fieldValue);
+            parameters.add(new BasicNameValuePair(fieldName, fieldValue));
         }
+        postMethod.setEntity(new UrlEncodedFormEntity(parameters));
 
         // Create Http Client if necessary, and include User Agent information.
         if (httpClientGatekeeper == null) {
@@ -902,35 +915,37 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
         // Try to detect any necessary proxy configurations.
         try {
-            ProxyHost proxyHost = PluginProxyUtil.detectProxy(new URL(gatekeeperUrl));
+            HttpHost proxyHost = PluginProxyUtil.detectProxy(new URL(gatekeeperUrl));
             if (proxyHost != null) {
-                HostConfiguration hostConfig = new HostConfiguration();
-                hostConfig.setProxyHost(proxyHost);
-                httpClientGatekeeper.setHostConfiguration(hostConfig);
-
-                httpClientGatekeeper.getParams().setAuthenticationPreemptive(true);
-                httpClientGatekeeper.getParams().setParameter(CredentialsProvider.PROVIDER, this);
+                httpClientGatekeeper.getParams().setParameter(
+                        ConnRoutePNames.DEFAULT_PROXY,
+                        proxyHost);
             }
+            ((DefaultHttpClient)httpClientGatekeeper).setCredentialsProvider(this);
+            
         } catch (Throwable t) {
             log.debug("No proxy detected");
         }
 
         // Perform Gateway request.
         log.debug("Contacting Gatekeeper at: " + gatekeeperUrl);
+        HttpResponse response = null;
         try {
-            int responseCode = httpClientGatekeeper.executeMethod(postMethod);
-            String contentType = postMethod.getResponseHeader("Content-Type").getValue();
+            response = httpClientGatekeeper.execute(postMethod);
+            int responseCode = response.getStatusLine().getStatusCode(); 
+            String contentType = response.getFirstHeader("Content-Type").getValue();
             if (responseCode == 200) {
                 InputStream responseInputStream = null;
 
-                Header encodingHeader = postMethod.getResponseHeader("Content-Encoding");
+                
+                Header encodingHeader = response.getFirstHeader("Content-Encoding");
                 if (encodingHeader != null && "gzip".equalsIgnoreCase(encodingHeader.getValue())) {
                     log.debug("Inflating gzip-encoded response");
-                    responseInputStream = new GZIPInputStream(postMethod.getResponseBodyAsStream());
+                    responseInputStream = new GZIPInputStream(response.getEntity().getContent());
                 } else {
-                    responseInputStream = postMethod.getResponseBodyAsStream();
+                    responseInputStream = response.getEntity().getContent();
                 }
-
+                
                 if (responseInputStream == null) {
                     throw new IOException("No response input stream available from Gatekeeper");
                 }
@@ -968,7 +983,11 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         } catch (Exception e) {
             throw new Exception("Gatekeeper did not respond", e);
         } finally {
-            postMethod.releaseConnection();
+            try {
+                response.getEntity().consumeContent();
+            } catch (Exception ee){
+                // ignore
+            }
         }
     }
 
@@ -1574,33 +1593,24 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
     private HttpClient initHttpConnection() {
         // Set client parameters.
-        HttpClientParams clientParams = new HttpClientParams();
-
-        clientParams.setParameter(HttpMethodParams.USER_AGENT,
-            ServiceUtils.getUserAgentDescription(APPLICATION_DESCRIPTION));
-
-        // Replace default error retry handler.
-        clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
-            public boolean retryMethod(HttpMethod httpMethod, IOException ioe, int executionCount) {
-                if (executionCount > MAX_CONNECTION_RETRIES) {
-                    log.error("Retried connection " + executionCount
-                        + " times, which exceeds the maximum retry count of " + MAX_CONNECTION_RETRIES);
-                    return false;
-                }
-                log.warn("Retrying request - attempt " + executionCount + " of " + MAX_CONNECTION_RETRIES);
-                return true;
-            }
-        });
-
+        HttpParams params = RestUtils.createDefaultHttpParams();
+        HttpProtocolParams.setUserAgent(
+                params, 
+                ServiceUtils.getUserAgentDescription(APPLICATION_DESCRIPTION));
 
         // Set connection parameters.
-        HttpConnectionManagerParams connectionParams = new HttpConnectionManagerParams();
-        connectionParams.setConnectionTimeout(HTTP_CONNECTION_TIMEOUT);
-        connectionParams.setSoTimeout(SOCKET_CONNECTION_TIMEOUT);
-        connectionParams.setStaleCheckingEnabled(false);
+        HttpConnectionParams.setConnectionTimeout(
+                params,
+                HTTP_CONNECTION_TIMEOUT);
+        HttpConnectionParams.setSoTimeout(params, SOCKET_CONNECTION_TIMEOUT);
+        HttpConnectionParams.setStaleCheckingEnabled(params, false);
 
-        HttpClient httpClient = new HttpClient(clientParams);
-        httpClient.getHttpConnectionManager().setParams(connectionParams);
+        DefaultHttpClient httpClient = new DefaultHttpClient(params);
+        // Replace default error retry handler.
+        httpClient.setHttpRequestRetryHandler(new RestUtils.AWSRetryHandler(
+                MAX_CONNECTION_RETRIES, 
+                null));
+                
         return httpClient;
     }
 
@@ -1630,6 +1640,14 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         }
     }
 
+    public void setCredentials(AuthScope authscope, Credentials credentials) {
+        mCredentialProvider.setCredentials(authscope, credentials);
+    }
+
+    public void clear() {
+        mCredentialProvider.clear();
+    }
+    
     /**
      * Implementation method for the CredentialsProvider interface.
      * <p>
@@ -1637,41 +1655,59 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
      * <a href="http://svn.apache.org/viewvc/jakarta/commons/proper/httpclient/trunk/src/examples/InteractiveAuthenticationExample.java?view=markup">InteractiveAuthenticationExample</a>
      *
      */
-    public Credentials getCredentials(AuthScheme authscheme, String host, int port, boolean proxy) throws CredentialsNotAvailableException {
-        if (authscheme == null) {
+    public Credentials getCredentials(AuthScope scope) {
+        if (scope == null || scope.getScheme() == null) {
             return null;
         }
+        Credentials credentials = mCredentialProvider.getCredentials(scope);
+        if (credentials!=null){
+            return credentials;
+        }
+    
         try {
-            Credentials credentials = null;
-
-            if (authscheme instanceof NTLMScheme) {
+            if (scope.getScheme().equals("ntlm")) {
+                //if (authscheme instanceof NTLMScheme) {
                 AuthenticationDialog pwDialog = new AuthenticationDialog(
                     ownerFrame, "Authentication Required",
-                    "<html>Host <b>" + host + ":" + port + "</b> requires Windows authentication</html>", true);
+                    "<html>Host <b>" + scope.getHost() + ":" + scope.getPort() + 
+                    "</b> requires Windows authentication</html>", true);
                 pwDialog.setVisible(true);
                 if (pwDialog.getUser().length() > 0) {
-                    credentials = new NTCredentials(pwDialog.getUser(), pwDialog.getPassword(),
-                        host, pwDialog.getDomain());
+                    credentials = new NTCredentials(
+                            pwDialog.getUser(),
+                            pwDialog.getPassword(),
+                            scope.getHost(),
+                            pwDialog.getDomain());
                 }
                 pwDialog.dispose();
-            } else
-            if (authscheme instanceof RFC2617Scheme) {
-                AuthenticationDialog pwDialog = new AuthenticationDialog(
-                    ownerFrame, "Authentication Required",
-                    "<html><center>Host <b>" + host + ":" + port + "</b>"
-                    + " requires authentication for the realm:<br><b>" + authscheme.getRealm() + "</b></center></html>", false);
+            } else if (scope.getScheme().equals("basic")
+                    || scope.getScheme().equals("digest")) {
+                //if (authscheme instanceof RFC2617Scheme) {
+                AuthenticationDialog pwDialog = new AuthenticationDialog(ownerFrame,
+                        "Authentication Required",
+                        "<html><center>Host <b>"
+                                + scope.getHost()
+                                + ":"
+                                + scope.getPort()
+                                + "</b>"
+                                + " requires authentication for the realm:<br><b>"
+                                + scope.getRealm() + "</b></center></html>",
+                        false);
                 pwDialog.setVisible(true);
                 if (pwDialog.getUser().length() > 0) {
                     credentials = new UsernamePasswordCredentials(pwDialog.getUser(), pwDialog.getPassword());
                 }
                 pwDialog.dispose();
             } else {
-                throw new CredentialsNotAvailableException("Unsupported authentication scheme: " +
-                    authscheme.getSchemeName());
+                throw new IllegalArgumentException("Unsupported authentication scheme: "
+                        + scope.getScheme());
+            }
+            if (credentials != null){
+                mCredentialProvider.setCredentials(scope, credentials);
             }
             return credentials;
-        } catch (IOException e) {
-            throw new CredentialsNotAvailableException(e.getMessage(), e);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e.getMessage(), e);
         }
     }
 

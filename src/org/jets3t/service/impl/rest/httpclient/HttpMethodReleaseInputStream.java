@@ -22,9 +22,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.HttpResponse;
 import org.jets3t.service.io.InputStreamWrapper;
 import org.jets3t.service.io.InterruptableInputStream;
 
@@ -48,7 +48,7 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
     private static final Log log = LogFactory.getLog(HttpMethodReleaseInputStream.class);
 
     private InputStream inputStream = null;
-    private HttpMethod httpMethod = null;
+    private HttpResponse httpResponse = null;
     private boolean alreadyReleased = false;
     private boolean underlyingStreamConsumed = false;
 
@@ -60,27 +60,31 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
      *
      * @param httpMethod
      */
-    public HttpMethodReleaseInputStream(HttpMethod httpMethod) {
-        this.httpMethod = httpMethod;
+    public HttpMethodReleaseInputStream(HttpResponse httpMethod) {
+        this.httpResponse = httpMethod;
         try {
-            this.inputStream = new InterruptableInputStream(httpMethod.getResponseBodyAsStream());
+            this.inputStream = new InterruptableInputStream(httpMethod.getEntity().getContent());
         } catch (IOException e) {
             if (log.isWarnEnabled()) {
                 log.warn("Unable to obtain HttpMethod's response data stream", e);
             }
-            httpMethod.releaseConnection();
+            try {
+                httpMethod.getEntity().consumeContent();
+            } catch (Exception ee){
+                // ignore
+            }
             this.inputStream = new ByteArrayInputStream(new byte[] {}); // Empty input stream;
         }
     }
 
     /**
-     * Returns the underlying HttpMethod object that contains/manages the actual HTTP connection.
+     * Returns the underlying HttpResponse object.
      *
      * @return
-     * the HTTPMethod object that provides the data input stream.
+     * the HttpResponse object that provides the data input stream.
      */
-    public HttpMethod getHttpMethod() {
-        return httpMethod;
+    public HttpResponse getHttpResponse() {
+        return httpResponse;
     }
 
     /**
@@ -94,9 +98,8 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
             if (!underlyingStreamConsumed) {
                 // Underlying input stream has not been consumed, abort method
                 // to force connection to be closed and cleaned-up.
-                httpMethod.abort();
+                httpResponse.getEntity().consumeContent();
             }
-            httpMethod.releaseConnection();
             alreadyReleased = true;
         }
     }
@@ -105,6 +108,7 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
      * Standard input stream read method, except it calls {@link #releaseConnection} when the underlying
      * input stream is consumed.
      */
+    @Override
     public int read() throws IOException {
         try {
             int read = inputStream.read();
@@ -131,6 +135,7 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
      * Standard input stream read method, except it calls {@link #releaseConnection} when the underlying
      * input stream is consumed.
      */
+    @Override
     public int read(byte[] b, int off, int len) throws IOException {
         try {
             int read = inputStream.read(b, off, len);
@@ -153,6 +158,7 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
         }
     }
 
+    @Override
     public int available() throws IOException {
         try {
             return inputStream.available();
@@ -169,6 +175,7 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
      * Standard input stream close method, except it ensures that {@link #releaseConnection()} is called
      * before the input stream is closed.
      */
+    @Override
     public void close() throws IOException {
         if (!alreadyReleased) {
             releaseConnection();
@@ -188,6 +195,7 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
      * messages if a forced cleanup is required, hopefully reminding the user to close their streams
      * properly.
      */
+    @Override
     protected void finalize() throws Throwable {
         if (!alreadyReleased) {
             if (log.isWarnEnabled()) {

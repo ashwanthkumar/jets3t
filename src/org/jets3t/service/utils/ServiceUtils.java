@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.SimpleTimeZone;
+import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
 import javax.crypto.Mac;
@@ -778,5 +779,83 @@ public class ServiceUtils {
         // If we haven't found and returned an XMLReader yet, give up.
         throw new ServiceException("Failed to initialize a SAX XMLReader");
     }
+    
+    /**
+     * Take the input we're given and wrap at the user-defined intervals
+     * 
+     * @param p_Input The string to be modified by the line wrap.
+     * @param p_Prefix a prefix to prebend to the output string
+     * @param p_Len The maximum number of characters per line
+     * @return The new string that contains the extra new-line escapes.
+     */
+    public static String wrapString(String p_Input, String p_Prefix, int p_Len) {
+      if (p_Input==null){
+        return "";
+      }
+      String in = p_Input.replace('\\', '/');
+      boolean replaced = !in.equals(p_Input);
+      String output = wrapString( p_Input, p_Prefix, p_Len, " /_");
+      return replaced ? output.replace('/', '\\') : output;
+    }
+    
+    /**
+     * Take the input we're given and wrap at the user-defined intervals
+     * 
+     * @param p_Input The string to be modified by the line wrap.
+     * @param p_Prefix a prefix to prebend to the output string
+     * @param p_Len The maximum number of characters per line
+     * @param p_Delims are the characters on which wrapping is allowed
+     * @return The new string that contains the extra new-line escapes.
+     */
+    public static String wrapString( 
+            String p_Input,
+            String p_Prefix, 
+            int p_Len, 
+            String p_Delims) {
+      if (p_Input==null){
+        return "";
+      }
+      String temp;
+      StringBuffer output = new StringBuffer();
+      StringBuffer workBuf = new StringBuffer();
+
+      StringTokenizer strTok = new StringTokenizer(p_Input, p_Delims, true);
+
+      while (strTok.hasMoreTokens()) {
+        temp = strTok.nextToken();
+
+        if ((workBuf.length() + temp.length()) >= p_Len) {
+          if (p_Prefix != null) {
+            output.append(p_Prefix);
+          }
+          output.append(workBuf.toString());
+          output.append("\n");
+          workBuf = new StringBuffer();
+
+          // Just to make things look a little nicer, we'll see if this
+          // element starts with a space and lop it off if so.
+          if (temp.startsWith(" ")) {
+
+            int tempLen = temp.length();
+
+            if (tempLen > 1) {
+              temp = temp.substring(1, temp.length() - 1);
+            } else {
+              temp = "";
+            }
+          }
+        }
+
+        workBuf.append(temp);
+      }
+
+      // Now catch the last little bit of our work buffer
+      if (p_Prefix != null) {
+        output.append(p_Prefix);
+      }
+      output.append(workBuf.toString());
+      return output.toString();
+    }
+    
 
 }

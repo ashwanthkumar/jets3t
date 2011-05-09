@@ -80,16 +80,15 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 
-import org.apache.commons.httpclient.Credentials;
-import org.apache.commons.httpclient.NTCredentials;
-import org.apache.commons.httpclient.UsernamePasswordCredentials;
-import org.apache.commons.httpclient.auth.AuthScheme;
-import org.apache.commons.httpclient.auth.CredentialsNotAvailableException;
-import org.apache.commons.httpclient.auth.CredentialsProvider;
-import org.apache.commons.httpclient.auth.NTLMScheme;
-import org.apache.commons.httpclient.auth.RFC2617Scheme;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.Credentials;
+import org.apache.http.auth.InvalidCredentialsException;
+import org.apache.http.auth.NTCredentials;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.jets3t.gui.AuthenticationDialog;
 import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.GuiUtils;
@@ -205,6 +204,8 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
     private GatekeeperClientUtils gkClient = null;
 
+    private final CredentialsProvider mCredentialProvider;
+    
     private String userBucketName = null;
     private String userVanityHost = null;
     private String userPath = "";
@@ -294,6 +295,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      * Constructor to run this application as an Applet.
      */
     public CockpitLite() {
+        mCredentialProvider = new BasicCredentialsProvider();
         isRunningAsApplet = true;
     }
 
@@ -304,6 +306,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      * @throws S3ServiceException
      */
     public CockpitLite(JFrame ownerFrame, Properties standAloneArgumentProperties) throws S3ServiceException {
+        mCredentialProvider = new BasicCredentialsProvider();
         this.ownerFrame = ownerFrame;
         this.standAloneArgumentProperties = standAloneArgumentProperties;
         isStandAloneApplication = true;
@@ -2326,6 +2329,14 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         }
     }
 
+    public void setCredentials(AuthScope authscope, Credentials credentials) {
+        mCredentialProvider.setCredentials(authscope, credentials);
+    }
+
+    public void clear() {
+        mCredentialProvider.clear();
+    }
+    
     /**
      * Implementation method for the CredentialsProvider interface.
      * <p>
@@ -2333,41 +2344,52 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      * <a href="http://svn.apache.org/viewvc/jakarta/commons/proper/httpclient/trunk/src/examples/InteractiveAuthenticationExample.java?view=markup">InteractiveAuthenticationExample</a>
      *
      */
-    public Credentials getCredentials(AuthScheme authscheme, String host, int port, boolean proxy) throws CredentialsNotAvailableException {
-        if (authscheme == null) {
+    public Credentials getCredentials(AuthScope scope) {
+        if (scope == null || scope.getScheme() == null) {
             return null;
         }
+        Credentials credentials = mCredentialProvider.getCredentials(scope);
+        if (credentials!=null){
+            return credentials;
+        }
         try {
-            Credentials credentials = null;
-
-            if (authscheme instanceof NTLMScheme) {
+            if (scope.getScheme().equals("ntlm")) {
                 AuthenticationDialog pwDialog = new AuthenticationDialog(
                     ownerFrame, "Authentication Required",
-                    "<html>Host <b>" + host + ":" + port + "</b> requires Windows authentication</html>", true);
+                    "<html>Host <b>" + scope.getHost() + ":" + scope.getPort() 
+                    + "</b> requires Windows authentication</html>", true);
                 pwDialog.setVisible(true);
                 if (pwDialog.getUser().length() > 0) {
-                    credentials = new NTCredentials(pwDialog.getUser(), pwDialog.getPassword(),
-                        host, pwDialog.getDomain());
+                    credentials = new NTCredentials(
+                            pwDialog.getUser(),
+                            pwDialog.getPassword(),
+                            scope.getHost(),
+                            pwDialog.getDomain());
                 }
                 pwDialog.dispose();
-            } else
-            if (authscheme instanceof RFC2617Scheme) {
+            } else if (scope.getScheme().equals("basic")
+                    || scope.getScheme().equals("digest")) {
+                //authscheme instanceof RFC2617Scheme
                 AuthenticationDialog pwDialog = new AuthenticationDialog(
                     ownerFrame, "Authentication Required",
-                    "<html><center>Host <b>" + host + ":" + port + "</b>"
-                    + " requires authentication for the realm:<br><b>" + authscheme.getRealm() + "</b></center></html>", false);
+                    "<html><center>Host <b>" + scope.getHost() + ":" + scope.getPort() + "</b>"
+                    + " requires authentication for the realm:<br><b>" + scope.getRealm() 
+                    + "</b></center></html>", false);
                 pwDialog.setVisible(true);
                 if (pwDialog.getUser().length() > 0) {
                     credentials = new UsernamePasswordCredentials(pwDialog.getUser(), pwDialog.getPassword());
                 }
                 pwDialog.dispose();
             } else {
-                throw new CredentialsNotAvailableException("Unsupported authentication scheme: " +
-                    authscheme.getSchemeName());
+                throw new InvalidCredentialsException(
+                        "Unsupported authentication scheme: " + scope.getScheme());
+            }
+            if (credentials != null){
+                mCredentialProvider.setCredentials(scope, credentials);
             }
             return credentials;
-        } catch (IOException e) {
-            throw new CredentialsNotAvailableException(e.getMessage(), e);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e.getMessage(), e);
         }
     }
 

@@ -32,30 +32,51 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.commons.httpclient.DefaultHttpMethodRetryHandler;
-import org.apache.commons.httpclient.Header;
-import org.apache.commons.httpclient.HostConfiguration;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.HttpVersion;
-import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
-import org.apache.commons.httpclient.NTCredentials;
-import org.apache.commons.httpclient.ProxyHost;
-import org.apache.commons.httpclient.UsernamePasswordCredentials;
-import org.apache.commons.httpclient.auth.AuthScope;
-import org.apache.commons.httpclient.auth.CredentialsProvider;
 import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
-import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.httpclient.params.HttpClientParams;
-import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
-import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.Header;
+import org.apache.http.HttpConnection;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpRequest;
+import org.apache.http.HttpRequestInterceptor;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpVersion;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.AuthState;
+import org.apache.http.auth.Credentials;
+import org.apache.http.auth.NTCredentials;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.params.ClientPNames;
+import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.conn.ClientConnectionManagerFactory;
+import org.apache.http.conn.params.ConnManagerPNames;
+import org.apache.http.conn.params.ConnRoutePNames;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.impl.auth.BasicScheme;
+import org.apache.http.impl.client.AbstractHttpClient;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
+import org.apache.http.impl.conn.tsccm.AbstractConnPool;
+import org.apache.http.impl.conn.tsccm.ConnPoolByRoute;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
+import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.params.HttpParams;
+import org.apache.http.params.HttpProtocolParams;
+import org.apache.http.params.SyncBasicHttpParams;
+import org.apache.http.protocol.ExecutionContext;
+import org.apache.http.protocol.HTTP;
+import org.apache.http.protocol.HttpContext;
+import org.apache.http.util.VersionInfo;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.impl.rest.httpclient.AWSRequestAuthorizer;
-import org.jets3t.service.impl.rest.httpclient.HttpClientAndConnectionManager;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.io.UnrecoverableIOException;
 
@@ -270,118 +291,99 @@ public class RestUtils {
      * This parameter may be null, in which case a default host configuration will be
      * used.
      */
-    public static HttpClientAndConnectionManager initHttpConnection(final AWSRequestAuthorizer awsRequestAuthorizer,
-        HostConfiguration hostConfig, Jets3tProperties jets3tProperties, String userAgentDescription,
-        CredentialsProvider credentialsProvider)
-    {
+    public static HttpClient initHttpConnection(
+            final AWSRequestAuthorizer awsRequestAuthorizer,
+            Jets3tProperties jets3tProperties,
+            String userAgentDescription,
+            CredentialsProvider credentialsProvider) {
         // Configure HttpClient properties based on Jets3t Properties.
-        HttpConnectionManagerParams connectionParams = new HttpConnectionManagerParams();
-        connectionParams.setConnectionTimeout(jets3tProperties.
-            getIntProperty("httpclient.connection-timeout-ms", 60000));
-        connectionParams.setSoTimeout(jets3tProperties.
-            getIntProperty("httpclient.socket-timeout-ms", 60000));
-        connectionParams.setStaleCheckingEnabled(jets3tProperties.
-            getBoolProperty("httpclient.stale-checking-enabled", true));
+        HttpParams params = createDefaultHttpParams();
+        params.setParameter(
+                Jets3tProperties.JETS3T_PROPERTIES_PROPERTY, 
+                jets3tProperties);
+        
+        params.setParameter(
+                ClientPNames.CONNECTION_MANAGER_FACTORY_CLASS_NAME,
+                jets3tProperties.getStringProperty(
+                        ClientPNames.CONNECTION_MANAGER_FACTORY_CLASS_NAME,
+                        ConnManagerFactory.class.getName()));
 
-        // Set the maximum connections per host for the HTTP connection manager,
-        // *and* also set the maximum number of total connections (new in 0.7.1).
-        // The max connections per host setting is made the same value as the max
-        // global connections if there is no per-host property.
-        int maxConnections =
-            jets3tProperties.getIntProperty("httpclient.max-connections", 20);
-        int maxConnectionsPerHost =
-            jets3tProperties.getIntProperty("httpclient.max-connections-per-host", 0);
-        if (maxConnectionsPerHost == 0) {
-            maxConnectionsPerHost = maxConnections;
-        }
-
-        connectionParams.setMaxConnectionsPerHost(
-            HostConfiguration.ANY_HOST_CONFIGURATION, maxConnectionsPerHost);
-        connectionParams.setMaxTotalConnections(maxConnections);
+        HttpConnectionParams.setConnectionTimeout(
+                params,
+                jets3tProperties.getIntProperty("httpclient.connection-timeout-ms",
+                        60000));
+        HttpConnectionParams.setSoTimeout(
+                params,
+                jets3tProperties.getIntProperty("httpclient.socket-timeout-ms",
+                        60000));
+        HttpConnectionParams.setStaleCheckingEnabled(
+                params,
+                jets3tProperties.getBoolProperty("httpclient.stale-checking-enabled",
+                        true));
 
         // Connection properties to take advantage of S3 window scaling.
         if (jets3tProperties.containsKey("httpclient.socket-receive-buffer")) {
-            connectionParams.setReceiveBufferSize(jets3tProperties.
-                getIntProperty("httpclient.socket-receive-buffer", 0));
+            HttpConnectionParams.setSocketBufferSize(
+                    params,
+                    jets3tProperties.getIntProperty("httpclient.socket-receive-buffer",
+                            0));
         }
+        /*
+         * http-components-4.x: seems the send and receive buffer size be equal
+         * 
         if (jets3tProperties.containsKey("httpclient.socket-send-buffer")) {
-            connectionParams.setSendBufferSize(jets3tProperties.
-                getIntProperty("httpclient.socket-send-buffer", 0));
+            params.setSendBufferSize(
+                    jets3tProperties.getIntProperty(
+                            "httpclient.socket-send-buffer", 0));
         }
+        */
 
-        connectionParams.setTcpNoDelay(true);
-
-        MultiThreadedHttpConnectionManager connectionManager = new MultiThreadedHttpConnectionManager();
-        connectionManager.setParams(connectionParams);
+        HttpConnectionParams.setTcpNoDelay(params, true);
 
         // Set user agent string.
-        HttpClientParams clientParams = new HttpClientParams();
-        String userAgent = jets3tProperties.getStringProperty("httpclient.useragent", null);
+        String userAgent = jets3tProperties.getStringProperty("httpclient.useragent",
+                null);
         if (userAgent == null) {
             userAgent = ServiceUtils.getUserAgentDescription(userAgentDescription);
         }
         if (log.isDebugEnabled()) {
             log.debug("Setting user agent string: " + userAgent);
         }
-        clientParams.setParameter(HttpMethodParams.USER_AGENT, userAgent);
+        HttpProtocolParams.setUserAgent(params, userAgent);
 
-        clientParams.setParameter(HttpMethodParams.PROTOCOL_VERSION, HttpVersion.HTTP_1_1);
-        clientParams.setBooleanParameter(HttpMethodParams.USE_EXPECT_CONTINUE, true);
+        // version is already set by default
+        // clientParams.setParameter("http.protocol.version", HttpVersion.HTTP_1_1);
+        boolean expectContinue = jets3tProperties.getBoolProperty(
+                "http.protocol.expect-continue", 
+                true);
+        params.setBooleanParameter("http.protocol.expect-continue", expectContinue);
 
-        // Replace default error retry handler.
-        final int retryMaxCount = jets3tProperties.getIntProperty("httpclient.retry-max", 5);
+        params.setParameter(
+                ConnManagerPNames.TIMEOUT,
+                jets3tProperties.getLongProperty(
+                        "httpclient.connection-manager-timeout",
+                        0));
 
-        clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new DefaultHttpMethodRetryHandler(retryMaxCount, false) {
-            @Override
-            public boolean retryMethod(HttpMethod httpMethod, IOException ioe, int executionCount) {
-                if (super.retryMethod(httpMethod, ioe, executionCount)) {
-                    if  (ioe instanceof UnrecoverableIOException) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("Deliberate interruption, will not retry");
-                        }
-                        return false;
-                    }
-
-                    // Release underlying connection so we will get a new one (hopefully) when we retry.
-                    httpMethod.releaseConnection();
-
-                    if (log.isDebugEnabled()) {
-                        log.debug("Retrying " + httpMethod.getName() + " request with path '"
-                            + httpMethod.getPath() + "' - attempt " + executionCount
-                            + " of " + retryMaxCount);
-                    }
-                    // Build the authorization string for the method.
-                    try {
-                        awsRequestAuthorizer.authorizeHttpRequest(httpMethod);
-                    } catch (Exception e) {
-                        if (log.isWarnEnabled()) {
-                            log.warn("Unable to generate updated authorization string for retried request", e);
-                        }
-                    }
-                    return true;
-                }
-                return false;
-            }
-        });
-
-        long connectionManagerTimeout = jets3tProperties.getLongProperty(
-            "httpclient.connection-manager-timeout", 0);
-        clientParams.setConnectionManagerTimeout(connectionManagerTimeout);
-
-        HttpClient httpClient = new HttpClient(clientParams, connectionManager);
-        httpClient.setHostConfiguration(hostConfig);
+        DefaultHttpClient httpClient = new DefaultHttpClient(params);
+        httpClient.setHttpRequestRetryHandler(new AWSRetryHandler(
+                jets3tProperties.getIntProperty("httpclient.retry-max", 5),
+                awsRequestAuthorizer));
 
         if (credentialsProvider != null) {
             if (log.isDebugEnabled()) {
-                log.debug("Using credentials provider class: " + credentialsProvider.getClass().getName());
+                log.debug("Using credentials provider class: "
+                        + credentialsProvider.getClass().getName());
             }
-            httpClient.getParams().setParameter(CredentialsProvider.PROVIDER, credentialsProvider);
-            if (jets3tProperties.getBoolProperty("httpclient.authentication-preemptive", false)) {
-                httpClient.getParams().setAuthenticationPreemptive(true);
+            httpClient.setCredentialsProvider(credentialsProvider);
+            if (jets3tProperties.getBoolProperty(
+                    "httpclient.authentication-preemptive",
+                    false)) {
+                // Add as the very first interceptor in the protocol chain
+                httpClient.addRequestInterceptor(new PreemptiveInterceptor(), 0);
             }
         }
 
-        return new HttpClientAndConnectionManager(httpClient, connectionManager);
+        return httpClient;
     }
 
     /**
@@ -462,44 +464,72 @@ public class RestUtils {
      * @param proxyDomain
      * @param endpoint
      */
-    public static void initHttpProxy(HttpClient httpClient,
-        Jets3tProperties jets3tProperties, boolean proxyAutodetect,
-        String proxyHostAddress, int proxyPort, String proxyUser,
-        String proxyPassword, String proxyDomain, String endpoint)
-    {
-        HostConfiguration hostConfig = httpClient.getHostConfiguration();
+    public static void initHttpProxy(
+            HttpClient httpClient,
+            Jets3tProperties jets3tProperties,
+            boolean proxyAutodetect,
+            String proxyHostAddress,
+            int proxyPort,
+            String proxyUser,
+            String proxyPassword,
+            String proxyDomain,
+            String endpoint) {
 
         // Use explicit proxy settings, if available.
         if (proxyHostAddress != null && proxyPort != -1) {
             if (log.isInfoEnabled()) {
                 log.info("Using Proxy: " + proxyHostAddress + ":" + proxyPort);
             }
-            hostConfig.setProxy(proxyHostAddress, proxyPort);
 
-            if (proxyUser != null && !proxyUser.trim().equals("")) {
+            HttpHost proxy = new HttpHost(proxyHostAddress, proxyPort);
+            httpClient.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY,
+                    proxy);
+            /*
+             * Alternate method based on JRE standard
+             * 
+            ProxySelectorRoutePlanner routePlanner = new ProxySelectorRoutePlanner(
+                    httpClient.getConnectionManager().getSchemeRegistry(),
+                    ProxySelector.getDefault());
+            ((DefaultHttpClient)httpClient).setRoutePlanner(routePlanner);
+            */
+
+            if (proxyUser != null && !proxyUser.trim().equals("")
+                    && httpClient instanceof AbstractHttpClient) {
                 if (proxyDomain != null) {
-                    httpClient.getState().setProxyCredentials(
-                        new AuthScope(proxyHostAddress, proxyPort),
-                            new NTCredentials(proxyUser, proxyPassword, proxyHostAddress, proxyDomain));
-                }
-                else {
-                    httpClient.getState().setProxyCredentials(
-                        new AuthScope(proxyHostAddress, proxyPort),
-                            new UsernamePasswordCredentials(proxyUser, proxyPassword));
+                    ((AbstractHttpClient) httpClient).getCredentialsProvider()
+                            .setCredentials(new AuthScope(
+                                    proxyHostAddress,
+                                    proxyPort),
+                                    new NTCredentials(
+                                            proxyUser,
+                                            proxyPassword,
+                                            proxyHostAddress,
+                                            proxyDomain));
+                } else {
+                    ((AbstractHttpClient) httpClient).getCredentialsProvider()
+                            .setCredentials(new AuthScope(
+                                    proxyHostAddress,
+                                    proxyPort),
+                                    new UsernamePasswordCredentials(proxyUser,
+                                            proxyPassword));
                 }
             }
         }
         // If no explicit settings are available, try autodetecting proxies (unless autodetect is disabled)
         else if (proxyAutodetect) {
             // Try to detect any proxy settings from applet.
-            ProxyHost proxyHost = null;
+            HttpHost proxyHost = null;
             try {
-                proxyHost = PluginProxyUtil.detectProxy(new URL("http://" + endpoint));
+                proxyHost = PluginProxyUtil.detectProxy(
+                        new URL("http://" + endpoint));
                 if (proxyHost != null) {
                     if (log.isInfoEnabled()) {
-                        log.info("Using Proxy: " + proxyHost.getHostName() + ":" + proxyHost.getPort());
+                        log.info("Using Proxy: " + proxyHost.getHostName()
+                                + ":" + proxyHost.getPort());
                     }
-                    hostConfig.setProxyHost(proxyHost);
+                    httpClient.getParams()
+                            .setParameter(ConnRoutePNames.DEFAULT_PROXY,
+                                    proxyHost);
                 }
             } catch (Throwable t) {
                 if (log.isDebugEnabled()) {
@@ -508,7 +538,7 @@ public class RestUtils {
             }
         }
     }
-
+    
     /**
      * Calculates a time offset value to reflect the time difference between your
      * computer's clock and the current time according to an AWS server, and
@@ -525,11 +555,11 @@ public class RestUtils {
         long timeOffset = 0;
 
         // Connect to an AWS server to obtain response headers.
-        GetMethod getMethod = new GetMethod("http://aws.amazon.com/");
-        int result = client.executeMethod(getMethod);
+        HttpGet getMethod = new HttpGet("http://aws.amazon.com/");
+        HttpResponse result = client.execute(getMethod);
 
-        if (result == 200) {
-            Header dateHeader = getMethod.getResponseHeader("Date");
+        if (result.getStatusLine().getStatusCode() == 200) {
+            Header dateHeader = result.getHeaders("Date")[0];
             // Retrieve the time according to AWS, based on the Date header
             Date awsTime = ServiceUtils.parseRfc822Date(dateHeader.getValue());
 
@@ -559,5 +589,177 @@ public class RestUtils {
         }
         return s3Headers;
     }
+    
+    /**
+     * Default Http parameters got from the DefaultHttpClient implementation.
+     * 
+     * @return
+     */
+    public static HttpParams createDefaultHttpParams() {
+        HttpParams params = new SyncBasicHttpParams();
+        HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
+        HttpProtocolParams.setContentCharset(params,
+                HTTP.DEFAULT_CONTENT_CHARSET);
+        HttpConnectionParams.setTcpNoDelay(params, true);
+        HttpConnectionParams.setSocketBufferSize(params, 8192);
+
+        // determine the release version from packaged version info
+        final VersionInfo vi = VersionInfo.loadVersionInfo("org.apache.http.client",
+                HttpClient.class.getClassLoader());
+        final String release = (vi != null)
+                ? vi.getRelease()
+                : VersionInfo.UNAVAILABLE;
+        HttpProtocolParams.setUserAgent(params, "Apache-HttpClient/" + release
+                + " (java 1.5)");
+
+        return params;
+    }
+
+    /**
+     * A ClientConnectionManagerFactory that creates ThreadSafeClientConnManager
+     */
+    public static class ConnManagerFactory implements
+            ClientConnectionManagerFactory {
+        /*
+         * @see ClientConnectionManagerFactory#newInstance(HttpParams, SchemeRegistry)
+         */
+        public ClientConnectionManager newInstance(HttpParams params,
+                SchemeRegistry schemeRegistry) {
+            return new ThreadSafeConnManager(params, schemeRegistry);
+        }
+
+    } //ConnManagerFactory
+
+    /**
+     * ThreadSafeConnManager is a ThreadSafeClientConnManager configured via
+     * jets3tProperties.
+     * 
+     * @see JETS3TPROPERTIES_PROPERTY
+     */
+    public static class ThreadSafeConnManager extends
+            ThreadSafeClientConnManager {
+        public ThreadSafeConnManager(final HttpParams params,
+                final SchemeRegistry schreg) {
+            super(params, schreg);
+        }
+
+        @Override
+        protected AbstractConnPool createConnectionPool(final HttpParams params) {
+            // Set the maximum connections per host for the HTTP connection manager,
+            // *and* also set the maximum number of total connections (new in 0.7.1).
+            // The max connections per host setting is made the same value as the max
+            // global connections if there is no per-host property.
+            Jets3tProperties props = (Jets3tProperties) params.getParameter(
+                    Jets3tProperties.JETS3T_PROPERTIES_PROPERTY);
+            int maxConn = 20;
+            int maxConnectionsPerHost = 0;
+            if (props != null) {
+                maxConn = props.getIntProperty("httpclient.max-connections", 20);
+                maxConnectionsPerHost = props.getIntProperty(
+                        "httpclient.max-connections-per-host",
+                        0);
+            }
+            if (maxConnectionsPerHost == 0) {
+                maxConnectionsPerHost = maxConn;
+            }
+            connPerRoute.setDefaultMaxPerRoute(maxConnectionsPerHost);
+            return new ConnPoolByRoute(connOperator, connPerRoute, maxConn);
+        }
+    } //ThreadSafeConnManager
+
+    /**
+     * AWSRetryHandler
+     */
+    public static class AWSRetryHandler extends DefaultHttpRequestRetryHandler {
+        private final AWSRequestAuthorizer mAwsRequestAuthorizer;
+
+        public AWSRetryHandler(int pRetryMaxCount,
+                AWSRequestAuthorizer pAwsRequestAuthorizer) {
+            super(pRetryMaxCount, false);
+            mAwsRequestAuthorizer = pAwsRequestAuthorizer;
+        }
+
+        public boolean retryRequest(IOException exception,
+                int executionCount,
+                HttpContext context) {
+            if (super.retryRequest(exception, executionCount, context)){
+
+                if (exception instanceof UnrecoverableIOException) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Deliberate interruption, will not retry");
+                    }
+                    return false;
+                }
+                HttpRequest request = (HttpRequest) context.getAttribute(
+                        ExecutionContext.HTTP_REQUEST);
+
+                if (!(request instanceof HttpRequestBase)) {
+                    return false;
+                }
+                HttpRequestBase method = (HttpRequestBase) request;
+
+                // Release underlying connection so we will get a new one (hopefully) when we retry.
+                HttpConnection conn = (HttpConnection) context.getAttribute(
+                        ExecutionContext.HTTP_CONNECTION);
+                try {
+                    conn.close();
+                } catch (Exception e) {
+                    //ignore
+                }
+
+                if (log.isDebugEnabled()) {
+                    log.debug("Retrying " + method.getMethod()
+                            + " request with path '" + method.getURI()
+                            + "' - attempt " + executionCount + " of "
+                            + getRetryCount());
+                }
+
+                // Build the authorization string for the method.
+                try {
+                    if (mAwsRequestAuthorizer != null){
+                        mAwsRequestAuthorizer.authorizeHttpRequest(method, context);
+                    }
+                } catch (Exception e) {
+                    if (log.isWarnEnabled()) {
+                        log.warn("Unable to generate updated authorization string for retried request",
+                                e);
+                    }
+                }
+                
+            }
+
+            return false;
+        }
+    } //AWSRetryHandler
+
+    /**
+     * PreemptiveInterceptor
+     */
+    // A preemptive interceptor (copied from doc).
+    private static class PreemptiveInterceptor implements
+            HttpRequestInterceptor {
+
+        public void process(final HttpRequest request, final HttpContext context) {
+            AuthState authState = (AuthState) context.getAttribute(
+                    ClientContext.TARGET_AUTH_STATE);
+            CredentialsProvider credsProvider = (CredentialsProvider) context.getAttribute(
+                    ClientContext.CREDS_PROVIDER);
+            HttpHost targetHost = (HttpHost) context.getAttribute(
+                    ExecutionContext.HTTP_TARGET_HOST);
+            // If not auth scheme has been initialized yet
+            if (authState.getAuthScheme() == null) {
+                AuthScope authScope = new AuthScope(targetHost.getHostName(),
+                        targetHost.getPort());
+                // Obtain credentials matching the target host
+                Credentials creds = credsProvider.getCredentials(authScope);
+                // If found, generate BasicScheme preemptively
+                if (creds != null) {
+                    authState.setAuthScheme(new BasicScheme());
+                    authState.setCredentials(creds);
+                }
+            }
+        }
+    } //PreemptiveInterceptor
+    
 
 }

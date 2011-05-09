@@ -40,6 +40,7 @@ import org.jets3t.gui.skins.SkinsFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.utils.ServiceUtils;
 
 /**
  * An Error dialog that displays information about an error that has occurred.
@@ -51,7 +52,7 @@ public class ErrorDialog extends JDialog implements ActionListener {
 
     private static final Log log = LogFactory.getLog(ErrorDialog.class);
 
-    private Jets3tProperties jets3tProperties =
+    private final Jets3tProperties jets3tProperties =
         Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME);
 
     private Properties applicationProperties = null;
@@ -146,8 +147,12 @@ public class ErrorDialog extends JDialog implements ActionListener {
             if (s3se.getS3ErrorCode() != null) {
                 detailsText.append("<tr><td><b>S3 Error Code</b></td><td>").append(s3se.getS3ErrorCode()).append("</td></tr>");
             } else {
+                String msg = throwable.getMessage();
+                if (msg.length()>80){
+                    ServiceUtils.wrapString(msg, "<br/>", 80);
+                }              
                 detailsText.append("<tr><td><b>Exception message</b></td></tr><tr><td>")
-                    .append(throwable.getMessage()).append("</td></tr>");
+                    .append(msg).append("</td></tr>");
             }
 
             if (s3se.getS3ErrorMessage() != null) {
@@ -155,6 +160,10 @@ public class ErrorDialog extends JDialog implements ActionListener {
                     .append(s3se.getS3ErrorMessage()).append("</td></tr>");
             }
 
+            detailsText.append("<tr><td><b>HTTP Status Code</b></td><td>")
+                .append(s3se.getResponseCode())
+                .append("</td></tr>");
+            
             if (s3se.getS3ErrorRequestId() != null) {
                 detailsText.append("<tr><td><b>S3 Request Id</b></td><td>")
                     .append(s3se.getS3ErrorRequestId()).append("</td></tr>");

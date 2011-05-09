@@ -35,8 +35,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.util.EntityUtils;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
@@ -53,13 +56,13 @@ import org.jets3t.service.model.MultipartCompleted;
 import org.jets3t.service.model.MultipartPart;
 import org.jets3t.service.model.MultipartUpload;
 import org.jets3t.service.model.NotificationConfig;
+import org.jets3t.service.model.NotificationConfig.TopicConfig;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.WebsiteConfig;
-import org.jets3t.service.model.NotificationConfig.TopicConfig;
 import org.jets3t.service.multi.s3.MultipartUploadAndParts;
 import org.jets3t.service.multi.s3.S3ServiceEventAdaptor;
 import org.jets3t.service.multi.s3.ThreadedS3Service;
@@ -611,8 +614,8 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             + ".amazonaws.com";
 
         try {
-            HttpClient httpClient = new HttpClient();
-            GetMethod getMethod = null;
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpGet getMethod = null;
 
             // Check no existing website config
             try {
@@ -638,17 +641,17 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             s3Service.putObject(bucketName, indexObject);
 
             // Confirm index document is served at explicit path
-            getMethod = new GetMethod(s3WebsiteURL + "/index.html");
-            httpClient.executeMethod(getMethod);
-            assertEquals(200, getMethod.getStatusCode());
-            assertEquals("index.html contents", getMethod.getResponseBodyAsString());
+            getMethod = new HttpGet(s3WebsiteURL + "/index.html");
+            HttpResponse response = httpClient.execute(getMethod);
+            assertEquals(200, response.getStatusLine().getStatusCode());
+            assertEquals("index.html contents", EntityUtils.toString(response.getEntity()));
 
             // Confirm index document is served at root path
             // (i.e. website config is effective)
-            getMethod = new GetMethod(s3WebsiteURL + "/");
-            httpClient.executeMethod(getMethod);
-            assertEquals(200, getMethod.getStatusCode());
-            assertEquals("index.html contents", getMethod.getResponseBodyAsString());
+            getMethod = new HttpGet(s3WebsiteURL + "/");
+            response = httpClient.execute(getMethod);
+            assertEquals(200, response.getStatusLine().getStatusCode());
+            assertEquals("index.html contents", EntityUtils.toString(response.getEntity()));
 
             // Set index document and error document
             s3Service.setWebsiteConfig(bucketName,
@@ -668,25 +671,25 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             s3Service.putObject(bucketName, errorObject);
 
             // Confirm error document served at explicit path
-            getMethod = new GetMethod(s3WebsiteURL + "/error.html");
-            httpClient.executeMethod(getMethod);
-            assertEquals(200, getMethod.getStatusCode());
-            assertEquals("error.html contents", getMethod.getResponseBodyAsString());
+            getMethod = new HttpGet(s3WebsiteURL + "/error.html");
+            response = httpClient.execute(getMethod);
+            assertEquals(200, response.getStatusLine().getStatusCode());
+            assertEquals("error.html contents", EntityUtils.toString(response.getEntity()));
 
             // Confirm error document served instead of 404 Not Found
-            getMethod = new GetMethod(s3WebsiteURL + "/does-not-exist");
-            httpClient.executeMethod(getMethod);
-            assertEquals(403, getMethod.getStatusCode()); // TODO: Why a 403?
-            assertEquals("error.html contents", getMethod.getResponseBodyAsString());
+            getMethod = new HttpGet(s3WebsiteURL + "/does-not-exist");
+            response = httpClient.execute(getMethod);
+            assertEquals(403, response.getStatusLine().getStatusCode()); // TODO: Why a 403?
+            assertEquals("error.html contents", EntityUtils.toString(response.getEntity()));
 
             // Upload private document
             S3Object privateObject = new S3Object("private.html", "private.html contents");
             s3Service.putObject(bucketName, privateObject);
 
             // Confirm error document served instead for 403 Forbidden
-            getMethod = new GetMethod(s3WebsiteURL + "/private.html");
-            httpClient.executeMethod(getMethod);
-            assertEquals(403, getMethod.getStatusCode());
+            getMethod = new HttpGet(s3WebsiteURL + "/private.html");
+            response = httpClient.execute(getMethod);
+            assertEquals(403, response.getStatusLine().getStatusCode());
 
             // Delete website config
             s3Service.deleteWebsiteConfig(bucketName);

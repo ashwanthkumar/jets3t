@@ -21,27 +21,33 @@ package org.jets3t.service.utils.signedurl;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.commons.httpclient.Header;
-import org.apache.commons.httpclient.HostConfiguration;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpException;
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.HttpMethodRetryHandler;
-import org.apache.commons.httpclient.ProxyHost;
-import org.apache.commons.httpclient.auth.CredentialsProvider;
+import org.apache.http.Header;
+import org.apache.http.HttpException;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.params.ConnRoutePNames;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.params.HttpParams;
+import org.apache.http.params.HttpProtocolParams;
 import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.httpclient.params.HttpClientParams;
-import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
-import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.model.S3Object;
+import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
 import org.jets3t.service.utils.gatekeeper.SignatureRequest;
@@ -64,9 +70,10 @@ public class GatekeeperClientUtils {
     private Exception priorFailureException = null;
 
     private String gatekeeperUrl = null;
-    private String userAgentDescription;
-    private int maxRetryCount;
-    private int connectionTimeout;
+    
+    private final String userAgentDescription;
+    private final int maxRetryCount;
+    private final int connectionTimeout;
     private CredentialsProvider credentialsProvider = null;
 
     /**
@@ -92,40 +99,26 @@ public class GatekeeperClientUtils {
      */
     private HttpClient initHttpConnection() {
         // Set client parameters.
-        HttpClientParams clientParams = new HttpClientParams();
-
-        clientParams.setParameter(HttpMethodParams.USER_AGENT,
-            ServiceUtils.getUserAgentDescription(userAgentDescription));
-
-        // Replace default error retry handler.
-        clientParams.setParameter(HttpClientParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
-            public boolean retryMethod(HttpMethod httpMethod, IOException ioe, int executionCount) {
-                if (executionCount > maxRetryCount) {
-                    if (log.isErrorEnabled()) {
-                        log.error("Retried connection " + executionCount
-                            + " times, which exceeds the maximum retry count of " + maxRetryCount);
-                    }
-                    return false;
-                }
-                if (log.isWarnEnabled()) {
-                    log.warn("Retrying request - attempt " + executionCount + " of " + maxRetryCount);
-                }
-                return true;
-            }
-        });
-
+        HttpParams params = RestUtils.createDefaultHttpParams();
+        HttpProtocolParams.setUserAgent(
+              params, 
+              ServiceUtils.getUserAgentDescription(userAgentDescription));
 
         // Set connection parameters.
-        HttpConnectionManagerParams connectionParams = new HttpConnectionManagerParams();
-        connectionParams.setConnectionTimeout(connectionTimeout);
-        connectionParams.setSoTimeout(connectionTimeout);
-        connectionParams.setStaleCheckingEnabled(false);
+        HttpConnectionParams.setConnectionTimeout(
+              params,
+              connectionTimeout);
+        HttpConnectionParams.setSoTimeout(params, connectionTimeout);
+        HttpConnectionParams.setStaleCheckingEnabled(params, false);
 
-        HttpClient httpClient = new HttpClient(clientParams);
-        httpClient.getHttpConnectionManager().setParams(connectionParams);
-
+        DefaultHttpClient httpClient = new DefaultHttpClient(params);
+        // Replace default error retry handler.
+        httpClient.setHttpRequestRetryHandler(new RestUtils.AWSRetryHandler(
+              maxRetryCount, 
+              null));
+              
         // httpClient.getParams().setAuthenticationPreemptive(true);
-        httpClient.getParams().setParameter(CredentialsProvider.PROVIDER, credentialsProvider);
+        httpClient.setCredentialsProvider(credentialsProvider);
 
         return httpClient;
     }
@@ -175,15 +168,18 @@ public class GatekeeperClientUtils {
          */
 
         // Add all properties/parameters to credentials POST request.
-        PostMethod postMethod = new PostMethod(gatekeeperUrl);
+        HttpPost postMethod = new HttpPost(gatekeeperUrl);
         Properties properties = gatekeeperMessage.encodeToProperties();
-        Iterator propsIter = properties.entrySet().iterator();
+        Iterator<Map.Entry<Object, Object>> propsIter = properties.entrySet().iterator();
+        List<NameValuePair> parameters = new ArrayList<NameValuePair>(properties.size());
         while (propsIter.hasNext()) {
-            Map.Entry entry = (Map.Entry) propsIter.next();
+            Map.Entry<Object, Object> entry = propsIter.next();
             String fieldName = (String) entry.getKey();
             String fieldValue = (String) entry.getValue();
-            postMethod.setParameter(fieldName, fieldValue);
+            parameters.add(new BasicNameValuePair(fieldName, fieldValue));
         }
+        postMethod.setEntity(new UrlEncodedFormEntity(parameters));
+
 
         // Create Http Client if necessary, and include User Agent information.
         if (httpClientGatekeeper == null) {
@@ -192,11 +188,11 @@ public class GatekeeperClientUtils {
 
         // Try to detect any necessary proxy configurations.
         try {
-            ProxyHost proxyHost = PluginProxyUtil.detectProxy(new URL(gatekeeperUrl));
+            HttpHost proxyHost = PluginProxyUtil.detectProxy(new URL(gatekeeperUrl));
             if (proxyHost != null) {
-                HostConfiguration hostConfig = new HostConfiguration();
-                hostConfig.setProxyHost(proxyHost);
-                httpClientGatekeeper.setHostConfiguration(hostConfig);
+                httpClientGatekeeper.getParams().setParameter(
+                      ConnRoutePNames.DEFAULT_PROXY,
+                      proxyHost);
             }
         } catch (Throwable t) {
             if (log.isDebugEnabled()) {
@@ -208,20 +204,22 @@ public class GatekeeperClientUtils {
         if (log.isDebugEnabled()) {
             log.debug("Contacting Gatekeeper at: " + gatekeeperUrl);
         }
+        HttpResponse response = null;
         try {
-            int responseCode = httpClientGatekeeper.executeMethod(postMethod);
-            String contentType = postMethod.getResponseHeader("Content-Type").getValue();
+            response = httpClientGatekeeper.execute(postMethod);
+            int responseCode = response.getStatusLine().getStatusCode(); 
+            String contentType = response.getFirstHeader("Content-Type").getValue();
             if (responseCode == 200) {
                 InputStream responseInputStream = null;
 
-                Header encodingHeader = postMethod.getResponseHeader("Content-Encoding");
+                Header encodingHeader = response.getFirstHeader("Content-Encoding");
                 if (encodingHeader != null && "gzip".equalsIgnoreCase(encodingHeader.getValue())) {
                     if (log.isDebugEnabled()) {
                         log.debug("Inflating gzip-encoded response");
                     }
-                    responseInputStream = new GZIPInputStream(postMethod.getResponseBodyAsStream());
+                    responseInputStream = new GZIPInputStream(response.getEntity().getContent());
                 } else {
-                    responseInputStream = postMethod.getResponseBodyAsStream();
+                    responseInputStream = response.getEntity().getContent();
                 }
 
                 if (responseInputStream == null) {
@@ -260,7 +258,11 @@ public class GatekeeperClientUtils {
         } catch (Exception e) {
             throw new Exception("Gatekeeper did not respond", e);
         } finally {
-            postMethod.releaseConnection();
+            try {
+                response.getEntity().consumeContent();
+            } catch (Exception ee){
+            // ignore
+            }
         }
     }
 

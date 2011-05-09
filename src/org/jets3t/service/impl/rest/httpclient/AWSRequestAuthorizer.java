@@ -18,9 +18,12 @@
  */
 package org.jets3t.service.impl.rest.httpclient;
 
-import org.apache.commons.httpclient.HttpMethod;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.protocol.HttpContext;
 
 public interface AWSRequestAuthorizer {
 
-    public void authorizeHttpRequest(HttpMethod httpMethod) throws Exception;
+    public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context) 
+    throws Exception;
+    
 }

@@ -28,7 +28,6 @@
  */
 package org.apache.commons.httpclient.contrib.proxy;
 
-import org.apache.commons.httpclient.util.ExceptionUtil;
 
 /**
  * Signals a problem with auto-detecting the proxy information using the java
@@ -68,8 +67,7 @@ public class ProxyDetectionException extends Exception {
      *              a <tt>Throwable</tt>
      */
     public ProxyDetectionException(String message, Throwable cause) {
-        super(message);
-        ExceptionUtil.initCause(this, cause);
+        super(message, cause);
     }
 
 }

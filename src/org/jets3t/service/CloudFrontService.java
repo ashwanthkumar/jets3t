@@ -27,15 +27,17 @@ import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 
-import org.apache.commons.httpclient.HostConfiguration;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.auth.CredentialsProvider;
-import org.apache.commons.httpclient.methods.DeleteMethod;
-import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.httpclient.methods.PutMethod;
-import org.apache.commons.httpclient.methods.StringRequestEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.protocol.HttpContext;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser;
@@ -49,7 +51,6 @@ import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccess
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccessIdentityHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccessIdentityListHandler;
 import org.jets3t.service.impl.rest.httpclient.AWSRequestAuthorizer;
-import org.jets3t.service.impl.rest.httpclient.HttpClientAndConnectionManager;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.cloudfront.CustomOrigin;
 import org.jets3t.service.model.cloudfront.Distribution;
@@ -134,8 +135,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * @throws CloudFrontServiceException
      */
     public CloudFrontService(ProviderCredentials credentials, String invokingApplicationDescription,
-        CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties,
-        HostConfiguration hostConfig) throws CloudFrontServiceException
+        CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties) 
+    throws CloudFrontServiceException
     {
         this.credentials = credentials;
         this.invokingApplicationDescription = invokingApplicationDescription;
@@ -152,14 +153,11 @@ public class CloudFrontService implements AWSRequestAuthorizer {
 
         this.internalErrorRetryMax = jets3tProperties.getIntProperty("cloudfront-service.internal-error-retry-max", 5);
 
-        if (hostConfig == null) {
-            hostConfig = new HostConfiguration();
-        }
-
-        HttpClientAndConnectionManager initHttpResult = RestUtils.initHttpConnection(
-            this, hostConfig, jets3tProperties,
-            this.invokingApplicationDescription, this.credentialsProvider);
-        this.httpClient = initHttpResult.getHttpClient();
+        this.httpClient = RestUtils.initHttpConnection(
+                this,
+                jets3tProperties,
+                this.invokingApplicationDescription,
+                this.credentialsProvider);
 
         // Retrieve Proxy settings.
         if (this.jets3tProperties.getBoolProperty("httpclient.proxy-autodetect", true)) {
@@ -191,7 +189,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      */
     public CloudFrontService(ProviderCredentials credentials) throws CloudFrontServiceException
     {
-        this(credentials, null, null, null, null);
+        this(credentials, null, null, null);
     }
 
     /**
@@ -222,12 +220,13 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * the request object
      * @throws Exception
      */
-    public void authorizeHttpRequest(HttpMethod httpMethod) throws Exception {
+    public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context) 
+    throws Exception {
         String date = ServiceUtils.formatRfc822Date(getCurrentTimeWithOffset());
 
         // Set/update the date timestamp to the current time
         // Note that this will be over-ridden if an "x-amz-date" header is present.
-        httpMethod.setRequestHeader("Date", date);
+        httpMethod.setHeader("Date", date);
 
         // Sign the date to authenticate the request.
         // Sign the canonical string.
@@ -236,7 +235,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
 
         // Add encoded authorization to connection as HTTP Authorization header.
         String authorizationString = "AWS " + getAWSCredentials().getAccessKey() + ":" + signature;
-        httpMethod.setRequestHeader("Authorization", authorizationString);
+        httpMethod.setHeader("Authorization", authorizationString);
     }
 
     /**
@@ -254,24 +253,26 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * occurred, this exception may contain additional error information available from an XML
      * error response document.
      */
-    protected void performRestRequest(HttpMethod httpMethod, int expectedResponseCode)
+    protected HttpResponse performRestRequest(HttpRequestBase httpMethod, int expectedResponseCode)
         throws CloudFrontServiceException
     {
         // Set mandatory Request headers.
-        if (httpMethod.getRequestHeader("Date") == null) {
-            httpMethod.setRequestHeader("Date", ServiceUtils.formatRfc822Date(
+        if (httpMethod.getFirstHeader("Date") == null) {
+            httpMethod.setHeader("Date", ServiceUtils.formatRfc822Date(
                 getCurrentTimeWithOffset()));
         }
 
+        HttpResponse response = null;
         boolean completedWithoutRecoverableError = true;
         int internalErrorCount = 0;
 
         try {
             do {
                 completedWithoutRecoverableError = true;
-                authorizeHttpRequest(httpMethod);
-                int responseCode = httpClient.executeMethod(httpMethod);
-
+                authorizeHttpRequest(httpMethod, null);
+                response = httpClient.execute(httpMethod);
+                int responseCode = response.getStatusLine().getStatusCode();
+                
                 if (responseCode != expectedResponseCode) {
                     if (responseCode == 500) {
                         // Retry on Internal Server errors, up to the defined limit.
@@ -287,8 +288,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                         }
                     } else {
                         // Parse XML error message.
-                        ErrorHandler handler = (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
-                            .parseErrorResponse(httpMethod.getResponseBodyAsStream());
+                        ErrorHandler handler = new CloudFrontXmlResponsesSaxParser(
+                                this.jets3tProperties).parseErrorResponse(
+                                        response.getEntity().getContent());
 
                         CloudFrontServiceException exception = new CloudFrontServiceException(
                             "Request failed with CloudFront Service error",
@@ -312,11 +314,23 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 } // End responseCode check
             } while (!completedWithoutRecoverableError);
         } catch (CloudFrontServiceException e) {
-            httpMethod.releaseConnection();
+            releaseConnection(response);
             throw e;
         } catch (Throwable t) {
-            httpMethod.releaseConnection();
+            releaseConnection(response);
             throw new CloudFrontServiceException("CloudFront Request failed", t);
+        }
+        return response;
+    }
+
+    private void releaseConnection(HttpResponse pResponse){
+        if (pResponse == null){
+            return;
+        }
+        try {
+          pResponse.getEntity().consumeContent();
+        } catch (Exception e){
+            //ignore
         }
     }
 
@@ -347,12 +361,12 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 if (nextMarker != null) {
                     uri += "&Marker=" + nextMarker;
                 }
-                HttpMethod httpMethod = new GetMethod(uri);
-                performRestRequest(httpMethod, 200);
+                HttpRequestBase httpMethod = new HttpGet(uri);
+                HttpResponse response = performRestRequest(httpMethod, 200);
 
                 DistributionListHandler handler =
                     (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
-                        .parseDistributionListResponse(httpMethod.getResponseBodyAsStream());
+                        .parseDistributionListResponse(response.getEntity().getContent());
                 distributions.addAll(handler.getDistributions());
 
                 incompleteListing = handler.isTruncated();
@@ -659,7 +673,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             comment = "";
         }
 
-        PostMethod httpMethod = new PostMethod(ENDPOINT + VERSION
+        HttpPost httpMethod = new HttpPost(ENDPOINT + VERSION
             + (isStreaming ? "/streaming-distribution" : "/distribution"));
 
         try {
@@ -668,14 +682,16 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 loggingStatus, trustedSignerSelf, trustedSignerAwsAccountNumbers,
                 requiredProtocols, defaultRootObject);
 
-            httpMethod.setRequestEntity(
-                new StringRequestEntity(distributionConfigXml, "text/xml", Constants.DEFAULT_ENCODING));
+            httpMethod.setEntity(new StringEntity(
+                    distributionConfigXml,
+                    "text/xml",
+                    Constants.DEFAULT_ENCODING));
 
-            performRestRequest(httpMethod, 201);
+            HttpResponse response = performRestRequest(httpMethod, 201);
 
             DistributionHandler handler =
                 (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
-                    .parseDistributionResponse(httpMethod.getResponseBodyAsStream());
+                    .parseDistributionResponse(response.getEntity().getContent());
 
             return handler.getDistribution();
         } catch (CloudFrontServiceException e) {
@@ -926,16 +942,15 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 + (isStreaming ? "streaming" : "")
                 + " distribution with id: " + id);
         }
-        GetMethod httpMethod = new GetMethod(ENDPOINT + VERSION
-            + (isStreaming ? "/streaming-distribution/" : "/distribution/")
-            + id);
+        HttpGet httpMethod = new HttpGet(ENDPOINT + VERSION
+                + (isStreaming ? "/streaming-distribution/" : "/distribution/")
+                + id);
 
         try {
-            performRestRequest(httpMethod, 200);
-
+            HttpResponse response = performRestRequest(httpMethod, 200);
             DistributionHandler handler =
                 (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
-                    .parseDistributionResponse(httpMethod.getResponseBodyAsStream());
+                    .parseDistributionResponse(response.getEntity().getContent());
 
             return handler.getDistribution();
         } catch (CloudFrontServiceException e) {
@@ -996,19 +1011,18 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 + (isStreaming ? "streaming" : "")
                 + " distribution with id: " + id);
         }
-        GetMethod httpMethod = new GetMethod(ENDPOINT + VERSION
-            + (isStreaming ? "/streaming-distribution/" : "/distribution/")
-            + id + "/config");
+        HttpGet httpMethod = new HttpGet(ENDPOINT + VERSION
+                + (isStreaming ? "/streaming-distribution/" : "/distribution/")
+                + id + "/config");
 
         try {
-            performRestRequest(httpMethod, 200);
-
+            HttpResponse response = performRestRequest(httpMethod, 200);
             DistributionConfigHandler handler =
                 (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
-                    .parseDistributionConfigResponse(httpMethod.getResponseBodyAsStream());
+                    .parseDistributionConfigResponse(response.getEntity().getContent());
 
             DistributionConfig config = handler.getDistributionConfig();
-            config.setEtag(httpMethod.getResponseHeader("ETag").getValue());
+            config.setEtag(response.getFirstHeader("ETag").getValue());
             return config;
         } catch (CloudFrontServiceException e) {
             throw e;
@@ -1103,9 +1117,9 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             origin = oldConfig.getOrigin();
         }
 
-        PutMethod httpMethod = new PutMethod(ENDPOINT + VERSION
-            + (isStreaming ? "/streaming-distribution/" : "/distribution/")
-            + id + "/config");
+        HttpPut httpMethod = new HttpPut(ENDPOINT + VERSION
+                + (isStreaming ? "/streaming-distribution/" : "/distribution/")
+                + id + "/config");
 
         try {
             String distributionConfigXml = buildDistributionConfigXmlDocument(isStreaming,
@@ -1113,18 +1127,19 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                     loggingStatus, trustedSignerSelf, trustedSignerAwsAccountNumbers,
                     requiredProtocols, defaultRootObject);
 
-            httpMethod.setRequestEntity(
-                new StringRequestEntity(distributionConfigXml, "text/xml", Constants.DEFAULT_ENCODING));
-            httpMethod.setRequestHeader("If-Match", oldConfig.getEtag());
-
-            performRestRequest(httpMethod, 200);
+            httpMethod.setEntity(new StringEntity(
+                    distributionConfigXml, 
+                    "text/xml", 
+                    Constants.DEFAULT_ENCODING));
+            httpMethod.setHeader("If-Match", oldConfig.getEtag());
+            HttpResponse response = performRestRequest(httpMethod, 200);
 
             DistributionConfigHandler handler =
                 (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
-                    .parseDistributionConfigResponse(httpMethod.getResponseBodyAsStream());
+                    .parseDistributionConfigResponse(response.getEntity().getContent());
 
             DistributionConfig config = handler.getDistributionConfig();
-            config.setEtag(httpMethod.getResponseHeader("ETag").getValue());
+            config.setEtag(response.getFirstHeader("ETag").getValue());
             return config;
         } catch (CloudFrontServiceException e) {
             throw e;
@@ -1430,14 +1445,14 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         // Get the distribution's current config.
         DistributionConfig currentConfig =
             (isStreaming ? getStreamingDistributionConfig(id) : getDistributionConfig(id));
-
-        DeleteMethod httpMethod = new DeleteMethod(ENDPOINT + VERSION
-            + (isStreaming ? "/streaming-distribution/" : "/distribution/")
-            + id);
+        HttpDelete httpMethod = new HttpDelete(ENDPOINT + VERSION
+                + (isStreaming ? "/streaming-distribution/" : "/distribution/")
+                + id);
 
         try {
-            httpMethod.setRequestHeader("If-Match", currentConfig.getEtag());
-            performRestRequest(httpMethod, 204);
+            httpMethod.setHeader("If-Match", currentConfig.getEtag());
+            HttpResponse response = performRestRequest(httpMethod, 204);
+            releaseConnection(response);
         } catch (CloudFrontServiceException e) {
             throw e;
         } catch (RuntimeException e) {
@@ -1518,7 +1533,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             log.debug("Creating origin access identity");
         }
 
-        PostMethod httpMethod = new PostMethod(ENDPOINT + VERSION +
+        HttpPost httpMethod = new HttpPost(ENDPOINT + VERSION +
                 ORIGIN_ACCESS_IDENTITY_URI_PATH);
 
         if (callerReference == null) {
@@ -1532,14 +1547,15 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 .e("CallerReference").t(callerReference).up()
                 .e("Comment").t(comment);
 
-            httpMethod.setRequestEntity(new StringRequestEntity(
-                    builder.asString(null), "text/xml", Constants.DEFAULT_ENCODING));
-
-            performRestRequest(httpMethod, 201);
+            httpMethod.setEntity(new StringEntity(
+                    builder.asString(null), 
+                    "text/xml", 
+                    Constants.DEFAULT_ENCODING));
+            HttpResponse response = performRestRequest(httpMethod, 201);
 
             OriginAccessIdentityHandler handler =
                 (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
-                    .parseOriginAccessIdentity(httpMethod.getResponseBodyAsStream());
+                    .parseOriginAccessIdentity(response.getEntity().getContent());
 
             return handler.getOriginAccessIdentity();
         } catch (CloudFrontServiceException e) {
@@ -1565,14 +1581,14 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         if (log.isDebugEnabled()) {
             log.debug("Getting list of origin access identities");
         }
-        GetMethod httpMethod = new GetMethod(ENDPOINT + VERSION + ORIGIN_ACCESS_IDENTITY_URI_PATH);
+        HttpGet httpMethod = new HttpGet(ENDPOINT + VERSION + ORIGIN_ACCESS_IDENTITY_URI_PATH);
 
         try {
-            performRestRequest(httpMethod, 200);
+            HttpResponse response = performRestRequest(httpMethod, 200);
 
             OriginAccessIdentityListHandler handler =
                 (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
-                    .parseOriginAccessIdentityListResponse(httpMethod.getResponseBodyAsStream());
+                    .parseOriginAccessIdentityListResponse(response.getEntity().getContent());
             return handler.getOriginAccessIdentityList();
         } catch (CloudFrontServiceException e) {
             throw e;
@@ -1600,16 +1616,16 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         if (log.isDebugEnabled()) {
             log.debug("Getting information for origin access identity with id: " + id);
         }
-        GetMethod httpMethod = new GetMethod(ENDPOINT + VERSION +
+        HttpGet httpMethod = new HttpGet(ENDPOINT + VERSION +
                 ORIGIN_ACCESS_IDENTITY_URI_PATH + "/" + id);
 
         try {
-            performRestRequest(httpMethod, 200);
+            HttpResponse response = performRestRequest(httpMethod, 200);
 
             OriginAccessIdentityHandler handler =
                 (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
-                    .parseOriginAccessIdentity(httpMethod.getResponseBodyAsStream());
-            return handler.getOriginAccessIdentity();
+                    .parseOriginAccessIdentity(response.getEntity().getContent());
+             return handler.getOriginAccessIdentity();
         } catch (CloudFrontServiceException e) {
             throw e;
         } catch (RuntimeException e) {
@@ -1636,18 +1652,18 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         if (log.isDebugEnabled()) {
             log.debug("Getting config for origin access identity with id: " + id);
         }
-        GetMethod httpMethod = new GetMethod(ENDPOINT + VERSION +
+        HttpGet httpMethod = new HttpGet(ENDPOINT + VERSION +
                 ORIGIN_ACCESS_IDENTITY_URI_PATH + "/" + id + "/config");
 
         try {
-            performRestRequest(httpMethod, 200);
+            HttpResponse response = performRestRequest(httpMethod, 200);
 
             OriginAccessIdentityConfigHandler handler =
                 (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
-                    .parseOriginAccessIdentityConfig(httpMethod.getResponseBodyAsStream());
+                    .parseOriginAccessIdentityConfig(response.getEntity().getContent());
 
             OriginAccessIdentityConfig config = handler.getOriginAccessIdentityConfig();
-            config.setEtag(httpMethod.getResponseHeader("ETag").getValue());
+            config.setEtag(response.getFirstHeader("ETag").getValue());
             return config;
         } catch (CloudFrontServiceException e) {
             throw e;
@@ -1686,7 +1702,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             comment = oldConfig.getComment();
         }
 
-        PutMethod httpMethod = new PutMethod(ENDPOINT + VERSION +
+        HttpPut httpMethod = new HttpPut(ENDPOINT + VERSION +
                 ORIGIN_ACCESS_IDENTITY_URI_PATH + "/" + id + "/config");
 
         try {
@@ -1695,19 +1711,19 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 .a("xmlns", XML_NAMESPACE)
                 .e("CallerReference").t(oldConfig.getCallerReference()).up()
                 .e("Comment").t(comment);
-
-            httpMethod.setRequestEntity(new StringRequestEntity(
-                builder.asString(null), "text/xml", Constants.DEFAULT_ENCODING));
-            httpMethod.setRequestHeader("If-Match", oldConfig.getEtag());
-
-            performRestRequest(httpMethod, 200);
+            httpMethod.setEntity(new StringEntity(
+                    builder.asString(null), 
+                    "text/xml", 
+                    Constants.DEFAULT_ENCODING));
+            httpMethod.setHeader("If-Match", oldConfig.getEtag());
+            HttpResponse response = performRestRequest(httpMethod, 200);
 
             OriginAccessIdentityConfigHandler handler =
                 (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
-                    .parseOriginAccessIdentityConfig(httpMethod.getResponseBodyAsStream());
+                    .parseOriginAccessIdentityConfig(response.getEntity().getContent());
 
             OriginAccessIdentityConfig config = handler.getOriginAccessIdentityConfig();
-            config.setEtag(httpMethod.getResponseHeader("ETag").getValue());
+            config.setEtag(response.getFirstHeader("ETag").getValue());
             return config;
         } catch (CloudFrontServiceException e) {
             throw e;
@@ -1735,12 +1751,13 @@ public class CloudFrontService implements AWSRequestAuthorizer {
         // Get the identity's current config.
         OriginAccessIdentityConfig currentConfig = getOriginAccessIdentityConfig(id);
 
-        DeleteMethod httpMethod = new DeleteMethod(ENDPOINT + VERSION +
+        HttpDelete httpMethod = new HttpDelete(ENDPOINT + VERSION +
                 ORIGIN_ACCESS_IDENTITY_URI_PATH + "/" + id);
 
         try {
-            httpMethod.setRequestHeader("If-Match", currentConfig.getEtag());
-            performRestRequest(httpMethod, 204);
+            httpMethod.setHeader("If-Match", currentConfig.getEtag());
+            HttpResponse response = performRestRequest(httpMethod, 204);
+            releaseConnection(response);
         } catch (CloudFrontServiceException e) {
             throw e;
         } catch (RuntimeException e) {
@@ -1765,7 +1782,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     public Invalidation invalidateObjects(String distributionId, String[] objectKeys,
         String callerReference) throws CloudFrontServiceException
     {
-        PostMethod httpMethod = new PostMethod(ENDPOINT + VERSION +
+        HttpPost httpMethod = new HttpPost(ENDPOINT + VERSION +
             "/distribution/" + distributionId + "/invalidation");
         try {
             XMLBuilder builder = XMLBuilder.create("InvalidationBatch");
@@ -1778,14 +1795,15 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             }
             builder.e("CallerReference").t(callerReference);
 
-            httpMethod.setRequestEntity(new StringRequestEntity(
-                builder.asString(null), "text/xml", Constants.DEFAULT_ENCODING));
-
-            performRestRequest(httpMethod, 201);
+            httpMethod.setEntity(new StringEntity(
+                    builder.asString(null), 
+                    "text/xml", 
+                    Constants.DEFAULT_ENCODING));
+            HttpResponse response = performRestRequest(httpMethod, 201);
 
             InvalidationHandler handler =
                 (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
-                    .parseInvalidationResponse(httpMethod.getResponseBodyAsStream());
+                    .parseInvalidationResponse(response.getEntity().getContent());
             return handler.getInvalidation();
         } catch (CloudFrontServiceException e) {
             throw e;
@@ -1829,14 +1847,14 @@ public class CloudFrontService implements AWSRequestAuthorizer {
     public Invalidation getInvalidation(String distributionId, String invalidationId)
         throws CloudFrontServiceException
     {
-        GetMethod httpMethod = new GetMethod(ENDPOINT + VERSION +
+        HttpGet httpMethod = new HttpGet(ENDPOINT + VERSION +
             "/distribution/" + distributionId + "/invalidation/" + invalidationId);
         try {
-            performRestRequest(httpMethod, 200);
+            HttpResponse response = performRestRequest(httpMethod, 200);
 
             InvalidationHandler handler =
                 (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
-                    .parseInvalidationResponse(httpMethod.getResponseBodyAsStream());
+                    .parseInvalidationResponse(response.getEntity().getContent());
             return handler.getInvalidation();
         } catch (CloudFrontServiceException e) {
             throw e;
@@ -1873,12 +1891,12 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             if (nextMarker != null) {
                 uri += "&Marker=" + nextMarker;
             }
-            HttpMethod httpMethod = new GetMethod(uri);
-            performRestRequest(httpMethod, 200);
+            HttpGet httpMethod = new HttpGet(uri);
+            HttpResponse response = performRestRequest(httpMethod, 200);
 
             InvalidationListHandler handler =
                 (new CloudFrontXmlResponsesSaxParser(this.jets3tProperties))
-                    .parseInvalidationListResponse(httpMethod.getResponseBodyAsStream());
+                    .parseInvalidationListResponse(response.getEntity().getContent());
             return handler.getInvalidationList();
         } catch (CloudFrontServiceException e) {
             throw e;

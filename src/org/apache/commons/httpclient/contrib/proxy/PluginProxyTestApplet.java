@@ -45,7 +45,8 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
-import org.apache.commons.httpclient.ProxyHost;
+import org.apache.http.HttpHost;
+
 
 /**
  * <p>
@@ -58,7 +59,7 @@ import org.apache.commons.httpclient.ProxyHost;
 public class PluginProxyTestApplet extends JApplet {
 
 
-    private JTextField urlTextField = new JTextField();
+    private final JTextField urlTextField = new JTextField();
     private JPanel grid = null;
     private JLabel hostLabel = null;
     private JLabel portLabel = null;
@@ -68,6 +69,7 @@ public class PluginProxyTestApplet extends JApplet {
 
     }
 
+    @Override
     public void init() {
         Container content = getContentPane();
         content.setLayout(new BorderLayout());
@@ -142,7 +144,7 @@ public class PluginProxyTestApplet extends JApplet {
         }
         try {
             URL url = new URL(urlString);
-            ProxyHost hostInfo = PluginProxyUtil.detectProxy(url);
+            HttpHost hostInfo = PluginProxyUtil.detectProxy(url);
             if (hostInfo != null) {
                 hostLabel.setText(hostInfo.getHostName());
                 portLabel.setText(""+hostInfo.getPort());
@@ -170,7 +172,7 @@ public class PluginProxyTestApplet extends JApplet {
         String result = urlString;
         try {
             URL url = new URL(urlString);
-            ProxyHost hostInfo = PluginProxyUtil.detectProxy(url);
+            HttpHost hostInfo = PluginProxyUtil.detectProxy(url);
             if (hostInfo != null) {
                 result = hostInfo.getHostName();
             }
@@ -184,7 +186,7 @@ public class PluginProxyTestApplet extends JApplet {
         int result = 80;
         try {
             URL url = new URL(urlString);
-            ProxyHost hostInfo = PluginProxyUtil.detectProxy(url);
+            HttpHost hostInfo = PluginProxyUtil.detectProxy(url);
             if (hostInfo != null) {
                 result = hostInfo.getPort();
             }

@@ -22,34 +22,37 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
-import org.apache.commons.httpclient.Header;
-import org.apache.commons.httpclient.HostConfiguration;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpConnectionManager;
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.HttpMethodBase;
-import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
-import org.apache.commons.httpclient.SimpleHttpConnectionManager;
-import org.apache.commons.httpclient.URI;
-import org.apache.commons.httpclient.URIException;
-import org.apache.commons.httpclient.auth.CredentialsProvider;
-import org.apache.commons.httpclient.methods.DeleteMethod;
-import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.httpclient.methods.HeadMethod;
-import org.apache.commons.httpclient.methods.InputStreamRequestEntity;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.httpclient.methods.PutMethod;
-import org.apache.commons.httpclient.methods.RequestEntity;
-import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.entity.InputStreamEntity;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.RequestWrapper;
+import org.apache.http.impl.conn.SingleClientConnManager;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
+import org.apache.http.protocol.HttpContext;
+import org.apache.http.util.EntityUtils;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.ServiceException;
@@ -63,8 +66,8 @@ import org.jets3t.service.model.CreateBucketConfiguration;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
-import org.jets3t.service.model.StorageOwner;
 import org.jets3t.service.model.StorageObject;
+import org.jets3t.service.model.StorageOwner;
 import org.jets3t.service.mx.MxDelegate;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.Mimetypes;
@@ -90,10 +93,10 @@ public abstract class RestStorageService extends StorageService implements AWSRe
     protected static enum HTTP_METHOD {PUT, POST, HEAD, GET, DELETE};
 
     protected HttpClient httpClient = null;
-    protected HttpConnectionManager connectionManager = null;
     protected CredentialsProvider credentialsProvider = null;
 
     protected String defaultStorageClass = null;
+    protected volatile boolean shuttingDown;
 
     /**
      * Constructs the service and initialises the properties.
@@ -142,46 +145,26 @@ public abstract class RestStorageService extends StorageService implements AWSRe
      * prompting for credentials when necessary.
      * @param jets3tProperties
      * JetS3t properties that will be applied within this service.
-     */
-    public RestStorageService(ProviderCredentials credentials, String invokingApplicationDescription,
-        CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties)
-    {
-        this(credentials, invokingApplicationDescription, credentialsProvider,
-            jets3tProperties, new HostConfiguration());
-    }
-
-    /**
-     * Constructs the service and initialises the properties.
-     *
-     * @param credentials
-     * the S3 user credentials to use when communicating with S3, may be null in which case the
-     * communication is done as an anonymous user.
-     * @param invokingApplicationDescription
-     * a short description of the application using the service, suitable for inclusion in a
-     * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.7.3</code> or <code>My App Name/1.0</code>
-     * @param credentialsProvider
-     * an implementation of the HttpClient CredentialsProvider interface, to provide a means for
-     * prompting for credentials when necessary.
-     * @param jets3tProperties
-     * JetS3t properties that will be applied within this service.
      * @param hostConfig
      * Custom HTTP host configuration; e.g to register a custom Protocol Socket Factory
      */
     public RestStorageService(ProviderCredentials credentials, String invokingApplicationDescription,
-        CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties,
-        HostConfiguration hostConfig)
+        CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties)
     {
         super(credentials, invokingApplicationDescription, jets3tProperties);
         this.credentialsProvider = credentialsProvider;
 
-        HttpClientAndConnectionManager initHttpResult = initHttpConnection(hostConfig);
-        this.httpClient = initHttpResult.getHttpClient();
-        this.connectionManager = initHttpResult.getHttpConnectionManager();
-
         this.defaultStorageClass = this.jets3tProperties.getStringProperty(
-            "s3service.default-storage-class", null);
-
+                "s3service.default-storage-class", null);
+        initializeDefaults();
+    }
+    
+    protected void initializeDefaults(){
+        this.httpClient = initHttpConnection();
+        initializeProxy();
+    }
+    
+    protected void initializeProxy(){
         // Retrieve Proxy settings.
         if (this.jets3tProperties.getBoolProperty("httpclient.proxy-autodetect", true)) {
             RestUtils.initHttpProxy(httpClient, this.jets3tProperties, this.getEndpoint());
@@ -195,7 +178,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                 proxyHostAddress, proxyPort, proxyUser, proxyPassword, proxyDomain, this.getEndpoint());
         }
     }
-
+    
     protected abstract boolean isTargettingGoogleStorageService();
 
     /**
@@ -203,16 +186,16 @@ public abstract class RestStorageService extends StorageService implements AWSRe
      */
     @Override
     protected void shutdownImpl() throws ServiceException {
-        HttpConnectionManager manager = this.getHttpConnectionManager();
-        if (manager instanceof SimpleHttpConnectionManager) {
-            ((SimpleHttpConnectionManager) manager).shutdown();
-        } else if (manager instanceof MultiThreadedHttpConnectionManager) {
-            ((MultiThreadedHttpConnectionManager) manager).shutdown();
+        shuttingDown = true;
+        ClientConnectionManager manager = this.getHttpConnectionManager();
+        if (manager instanceof SingleClientConnManager) {
+            ((SingleClientConnManager) manager).shutdown();
+        } else if (manager instanceof ThreadSafeClientConnManager) {
+            ((ThreadSafeClientConnManager) manager).shutdown();
         } else {
-            manager.closeIdleConnections(0);
-            // Not much else we can do hear, since the HttpConnectionManager
-            // interface doesn't have a #shutdown method.
+            manager.shutdown();
         }
+        
     }
 
     /**
@@ -224,44 +207,27 @@ public abstract class RestStorageService extends StorageService implements AWSRe
      * To alter the low-level behaviour of the HttpClient library, override this method in
      * a subclass and apply your own settings before returning the objects.
      *
-     * @param hostConfig
-     * Custom HTTP host configuration; e.g to register a custom Protocol Socket Factory
-     *
      * @return
      * configured HttpClient library client and connection manager objects.
      */
-    protected HttpClientAndConnectionManager initHttpConnection(HostConfiguration hostConfig) {
-        HttpClientAndConnectionManager manager = RestUtils.initHttpConnection(
-            this, hostConfig, jets3tProperties,
-            getInvokingApplicationDescription(), credentialsProvider);
-
+    protected HttpClient initHttpConnection() {
         // TODO: Google Storage Service does not work well with Expect: 100-Continue
         if (this.isTargettingGoogleStorageService()) {
-            manager.getHttpClient().getParams().setBooleanParameter(
-                "http.protocol.expect-continue", false);
+            jets3tProperties.setProperty("http.protocol.expect-continue", "false");
         }
-
-        return manager;
+        return RestUtils.initHttpConnection(
+                this,
+                jets3tProperties,
+                getInvokingApplicationDescription(),
+                credentialsProvider);
     }
 
     /**
      * @return
      * the manager of HTTP connections for this service.
      */
-    public HttpConnectionManager getHttpConnectionManager() {
-        return this.connectionManager;
-    }
-
-    /**
-     * Replaces the service's default HTTP connection manager.
-     * This method should only be used by advanced users.
-     *
-     * @param httpConnectionManager
-     * the connection manager that will replace the default manager created by
-     * the class constructor.
-     */
-    public void setHttpConnectionManager(HttpConnectionManager httpConnectionManager) {
-        this.connectionManager = httpConnectionManager;
+    public ClientConnectionManager getHttpConnectionManager() {
+        return this.httpClient.getConnectionManager();
     }
 
     /**
@@ -319,6 +285,11 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         }
     }
 
+    protected HttpResponse performRequest(HttpUriRequest httpMethod, int[] expectedResponseCodes)
+    throws ServiceException {
+        return performRequest(httpMethod, expectedResponseCodes, null);
+    }
+    
     /**
      * Performs an HTTP/S request by invoking the provided HttpMethod object. If the HTTP
      * response code doesn't match the expected value, an exception is thrown.
@@ -329,20 +300,25 @@ public abstract class RestStorageService extends StorageService implements AWSRe
      * @param expectedResponseCodes
      *        the HTTP response code(s) that indicates a successful request. If the response code received
      *        does not match this value an error must have occurred, so an exception is thrown.
-     * @throws org.jets3t.service.ServiceException
-     *        all exceptions are wrapped in a ServiceException. Depending on the kind of error that
+     * @param context
+     *        An HttpContext to facilitate information sharing in the HTTP chain 
+     * @throws ServiceException
+     *        all exceptions are wrapped in an ServiceException. Depending on the kind of error that
      *        occurred, this exception may contain additional error information available from an XML
      *        error response document.
      */
-    protected void performRequest(HttpMethodBase httpMethod, int[] expectedResponseCodes)
-        throws ServiceException
-    {
+    protected HttpResponse performRequest(
+            HttpUriRequest httpMethod,
+            int[] expectedResponseCodes,
+            HttpContext context) throws ServiceException {
+        HttpResponse response = null;
         try {
             if (log.isDebugEnabled()) {
-                log.debug("Performing " + httpMethod.getName()
+                log.debug("Performing " + httpMethod.getMethod()
                     + " request for '" + httpMethod.getURI().toString()
                     + "', expecting response codes: " +
                     "[" + ServiceUtils.join(expectedResponseCodes, ",") + "]");
+                log.debug("Headers: " + Arrays.asList(httpMethod.getAllHeaders()));
             }
 
             // Variables to manage S3 Internal Server 500 or 503 Service Unavailable errors.
@@ -357,19 +333,26 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             do {
                 // Build the authorization string for the method (Unless we have just been redirected).
                 if (!wasRecentlyRedirected) {
-                    authorizeHttpRequest(httpMethod);
+                    authorizeHttpRequest(httpMethod, context);
                 } else {
                     // Reset redirection flag
                     wasRecentlyRedirected = false;
                 }
 
-                responseCode = httpClient.executeMethod(httpMethod);
+                response = httpClient.execute(httpMethod, context);
+                responseCode = response.getStatusLine().getStatusCode();
 
                 if (responseCode == 307) {
                     // Retry on Temporary Redirects, using new URI from location header
-                    authorizeHttpRequest(httpMethod); // Re-authorize *before* we change the URI
-                    Header locationHeader = httpMethod.getResponseHeader("location");
-                    httpMethod.setURI(new URI(locationHeader.getValue(), true));
+                    authorizeHttpRequest(httpMethod, context); // Re-authorize *before* we change the URI
+                    Header locationHeader = httpMethod.getFirstHeader("location");
+                    
+                    // deal with implementations of HttpUriRequest
+                    if (httpMethod instanceof HttpRequestBase){
+                        ((HttpRequestBase)httpMethod).setURI(new URI(locationHeader.getValue()));    
+                    } else if (httpMethod instanceof RequestWrapper){
+                        ((RequestWrapper)httpMethod).setURI(new URI(locationHeader.getValue()));    
+                    }
 
                     completedWithoutRecoverableError = false;
                     redirectCount++;
@@ -387,14 +370,18 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                 }
 
                 String contentType = "";
-                if (httpMethod.getResponseHeader("Content-Type") != null) {
-                    contentType = httpMethod.getResponseHeader("Content-Type").getValue();
+                if (response.getFirstHeader("Content-Type") != null) {
+                    contentType = response.getFirstHeader("Content-Type").getValue();
                 }
 
                 if (log.isDebugEnabled()) {
-                    log.debug("Response for '" + httpMethod.getPath()
-                        + "'. Content-Type: " + contentType
-                        + ", Headers: " + Arrays.asList(httpMethod.getResponseHeaders()));
+                    log.debug("Response for '" + httpMethod.getMethod()
+                            + "'. Content-Type: " + contentType
+                            + ", Headers: " + Arrays.asList(response.getAllHeaders()));
+                    log.debug("Response entity: "+response.getEntity());
+                    if (response.getEntity()!=null){
+                        log.debug("Entity length: " + response.getEntity().getContentLength()); 
+                    }
                 }
 
                 // Check we received the expected result code.
@@ -404,31 +391,42 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                         didReceiveExpectedResponseCode = true;
                     }
                 }
+                if (log.isDebugEnabled()) {
+                    log.debug("Received expected response code: "+didReceiveExpectedResponseCode);
+                    log.debug("  expected code(s): "+Arrays.toString(expectedResponseCodes)+".");
+                }
 
                 if (!didReceiveExpectedResponseCode) {
                     if (log.isWarnEnabled()) {
                         String requestDescription =
-                            httpMethod.getName()
-                            + " '" + httpMethod.getPath()
-                            + (httpMethod.getQueryString() != null
-                               && httpMethod.getQueryString().length() > 0
-                                ? "?" + httpMethod.getQueryString() : "")
+                            httpMethod.getMethod()
+                            + " '" + httpMethod.getURI().getPath()
+                            + (httpMethod.getURI().getQuery() != null
+                               && httpMethod.getURI().getQuery().length() > 0
+                                ? "?" + httpMethod.getURI().getQuery() : "")
                             + "'"
-                            + " -- ResponseCode: " + httpMethod.getStatusCode()
-                            + ", ResponseStatus: " + httpMethod.getStatusText()
-                            + ", Request Headers: [" + ServiceUtils.join(httpMethod.getRequestHeaders(), ", ") + "]"
-                            + ", Response Headers: [" + ServiceUtils.join(httpMethod.getResponseHeaders(), ", ") + "]";
+                            + " -- ResponseCode: " + responseCode
+                            + ", ResponseStatus: " + response.getStatusLine().getReasonPhrase()
+                            + ", Request Headers: [" + ServiceUtils.join(httpMethod.getAllHeaders(), ", ") + "]"
+                            + ", Response Headers: [" + ServiceUtils.join(response.getAllHeaders(), ", ") + "]";
                         requestDescription = requestDescription.replaceAll("[\\n\\r\\f]", "");  // Remove any newlines.
-
                         log.warn("Error Response: " + requestDescription);
                     }
 
+                    if (log.isDebugEnabled()) {
+                        log.debug("Response xml: " + isXmlContentType(contentType));
+                        log.debug("Response entity: " + response.getEntity());
+                        log.debug("Response entity length: " + 
+                                (response.getEntity()==null ? "??" : "" +
+                                 response.getEntity().getContentLength()));
+                    }
+
                     if (isXmlContentType(contentType)
-                        && httpMethod.getResponseBodyAsStream() != null
-                        && httpMethod.getResponseContentLength() != 0)
+                            && response.getEntity()!= null
+                            && response.getEntity().getContentLength() != 0)
                     {
                         if (log.isDebugEnabled()) {
-                            log.debug("Response '" + httpMethod.getPath()
+                            log.debug("Response '" + httpMethod.getURI().getRawPath()
                                 + "' - Received error response with XML message");
                         }
 
@@ -436,7 +434,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                         BufferedReader reader = null;
                         try {
                             reader = new BufferedReader(new InputStreamReader(
-                                new HttpMethodReleaseInputStream(httpMethod)));
+                                new HttpMethodReleaseInputStream(response)));
                             String line = null;
                             while ((line = reader.readLine()) != null) {
                                 sb.append(line + "\n");
@@ -447,14 +445,15 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                             }
                         }
 
-                        httpMethod.releaseConnection();
+                        response.getEntity().consumeContent();
 
                         // Throw exception containing the XML message document.
                         ServiceException exception =
                             new ServiceException("S3 Error Message.", sb.toString());
 
+                        exception.setResponseCode(responseCode);
                         exception.setResponseHeaders(RestUtils.convertHeadersToMap(
-                                httpMethod.getResponseHeaders()));
+                                response.getAllHeaders()));
 
                         if ("RequestTimeout".equals(exception.getErrorCode())) {
                             int retryMaxCount = jets3tProperties.getIntProperty("httpclient.retry-max", 5);
@@ -493,7 +492,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
 
                         // Special handling for S3 object PUT failures causing NoSuchKey errors - Issue #85
                         else if (responseCode == 404
-                                   && "PUT".equalsIgnoreCase(httpMethod.getName())
+                                   && "PUT".equalsIgnoreCase(httpMethod.getMethod())
                                    && "NoSuchKey".equals(exception.getErrorCode()))
                         {
                             // Retrying after mysterious PUT NoSuchKey error caused by S3, don't throw exception.
@@ -508,7 +507,10 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                     } else {
                         // Consume response content and release connection.
                         String responseText = null;
-                        byte[] responseBody = httpMethod.getResponseBody();
+                        byte[] responseBody = null;
+                        if (response.getEntity()!=null){
+                            responseBody = EntityUtils.toByteArray(response.getEntity());
+                        }
                         if (responseBody != null && responseBody.length > 0) {
                             responseText = new String(responseBody);
                         }
@@ -516,47 +518,68 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                         if (log.isDebugEnabled()) {
                             log.debug("Releasing error response without XML content");
                         }
-                        httpMethod.releaseConnection();
+                        if (response.getEntity()!=null){
+                            response.getEntity().consumeContent();
+                        }
 
                         if (responseCode == 500 || responseCode == 503) {
                             // Retrying after InternalError 500, don't throw exception.
                         } else {
                             // Throw exception containing the HTTP error fields.
                             HttpException httpException = new HttpException(
-                                    httpMethod.getStatusCode(), httpMethod.getStatusText());
+                                    responseCode,
+                                    response.getStatusLine().getReasonPhrase());
                             ServiceException exception =
                                 new ServiceException("Request Error"
                                     + (responseText != null ? " [" + responseText + "]." : "."),
                                     httpException);
-                            exception.setResponseHeaders(RestUtils.convertHeadersToMap(
-                                    httpMethod.getResponseHeaders()));
+                            exception.setResponseHeaders(
+                                    RestUtils.convertHeadersToMap(
+                                    response.getAllHeaders()));
                             throw exception;
                         }
                     }
                 }
             } while (!completedWithoutRecoverableError);
 
+            
+            // NOTE: Does not seem necessary with httpclient-4.x. With httpclient-4.1
+            // invoking HttpEntity().getContent() on an entity whose content was 
+            // already read raises IllegalStateException
+            /*
             // Release immediately any connections without response bodies.
-            if ((httpMethod.getResponseBodyAsStream() == null
-                || httpMethod.getResponseBodyAsStream().available() == 0)
-                && httpMethod.getResponseContentLength() == 0)
-            {
+            if ((response.getEntity().getContentType() == null
+                    || response.getEntity().getContent().available() == 0)
+                    && response.getEntity().getContentLength() <= 0){
+                
                 if (log.isDebugEnabled()) {
                     log.debug("Releasing response without content");
                 }
-                byte[] responseBody = httpMethod.getResponseBody();
-
-                if (responseBody != null && responseBody.length > 0) {
-                    throw new ServiceException("Oops, too keen to release connection with a non-empty response body");
+                byte[] responseBody = EntityUtils.toByteArray(response.getEntity());
+                if (responseBody != null && responseBody.length > 0){
+                    throw new ServiceException("Oops, too keen to release " +
+                          "connection with a non-empty response body");
                 }
-                httpMethod.releaseConnection();
+                httpMethod.abort();
             }
+            */
 
         } catch (Throwable t) {
-            if (log.isDebugEnabled()) {
+            if (log.isErrorEnabled()){
+                String msg = "Rethrowing as a ServiceException error in performRequest: " + t;
+                if (t.getCause() != null){
+                    msg += ", with cause: " + t.getCause();
+                }
+                if (log.isTraceEnabled()){
+                    log.trace(msg, t);
+                } else {
+                    log.error(msg);
+                }
+            }
+            if (log.isDebugEnabled() && !shuttingDown) {
                 log.debug("Releasing HttpClient connection after error: " + t.getMessage());
             }
-            httpMethod.releaseConnection();
+            httpMethod.abort();
 
             ServiceException serviceException = null;
             if (t instanceof ServiceException) {
@@ -569,31 +592,35 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             // Add S3 request and host IDs from HTTP headers to exception, if they are available
             // and have not already been populated by parsing an XML error response.
             if (!serviceException.isParsedFromXmlMessage()
-                && httpMethod.getResponseHeader(Constants.AMZ_REQUEST_ID_1) != null
-                && httpMethod.getResponseHeader(Constants.AMZ_REQUEST_ID_2) != null)
+                && response != null
+                && response.getFirstHeader(Constants.AMZ_REQUEST_ID_1) != null
+                && response.getFirstHeader(Constants.AMZ_REQUEST_ID_2) != null)
             {
                 serviceException.setRequestAndHostIds(
-                    httpMethod.getResponseHeader(Constants.AMZ_REQUEST_ID_1).getValue(),
-                    httpMethod.getResponseHeader(Constants.AMZ_REQUEST_ID_2).getValue());
+                        response.getFirstHeader(Constants.AMZ_REQUEST_ID_1).getValue(),
+                        response.getFirstHeader(Constants.AMZ_REQUEST_ID_2).getValue());
+                serviceException.setResponseHeaders(RestUtils.convertHeadersToMap(
+                        response.getAllHeaders()));
             }
-            serviceException.setRequestVerb(httpMethod.getName());
-            serviceException.setRequestPath(httpMethod.getPath());
-            try {
-                serviceException.setResponseCode(httpMethod.getStatusCode());
-                serviceException.setResponseStatus(httpMethod.getStatusText());
-            } catch (NullPointerException e) {
-                // If no network connection is available, status info is not available
+            if (response != null){
+                try {
+                    serviceException.setResponseCode(response.getStatusLine().getStatusCode());
+                    serviceException.setResponseStatus(response.getStatusLine().getReasonPhrase());
+                } catch (NullPointerException e) {
+                    // If no network connection is available, status info is not available
+                }
             }
-            if (httpMethod.getRequestHeader("Host") != null) {
+            if (httpMethod.getFirstHeader("Host") != null) {
                 serviceException.setRequestHost(
-                    httpMethod.getRequestHeader("Host").getValue());
+                    httpMethod.getFirstHeader("Host").getValue());
             }
-            if (httpMethod.getResponseHeader("Date") != null) {
+            if (response!=null && response.getFirstHeader("Date") != null) {
                 serviceException.setResponseDate(
-                    httpMethod.getResponseHeader("Date").getValue());
+                    httpMethod.getFirstHeader("Date").getValue());
             }
             throw serviceException;
         }
+        return response;
     }
 
     /**
@@ -604,7 +631,8 @@ public abstract class RestStorageService extends StorageService implements AWSRe
      *        the request object
      * @throws org.jets3t.service.ServiceException
      */
-    public void authorizeHttpRequest(HttpMethod httpMethod) throws Exception {
+    public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context) 
+    throws Exception {
         if (getProviderCredentials() != null) {
             if (log.isDebugEnabled()) {
                 log.debug("Adding authorization for Access Key '"
@@ -617,48 +645,53 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             return;
         }
 
-        String hostname = null;
-        try {
-            hostname = httpMethod.getURI().getHost();
-        } catch (URIException e) {
-            if (log.isErrorEnabled()) {
-                log.error("Unable to determine hostname target for request", e);
-            }
-        }
+        URI uri = httpMethod.getURI();
+        String hostname = uri.getHost();
 
         /*
          * Determine the complete URL for the S3 resource, including any S3-specific parameters.
          */
-        String fullUrl = httpMethod.getPath();
+        // Use raw-path, otherwise escaped characters are unescaped and a wrong
+        // signature is produced
+        String xfullUrl = uri.getPath();
+        String fullUrl = uri.getRawPath();
 
         // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
         String s3Endpoint = this.getEndpoint();
-        if (!s3Endpoint.equals(hostname)) {
+        if (hostname!=null && !s3Endpoint.equals(hostname)) {
             int subdomainOffset = hostname.lastIndexOf("." + s3Endpoint);
             if (subdomainOffset > 0) {
                 // Hostname represents an S3 sub-domain, so the bucket's name is the CNAME portion
-                fullUrl = "/" + hostname.substring(0, subdomainOffset) + httpMethod.getPath();
+                fullUrl = "/" + hostname.substring(0, subdomainOffset) + fullUrl;
             } else {
                 // Hostname represents a virtual host, so the bucket's name is identical to hostname
-                fullUrl = "/" + hostname + httpMethod.getPath();
+                fullUrl = "/" + hostname + fullUrl;
             }
         }
 
-        String queryString = httpMethod.getQueryString();
+        String queryString = uri.getQuery();
         if (queryString != null && queryString.length() > 0) {
             fullUrl += "?" + queryString;
         }
 
         // Set/update the date timestamp to the current time
         // Note that this will be over-ridden if an "x-amz-date" header is present.
-        httpMethod.setRequestHeader("Date", ServiceUtils.formatRfc822Date(
-            getCurrentTimeWithOffset()));
+        httpMethod.setHeader(
+                "Date", 
+                ServiceUtils.formatRfc822Date(getCurrentTimeWithOffset()));
+        
+        if (log.isDebugEnabled()) {
+            log.debug("For creating canonical string, using uri: "+fullUrl);
+        }
 
         // Generate a canonical string representing the operation.
         String canonicalString = RestUtils.makeServiceCanonicalString(
-                httpMethod.getName(), fullUrl,
-                convertHeadersToMap(httpMethod.getRequestHeaders()), null,
-                this.getRestHeaderPrefix(), this.getResourceParameterNames());
+                httpMethod.getMethod(), 
+                fullUrl,
+                convertHeadersToMap(httpMethod.getAllHeaders()), 
+                null,
+                getRestHeaderPrefix(), 
+                getResourceParameterNames());
         if (log.isDebugEnabled()) {
             log.debug("Canonical string ('|' is a newline): " + canonicalString.replace('\n', '|'));
         }
@@ -670,7 +703,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         // Add encoded authorization to connection as HTTP Authorization header.
         String authorizationString = getSignatureIdentifier() + " "
             + getProviderCredentials().getAccessKey() + ":" + signedCanonical;
-        httpMethod.setRequestHeader("Authorization", authorizationString);
+        httpMethod.setHeader("Authorization", authorizationString);
     }
 
     /**
@@ -718,14 +751,15 @@ public abstract class RestStorageService extends StorageService implements AWSRe
      *        the request headers to add as name/value pairs.
      */
     protected void addRequestHeadersToConnection(
-            HttpMethodBase httpMethod, Map<String, Object> requestHeaders)
+            HttpUriRequest httpMethod,
+            Map<String, Object> requestHeaders) 
     {
         if (requestHeaders != null) {
             for (Map.Entry<String, Object> entry: requestHeaders.entrySet()) {
                 String key = entry.getKey().toString();
                 String value = entry.getValue().toString();
 
-                httpMethod.setRequestHeader(key, value);
+                httpMethod.setHeader(key, value);
                 if (log.isDebugEnabled()) {
                     log.debug("Added request header to connection: " + key + "=" + value);
                 }
@@ -759,7 +793,9 @@ public abstract class RestStorageService extends StorageService implements AWSRe
      * @param metadata
      * @throws org.jets3t.service.ServiceException
      */
-    protected void addMetadataToHeaders(HttpMethodBase httpMethod, Map<String, Object> metadata)
+    protected void addMetadataToHeaders(
+            HttpUriRequest httpMethod, 
+            Map<String, Object> metadata)            
             throws ServiceException
     {
         Map<String, Object> headersAlreadySeenMap = new HashMap<String, Object>(metadata.size());
@@ -808,7 +844,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             }
 
             // Ensure each AMZ header is uniquely identified according to the lowercase name.
-            String duplicateValue = (String) headersAlreadySeenMap.get(key.toLowerCase());
+            String duplicateValue = (String) headersAlreadySeenMap.get(key.toLowerCase(Locale.US));
             if (duplicateValue != null && !duplicateValue.equals(value)) {
                 throw new ServiceException(
                     "HTTP header name occurs multiple times in request with different values, " +
@@ -816,8 +852,13 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                     "Duplicate metadata name: '" + key + "', All metadata: " + metadata);
             }
 
-            httpMethod.setRequestHeader(key, value);
-            headersAlreadySeenMap.put(key.toLowerCase(), value);
+            // PUT: don't set the 'Content-Length' header or http-client-4 will 
+            // raise an exception 'already set'.
+            if (!httpMethod.getMethod().equalsIgnoreCase("PUT")  
+                || !S3Object.METADATA_HEADER_CONTENT_LENGTH.equalsIgnoreCase(key)){
+                httpMethod.setHeader(key, value);
+            }
+            headersAlreadySeenMap.put(key.toLowerCase(Locale.US), value);
         }
     }
 
@@ -861,19 +902,21 @@ public abstract class RestStorageService extends StorageService implements AWSRe
      *        the HTTP method object used to perform the request
      * @throws org.jets3t.service.ServiceException
      */
-    protected HttpMethodBase performRestHead(String bucketName, String objectKey,
+    protected HttpResponse performRestHead(String bucketName, String objectKey,
         Map<String, String> requestParameters, Map<String, Object> requestHeaders)
         throws ServiceException
     {
-        HttpMethodBase httpMethod = setupConnection(
-            HTTP_METHOD.HEAD, bucketName, objectKey, requestParameters);
+        
+        HttpUriRequest httpMethod = setupConnection(
+                HTTP_METHOD.HEAD,
+                bucketName,
+                objectKey,
+                requestParameters);
 
         // Add all request headers.
         addRequestHeadersToConnection(httpMethod, requestHeaders);
 
-        performRequest(httpMethod, new int[] {200});
-
-        return httpMethod;
+        return performRequest(httpMethod, new int[] {200});
     }
 
     /**
@@ -892,12 +935,16 @@ public abstract class RestStorageService extends StorageService implements AWSRe
      *
      * @throws org.jets3t.service.ServiceException
      */
-    protected HttpMethodBase performRestGet(String bucketName, String objectKey,
+    protected HttpResponse performRestGet(String bucketName, String objectKey,
         Map<String, String> requestParameters, Map<String, Object> requestHeaders)
         throws ServiceException
     {
-        HttpMethodBase httpMethod = setupConnection(
-            HTTP_METHOD.GET, bucketName, objectKey, requestParameters);
+        
+        HttpUriRequest httpMethod = setupConnection(
+                HTTP_METHOD.GET,
+                bucketName,
+                objectKey,
+                requestParameters);
 
         // Add all request headers.
         addRequestHeadersToConnection(httpMethod, requestHeaders);
@@ -908,9 +955,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             // for complete responses (issue #80)
             expectedStatusCodes = new int[] {206, 200};
         }
-        performRequest(httpMethod, expectedStatusCodes);
-
-        return httpMethod;
+        return performRequest(httpMethod, expectedStatusCodes);
     }
 
     /**
@@ -937,39 +982,50 @@ public abstract class RestStorageService extends StorageService implements AWSRe
      *
      * @throws org.jets3t.service.ServiceException
      */
-    protected HttpMethodAndByteCount performRestPut(String bucketName, String objectKey,
+    protected HttpResponseAndByteCount performRestPut(String bucketName, String objectKey,
         Map<String, Object> metadata, Map<String, String> requestParameters,
-        RequestEntity requestEntity, boolean autoRelease)
+        HttpEntity requestEntity, boolean autoRelease)
         throws ServiceException
     {
         // Add any request parameters.
-        HttpMethodBase httpMethod = setupConnection(
-            HTTP_METHOD.PUT, bucketName, objectKey, requestParameters);
+        HttpUriRequest httpMethod = setupConnection(
+            HTTP_METHOD.PUT, 
+            bucketName, 
+            objectKey, 
+            requestParameters);
 
         Map<String, Object> renamedMetadata = renameMetadataKeys(metadata);
         addMetadataToHeaders(httpMethod, renamedMetadata);
 
         long contentLength = 0;
 
-        if (requestEntity != null) {
-            ((PutMethod)httpMethod).setRequestEntity(requestEntity);
-        } else {
-            // Need an explicit Content-Length even if no data is being uploaded.
-            httpMethod.setRequestHeader("Content-Length", "0");
+        if (log.isTraceEnabled()){
+            log.trace("Put request with entity: "+requestEntity);
         }
-
-        performRequest(httpMethod, new int[] {200, 204});
-
+        if (requestEntity != null) {
+            ((HttpPut)httpMethod).setEntity(requestEntity);
+        }
+        /*
+         * 
+         * Http-client now raises an exception if the 'Content-Length' header 
+         * is already set (!)
+         * 
+         */
+        // Need an explicit Content-Length even if no data is being uploaded.
+        // httpMethod.setHeader("Content-Length", "0");
+        
+        HttpResponse result = performRequest(httpMethod, new int[] {200, 204});
+        
         if (requestEntity != null) {
             // Respond with the actual guaranteed content length of the uploaded data.
-            contentLength = ((PutMethod)httpMethod).getRequestEntity().getContentLength();
+            contentLength = ((HttpPut)httpMethod).getEntity().getContentLength();
         }
 
         if (autoRelease) {
-            httpMethod.releaseConnection();
+            releaseConnection(result);
         }
 
-        return new HttpMethodAndByteCount(httpMethod, contentLength);
+        return new HttpResponseAndByteCount(result, contentLength);
     }
 
     /**
@@ -996,29 +1052,32 @@ public abstract class RestStorageService extends StorageService implements AWSRe
      *
      * @throws org.jets3t.service.ServiceException
      */
-    protected PostMethod performRestPost(String bucketName, String objectKey,
+    protected HttpResponse performRestPost(String bucketName, String objectKey,
         Map<String, Object> metadata, Map<String, String> requestParameters,
-        RequestEntity requestEntity, boolean autoRelease)
+        HttpEntity requestEntity, boolean autoRelease)
         throws ServiceException
     {
         // Add any request parameters.
-        HttpMethodBase postMethod = setupConnection(
-            HTTP_METHOD.POST, bucketName, objectKey, requestParameters);
+        HttpUriRequest postMethod = setupConnection(
+            HTTP_METHOD.POST, 
+            bucketName, 
+            objectKey, 
+            requestParameters);
 
         Map<String, Object> renamedMetadata = renameMetadataKeys(metadata);
         addMetadataToHeaders(postMethod, renamedMetadata);
 
         if (requestEntity != null) {
-            ((PostMethod)postMethod).setRequestEntity(requestEntity);
+            ((HttpPost)postMethod).setEntity(requestEntity);
         }
 
-        performRequest(postMethod, new int[] {200});
+        HttpResponse result = performRequest(postMethod, new int[] {200});
 
         if (autoRelease) {
-            postMethod.releaseConnection();
+            releaseConnection(result);
         }
 
-        return (PostMethod)postMethod;
+        return result;
     }
 
     /**
@@ -1033,31 +1092,35 @@ public abstract class RestStorageService extends StorageService implements AWSRe
      *
      * @throws org.jets3t.service.ServiceException
      */
-    protected HttpMethodBase performRestDelete(String bucketName, String objectKey,
+    protected HttpResponse performRestDelete(String bucketName, String objectKey,
         Map<String, String> requestParameters, String multiFactorSerialNumber,
         String multiFactorAuthCode) throws ServiceException
     {
-        HttpMethodBase httpMethod = setupConnection(
-            HTTP_METHOD.DELETE, bucketName, objectKey, requestParameters);
-
+        
+        HttpUriRequest httpMethod = setupConnection(
+                HTTP_METHOD.DELETE,
+                bucketName,
+                objectKey,
+                requestParameters);
+        
         // Set Multi-Factor Serial Number and Authentication code if provided.
         if (multiFactorSerialNumber != null || multiFactorAuthCode != null) {
-            httpMethod.setRequestHeader(Constants.AMZ_MULTI_FACTOR_AUTH_CODE,
+            httpMethod.setHeader(Constants.AMZ_MULTI_FACTOR_AUTH_CODE,
                 multiFactorSerialNumber + " " + multiFactorAuthCode);
         }
 
-        performRequest(httpMethod, new int[] {204, 200});
+        HttpResponse result = performRequest(httpMethod, new int[] {204, 200});
 
         // Release connection after DELETE (there's no response content)
         if (log.isDebugEnabled()) {
             log.debug("Releasing HttpMethod after delete");
         }
-        httpMethod.releaseConnection();
+        releaseConnection(result);
 
-        return httpMethod;
+        return result;
     }
 
-    protected HttpMethodAndByteCount performRestPutWithXmlBuilder(String bucketName,
+    protected HttpResponseAndByteCount performRestPutWithXmlBuilder(String bucketName,
         String objectKey, Map<String, Object> metadata, Map<String, String> requestParameters,
         XMLBuilder builder) throws ServiceException
     {
@@ -1070,7 +1133,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             }
             String xml = builder.asString(null);
             return performRestPut(bucketName, objectKey, metadata, requestParameters,
-                new StringRequestEntity(xml, "text/plain", Constants.DEFAULT_ENCODING), true);
+                new StringEntity(xml, "text/plain", Constants.DEFAULT_ENCODING), true);
         } catch (Exception e) {
             if (e instanceof ServiceException) {
                 throw (ServiceException) e;
@@ -1080,7 +1143,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         }
     }
 
-    protected HttpMethodBase performRestPostWithXmlBuilder(String bucketName,
+    protected HttpResponse performRestPostWithXmlBuilder(String bucketName,
         String objectKey, Map<String, Object> metadata, Map<String, String> requestParameters,
         XMLBuilder builder) throws ServiceException
     {
@@ -1093,7 +1156,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             }
             String xml = builder.asString(null);
             return performRestPost(bucketName, objectKey, metadata, requestParameters,
-                new StringRequestEntity(xml, "text/plain", Constants.DEFAULT_ENCODING), false);
+                new StringEntity(xml, "text/plain", Constants.DEFAULT_ENCODING), false);
         } catch (Exception e) {
             if (e instanceof ServiceException) {
                 throw (ServiceException) e;
@@ -1103,6 +1166,46 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         }
     }
 
+    /**
+     * Return the S3 end point to use in the target URI.
+     * <P>
+     * The default end point is 's3.amazonaws.com' unless changed via property
+     * "s3service.s3-endpoint".
+     * 
+     * @param bucketName is the name of the target bucket
+     * @return the S3 end point.
+     * @see #setupConnection(String, String, String, Map)
+     */
+    protected String getS3EndPoint(String bucketName) throws ServiceException {
+        return this.jets3tProperties.getStringProperty(
+                "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
+    }
+
+    /**
+     * Return the S3 host name to use.
+     * <P>
+     * By default this return a value of the form "my-bucket.s3.amazonaws.com". <br>
+     * If the property "s3service.disable-dns-buckets" is set to true or the 
+     * name of the bucket is not valid against DNS naming rules, this will 
+     * simply return the s3 end point. <br>
+     * The method {@link #setupConnection(String, String, String, Map)} will 
+     * take the presence of the bucket name into account to generate the correct
+     * resource path on the server. 
+     * 
+     * @param bucketName is the name of the target bucket
+     * @param s3EndPoint is the S3 end point - see {@link #getS3EndPoint(String)}
+     * @return the S3 host name.
+     * @see #setupConnection(String, String, String, Map)
+     */
+    protected String generateS3HostnameForBucket(String bucketName, String s3EndPoint){
+        boolean disableDnsBuckets = jets3tProperties.getBoolProperty(
+                "s3service.disable-dns-buckets", false);
+        return ServiceUtils.generateS3HostnameForBucket(
+                bucketName,
+                disableDnsBuckets,
+                s3EndPoint);
+    }
+    
     /**
      * Creates an {@link org.apache.commons.httpclient.HttpMethod} object to handle a particular connection method.
      *
@@ -1117,23 +1220,22 @@ public abstract class RestStorageService extends StorageService implements AWSRe
      *
      * @throws org.jets3t.service.ServiceException
      */
-    protected HttpMethodBase setupConnection(HTTP_METHOD method, String bucketName,
+    protected HttpUriRequest setupConnection(HTTP_METHOD method, String bucketName,
         String objectKey, Map<String, String> requestParameters) throws ServiceException
     {
         if (bucketName == null) {
             throw new ServiceException("Cannot connect to S3 Service with a null path");
         }
 
-        boolean disableDnsBuckets = this.getDisableDnsBuckets();
-        String s3Endpoint = this.getEndpoint();
-        String hostname = ServiceUtils.generateS3HostnameForBucket(bucketName, disableDnsBuckets, s3Endpoint);
+        String s3EndPoint = getS3EndPoint(bucketName); 
+        String hostname = generateS3HostnameForBucket(bucketName, s3EndPoint); 
 
         // Allow for non-standard virtual directory paths on the server-side
         String virtualPath = this.getVirtualPath();
 
         // Determine the resource string (ie the item's path in S3, including the bucket name)
         String resourceString = "/";
-        if (hostname.equals(s3Endpoint) && bucketName.length() > 0) {
+        if (hostname.equals(s3EndPoint) && bucketName.length() > 0) {
             resourceString += bucketName + "/";
         }
         resourceString += (objectKey != null? RestUtils.encodeUrlString(objectKey) : "");
@@ -1154,34 +1256,48 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         // Add additional request parameters to the URL for special cases (eg ACL operations)
         url = addRequestParametersToUrlPath(url, requestParameters);
 
-        HttpMethodBase httpMethod = null;
+        HttpUriRequest httpMethod = null;
         if (HTTP_METHOD.PUT.equals(method)) {
-            httpMethod = new PutMethod(url);
+            httpMethod = new HttpPut(url);
         } else if (HTTP_METHOD.POST.equals(method)) {
-            httpMethod = new PostMethod(url);
+            httpMethod = new HttpPost(url);
         } else if (HTTP_METHOD.HEAD.equals(method)) {
-            httpMethod = new HeadMethod(url);
+            httpMethod = new HttpHead(url);
         } else if (HTTP_METHOD.GET.equals(method)) {
-            httpMethod = new GetMethod(url);
+            httpMethod = new HttpGet(url);
         } else if (HTTP_METHOD.DELETE.equals(method)) {
-            httpMethod = new DeleteMethod(url);
+            httpMethod = new HttpDelete(url);
         } else {
             throw new IllegalArgumentException("Unrecognised HTTP method name: " + method);
         }
 
         // Set mandatory Request headers.
-        if (httpMethod.getRequestHeader("Date") == null) {
-            httpMethod.setRequestHeader("Date", ServiceUtils.formatRfc822Date(
-                getCurrentTimeWithOffset()));
+        if (httpMethod.getFirstHeader("Date") == null) {
+            httpMethod.setHeader(
+                    "Date", 
+                    ServiceUtils.formatRfc822Date(getCurrentTimeWithOffset()));
         }
-        if (httpMethod.getRequestHeader("Content-Type") == null) {
-            httpMethod.setRequestHeader("Content-Type", "");
+        if (httpMethod.getFirstHeader("Content-Type") == null) {
+            httpMethod.setHeader("Content-Type", "");
         }
 
         return httpMethod;
     }
 
 
+    private void releaseConnection(HttpResponse pResponse){
+        if (pResponse == null){
+            return;
+        }
+        try {
+            // replace later by
+            //EntityUtils.consume(pResponse.getEntity());
+            pResponse.getEntity().consumeContent();
+        } catch (Exception e){
+            //ignore
+        }
+    }
+    
     ////////////////////////////////////////////////////////////////
     // Methods below this point implement S3Service abstract methods
     ////////////////////////////////////////////////////////////////
@@ -1192,15 +1308,14 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             log.debug("Checking existence of bucket: " + bucketName);
         }
 
-        HttpMethodBase httpMethod = null;
+        HttpResponse httpResponse = null;
 
         try {
             // Ensure bucket exists and is accessible by performing a HEAD request
-            httpMethod = performRestHead(bucketName, null, null, null);
+            httpResponse = performRestHead(bucketName, null, null, null);
 
-            // This request may return an XML document that we're not interested in. Clean this up.
-            if (httpMethod.getResponseBodyAsStream() != null) {
-                httpMethod.getResponseBodyAsStream().close();
+            if (httpResponse.getEntity().getContent() != null) {
+                httpResponse.getEntity().consumeContent();
             }
         } catch (ServiceException e) {
             if (log.isDebugEnabled()) {
@@ -1215,9 +1330,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             if (log.isDebugEnabled()) {
                 log.debug("Releasing un-wanted bucket HEAD response");
             }
-            if (httpMethod != null) {
-                httpMethod.releaseConnection();
-            }
+            releaseConnection(httpResponse);
         }
 
         // If we get this far, the bucket exists.
@@ -1230,17 +1343,17 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             log.debug("Checking availability of bucket name: " + bucketName);
         }
 
-        HttpMethodBase httpMethod = null;
+        HttpResponse httpResponse = null;
 
         // This request may return an XML document that we're not interested in. Clean this up.
         try {
             // Test bucket's status by performing a HEAD request against it.
             Map<String, String> params = new HashMap<String, String>();
             params.put("max-keys", "0");
-            httpMethod = performRestHead(bucketName, null, params, null);
+            httpResponse = performRestHead(bucketName, null, params, null);
 
-            if (httpMethod.getResponseBodyAsStream() != null) {
-                httpMethod.getResponseBodyAsStream().close();
+            if (httpResponse.getEntity().getContent() != null) {
+                httpResponse.getEntity().consumeContent();
             }
         } catch (ServiceException e) {
             if (e.getResponseCode() == 403) {
@@ -1265,9 +1378,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             if (log.isDebugEnabled()) {
                 log.debug("Releasing un-wanted bucket HEAD response");
             }
-            if (httpMethod != null) {
-                httpMethod.releaseConnection();
-            }
+            releaseConnection(httpResponse);
         }
 
         // If we get this far, the bucket exists and you own it.
@@ -1282,8 +1393,8 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         }
 
         String bucketName = ""; // Root path of S3 service lists the user's buckets.
-        HttpMethodBase httpMethod =  performRestGet(bucketName, null, null, null);
-        String contentType = httpMethod.getResponseHeader("Content-Type").getValue();
+        HttpResponse httpResponse =  performRestGet(bucketName, null, null, null);
+        String contentType = httpResponse.getFirstHeader("Content-Type").getValue();
 
         if (!isXmlContentType(contentType)) {
             throw new ServiceException("Expected XML document response from S3 but received content type " +
@@ -1292,7 +1403,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
 
         StorageBucket[] buckets = getXmlResponseSaxParser()
             .parseListMyBucketsResponse(
-                new HttpMethodReleaseInputStream(httpMethod)).getBuckets();
+                new HttpMethodReleaseInputStream(httpResponse)).getBuckets();
         return buckets;
     }
 
@@ -1304,8 +1415,8 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         }
 
         String bucketName = ""; // Root path of S3 service lists the user's buckets.
-        HttpMethodBase httpMethod =  performRestGet(bucketName, null, null, null);
-        String contentType = httpMethod.getResponseHeader("Content-Type").getValue();
+        HttpResponse httpResponse =  performRestGet(bucketName, null, null, null);
+        String contentType = httpResponse.getFirstHeader("Content-Type").getValue();
 
         if (!isXmlContentType(contentType)) {
             throw new ServiceException("Expected XML document response from S3 but received content type " +
@@ -1314,7 +1425,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
 
         StorageOwner owner = getXmlResponseSaxParser()
             .parseListMyBucketsResponse(
-                new HttpMethodReleaseInputStream(httpMethod)).getOwner();
+                new HttpMethodReleaseInputStream(httpResponse)).getOwner();
         return owner;
     }
 
@@ -1364,13 +1475,13 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                 parameters.remove("marker");
             }
 
-            HttpMethodBase httpMethod = performRestGet(bucketName, null, parameters, null);
+            HttpResponse httpResponse = performRestGet(bucketName, null, parameters, null);
             ListBucketHandler listBucketHandler = null;
 
             try {
                 listBucketHandler = getXmlResponseSaxParser()
                     .parseListBucketResponse(
-                        new HttpMethodReleaseInputStream(httpMethod));
+                        new HttpMethodReleaseInputStream(httpResponse));
                 ioErrorRetryCount = 0;
             } catch (ServiceException e) {
                 if (e.getCause() instanceof IOException && ioErrorRetryCount < 5) {
@@ -1453,10 +1564,10 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         Map<String, String> requestParameters = new HashMap<String, String>();
         requestParameters.put("acl","");
 
-        HttpMethodBase httpMethod = performRestGet(bucketName, objectKey, requestParameters, null);
+        HttpResponse httpResponse = performRestGet(bucketName, objectKey, requestParameters, null);
         return getXmlResponseSaxParser()
             .parseAccessControlListResponse(
-                new HttpMethodReleaseInputStream(httpMethod)).getAccessControlList();
+                new HttpMethodReleaseInputStream(httpResponse)).getAccessControlList();
     }
 
     @Override
@@ -1474,10 +1585,10 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             requestParameters.put("versionId", versionId);
         }
 
-        HttpMethodBase httpMethod = performRestGet(bucketName, objectKey, requestParameters, null);
+        HttpResponse httpResponse = performRestGet(bucketName, objectKey, requestParameters, null);
         return getXmlResponseSaxParser()
             .parseAccessControlListResponse(
-                new HttpMethodReleaseInputStream(httpMethod)).getAccessControlList();
+                new HttpMethodReleaseInputStream(httpResponse)).getAccessControlList();
     }
 
     @Override
@@ -1489,10 +1600,10 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         Map<String, String> requestParameters = new HashMap<String, String>();
         requestParameters.put("acl","");
 
-        HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
+        HttpResponse httpResponse = performRestGet(bucketName, null, requestParameters, null);
         return getXmlResponseSaxParser()
             .parseAccessControlListResponse(
-                new HttpMethodReleaseInputStream(httpMethod)).getAccessControlList();
+                new HttpMethodReleaseInputStream(httpResponse)).getAccessControlList();
     }
 
     @Override
@@ -1530,7 +1641,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             String aclAsXml = acl.toXml();
             metadata.put("Content-Length", String.valueOf(aclAsXml.length()));
             performRestPut(bucketName, objectKey, metadata, requestParameters,
-                new StringRequestEntity(aclAsXml, "text/plain", Constants.DEFAULT_ENCODING),
+                new StringEntity(aclAsXml, "text/plain", Constants.DEFAULT_ENCODING),
                 true);
         } catch (UnsupportedEncodingException e) {
             throw new ServiceException("Unable to encode ACL XML document", e);
@@ -1546,7 +1657,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         }
 
         Map<String, Object> metadata = new HashMap<String, Object>();
-        RequestEntity requestEntity = null;
+        HttpEntity requestEntity = null;
 
         if (location != null && !"US".equalsIgnoreCase(location)) {
             metadata.put("Content-Type", "text/xml");
@@ -1554,7 +1665,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                 CreateBucketConfiguration config = new CreateBucketConfiguration(location);
                 String configXml = config.toXml();
                 metadata.put("Content-Length", String.valueOf(configXml.length()));
-                requestEntity = new StringRequestEntity(configXml, "text/xml", Constants.DEFAULT_ENCODING);
+                requestEntity = new StringEntity(configXml, "text/xml", Constants.DEFAULT_ENCODING);
             } catch (Exception e) {
                 throw new ServiceException("Unable to encode CreateBucketConfiguration XML document", e);
             }
@@ -1578,6 +1689,22 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         performRestDelete(bucketName, null, null, null, null);
     }
 
+    protected boolean isLiveMD5HashingRequired(StorageObject object){
+        // We do not need to calculate the data MD5 hash during upload if the
+        // expected hash value was provided as the object's Content-MD5 header.
+        boolean result = object.getMetadata(
+                S3Object.METADATA_HEADER_CONTENT_MD5) == null;
+        if (result){
+            boolean disableLiveMd5 = jets3tProperties.getBoolProperty(
+                    "s3service.disable-live-md5", 
+                    false);
+            if (disableLiveMd5){
+                result = false;
+            }
+        }
+        return result;
+    }
+
     /**
      * Beware of high memory requirements when creating large S3 objects when the Content-Length
      * is not set in the object.
@@ -1589,43 +1716,39 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             log.debug("Creating Object with key " + object.getKey() + " in bucket " + bucketName);
         }
 
-        // We do not need to calculate the data MD5 hash during upload if the
-        // expected hash value was provided as the object's Content-MD5 header.
-        boolean isLiveMD5HashingRequired =
-            (object.getMetadata(StorageObject.METADATA_HEADER_CONTENT_MD5) == null);
+        HttpEntity requestEntity = null;
 
-        RequestEntity requestEntity = null;
         if (object.getDataInputStream() != null) {
             if (object.containsMetadata(StorageObject.METADATA_HEADER_CONTENT_LENGTH)) {
                 if (log.isDebugEnabled()) {
                     log.debug("Uploading object data with Content-Length: " + object.getContentLength());
                 }
-                requestEntity = new RepeatableRequestEntity(object.getKey(),
-                    object.getDataInputStream(), object.getContentType(), object.getContentLength(),
-                    this.jets3tProperties, isLiveMD5HashingRequired);
-            } else {
+                requestEntity = new RepeatableRequestEntity(
+                        object.getKey(),
+                        object.getDataInputStream(),
+                        object.getContentType(),
+                        object.getContentLength(),
+                        this.jets3tProperties,
+                        isLiveMD5HashingRequired(object));
+             } else {
                 // Use InputStreamRequestEntity for objects with an unknown content length, as the
                 // entity will cache the results and doesn't need to know the data length in advance.
                 if (log.isWarnEnabled()) {
                     log.warn("Content-Length of data stream not set, will automatically determine data length in memory");
                 }
-                requestEntity = new InputStreamRequestEntity(
-                    object.getDataInputStream(), InputStreamRequestEntity.CONTENT_LENGTH_AUTO);
+                requestEntity = new InputStreamEntity(
+                        object.getDataInputStream(),
+                        -1);
             }
         }
-
-        this.putObjectWithRequestEntityImpl(bucketName, object, requestEntity, null);
+        putObjectWithRequestEntityImpl(bucketName, object, requestEntity, null);
 
         return object;
     }
 
     protected void putObjectWithRequestEntityImpl(String bucketName, StorageObject object,
-        RequestEntity requestEntity, Map<String, String> requestParams) throws ServiceException
+        HttpEntity requestEntity, Map<String, String> requestParams) throws ServiceException
     {
-        // We do not need to calculate the data MD5 hash during upload if the
-        // expected hash value was provided as the object's Content-MD5 header.
-        boolean isLiveMD5HashingRequired =
-            (object.getMetadata(StorageObject.METADATA_HEADER_CONTENT_MD5) == null);
 
         Map<String, Object> map = createObjectImpl(bucketName, object.getKey(),
             object.getContentType(), requestEntity, object.getMetadataMap(),
@@ -1648,7 +1771,14 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         // Note that we can only confirm the data if we used a RepeatableRequestEntity to
         // upload it, if the user did not provide a content length with the original
         // object we are SOL.
-        if (isLiveMD5HashingRequired && requestEntity instanceof RepeatableRequestEntity) {
+        boolean md5Verify = 
+            isLiveMD5HashingRequired(object) && 
+            requestEntity instanceof RepeatableRequestEntity;
+        if (log.isTraceEnabled()) {
+            log.trace("Will " + (md5Verify ? "" : "NOT ")
+                    + "verify expected and actual e-tag values.");
+        }
+        if (md5Verify) {
             // Obtain locally-calculated MD5 hash from request entity.
             String hexMD5OfUploadedData = ServiceUtils.toHex(
                 ((RepeatableRequestEntity)requestEntity).getMD5DigestOfData());
@@ -1657,7 +1787,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
     }
 
     protected Map<String, Object> createObjectImpl(String bucketName, String objectKey, String contentType,
-        RequestEntity requestEntity, Map<String, Object> metadata,
+        HttpEntity requestEntity, Map<String, Object> metadata,
         Map<String, String> requestParams, AccessControlList acl, String storageClass)
         throws ServiceException
     {
@@ -1674,12 +1804,8 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         }
 
         // Apply per-object or default storage class when uploading object,
-        // unless object is part of a multipart upload
-        if (requestParams == null || !requestParams.containsKey("uploadId")) {
-            prepareStorageClass(metadata, storageClass, objectKey);
-        }
-
-        boolean isExtraAclPutRequired = !prepareCannedAcl(metadata, acl);
+        prepareStorageClass(metadata, storageClass, true, objectKey);
+        boolean isExtraAclPutRequired = !prepareStandardAcl(metadata, acl);
 
         if (log.isDebugEnabled()) {
             log.debug("Creating object bucketName=" + bucketName +
@@ -1692,15 +1818,15 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                 );
         }
 
-        HttpMethodAndByteCount methodAndByteCount = performRestPut(
+        HttpResponseAndByteCount methodAndByteCount = performRestPut(
             bucketName, objectKey, metadata, requestParams, requestEntity, true);
 
         // Consume response content.
-        HttpMethodBase httpMethod = methodAndByteCount.getHttpMethod();
+        HttpResponse httpResponse = methodAndByteCount.getHttpResponse();
 
         Map<String, Object> map = new HashMap<String, Object>();
         map.putAll(metadata); // Keep existing metadata.
-        map.putAll(convertHeadersToMap(httpMethod.getResponseHeaders()));
+        map.putAll(convertHeadersToMap(httpResponse.getAllHeaders()));
         map.put(StorageObject.METADATA_HEADER_CONTENT_LENGTH, String.valueOf(methodAndByteCount.getByteCount()));
         map = ServiceUtils.cleanRestMetadataMap(
             map, this.getRestHeaderPrefix(), this.getRestMetadataPrefix());
@@ -1714,21 +1840,23 @@ public abstract class RestStorageService extends StorageService implements AWSRe
 
         return map;
     }
-
+    
     /**
-     * Prepares the metadata with a canned representation of the given ACL, if
+     * Prepares the metadata with the given ACL
      * an ACL is provided and can be represented with a HTTP header.
-     *
+     * 
      * @param metadata
      * @param acl
-     * @return
+     * @return true if no acl or standard, false otherwise
      * false if an ACL was provided but it could not be applied as a canned ACL.
      */
-    protected boolean prepareCannedAcl(Map<String, Object> metadata, AccessControlList acl) {
+    protected boolean prepareStandardAcl(
+            Map<String, Object> metadata,
+            AccessControlList acl){
+        if (metadata == null){
+            throw new IllegalArgumentException("Null metadata not allowed.");
+        }
         if (acl != null) {
-            if (metadata == null) {
-                throw new IllegalArgumentException("Null metadata not allowed.");
-            }
             String restHeaderAclValue = acl.getValueForRESTHeaderACL();
             if (restHeaderAclValue != null) {
                 metadata.put(this.getRestHeaderPrefix() + "acl", restHeaderAclValue);
@@ -1738,21 +1866,23 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         }
         return true;
     }
-
-    protected void prepareStorageClass(Map<String, Object> metadata, String storageClass,
-        String objectKey)
-    {
+    
+    protected void prepareStorageClass(
+            Map<String, Object> metadata,
+            String storageClass,
+            boolean useDefaultStorageClass,
+            String objectKey) {
+        if (metadata == null){
+            throw new IllegalArgumentException("Null metadata not allowed.");
+        }
         if (getEnableStorageClasses()) {
-            if (metadata == null) {
-                throw new IllegalArgumentException("Null metadata not allowed.");
-            }
-            if (storageClass == null && this.defaultStorageClass != null) {
+            if (storageClass == null && useDefaultStorageClass && this.defaultStorageClass != null) {
                 // Apply default storage class
                 storageClass = this.defaultStorageClass;
                 log.debug("Applied default storage class '" + storageClass
                     + "' to object '" + objectKey + "'");
             }
-            if (storageClass != null) {
+            if (storageClass != null){
                 metadata.put(this.getRestHeaderPrefix() + "storage-class", storageClass);
             }
         }
@@ -1781,9 +1911,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
 
         metadata.put(this.getRestHeaderPrefix() + "copy-source", sourceKey);
 
-        if (destinationObjectStorageClass != null) {
-            prepareStorageClass(metadata, destinationObjectStorageClass, destinationObjectKey);
-        }
+        prepareStorageClass(metadata, destinationObjectStorageClass, false, destinationObjectKey);
 
         if (destinationMetadata != null) {
             metadata.put(this.getRestHeaderPrefix() + "metadata-directive", "REPLACE");
@@ -1797,7 +1925,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             metadata.put(this.getRestHeaderPrefix() + "metadata-directive", "COPY");
         }
 
-        boolean isExtraAclPutRequired = !prepareCannedAcl(metadata, acl);
+        boolean isExtraAclPutRequired = !prepareStandardAcl(metadata, acl);
 
         if (ifModifiedSince != null) {
             metadata.put(this.getRestHeaderPrefix() + "copy-source-if-modified-since",
@@ -1828,16 +1956,16 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             }
         }
 
-        HttpMethodAndByteCount methodAndByteCount = performRestPut(
+        HttpResponseAndByteCount methodAndByteCount = performRestPut(
             destinationBucketName, destinationObjectKey, metadata, null, null, false);
 
         CopyObjectResultHandler handler = getXmlResponseSaxParser()
             .parseCopyObjectResponse(
-                new HttpMethodReleaseInputStream(methodAndByteCount.getHttpMethod()));
+                new HttpMethodReleaseInputStream(methodAndByteCount.getHttpResponse()));
 
         // Release HTTP connection manually. This should already have been done by the
         // HttpMethodReleaseInputStream class, but you can never be too sure...
-        methodAndByteCount.getHttpMethod().releaseConnection();
+        releaseConnection(methodAndByteCount.getHttpResponse());
 
         if (handler.isErrorResponse()) {
             throw new ServiceException(
@@ -1854,7 +1982,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
         map.put("ETag", handler.getETag());
 
         // Include response headers in result map.
-        map.putAll(convertHeadersToMap(methodAndByteCount.getHttpMethod().getResponseHeaders()));
+        map.putAll(convertHeadersToMap(methodAndByteCount.getHttpResponse().getAllHeaders()));
         map = ServiceUtils.cleanRestMetadataMap(
             map, this.getRestHeaderPrefix(), this.getRestMetadataPrefix());
 
@@ -1945,15 +2073,15 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             requestParameters.put("versionId", versionId);
         }
 
-        HttpMethodBase httpMethod = null;
+        HttpResponse httpResponse = null;
         if (headOnly) {
-            httpMethod = performRestHead(bucketName, objectKey, requestParameters, requestHeaders);
+            httpResponse = performRestHead(bucketName, objectKey, requestParameters, requestHeaders);
         } else {
-            httpMethod = performRestGet(bucketName, objectKey, requestParameters, requestHeaders);
+            httpResponse = performRestGet(bucketName, objectKey, requestParameters, requestHeaders);
         }
 
         Map<String, Object> map = new HashMap<String, Object>();
-        map.putAll(convertHeadersToMap(httpMethod.getResponseHeaders()));
+        map.putAll(convertHeadersToMap(httpResponse.getAllHeaders()));
 
         StorageObject responseObject = newObject();
         responseObject.setKey(objectKey);
@@ -1962,14 +2090,14 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             map, this.getRestHeaderPrefix(), this.getRestMetadataPrefix()));
         responseObject.setMetadataComplete(true); // Flag this object as having the complete metadata set.
         if (!headOnly) {
-            HttpMethodReleaseInputStream releaseIS = new HttpMethodReleaseInputStream(httpMethod);
+            HttpMethodReleaseInputStream releaseIS = new HttpMethodReleaseInputStream(httpResponse);
             responseObject.setDataInputStream(releaseIS);
         } else {
             // Release connection after HEAD (there's no response content)
             if (log.isDebugEnabled()) {
                 log.debug("Releasing HttpMethod after HEAD");
             }
-            httpMethod.releaseConnection();
+            releaseConnection(httpResponse);
         }
 
         return responseObject;
@@ -1999,7 +2127,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
     public S3Object putObjectWithSignedUrl(String signedPutUrl, S3Object object)
         throws ServiceException
     {
-        PutMethod putMethod = new PutMethod(signedPutUrl);
+        HttpPut putMethod = new HttpPut(signedPutUrl);
 
         Map<String, Object> renamedMetadata = renameMetadataKeys(object.getMetadataMap());
         addMetadataToHeaders(putMethod, renamedMetadata);
@@ -2012,8 +2140,8 @@ public abstract class RestStorageService extends StorageService implements AWSRe
 
         // We do not need to calculate the data MD5 hash during upload if the
         // expected hash value was provided as the object's Content-MD5 header.
-        boolean isLiveMD5HashingRequired =
-            (object.getMetadata(StorageObject.METADATA_HEADER_CONTENT_MD5) == null);
+        boolean isLiveMD5HashingRequired = isLiveMD5HashingRequired(object);
+
         String s3Endpoint = this.getEndpoint();
 
         if (object.getDataInputStream() != null) {
@@ -2021,13 +2149,13 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                 object.getDataInputStream(), object.getContentType(), object.getContentLength(),
                 this.jets3tProperties, isLiveMD5HashingRequired);
 
-            putMethod.setRequestEntity(repeatableRequestEntity);
+            putMethod.setEntity(repeatableRequestEntity);
         }
 
-        performRequest(putMethod, new int[] {200});
+        HttpResponse httpResponse = performRequest(putMethod, new int[] {200});
 
         // Consume response data and release connection.
-        putMethod.releaseConnection();
+        releaseConnection(httpResponse);
         try {
             object.closeDataInputStream();
         } catch (IOException e) {
@@ -2038,12 +2166,14 @@ public abstract class RestStorageService extends StorageService implements AWSRe
 
         try {
             StorageObject uploadedObject = ServiceUtils.buildObjectFromUrl(
-                putMethod.getURI().getHost(), putMethod.getPath(), s3Endpoint);
+                putMethod.getURI().getHost(), 
+                putMethod.getURI().getRawPath(),
+                s3Endpoint);
             uploadedObject.setBucketName(uploadedObject.getBucketName());
 
             // Add all metadata returned by S3 to uploaded object.
             Map<String, Object> map = new HashMap<String, Object>();
-            map.putAll(convertHeadersToMap(putMethod.getResponseHeaders()));
+            map.putAll(convertHeadersToMap(httpResponse.getAllHeaders()));
             uploadedObject.replaceAllMetadata(ServiceUtils.cleanRestMetadataMap(
                 map, this.getRestHeaderPrefix(), this.getRestMetadataPrefix()));
 
@@ -2056,13 +2186,11 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             if (repeatableRequestEntity != null && isLiveMD5HashingRequired) {
                 // Obtain locally-calculated MD5 hash from request entity.
                 String hexMD5OfUploadedData = ServiceUtils.toHex(
-                    (repeatableRequestEntity).getMD5DigestOfData());
+                    repeatableRequestEntity.getMD5DigestOfData());
                 verifyExpectedAndActualETagValues(hexMD5OfUploadedData, uploadedObject);
             }
 
             return (S3Object) uploadedObject;
-        } catch (URIException e) {
-            throw new ServiceException("Unable to lookup URI for object created with signed PUT", e);
         } catch (UnsupportedEncodingException e) {
             throw new ServiceException("Unable to determine name of object created with signed PUT", e);
         }
@@ -2081,11 +2209,9 @@ public abstract class RestStorageService extends StorageService implements AWSRe
      * @throws org.jets3t.service.ServiceException
      */
     public void deleteObjectWithSignedUrl(String signedDeleteUrl) throws ServiceException {
-        DeleteMethod deleteMethod = new DeleteMethod(signedDeleteUrl);
-
-        performRequest(deleteMethod, new int[] {204, 200});
-
-        deleteMethod.releaseConnection();
+        HttpDelete deleteMethod = new HttpDelete(signedDeleteUrl);
+        HttpResponse response = performRequest(deleteMethod, new int[] {204, 200});
+        releaseConnection(response);
     }
 
     /**
@@ -2143,15 +2269,15 @@ public abstract class RestStorageService extends StorageService implements AWSRe
     public AccessControlList getObjectAclWithSignedUrl(String signedAclUrl)
         throws ServiceException
     {
-        HttpMethodBase httpMethod = new GetMethod(signedAclUrl);
+        HttpGet httpMethod = new HttpGet(signedAclUrl);
 
         Map<String, Object> requestParameters = new HashMap<String, Object>();
         requestParameters.put("acl","");
 
-        performRequest(httpMethod, new int[] {200});
+        HttpResponse httpResponse = performRequest(httpMethod, new int[] {200});
         return getXmlResponseSaxParser()
             .parseAccessControlListResponse(
-                new HttpMethodReleaseInputStream(httpMethod)).getAccessControlList();
+                new HttpMethodReleaseInputStream(httpResponse)).getAccessControlList();
     }
 
     /**
@@ -2166,16 +2292,16 @@ public abstract class RestStorageService extends StorageService implements AWSRe
      * @throws org.jets3t.service.ServiceException
      */
     public void putObjectAclWithSignedUrl(String signedAclUrl, AccessControlList acl) throws ServiceException {
-        PutMethod putMethod = new PutMethod(signedAclUrl);
+        HttpPut putMethod = new HttpPut(signedAclUrl);
 
         if (acl != null) {
             String restHeaderAclValue = acl.getValueForRESTHeaderACL();
             if (restHeaderAclValue != null) {
-                putMethod.addRequestHeader(this.getRestHeaderPrefix() + "acl", restHeaderAclValue);
+                putMethod.addHeader(this.getRestHeaderPrefix() + "acl", restHeaderAclValue);
             } else {
                 try {
                     String aclAsXml = acl.toXml();
-                    putMethod.setRequestEntity(new StringRequestEntity(
+                    putMethod.setEntity(new StringEntity(
                         aclAsXml, "text/xml", Constants.DEFAULT_ENCODING));
                 } catch (UnsupportedEncodingException e) {
                     throw new ServiceException("Unable to encode ACL XML document", e);
@@ -2184,10 +2310,10 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             }
         }
 
-        performRequest(putMethod, new int[] {200});
+        HttpResponse httpResponse = performRequest(putMethod, new int[] {200});
 
         // Consume response data and release connection.
-        putMethod.releaseConnection();
+        releaseConnection(httpResponse);
     }
 
     private S3Object getObjectWithSignedUrlImpl(String signedGetOrHeadUrl, boolean headOnly)
@@ -2195,26 +2321,24 @@ public abstract class RestStorageService extends StorageService implements AWSRe
     {
         String s3Endpoint = this.getEndpoint();
 
-        HttpMethodBase httpMethod = null;
+        HttpRequestBase httpMethod = null;
         if (headOnly) {
-            httpMethod = new HeadMethod(signedGetOrHeadUrl);
+            httpMethod = new HttpHead(signedGetOrHeadUrl);
         } else {
-            httpMethod = new GetMethod(signedGetOrHeadUrl);
+            httpMethod = new HttpGet(signedGetOrHeadUrl);
         }
 
-        performRequest(httpMethod, new int[] {200});
+        HttpResponse httpResponse = performRequest(httpMethod, new int[] {200});
 
         Map<String, Object> map = new HashMap<String, Object>();
-        map.putAll(convertHeadersToMap(httpMethod.getResponseHeaders()));
+        map.putAll(convertHeadersToMap(httpResponse.getAllHeaders()));
 
         S3Object responseObject = null;
         try {
             responseObject = ServiceUtils.buildObjectFromUrl(
                 httpMethod.getURI().getHost(),
-                httpMethod.getPath().substring(1),
+                httpMethod.getURI().getRawPath().substring(1),
                 s3Endpoint);
-        } catch (URIException e) {
-            throw new ServiceException("Unable to lookup URI for object created with signed PUT", e);
         } catch (UnsupportedEncodingException e) {
             throw new ServiceException("Unable to determine name of object created with signed PUT", e);
         }
@@ -2223,14 +2347,14 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             map, this.getRestHeaderPrefix(), this.getRestMetadataPrefix()));
         responseObject.setMetadataComplete(true); // Flag this object as having the complete metadata set.
         if (!headOnly) {
-            HttpMethodReleaseInputStream releaseIS = new HttpMethodReleaseInputStream(httpMethod);
+            HttpMethodReleaseInputStream releaseIS = new HttpMethodReleaseInputStream(httpResponse);
             responseObject.setDataInputStream(releaseIS);
         } else {
             // Release connection after HEAD (there's no response content)
             if (log.isDebugEnabled()) {
                 log.debug("Releasing HttpMethod after HEAD");
             }
-            httpMethod.releaseConnection();
+            releaseConnection(httpResponse);
         }
 
         return responseObject;

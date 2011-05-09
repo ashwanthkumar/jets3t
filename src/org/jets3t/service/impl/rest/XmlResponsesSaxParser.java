@@ -1439,7 +1439,7 @@ public class XmlResponsesSaxParser {
                 + ", MinSizeAllowed=" + minSizeAllowed
                 + ", ProposedSize=" + proposedSize
                 + ", ETag=" + etag;
-            ServiceException e = new ServiceException(fullMessage);
+            ServiceException e = new S3ServiceException(fullMessage);
             e.setErrorCode(code);
             e.setErrorMessage(message);
             e.setErrorHostId(hostId);

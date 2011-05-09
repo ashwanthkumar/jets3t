@@ -47,6 +47,7 @@ public class Jets3tProperties implements Serializable {
     private static final long serialVersionUID = -822234326095333142L;
 
     private static final Log log = LogFactory.getLog(Jets3tProperties.class);
+    public static final String JETS3T_PROPERTIES_PROPERTY = "org.jets3t.service.Jets3tProperties";
 
     /**
      * Stores the jets3t properties.
@@ -54,7 +55,7 @@ public class Jets3tProperties implements Serializable {
     private static final Hashtable<String, Jets3tProperties> propertiesHashtable =
         new Hashtable<String, Jets3tProperties>();
 
-    private Properties properties = new Properties();
+    private final Properties properties = new Properties();
     private boolean loaded = false;
 
     /**

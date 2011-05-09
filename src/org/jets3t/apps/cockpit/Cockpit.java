@@ -82,16 +82,15 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumn;
 
-import org.apache.commons.httpclient.Credentials;
-import org.apache.commons.httpclient.NTCredentials;
-import org.apache.commons.httpclient.UsernamePasswordCredentials;
-import org.apache.commons.httpclient.auth.AuthScheme;
-import org.apache.commons.httpclient.auth.CredentialsNotAvailableException;
-import org.apache.commons.httpclient.auth.CredentialsProvider;
-import org.apache.commons.httpclient.auth.NTLMScheme;
-import org.apache.commons.httpclient.auth.RFC2617Scheme;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.Credentials;
+import org.apache.http.auth.NTCredentials;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+
 import org.jets3t.apps.cockpit.gui.AccessControlDialog;
 import org.jets3t.apps.cockpit.gui.BucketLoggingDialog;
 import org.jets3t.apps.cockpit.gui.BucketTableModel;
@@ -142,6 +141,7 @@ import org.jets3t.service.multithread.S3ServiceMulti;
 import org.jets3t.service.multithread.ServiceEvent;
 import org.jets3t.service.multithread.ThreadWatcher;
 import org.jets3t.service.multithread.UpdateACLEvent;
+import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.EncryptionUtil;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.ByteFormatter;
@@ -277,12 +277,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
 
     private S3Bucket currentSelectedBucket = null;
 
-    private final HashMap loginAwsCredentialsMap = new HashMap();
+    private final HashMap<String, ProviderCredentials> loginAwsCredentialsMap = new HashMap<String, ProviderCredentials>();
+    private final CredentialsProvider mCredentialProvider;
 
     /**
      * Constructor to run this application as an Applet.
      */
     public Cockpit() {
+        mCredentialProvider = new BasicCredentialsProvider();
     }
 
     /**
@@ -292,6 +294,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * @throws S3ServiceException
      */
     public Cockpit(JFrame ownerFrame) throws S3ServiceException {
+        this();
         this.ownerFrame = ownerFrame;
         isStandAloneApplication = true;
         init();
@@ -1367,7 +1370,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                     startProgressDialog("Checking for CloudFront account membership");
                     try {
                         cloudFrontService = new CloudFrontService(
-                            s3ServiceMulti.getAWSCredentials(), APPLICATION_DESCRIPTION, myself, null, null);
+                            s3ServiceMulti.getAWSCredentials(), APPLICATION_DESCRIPTION, myself, null);
                         cloudFrontService.listDistributions();
                     } catch (CloudFrontServiceException e) {
                         stopProgressDialog();
@@ -2981,6 +2984,14 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         }
     }
 
+    public void setCredentials(AuthScope authscope, Credentials credentials) {
+        mCredentialProvider.setCredentials(authscope, credentials);
+    }
+
+    public void clear() {
+        mCredentialProvider.clear();
+    }
+    
     /**
      * Implementation method for the CredentialsProvider interface.
      * <p>
@@ -2988,41 +2999,61 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
      * <a href="http://svn.apache.org/viewvc/jakarta/commons/proper/httpclient/trunk/src/examples/InteractiveAuthenticationExample.java?view=markup">InteractiveAuthenticationExample</a>
      *
      */
-    public Credentials getCredentials(AuthScheme authscheme, String host, int port, boolean proxy) throws CredentialsNotAvailableException {
-        if (authscheme == null) {
+    public Credentials getCredentials(AuthScope scope) {
+        if (scope == null || scope.getScheme() == null) {
             return null;
         }
+        Credentials credentials = mCredentialProvider.getCredentials(scope);
+        if (credentials!=null){
+            return credentials;
+        }
         try {
-            Credentials credentials = null;
-
-            if (authscheme instanceof NTLMScheme) {
-                AuthenticationDialog pwDialog = new AuthenticationDialog(
-                    ownerFrame, "Authentication Required",
-                    "<html>Host <b>" + host + ":" + port + "</b> requires Windows authentication</html>", true);
+            if (scope.getScheme().equals("ntlm")) {
+                //if (authscheme instanceof NTLMScheme) {
+                AuthenticationDialog pwDialog = new AuthenticationDialog(ownerFrame,
+                        "Authentication Required",
+                        "<html>Host <b>" + scope.getHost() + ":"
+                                + scope.getPort()
+                                + "</b> requires Windows authentication</html>",
+                        true);
                 pwDialog.setVisible(true);
                 if (pwDialog.getUser().length() > 0) {
-                    credentials = new NTCredentials(pwDialog.getUser(), pwDialog.getPassword(),
-                        host, pwDialog.getDomain());
+                    credentials = new NTCredentials(
+                            pwDialog.getUser(),
+                            pwDialog.getPassword(),
+                            scope.getHost(),
+                            pwDialog.getDomain());
                 }
                 pwDialog.dispose();
-            } else
-            if (authscheme instanceof RFC2617Scheme) {
-                AuthenticationDialog pwDialog = new AuthenticationDialog(
-                    ownerFrame, "Authentication Required",
-                    "<html><center>Host <b>" + host + ":" + port + "</b>"
-                    + " requires authentication for the realm:<br><b>" + authscheme.getRealm() + "</b></center></html>", false);
+            } else if (scope.getScheme().equals("basic")
+                    || scope.getScheme().equals("digest")) {
+                //if (authscheme instanceof RFC2617Scheme) {
+                AuthenticationDialog pwDialog = new AuthenticationDialog(ownerFrame,
+                        "Authentication Required",
+                        "<html><center>Host <b>"
+                                + scope.getHost()
+                                + ":"
+                                + scope.getPort()
+                                + "</b>"
+                                + " requires authentication for the realm:<br><b>"
+                                + scope.getRealm() + "</b></center></html>",
+                        false);
                 pwDialog.setVisible(true);
                 if (pwDialog.getUser().length() > 0) {
-                    credentials = new UsernamePasswordCredentials(pwDialog.getUser(), pwDialog.getPassword());
+                    credentials = new UsernamePasswordCredentials(pwDialog.getUser(),
+                            pwDialog.getPassword());
                 }
                 pwDialog.dispose();
             } else {
-                throw new CredentialsNotAvailableException("Unsupported authentication scheme: " +
-                    authscheme.getSchemeName());
+                throw new IllegalArgumentException("Unsupported authentication scheme: "
+                        + scope.getScheme());
+            }
+            if (credentials != null){
+                mCredentialProvider.setCredentials(scope, credentials);
             }
             return credentials;
-        } catch (IOException e) {
-            throw new CredentialsNotAvailableException(e.getMessage(), e);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e.getMessage(), e);
         }
     }
 

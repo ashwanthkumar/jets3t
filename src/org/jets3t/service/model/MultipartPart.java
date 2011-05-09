@@ -18,6 +18,7 @@
  */
 package org.jets3t.service.model;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
 
@@ -28,23 +29,23 @@ import java.util.Date;
  * @author James Murty
  */
 public class MultipartPart {
-    private Integer partNumber;
-    private Date lastModified;
-    private String etag;
-    private Long size;
+    private final Integer partNumber;
+    private final Date lastModified;
+    private final String etag;
+    private final Long size;
 
     public MultipartPart(Integer partNumber, Date lastModified, String etag, Long size)
     {
-        if (partNumber == null) {
+        if (partNumber == null){
             throw new IllegalArgumentException("Null part number not allowed.");
         }
-        if (lastModified == null) {
+        if (lastModified == null){
             throw new IllegalArgumentException("Null last modified not allowed.");
         }
-        if (etag == null) {
+        if (etag == null){
             throw new IllegalArgumentException("Null etag not allowed.");
         }
-        if (size == null) {
+        if (size == null){
             throw new IllegalArgumentException("Null size not allowed.");
         }
         this.partNumber = partNumber;
@@ -61,12 +62,22 @@ public class MultipartPart {
         }
         if (other instanceof MultipartPart) {
             MultipartPart p = (MultipartPart) other;
-            return this.partNumber.equals(p.partNumber)
-                && this.lastModified.equals(p.lastModified)
-                && this.size.equals(p.size)
-                && this.etag.equals(p.etag);
+            return Arrays.equals(
+                    new Object[]{ partNumber, lastModified, size}, 
+                    new Object[]{ p.partNumber, p.lastModified, p.size} ) &&
+                    sameEtag(p.etag);
         }
         return false;
+    }
+    
+    private boolean sameEtag(String pEtag){
+        if (etag==pEtag){
+            return true;
+        }
+        if (etag == null){
+            return false;
+        }
+        return etag.equals(pEtag) || ("\""+etag+"\"").equals(pEtag);
     }
 
     @Override
@@ -95,14 +106,18 @@ public class MultipartPart {
         return lastModified;
     }
 
-    public static class PartNumberComparator implements Comparator<MultipartPart> {
-        public int compare(MultipartPart o1, MultipartPart o2) {
-            if (o1 == o2) {
+    public static class PartNumberComparator implements Comparator<MultipartPart>{
+        public int compare(MultipartPart o1, MultipartPart o2){
+            if (o1 == o2){
                 return 0;
-            } else {
-                return o1.getPartNumber().compareTo(o2.getPartNumber());
             }
+            if (o1 == null){
+                return -1;
+            }
+            if (o2 == null){
+                return 1;
+            }
+            return o1.getPartNumber().compareTo(o2.getPartNumber());
         }
-    }
-
+    } //PartNumberComparator
 }

@@ -25,9 +25,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Random;
 
-import org.apache.commons.httpclient.methods.RequestEntity;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.Header;
+import org.apache.http.HttpEntity;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.protocol.HTTP;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.io.InputStreamWrapper;
 import org.jets3t.service.io.ProgressMonitoredInputStream;
@@ -51,8 +54,10 @@ import org.jets3t.service.utils.ServiceUtils;
  *
  * @author James Murty
  */
-public class RepeatableRequestEntity implements RequestEntity {
+public class RepeatableRequestEntity implements HttpEntity {
     private static final Log log = LogFactory.getLog(RepeatableRequestEntity.class);
+    public static final int DEFAULT_BUFFER_SIZE = 128*1024; //16384; //16 KB
+
 
     private String name = null;
     private InputStream is = null;
@@ -70,6 +75,9 @@ public class RepeatableRequestEntity implements RequestEntity {
 
     private boolean isLiveMD5HashingEnabled = true;
     private byte[] dataMD5Hash = null;
+    boolean consumed = false;
+    protected Header mContentEncoding;
+    protected boolean mChunked;
 
     /**
      * Creates a repeatable request entity for the input stream provided.
@@ -144,12 +152,40 @@ public class RepeatableRequestEntity implements RequestEntity {
     }
 
 
-    public long getContentLength() {
-      return contentLength;
+    public Header getContentEncoding() {
+        return mContentEncoding;
     }
 
-    public String getContentType() {
-        return contentType;
+    public boolean isChunked() {
+        return mChunked;
+    }
+    
+    
+    public InputStream getContent() {
+        return this.is;
+    }
+    
+    @Override
+    public void consumeContent(){
+        this.consumed = true;
+        try {
+            this.is.close();
+        } catch (Exception e){
+            // ignore
+        }
+    }
+    
+    public boolean isStreaming(){
+        return !this.consumed;
+    }    
+    
+    public long getContentLength() {
+        return contentLength;
+    }
+
+    @Override
+    public Header getContentType() {
+        return new BasicHeader(HTTP.CONTENT_TYPE, contentType);
     }
 
     /**
@@ -170,7 +206,7 @@ public class RepeatableRequestEntity implements RequestEntity {
      * data is being repeated by being reset with
      * {@link ProgressMonitoredInputStream#resetProgressMonitor()}.
      */
-    public void writeRequest(OutputStream out) throws IOException {
+    public void writeTo(final OutputStream out) throws IOException {
         if (bytesWritten > 0) {
             // This entity is being repeated.
             repeatableInputStream.reset();
@@ -197,7 +233,7 @@ public class RepeatableRequestEntity implements RequestEntity {
             }
         }
 
-        byte[] tmp = new byte[16384];
+        byte[] tmp = new byte[DEFAULT_BUFFER_SIZE];
         int count = 0;
 
         while ((count = this.is.read(tmp)) >= 0) {

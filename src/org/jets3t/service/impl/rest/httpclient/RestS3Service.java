@@ -29,14 +29,15 @@ import java.util.Map;
 import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.apache.commons.httpclient.HostConfiguration;
-import org.apache.commons.httpclient.HttpMethodBase;
-import org.apache.commons.httpclient.auth.CredentialsProvider;
-import org.apache.commons.httpclient.methods.InputStreamRequestEntity;
-import org.apache.commons.httpclient.methods.RequestEntity;
-import org.apache.commons.httpclient.methods.StringRequestEntity;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.entity.InputStreamEntity;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.util.EntityUtils;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
@@ -138,42 +139,16 @@ public class RestS3Service extends S3Service {
      * prompting for credentials when necessary.
      * @param jets3tProperties
      * JetS3t properties that will be applied within this service.
-     *
-     * @throws S3ServiceException
-     */
-    public RestS3Service(ProviderCredentials credentials, String invokingApplicationDescription,
-        CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties)
-        throws S3ServiceException
-    {
-        this(credentials, invokingApplicationDescription, credentialsProvider,
-            jets3tProperties, new HostConfiguration());
-    }
-
-    /**
-     * Constructs the service and initialises the properties.
-     *
-     * @param credentials
-     * the S3 user credentials to use when communicating with S3, may be null in which case the
-     * communication is done as an anonymous user.
-     * @param invokingApplicationDescription
-     * a short description of the application using the service, suitable for inclusion in a
-     * user agent string for REST/HTTP requests. Ideally this would include the application's
-     * version number, for example: <code>Cockpit/0.7.3</code> or <code>My App Name/1.0</code>
-     * @param credentialsProvider
-     * an implementation of the HttpClient CredentialsProvider interface, to provide a means for
-     * prompting for credentials when necessary.
-     * @param jets3tProperties
-     * JetS3t properties that will be applied within this service.
      * @param hostConfig
      * Custom HTTP host configuration; e.g to register a custom Protocol Socket Factory
      *
      * @throws S3ServiceException
      */
     public RestS3Service(ProviderCredentials credentials, String invokingApplicationDescription,
-        CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties,
-        HostConfiguration hostConfig) throws S3ServiceException
+        CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties) 
+    throws S3ServiceException
     {
-        super(credentials, invokingApplicationDescription, credentialsProvider, jets3tProperties, hostConfig);
+        super(credentials, invokingApplicationDescription, credentialsProvider, jets3tProperties);
 
         if (credentials instanceof AWSDevPayCredentials) {
             AWSDevPayCredentials awsDevPayCredentials = (AWSDevPayCredentials) credentials;
@@ -279,10 +254,10 @@ public class RestS3Service extends S3Service {
      * @throws org.jets3t.service.S3ServiceException
      */
     @Override
-    protected HttpMethodBase setupConnection(HTTP_METHOD method, String bucketName, String objectKey,
+    protected HttpUriRequest setupConnection(HTTP_METHOD method, String bucketName, String objectKey,
         Map<String, String> requestParameters) throws S3ServiceException
     {
-        HttpMethodBase httpMethod;
+        HttpUriRequest httpMethod;
         try {
             httpMethod = super.setupConnection(method, bucketName, objectKey, requestParameters);
         } catch (ServiceException se) {
@@ -294,13 +269,13 @@ public class RestS3Service extends S3Service {
             // DevPay tokens have been provided, include these with the request.
             if (getDevPayProductToken() != null) {
                 String securityToken = getDevPayUserToken() + "," + getDevPayProductToken();
-                httpMethod.setRequestHeader(Constants.AMZ_SECURITY_TOKEN, securityToken);
+                httpMethod.setHeader(Constants.AMZ_SECURITY_TOKEN, securityToken);
                 if (log.isDebugEnabled()) {
                     log.debug("Including DevPay user and product tokens in request: "
                         + Constants.AMZ_SECURITY_TOKEN + "=" + securityToken);
                 }
             } else {
-                httpMethod.setRequestHeader(Constants.AMZ_SECURITY_TOKEN, getDevPayUserToken());
+                httpMethod.setHeader(Constants.AMZ_SECURITY_TOKEN, getDevPayUserToken());
                 if (log.isDebugEnabled()) {
                     log.debug("Including DevPay user token in request: "
                         + Constants.AMZ_SECURITY_TOKEN + "=" + getDevPayUserToken());
@@ -311,7 +286,7 @@ public class RestS3Service extends S3Service {
         // Set Requester Pays header to allow access to these buckets.
         if (this.isRequesterPaysEnabled()) {
             String[] requesterPaysHeaderAndValue = Constants.REQUESTER_PAYS_BUCKET_FLAG.split("=");
-            httpMethod.setRequestHeader(requesterPaysHeaderAndValue[0], requesterPaysHeaderAndValue[1]);
+            httpMethod.setHeader(requesterPaysHeaderAndValue[0], requesterPaysHeaderAndValue[1]);
             if (log.isDebugEnabled()) {
                 log.debug("Including Requester Pays header in request: " +
                     Constants.REQUESTER_PAYS_BUCKET_FLAG);
@@ -484,9 +459,9 @@ public class RestS3Service extends S3Service {
             }
             Map<String, String> requestParams = new HashMap<String, String>();
             requestParams.put("versioning", null);
-            HttpMethodBase method = performRestGet(bucketName, null, requestParams, null);
+            HttpResponse response = performRestGet(bucketName, null, requestParams, null);
             return getXmlResponseSaxParser()
-                .parseVersioningConfigurationResponse(new HttpMethodReleaseInputStream(method));
+                .parseVersioningConfigurationResponse(new HttpMethodReleaseInputStream(response));
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }
@@ -527,9 +502,9 @@ public class RestS3Service extends S3Service {
                 parameters.remove("version-id-marker");
             }
 
-            HttpMethodBase httpMethod;
+            HttpResponse httpResponse = null;
             try {
-                httpMethod = performRestGet(bucketName, null, parameters, null);
+                httpResponse = performRestGet(bucketName, null, parameters, null);
             } catch (ServiceException se) {
                 throw new S3ServiceException(se);
             }
@@ -538,7 +513,7 @@ public class RestS3Service extends S3Service {
             try {
                 handler = getXmlResponseSaxParser()
                     .parseListVersionsResponse(
-                        new HttpMethodReleaseInputStream(httpMethod));
+                        new HttpMethodReleaseInputStream(httpResponse));
                 ioErrorRetryCount = 0;
             } catch (ServiceException se) {
                 if (se.getCause() instanceof IOException && ioErrorRetryCount < 5) {
@@ -618,10 +593,10 @@ public class RestS3Service extends S3Service {
         requestParameters.put("location", "");
 
         try {
-            HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
+            HttpResponse httpResponse = performRestGet(bucketName, null, requestParameters, null);
             return getXmlResponseSaxParser()
                 .parseBucketLocationResponse(
-                    new HttpMethodReleaseInputStream(httpMethod));
+                    new HttpMethodReleaseInputStream(httpResponse));
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }
@@ -639,10 +614,10 @@ public class RestS3Service extends S3Service {
         requestParameters.put("logging", "");
 
         try {
-            HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
+            HttpResponse httpResponse = performRestGet(bucketName, null, requestParameters, null);
             return getXmlResponseSaxParser()
                 .parseLoggingStatusResponse(
-                    new HttpMethodReleaseInputStream(httpMethod)).getBucketLoggingStatus();
+                    new HttpMethodReleaseInputStream(httpResponse)).getBucketLoggingStatus();
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }
@@ -671,7 +646,7 @@ public class RestS3Service extends S3Service {
         try {
             metadata.put("Content-Length", String.valueOf(statusAsXml.length()));
             performRestPut(bucketName, null, metadata, requestParameters,
-                new StringRequestEntity(statusAsXml, "text/plain", Constants.DEFAULT_ENCODING),
+                new StringEntity(statusAsXml, "text/plain", Constants.DEFAULT_ENCODING),
                 true);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
@@ -688,8 +663,8 @@ public class RestS3Service extends S3Service {
             Map<String, String> requestParameters = new HashMap<String, String>();
             requestParameters.put("policy", "");
 
-            HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
-            return httpMethod.getResponseBodyAsString();
+            HttpResponse httpResponse = performRestGet(bucketName, null, requestParameters, null);
+            return EntityUtils.toString(httpResponse.getEntity());
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         } catch (IOException  e) {
@@ -710,7 +685,7 @@ public class RestS3Service extends S3Service {
         try {
             metadata.put("Content-Length", String.valueOf(policyDocument.length()));
             performRestPut(bucketName, null, metadata, requestParameters,
-                new StringRequestEntity(policyDocument, "text/plain", Constants.DEFAULT_ENCODING),
+                new StringEntity(policyDocument, "text/plain", Constants.DEFAULT_ENCODING),
                 true);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
@@ -744,10 +719,10 @@ public class RestS3Service extends S3Service {
         requestParameters.put("requestPayment", "");
 
         try {
-            HttpMethodBase httpMethod = performRestGet(bucketName, null, requestParameters, null);
+            HttpResponse httpResponse = performRestGet(bucketName, null, requestParameters, null);
             return getXmlResponseSaxParser()
                 .parseRequestPaymentConfigurationResponse(
-                    new HttpMethodReleaseInputStream(httpMethod));
+                    new HttpMethodReleaseInputStream(httpResponse));
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }
@@ -775,7 +750,7 @@ public class RestS3Service extends S3Service {
 
             metadata.put("Content-Length", String.valueOf(xml.length()));
             performRestPut(bucketName, null, metadata, requestParameters,
-                new StringRequestEntity(xml, "text/plain", Constants.DEFAULT_ENCODING),
+                new StringEntity(xml, "text/plain", Constants.DEFAULT_ENCODING),
                 true);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
@@ -791,7 +766,7 @@ public class RestS3Service extends S3Service {
     {
         Map<String, String> requestParameters = new HashMap<String, String>();
         requestParameters.put("uploads", "");
-
+        
         Map<String, Object> metadata = new HashMap<String, Object>();
 
         // Use metadata provided, but ignore some items that don't make sense
@@ -804,14 +779,15 @@ public class RestS3Service extends S3Service {
         }
 
         // Apply per-object or default storage class when uploading object
-        prepareStorageClass(metadata, storageClass, objectKey);
+        prepareStorageClass(metadata, storageClass, true, objectKey);
+        boolean putNonStandardAcl = !prepareStandardAcl(metadata, acl);
 
         try {
-            HttpMethodBase postMethod = performRestPost(
+            HttpResponse httpResponse = performRestPost(
                 bucketName, objectKey, metadata, requestParameters, null, false);
             MultipartUpload multipartUpload = getXmlResponseSaxParser()
                 .parseInitiateMultipartUploadResult(
-                    new HttpMethodReleaseInputStream(postMethod));
+                    new HttpMethodReleaseInputStream(httpResponse));
             multipartUpload.setMetadata(metadata); // Add object's known metadata to result object.
             return multipartUpload;
         } catch (ServiceException se) {
@@ -842,10 +818,9 @@ public class RestS3Service extends S3Service {
         try {
             // We do not need to calculate the data MD5 hash during upload if the
             // expected hash value was provided as the object's Content-MD5 header.
-            boolean isLiveMD5HashingRequired =
-                (object.getMetadata(StorageObject.METADATA_HEADER_CONTENT_MD5) == null);
+            boolean isLiveMD5HashingRequired = isLiveMD5HashingRequired(object);
 
-            RequestEntity requestEntity = null;
+            HttpEntity requestEntity = null;
             if (object.getDataInputStream() != null) {
                 if (object.containsMetadata(StorageObject.METADATA_HEADER_CONTENT_LENGTH)) {
                     if (log.isDebugEnabled()) {
@@ -862,8 +837,8 @@ public class RestS3Service extends S3Service {
                         log.warn("Content-Length of multipart part stream not set, "
                             + "will automatically determine data length in memory");
                     }
-                    requestEntity = new InputStreamRequestEntity(
-                        object.getDataInputStream(), InputStreamRequestEntity.CONTENT_LENGTH_AUTO);
+                    requestEntity = new InputStreamEntity(
+                        object.getDataInputStream(), -1);
                 }
             }
 
@@ -911,22 +886,22 @@ public class RestS3Service extends S3Service {
                     .e("ETag").t(part.getEtag());
             }
 
-            HttpMethodBase postMethod = performRestPostWithXmlBuilder(
+                HttpResponse httpResponse = performRestPostWithXmlBuilder(
                 bucketName, objectKey, null, requestParameters, builder);
             CompleteMultipartUploadResultHandler handler = getXmlResponseSaxParser()
                 .parseCompleteMultipartUploadResult(
-                    new HttpMethodReleaseInputStream(postMethod));
+                        new HttpMethodReleaseInputStream(httpResponse));
 
             // Check whether completion actually succeeded
             if (handler.getServiceException() != null) {
                 ServiceException e = handler.getServiceException();
                 e.setResponseHeaders(RestUtils.convertHeadersToMap(
-                    postMethod.getResponseHeaders()));
+                        httpResponse.getAllHeaders()));
                 throw e;
             }
             return handler.getMultipartCompleted();
-        } catch (S3ServiceException se) {
-            throw se;
+            } catch (S3ServiceException se) {
+                throw se;
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         } catch (ParserConfigurationException e) {
@@ -937,39 +912,39 @@ public class RestS3Service extends S3Service {
     }
 
     @Override
-    protected List<MultipartUpload> multipartListUploadsImpl(String bucketName,
-        String nextKeyMarker, String nextUploadIdMarker, Integer maxUploads)
+    protected List<MultipartUpload> multipartListUploadsImpl(String bucketName, String keyMarker,
+            String uploadIdMarker, Integer maxUploads)
         throws S3ServiceException
     {
-        if (bucketName == null || bucketName.length()==0) {
+        if (bucketName == null || bucketName.length()==0){
             throw new IllegalArgumentException(
                 "The bucket name parameter must be specified when listing multipart uploads");
         }
         Map<String, String> requestParameters = new HashMap<String, String>();
         requestParameters.put("uploads", "");
-        requestParameters.put("max-uploads",
-            (maxUploads == null ? "1000" : maxUploads.toString()));
+        requestParameters.put("max-uploads",maxUploads==null ? "" : maxUploads.toString());
+        if (keyMarker != null) requestParameters.put("key-marker", keyMarker);
+        if (uploadIdMarker != null) requestParameters.put("upload-id-marker", uploadIdMarker);
 
         try {
             List<MultipartUpload> uploads = new ArrayList<MultipartUpload>();
+            String nextKeyMarker = null;
+            String nextUploadIdMarker = null;
             boolean incompleteListing = true;
             do {
                 if (nextKeyMarker != null) {
                     requestParameters.put("key-marker", nextKeyMarker);
-                } else {
-                    requestParameters.remove("key-marker");
-                }
+                } 
                 if (nextUploadIdMarker != null) {
                     requestParameters.put("upload-id-marker", nextUploadIdMarker);
-                } else {
-                    requestParameters.remove("upload-id-marker");
-                }
+                } 
 
-                HttpMethodBase getMethod = performRestGet(
-                    bucketName, null, requestParameters, null);
+                HttpResponse httpResponse = performRestGet(bucketName, null, requestParameters, null);
                 ListMultipartUploadsResultHandler handler = getXmlResponseSaxParser()
                     .parseListMultipartUploadsResult(
-                        new HttpMethodReleaseInputStream(getMethod));
+                        new HttpMethodReleaseInputStream(httpResponse));
+                requestParameters.remove("key-marker");
+                requestParameters.remove("upload-id-marker");
                 uploads.addAll(handler.getMultipartUploadList());
 
                 incompleteListing = handler.isTruncated();
@@ -1009,10 +984,10 @@ public class RestS3Service extends S3Service {
                     requestParameters.remove("part-number-marker");
                 }
 
-                HttpMethodBase getMethod = performRestGet(bucketName, objectKey, requestParameters, null);
+                HttpResponse httpResponse = performRestGet(bucketName, objectKey, requestParameters, null);
                 ListMultipartPartsResultHandler handler = getXmlResponseSaxParser()
                     .parseListMultipartPartsResult(
-                        new HttpMethodReleaseInputStream(getMethod));
+                        new HttpMethodReleaseInputStream(httpResponse));
                 parts.addAll(handler.getMultipartPartList());
 
                 incompleteListing = handler.isTruncated();
@@ -1038,7 +1013,7 @@ public class RestS3Service extends S3Service {
             Map<String, String> requestParameters = new HashMap<String, String>();
             requestParameters.put("website", "");
 
-            HttpMethodBase getMethod = performRestGet(bucketName, null, requestParameters, null);
+            HttpResponse getMethod = performRestGet(bucketName, null, requestParameters, null);
             return getXmlResponseSaxParser().parseWebsiteConfigurationResponse(
                 new HttpMethodReleaseInputStream(getMethod));
         } catch (ServiceException se) {
@@ -1065,7 +1040,7 @@ public class RestS3Service extends S3Service {
         try {
             metadata.put("Content-Length", xml.length());
             performRestPut(bucketName, null, metadata, requestParameters,
-                new StringRequestEntity(xml, "text/plain", Constants.DEFAULT_ENCODING),
+                new StringEntity(xml, "text/plain", Constants.DEFAULT_ENCODING),
                 true);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
@@ -1095,7 +1070,7 @@ public class RestS3Service extends S3Service {
             Map<String, String> requestParameters = new HashMap<String, String>();
             requestParameters.put("notification", "");
 
-            HttpMethodBase getMethod = performRestGet(bucketName, null, requestParameters, null);
+            HttpResponse getMethod = performRestGet(bucketName, null, requestParameters, null);
             return getXmlResponseSaxParser().parseNotificationConfigurationResponse(
                 new HttpMethodReleaseInputStream(getMethod));
         } catch (ServiceException se) {
@@ -1122,7 +1097,7 @@ public class RestS3Service extends S3Service {
         try {
             metadata.put("Content-Length", xml.length());
             performRestPut(bucketName, null, metadata, requestParameters,
-                new StringRequestEntity(xml, "text/plain", Constants.DEFAULT_ENCODING),
+                new StringEntity(xml, "text/plain", Constants.DEFAULT_ENCODING),
                 true);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
