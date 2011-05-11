@@ -46,6 +46,8 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.entity.BasicHttpEntity;
+import org.apache.http.entity.BufferedHttpEntity;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.RequestWrapper;
@@ -1670,14 +1672,18 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                         this.jets3tProperties,
                         isLiveMD5HashingRequired(object));
              } else {
-                // Use InputStreamRequestEntity for objects with an unknown content length, as the
+                // Use a BufferedHttpEntity for objects with an unknown content length, as the
                 // entity will cache the results and doesn't need to know the data length in advance.
                 if (log.isWarnEnabled()) {
                     log.warn("Content-Length of data stream not set, will automatically determine data length in memory");
                 }
-                requestEntity = new InputStreamEntity(
-                        object.getDataInputStream(),
-                        -1);
+                BasicHttpEntity basicHttpEntity = new BasicHttpEntity();
+                basicHttpEntity.setContent(object.getDataInputStream());
+                try {
+                    requestEntity = new BufferedHttpEntity(basicHttpEntity);
+                } catch (IOException ioe) {
+                    throw new ServiceException("Unable to read data stream of unknown length", ioe);
+                }
             }
         }
         putObjectWithRequestEntityImpl(bucketName, object, requestEntity, null);
