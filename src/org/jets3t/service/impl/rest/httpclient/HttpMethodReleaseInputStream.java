@@ -25,6 +25,7 @@ import java.io.InputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
+import org.apache.http.util.EntityUtils;
 import org.jets3t.service.io.InputStreamWrapper;
 import org.jets3t.service.io.InterruptableInputStream;
 
@@ -69,7 +70,7 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
                 log.warn("Unable to obtain HttpMethod's response data stream", e);
             }
             try {
-                httpMethod.getEntity().consumeContent();
+                EntityUtils.consume(httpMethod.getEntity());
             } catch (Exception ee){
                 // ignore
             }
@@ -98,7 +99,7 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
             if (!underlyingStreamConsumed) {
                 // Underlying input stream has not been consumed, abort method
                 // to force connection to be closed and cleaned-up.
-                httpResponse.getEntity().consumeContent();
+                EntityUtils.consume(httpResponse.getEntity());
             }
             alreadyReleased = true;
         }

@@ -436,7 +436,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                             }
                         }
 
-                        response.getEntity().consumeContent();
+                        EntityUtils.consume(response.getEntity());
 
                         // Throw exception containing the XML message document.
                         ServiceException exception =
@@ -509,9 +509,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                         if (log.isDebugEnabled()) {
                             log.debug("Releasing error response without XML content");
                         }
-                        if (response.getEntity()!=null){
-                            response.getEntity().consumeContent();
-                        }
+                        EntityUtils.consume(response.getEntity());
 
                         if (responseCode == 500 || responseCode == 503) {
                             // Retrying after InternalError 500, don't throw exception.
@@ -605,9 +603,9 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                 serviceException.setRequestHost(
                     httpMethod.getFirstHeader("Host").getValue());
             }
-            if (response!=null && response.getFirstHeader("Date") != null) {
+            if (response != null && response.getFirstHeader("Date") != null) {
                 serviceException.setResponseDate(
-                    httpMethod.getFirstHeader("Date").getValue());
+                    response.getFirstHeader("Date").getValue());
             }
             throw serviceException;
         }
@@ -1264,9 +1262,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             // Ensure bucket exists and is accessible by performing a HEAD request
             httpResponse = performRestHead(bucketName, null, null, null);
 
-            if (httpResponse.getEntity().getContent() != null) {
-                httpResponse.getEntity().consumeContent();
-            }
+            EntityUtils.consume(httpResponse.getEntity());
         } catch (ServiceException e) {
             if (log.isDebugEnabled()) {
                 log.debug("Bucket does not exist: " + bucketName, e);
@@ -1302,9 +1298,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
             params.put("max-keys", "0");
             httpResponse = performRestHead(bucketName, null, params, null);
 
-            if (httpResponse.getEntity().getContent() != null) {
-                httpResponse.getEntity().consumeContent();
-            }
+            EntityUtils.consume(httpResponse.getEntity());
         } catch (ServiceException e) {
             if (e.getResponseCode() == 403) {
                 if (log.isDebugEnabled()) {

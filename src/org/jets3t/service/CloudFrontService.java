@@ -38,6 +38,7 @@ import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.protocol.HttpContext;
+import org.apache.http.util.EntityUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser;
@@ -336,7 +337,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             return;
         }
         try {
-          pResponse.getEntity().consumeContent();
+            EntityUtils.consume(pResponse.getEntity());
         } catch (Exception e){
             //ignore
         }

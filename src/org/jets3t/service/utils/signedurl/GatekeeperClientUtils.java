@@ -43,6 +43,7 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.params.HttpProtocolParams;
+import org.apache.http.util.EntityUtils;
 import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -70,7 +71,7 @@ public class GatekeeperClientUtils {
     private Exception priorFailureException = null;
 
     private String gatekeeperUrl = null;
-    
+
     private final String userAgentDescription;
     private final int maxRetryCount;
     private final int connectionTimeout;
@@ -101,7 +102,7 @@ public class GatekeeperClientUtils {
         // Set client parameters.
         HttpParams params = RestUtils.createDefaultHttpParams();
         HttpProtocolParams.setUserAgent(
-              params, 
+              params,
               ServiceUtils.getUserAgentDescription(userAgentDescription));
 
         // Set connection parameters.
@@ -114,9 +115,9 @@ public class GatekeeperClientUtils {
         DefaultHttpClient httpClient = new DefaultHttpClient(params);
         // Replace default error retry handler.
         httpClient.setHttpRequestRetryHandler(new RestUtils.AWSRetryHandler(
-              maxRetryCount, 
+              maxRetryCount,
               null));
-              
+
         // httpClient.getParams().setAuthenticationPreemptive(true);
         httpClient.setCredentialsProvider(credentialsProvider);
 
@@ -207,7 +208,7 @@ public class GatekeeperClientUtils {
         HttpResponse response = null;
         try {
             response = httpClientGatekeeper.execute(postMethod);
-            int responseCode = response.getStatusLine().getStatusCode(); 
+            int responseCode = response.getStatusLine().getStatusCode();
             String contentType = response.getFirstHeader("Content-Type").getValue();
             if (responseCode == 200) {
                 InputStream responseInputStream = null;
@@ -259,7 +260,7 @@ public class GatekeeperClientUtils {
             throw new Exception("Gatekeeper did not respond", e);
         } finally {
             try {
-                response.getEntity().consumeContent();
+                EntityUtils.consume(response.getEntity());
             } catch (Exception ee){
             // ignore
             }

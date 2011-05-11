@@ -96,6 +96,7 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.params.HttpProtocolParams;
+import org.apache.http.util.EntityUtils;
 import org.jets3t.gui.AuthenticationDialog;
 import org.jets3t.gui.ErrorDialog;
 import org.jets3t.gui.GuiUtils;
@@ -983,11 +984,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         } catch (Exception e) {
             throw new Exception("Gatekeeper did not respond", e);
         } finally {
-            try {
-                response.getEntity().consumeContent();
-            } catch (Exception ee){
-                // ignore
-            }
+            EntityUtils.consume(response.getEntity());
         }
     }
 
