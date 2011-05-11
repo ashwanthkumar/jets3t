@@ -63,13 +63,13 @@ public class MultipartPart {
         if (other instanceof MultipartPart) {
             MultipartPart p = (MultipartPart) other;
             return Arrays.equals(
-                    new Object[]{ partNumber, lastModified, size}, 
+                    new Object[]{ partNumber, lastModified, size},
                     new Object[]{ p.partNumber, p.lastModified, p.size} ) &&
                     sameEtag(p.etag);
         }
         return false;
     }
-    
+
     private boolean sameEtag(String pEtag){
         if (etag==pEtag){
             return true;
@@ -106,15 +106,15 @@ public class MultipartPart {
         return lastModified;
     }
 
-    public static class PartNumberComparator implements Comparator<MultipartPart>{
+    public static class PartNumberComparator implements Comparator<MultipartPart> {
         public int compare(MultipartPart o1, MultipartPart o2){
             if (o1 == o2){
                 return 0;
             }
-            if (o1 == null){
+            if (o1 == null) {
                 return -1;
             }
-            if (o2 == null){
+            if (o2 == null) {
                 return 1;
             }
             return o1.getPartNumber().compareTo(o2.getPartNumber());

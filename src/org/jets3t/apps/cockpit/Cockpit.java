@@ -978,7 +978,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
             logoutEvent();
         } else if (event.getActionCommand() != null && event.getActionCommand().startsWith("LoginSwitch")) {
             String loginName = event.getActionCommand().substring("LoginSwitch:".length());
-            ProviderCredentials credentials = (ProviderCredentials) loginAwsCredentialsMap.get(loginName);
+            ProviderCredentials credentials = loginAwsCredentialsMap.get(loginName);
             loginEvent(credentials);
         } else if ("QuitEvent".equals(event.getActionCommand())) {
             System.exit(0);
@@ -2988,10 +2988,13 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
         mCredentialProvider.setCredentials(authscope, credentials);
     }
 
+    /**
+     * Clear credentials.
+     */
     public void clear() {
         mCredentialProvider.clear();
     }
-    
+
     /**
      * Implementation method for the CredentialsProvider interface.
      * <p>

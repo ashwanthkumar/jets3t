@@ -55,9 +55,9 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author James Murty
  */
 public class RepeatableRequestEntity implements HttpEntity {
-    private static final Log log = LogFactory.getLog(RepeatableRequestEntity.class);
-    public static final int DEFAULT_BUFFER_SIZE = 128*1024; //16384; //16 KB
+    public static final int DEFAULT_BUFFER_SIZE = 128 * 1024; // 128 KB
 
+    private static final Log log = LogFactory.getLog(RepeatableRequestEntity.class);
 
     private String name = null;
     private InputStream is = null;
@@ -97,6 +97,7 @@ public class RepeatableRequestEntity implements HttpEntity {
      * non-zero value, all simultaneous uploads performed by this class will be throttled
      * to the specified speed.
      *
+     * @param name
      *
      * @param is
      * the input stream that supplies the data to be made repeatable.
@@ -159,13 +160,12 @@ public class RepeatableRequestEntity implements HttpEntity {
     public boolean isChunked() {
         return mChunked;
     }
-    
-    
+
+
     public InputStream getContent() {
         return this.is;
     }
-    
-    @Override
+
     public void consumeContent(){
         this.consumed = true;
         try {
@@ -174,16 +174,19 @@ public class RepeatableRequestEntity implements HttpEntity {
             // ignore
         }
     }
-    
+
+    /**
+     * @return
+     * Return true if entity content has not yet been consumed.
+     */
     public boolean isStreaming(){
         return !this.consumed;
-    }    
-    
+    }
+
     public long getContentLength() {
         return contentLength;
     }
 
-    @Override
     public Header getContentType() {
         return new BasicHeader(HTTP.CONTENT_TYPE, contentType);
     }
@@ -192,7 +195,7 @@ public class RepeatableRequestEntity implements HttpEntity {
      * @return
      * always returns true.
      * If the input stream is not actually repeatable, an IOException will be thrown
-     * later by the {@link #writeRequest(OutputStream)} method when the repeat is attempted.
+     * later by the {@link #writeTo(OutputStream)} method when the repeat is attempted.
      */
     public boolean isRepeatable() {
         return true;
@@ -205,6 +208,9 @@ public class RepeatableRequestEntity implements HttpEntity {
      * If a {@link ProgressMonitoredInputStream} is attached, this monitor will be notified that
      * data is being repeated by being reset with
      * {@link ProgressMonitoredInputStream#resetProgressMonitor()}.
+     *
+     * @param out
+     * @throws IOException
      */
     public void writeTo(final OutputStream out) throws IOException {
         if (bytesWritten > 0) {

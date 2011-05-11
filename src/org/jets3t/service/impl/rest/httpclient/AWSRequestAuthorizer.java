@@ -23,7 +23,7 @@ import org.apache.http.protocol.HttpContext;
 
 public interface AWSRequestAuthorizer {
 
-    public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context) 
+    public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context)
     throws Exception;
-    
+
 }

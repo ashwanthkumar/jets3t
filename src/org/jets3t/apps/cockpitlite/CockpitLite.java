@@ -205,7 +205,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     private GatekeeperClientUtils gkClient = null;
 
     private final CredentialsProvider mCredentialProvider;
-    
+
     private String userBucketName = null;
     private String userVanityHost = null;
     private String userPath = "";
@@ -2333,10 +2333,13 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         mCredentialProvider.setCredentials(authscope, credentials);
     }
 
+    /**
+     * Clear credentials.
+     */
     public void clear() {
         mCredentialProvider.clear();
     }
-    
+
     /**
      * Implementation method for the CredentialsProvider interface.
      * <p>
@@ -2356,7 +2359,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             if (scope.getScheme().equals("ntlm")) {
                 AuthenticationDialog pwDialog = new AuthenticationDialog(
                     ownerFrame, "Authentication Required",
-                    "<html>Host <b>" + scope.getHost() + ":" + scope.getPort() 
+                    "<html>Host <b>" + scope.getHost() + ":" + scope.getPort()
                     + "</b> requires Windows authentication</html>", true);
                 pwDialog.setVisible(true);
                 if (pwDialog.getUser().length() > 0) {
@@ -2373,7 +2376,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                 AuthenticationDialog pwDialog = new AuthenticationDialog(
                     ownerFrame, "Authentication Required",
                     "<html><center>Host <b>" + scope.getHost() + ":" + scope.getPort() + "</b>"
-                    + " requires authentication for the realm:<br><b>" + scope.getRealm() 
+                    + " requires authentication for the realm:<br><b>" + scope.getRealm()
                     + "</b></center></html>", false);
                 pwDialog.setVisible(true);
                 if (pwDialog.getUser().length() > 0) {

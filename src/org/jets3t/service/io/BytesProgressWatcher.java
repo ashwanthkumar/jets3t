@@ -49,6 +49,7 @@ public class BytesProgressWatcher {
 
     private final Map<Long, Long> historyOfBytesBySecond = new TreeMap<Long, Long>();
     private long earliestHistorySecond = Long.MAX_VALUE;
+    private Object synchronizeObject = new Object();
 
     /**
      * Construct a watcher for a transfer that will involve a given number of bytes.
@@ -74,7 +75,7 @@ public class BytesProgressWatcher {
         }
         this.bytesToTransfer = bytesToTransfer;
     }
-    
+
     /**
      * Resets the byte count and timer variables for a watcher. This method is called
      * automatically when a transfer is started (ie the first bytes are registered in
@@ -83,13 +84,15 @@ public class BytesProgressWatcher {
      *
      */
     public void resetWatcher() {
-        startTimeCurrentTransferMS = System.currentTimeMillis();
-        if (startTimeAllTransfersMS == -1) {
-            startTimeAllTransfersMS = startTimeCurrentTransferMS;
+        synchronized(synchronizeObject) {
+            startTimeCurrentTransferMS = System.currentTimeMillis();
+            if (startTimeAllTransfersMS == -1) {
+                startTimeAllTransfersMS = startTimeCurrentTransferMS;
+            }
+            endTimeCurrentTransferMS = -1;
+            totalBytesInCurrentTransfer = 0;
+            isStarted = true;
         }
-        endTimeCurrentTransferMS = -1;
-        totalBytesInCurrentTransfer = 0;
-        isStarted = true;
     }
 
     /**
@@ -104,54 +107,65 @@ public class BytesProgressWatcher {
             resetWatcher();
         }
 
-        // Store the total byte count for the current transfer, and for all transfers.
-        totalBytesInCurrentTransfer += byteCount;
-        totalBytesInAllTransfers += byteCount;
+        synchronized(synchronizeObject) {
+            // Store the total byte count for the current transfer, and for all transfers.
+            totalBytesInCurrentTransfer += byteCount;
+            totalBytesInAllTransfers += byteCount;
 
-        // Recognise when all the expected bytes have been transferred and mark the end time.
-        if (totalBytesInCurrentTransfer >= bytesToTransfer) {
-            endTimeCurrentTransferMS = System.currentTimeMillis();
-        }
+            // Recognise when all the expected bytes have been transferred and mark the end time.
+            if (totalBytesInCurrentTransfer >= bytesToTransfer) {
+                endTimeCurrentTransferMS = System.currentTimeMillis();
+            }
 
-        // Keep historical records of the byte counts transferred in a given second.
-        Long currentSecond = new Long(System.currentTimeMillis() / 1000);
-        Long bytesInSecond = historyOfBytesBySecond.get(currentSecond);
-        if (bytesInSecond != null) {
-            historyOfBytesBySecond.put(currentSecond,
-                new Long(byteCount + bytesInSecond.longValue()));
-        } else {
-            historyOfBytesBySecond.put(currentSecond, new Long(byteCount));
-        }
+            // Keep historical records of the byte counts transferred in a given second.
+            Long currentSecond = new Long(System.currentTimeMillis() / 1000);
+            Long bytesInSecond = historyOfBytesBySecond.get(currentSecond);
+            if (bytesInSecond != null) {
+                historyOfBytesBySecond.put(currentSecond,
+                    new Long(byteCount + bytesInSecond.longValue()));
+            } else {
+                historyOfBytesBySecond.put(currentSecond, new Long(byteCount));
+            }
 
-        // Remember the earliest second value for which we have historical info.
-        if (currentSecond.longValue() < earliestHistorySecond) {
-            earliestHistorySecond = currentSecond.longValue();
-        }
+            // Remember the earliest second value for which we have historical info.
+            if (currentSecond.longValue() < earliestHistorySecond) {
+                earliestHistorySecond = currentSecond.longValue();
+            }
 
-        // Remove any history records we are no longer interested in.
-        long removeHistoryBeforeSecond = currentSecond.longValue() - SECONDS_OF_HISTORY;
-        for (long sec = earliestHistorySecond; sec < removeHistoryBeforeSecond; sec++) {
-            Long pSec = new Long(sec);
-            Long bytes = historyOfBytesBySecond.remove(pSec);
-            removedFromHistory(pSec, bytes);
+            // Remove any history records we are no longer interested in.
+            long removeHistoryBeforeSecond = currentSecond.longValue() - SECONDS_OF_HISTORY;
+            for (long sec = earliestHistorySecond; sec < removeHistoryBeforeSecond; sec++) {
+                Long pSec = new Long(sec);
+                Long bytes = historyOfBytesBySecond.remove(pSec);
+                removedFromHistory(pSec, bytes);
+            }
+            earliestHistorySecond = removeHistoryBeforeSecond;
         }
-        earliestHistorySecond = removeHistoryBeforeSecond;
     }
-    
+
+    /**
+     * Called when transfer progress data is removed from history.
+     * @param pSec
+     * @param pBytes
+     */
     protected void removedFromHistory(Long pSec, Long pBytes){
       //default to NOOP
     }
-  
-    protected void streamClosed(){
-        // empty history
-        Long currentSecond = new Long(System.currentTimeMillis() / 1000);
-        for (long sec = earliestHistorySecond; sec <= currentSecond; sec++) {
-            Long pSec = new Long(sec);
-            Long bytes = historyOfBytesBySecond.remove(pSec);
-            removedFromHistory(pSec, bytes);
+
+    /**
+     * Clears the history of transfer progress data.
+     */
+    protected void clearHistory() {
+        synchronized(synchronizeObject) {
+            // empty history
+            Long currentSecond = new Long(System.currentTimeMillis() / 1000);
+            for (long sec = earliestHistorySecond; sec <= currentSecond; sec++) {
+                Long pSec = new Long(sec);
+                Long bytes = historyOfBytesBySecond.remove(pSec);
+                removedFromHistory(pSec, bytes);
+            }
         }
     }
-    
 
     /**
      * @return

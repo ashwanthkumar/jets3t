@@ -20,13 +20,12 @@ package org.jets3t.service.impl.rest.httpclient;
 
 import org.apache.http.HttpResponse;
 
-
 /**
-   * Simple container object to store an HttpResponse object representing the 
-   * result of a request connection, and a count of the byte size of the  
+   * Simple container object to store an HttpResponse object representing the
+   * result of a request connection, and a count of the byte size of the
    * associated S3 object.
    * <p>
-   * This object is used when S3 objects are created to associate the response 
+   * This object is used when S3 objects are created to associate the response
    * and the actual size of the object as reported back by S3.
    *
    * @author James Murty

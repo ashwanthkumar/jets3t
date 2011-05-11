@@ -33,7 +33,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.acl.CanonicalGrantee;
 import org.jets3t.service.acl.EmailAddressGrantee;
@@ -84,7 +83,7 @@ public class XmlResponsesSaxParser {
      * @param properties
      * the JetS3t properties that will be applied when parsing XML documents.
      *
-     * @throws S3ServiceException
+     * @throws ServiceException
      */
     public XmlResponsesSaxParser(Jets3tProperties properties, boolean returnGoogleStorageObjects)
         throws ServiceException
@@ -1439,7 +1438,7 @@ public class XmlResponsesSaxParser {
                 + ", MinSizeAllowed=" + minSizeAllowed
                 + ", ProposedSize=" + proposedSize
                 + ", ETag=" + etag;
-            ServiceException e = new S3ServiceException(fullMessage);
+            ServiceException e = new ServiceException(fullMessage);
             e.setErrorCode(code);
             e.setErrorMessage(message);
             e.setErrorHostId(hostId);

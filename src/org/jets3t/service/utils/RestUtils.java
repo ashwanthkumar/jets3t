@@ -285,11 +285,6 @@ public class RestUtils {
      * HttpClient objects a service will use to communicate with an AWS service.
      * If proxy settings are specified in this service's {@link Jets3tProperties} object,
      * these settings will also be passed on to the underlying objects.
-     *
-     * @param hostConfig
-     * Custom HTTP host configuration; e.g to register a custom Protocol Socket Factory.
-     * This parameter may be null, in which case a default host configuration will be
-     * used.
      */
     public static HttpClient initHttpConnection(
             final AWSRequestAuthorizer awsRequestAuthorizer,
@@ -299,9 +294,9 @@ public class RestUtils {
         // Configure HttpClient properties based on Jets3t Properties.
         HttpParams params = createDefaultHttpParams();
         params.setParameter(
-                Jets3tProperties.JETS3T_PROPERTIES_PROPERTY, 
+                Jets3tProperties.JETS3T_PROPERTIES_ID,
                 jets3tProperties);
-        
+
         params.setParameter(
                 ClientPNames.CONNECTION_MANAGER_FACTORY_CLASS_NAME,
                 jets3tProperties.getStringProperty(
@@ -330,7 +325,7 @@ public class RestUtils {
         }
         /*
          * http-components-4.x: seems the send and receive buffer size be equal
-         * 
+         *
         if (jets3tProperties.containsKey("httpclient.socket-send-buffer")) {
             params.setSendBufferSize(
                     jets3tProperties.getIntProperty(
@@ -354,7 +349,7 @@ public class RestUtils {
         // version is already set by default
         // clientParams.setParameter("http.protocol.version", HttpVersion.HTTP_1_1);
         boolean expectContinue = jets3tProperties.getBoolProperty(
-                "http.protocol.expect-continue", 
+                "http.protocol.expect-continue",
                 true);
         params.setBooleanParameter("http.protocol.expect-continue", expectContinue);
 
@@ -485,8 +480,9 @@ public class RestUtils {
             httpClient.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY,
                     proxy);
             /*
+             * TODO: Use alternative method?
              * Alternate method based on JRE standard
-             * 
+             *
             ProxySelectorRoutePlanner routePlanner = new ProxySelectorRoutePlanner(
                     httpClient.getConnectionManager().getSchemeRegistry(),
                     ProxySelector.getDefault());
@@ -538,7 +534,7 @@ public class RestUtils {
             }
         }
     }
-    
+
     /**
      * Calculates a time offset value to reflect the time difference between your
      * computer's clock and the current time according to an AWS server, and
@@ -589,11 +585,12 @@ public class RestUtils {
         }
         return s3Headers;
     }
-    
+
     /**
      * Default Http parameters got from the DefaultHttpClient implementation.
-     * 
+     *
      * @return
+     * Default HTTP connection parameters
      */
     public static HttpParams createDefaultHttpParams() {
         HttpParams params = new SyncBasicHttpParams();
@@ -633,8 +630,8 @@ public class RestUtils {
     /**
      * ThreadSafeConnManager is a ThreadSafeClientConnManager configured via
      * jets3tProperties.
-     * 
-     * @see JETS3TPROPERTIES_PROPERTY
+     *
+     * @see Jets3tProperties#JETS3T_PROPERTIES_ID
      */
     public static class ThreadSafeConnManager extends
             ThreadSafeClientConnManager {
@@ -650,7 +647,7 @@ public class RestUtils {
             // The max connections per host setting is made the same value as the max
             // global connections if there is no per-host property.
             Jets3tProperties props = (Jets3tProperties) params.getParameter(
-                    Jets3tProperties.JETS3T_PROPERTIES_PROPERTY);
+                    Jets3tProperties.JETS3T_PROPERTIES_ID);
             int maxConn = 20;
             int maxConnectionsPerHost = 0;
             if (props != null) {
@@ -679,6 +676,7 @@ public class RestUtils {
             mAwsRequestAuthorizer = pAwsRequestAuthorizer;
         }
 
+        @Override
         public boolean retryRequest(IOException exception,
                 int executionCount,
                 HttpContext context) {
@@ -725,7 +723,7 @@ public class RestUtils {
                                 e);
                     }
                 }
-                
+
             }
 
             return false;
@@ -760,6 +758,6 @@ public class RestUtils {
             }
         }
     } //PreemptiveInterceptor
-    
+
 
 }

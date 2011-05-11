@@ -139,13 +139,11 @@ public class RestS3Service extends S3Service {
      * prompting for credentials when necessary.
      * @param jets3tProperties
      * JetS3t properties that will be applied within this service.
-     * @param hostConfig
-     * Custom HTTP host configuration; e.g to register a custom Protocol Socket Factory
      *
      * @throws S3ServiceException
      */
     public RestS3Service(ProviderCredentials credentials, String invokingApplicationDescription,
-        CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties) 
+        CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties)
     throws S3ServiceException
     {
         super(credentials, invokingApplicationDescription, credentialsProvider, jets3tProperties);
@@ -766,7 +764,7 @@ public class RestS3Service extends S3Service {
     {
         Map<String, String> requestParameters = new HashMap<String, String>();
         requestParameters.put("uploads", "");
-        
+
         Map<String, Object> metadata = new HashMap<String, Object>();
 
         // Use metadata provided, but ignore some items that don't make sense
@@ -780,7 +778,7 @@ public class RestS3Service extends S3Service {
 
         // Apply per-object or default storage class when uploading object
         prepareStorageClass(metadata, storageClass, true, objectKey);
-        boolean putNonStandardAcl = !prepareStandardAcl(metadata, acl);
+        boolean putNonStandardAcl = !prepareRESTHeaderAcl(metadata, acl);
 
         try {
             HttpResponse httpResponse = performRestPost(
@@ -922,9 +920,14 @@ public class RestS3Service extends S3Service {
         }
         Map<String, String> requestParameters = new HashMap<String, String>();
         requestParameters.put("uploads", "");
-        requestParameters.put("max-uploads",maxUploads==null ? "" : maxUploads.toString());
-        if (keyMarker != null) requestParameters.put("key-marker", keyMarker);
-        if (uploadIdMarker != null) requestParameters.put("upload-id-marker", uploadIdMarker);
+        requestParameters.put("max-uploads",
+            maxUploads==null ? "" : maxUploads.toString());
+        if (keyMarker != null) {
+            requestParameters.put("key-marker", keyMarker);
+        }
+        if (uploadIdMarker != null) {
+            requestParameters.put("upload-id-marker", uploadIdMarker);
+        }
 
         try {
             List<MultipartUpload> uploads = new ArrayList<MultipartUpload>();
@@ -934,10 +937,10 @@ public class RestS3Service extends S3Service {
             do {
                 if (nextKeyMarker != null) {
                     requestParameters.put("key-marker", nextKeyMarker);
-                } 
+                }
                 if (nextUploadIdMarker != null) {
                     requestParameters.put("upload-id-marker", nextUploadIdMarker);
-                } 
+                }
 
                 HttpResponse httpResponse = performRestGet(bucketName, null, requestParameters, null);
                 ListMultipartUploadsResultHandler handler = getXmlResponseSaxParser()

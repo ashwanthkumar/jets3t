@@ -40,20 +40,23 @@ public class CommandLineCredentialsProvider implements CredentialsProvider {
 
     private final CredentialsProvider mCredentialProvider;
 
-    
-    
+
+
     public CommandLineCredentialsProvider(){
         mCredentialProvider = new BasicCredentialsProvider();
     }
-    
+
     public void setCredentials(AuthScope authscope, Credentials credentials){
         mCredentialProvider.setCredentials(authscope, credentials);
     }
 
+    /**
+     * Clear credentials.
+     */
     public void clear(){
         mCredentialProvider.clear();
     }
-    
+
 
     /**
      * Implementation method for the CredentialsProvider interface.

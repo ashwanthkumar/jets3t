@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2008 - 2009 James Murty
+ * Copyright 2008 - 2011 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -128,14 +128,11 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * prompting for credentials when necessary. May be null.
      * @param jets3tProperties
      * JetS3t properties that will be applied within this service. May be null.
-     * @param hostConfig
-     * Custom HTTP host configuration; e.g to register a custom Protocol Socket Factory.
-     * May be null.
      *
      * @throws CloudFrontServiceException
      */
     public CloudFrontService(ProviderCredentials credentials, String invokingApplicationDescription,
-        CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties) 
+        CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties)
     throws CloudFrontServiceException
     {
         this.credentials = credentials;
@@ -231,7 +228,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
      * the request object
      * @throws Exception
      */
-    public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context) 
+    public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context)
     throws Exception {
         String date = ServiceUtils.formatRfc822Date(getCurrentTimeWithOffset());
 
@@ -283,7 +280,7 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 authorizeHttpRequest(httpMethod, null);
                 response = httpClient.execute(httpMethod);
                 int responseCode = response.getStatusLine().getStatusCode();
-                
+
                 if (responseCode != expectedResponseCode) {
                     if (responseCode == 500) {
                         // Retry on Internal Server errors, up to the defined limit.
@@ -1139,8 +1136,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                     requiredProtocols, defaultRootObject);
 
             httpMethod.setEntity(new StringEntity(
-                    distributionConfigXml, 
-                    "text/xml", 
+                    distributionConfigXml,
+                    "text/xml",
                     Constants.DEFAULT_ENCODING));
             httpMethod.setHeader("If-Match", oldConfig.getEtag());
             HttpResponse response = performRestRequest(httpMethod, 200);
@@ -1559,8 +1556,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 .e("Comment").t(comment);
 
             httpMethod.setEntity(new StringEntity(
-                    builder.asString(null), 
-                    "text/xml", 
+                    builder.asString(null),
+                    "text/xml",
                     Constants.DEFAULT_ENCODING));
             HttpResponse response = performRestRequest(httpMethod, 201);
 
@@ -1723,8 +1720,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
                 .e("CallerReference").t(oldConfig.getCallerReference()).up()
                 .e("Comment").t(comment);
             httpMethod.setEntity(new StringEntity(
-                    builder.asString(null), 
-                    "text/xml", 
+                    builder.asString(null),
+                    "text/xml",
                     Constants.DEFAULT_ENCODING));
             httpMethod.setHeader("If-Match", oldConfig.getEtag());
             HttpResponse response = performRestRequest(httpMethod, 200);
@@ -1807,8 +1804,8 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             builder.e("CallerReference").t(callerReference);
 
             httpMethod.setEntity(new StringEntity(
-                    builder.asString(null), 
-                    "text/xml", 
+                    builder.asString(null),
+                    "text/xml",
                     Constants.DEFAULT_ENCODING));
             HttpResponse response = performRestRequest(httpMethod, 201);
 

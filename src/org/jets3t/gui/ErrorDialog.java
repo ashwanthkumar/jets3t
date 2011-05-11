@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2007 James Murty
+ * Copyright 2007-2011 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author James Murty
  */
 public class ErrorDialog extends JDialog implements ActionListener {
-    private static final long serialVersionUID = 6538639968961532471L;
+    private static final long serialVersionUID = -1120587010395375292L;
 
     private static final Log log = LogFactory.getLog(ErrorDialog.class);
 
@@ -150,7 +150,7 @@ public class ErrorDialog extends JDialog implements ActionListener {
                 String msg = throwable.getMessage();
                 if (msg.length()>80){
                     ServiceUtils.wrapString(msg, "<br/>", 80);
-                }              
+                }
                 detailsText.append("<tr><td><b>Exception message</b></td></tr><tr><td>")
                     .append(msg).append("</td></tr>");
             }
@@ -163,7 +163,7 @@ public class ErrorDialog extends JDialog implements ActionListener {
             detailsText.append("<tr><td><b>HTTP Status Code</b></td><td>")
                 .append(s3se.getResponseCode())
                 .append("</td></tr>");
-            
+
             if (s3se.getS3ErrorRequestId() != null) {
                 detailsText.append("<tr><td><b>S3 Request Id</b></td><td>")
                     .append(s3se.getS3ErrorRequestId()).append("</td></tr>");

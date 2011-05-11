@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2006-2010 James Murty
+ * Copyright 2006-2011 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,10 +44,11 @@ import org.apache.commons.logging.LogFactory;
  * @author James Murty
  */
 public class Jets3tProperties implements Serializable {
+    public static final String JETS3T_PROPERTIES_ID = "org.jets3t.service.JetS3tProperties";
+
     private static final long serialVersionUID = -822234326095333142L;
 
     private static final Log log = LogFactory.getLog(Jets3tProperties.class);
-    public static final String JETS3T_PROPERTIES_PROPERTY = "org.jets3t.service.Jets3tProperties";
 
     /**
      * Stores the jets3t properties.

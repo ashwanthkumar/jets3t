@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2006-2010 James Murty
+ * Copyright 2006-2011 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -295,13 +295,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
 
     private final CredentialsProvider mCredentialProvider;
-    
+
 
     private Uploader(boolean pIsRunningApplet){
         isRunningAsApplet = pIsRunningApplet;
         mCredentialProvider = new BasicCredentialsProvider();
     }
-    
+
     /**
      * Constructor to run this application as an Applet.
      */
@@ -897,7 +897,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         // Add all properties/parameters to credentials POST request.
         HttpPost postMethod = new HttpPost(gatekeeperUrl);
         Properties properties = gatekeeperMessage.encodeToProperties();
-        
+
         Iterator<Map.Entry<Object, Object>> propsIter = properties.entrySet().iterator();
         List<NameValuePair> parameters = new ArrayList<NameValuePair>(properties.size());
         while (propsIter.hasNext()) {
@@ -922,7 +922,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                         proxyHost);
             }
             ((DefaultHttpClient)httpClientGatekeeper).setCredentialsProvider(this);
-            
+
         } catch (Throwable t) {
             log.debug("No proxy detected");
         }
@@ -932,12 +932,12 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         HttpResponse response = null;
         try {
             response = httpClientGatekeeper.execute(postMethod);
-            int responseCode = response.getStatusLine().getStatusCode(); 
+            int responseCode = response.getStatusLine().getStatusCode();
             String contentType = response.getFirstHeader("Content-Type").getValue();
             if (responseCode == 200) {
                 InputStream responseInputStream = null;
 
-                
+
                 Header encodingHeader = response.getFirstHeader("Content-Encoding");
                 if (encodingHeader != null && "gzip".equalsIgnoreCase(encodingHeader.getValue())) {
                     log.debug("Inflating gzip-encoded response");
@@ -945,7 +945,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 } else {
                     responseInputStream = response.getEntity().getContent();
                 }
-                
+
                 if (responseInputStream == null) {
                     throw new IOException("No response input stream available from Gatekeeper");
                 }
@@ -1595,7 +1595,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         // Set client parameters.
         HttpParams params = RestUtils.createDefaultHttpParams();
         HttpProtocolParams.setUserAgent(
-                params, 
+                params,
                 ServiceUtils.getUserAgentDescription(APPLICATION_DESCRIPTION));
 
         // Set connection parameters.
@@ -1608,9 +1608,9 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         DefaultHttpClient httpClient = new DefaultHttpClient(params);
         // Replace default error retry handler.
         httpClient.setHttpRequestRetryHandler(new RestUtils.AWSRetryHandler(
-                MAX_CONNECTION_RETRIES, 
+                MAX_CONNECTION_RETRIES,
                 null));
-                
+
         return httpClient;
     }
 
@@ -1644,10 +1644,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         mCredentialProvider.setCredentials(authscope, credentials);
     }
 
+    /**
+     * Clear credentials.
+     */
     public void clear() {
         mCredentialProvider.clear();
     }
-    
+
     /**
      * Implementation method for the CredentialsProvider interface.
      * <p>
@@ -1663,13 +1666,13 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
         if (credentials!=null){
             return credentials;
         }
-    
+
         try {
             if (scope.getScheme().equals("ntlm")) {
                 //if (authscheme instanceof NTLMScheme) {
                 AuthenticationDialog pwDialog = new AuthenticationDialog(
                     ownerFrame, "Authentication Required",
-                    "<html>Host <b>" + scope.getHost() + ":" + scope.getPort() + 
+                    "<html>Host <b>" + scope.getHost() + ":" + scope.getPort() +
                     "</b> requires Windows authentication</html>", true);
                 pwDialog.setVisible(true);
                 if (pwDialog.getUser().length() > 0) {

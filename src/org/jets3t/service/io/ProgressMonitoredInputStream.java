@@ -102,7 +102,7 @@ public class ProgressMonitoredInputStream extends InputStream implements InputSt
         try {
             inputStream.close();
         } finally {
-            progressWatcher.streamClosed();
+            progressWatcher.clearHistory();
         }
     }
 

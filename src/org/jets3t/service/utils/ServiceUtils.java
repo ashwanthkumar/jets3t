@@ -779,10 +779,10 @@ public class ServiceUtils {
         // If we haven't found and returned an XMLReader yet, give up.
         throw new ServiceException("Failed to initialize a SAX XMLReader");
     }
-    
+
     /**
      * Take the input we're given and wrap at the user-defined intervals
-     * 
+     *
      * @param p_Input The string to be modified by the line wrap.
      * @param p_Prefix a prefix to prebend to the output string
      * @param p_Len The maximum number of characters per line
@@ -797,20 +797,20 @@ public class ServiceUtils {
       String output = wrapString( p_Input, p_Prefix, p_Len, " /_");
       return replaced ? output.replace('/', '\\') : output;
     }
-    
+
     /**
      * Take the input we're given and wrap at the user-defined intervals
-     * 
+     *
      * @param p_Input The string to be modified by the line wrap.
      * @param p_Prefix a prefix to prebend to the output string
      * @param p_Len The maximum number of characters per line
      * @param p_Delims are the characters on which wrapping is allowed
      * @return The new string that contains the extra new-line escapes.
      */
-    public static String wrapString( 
+    public static String wrapString(
             String p_Input,
-            String p_Prefix, 
-            int p_Len, 
+            String p_Prefix,
+            int p_Len,
             String p_Delims) {
       if (p_Input==null){
         return "";
@@ -856,6 +856,6 @@ public class ServiceUtils {
       output.append(workBuf.toString());
       return output.toString();
     }
-    
+
 
 }
