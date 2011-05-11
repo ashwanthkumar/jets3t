@@ -153,12 +153,29 @@ public class CloudFrontService implements AWSRequestAuthorizer {
 
         this.internalErrorRetryMax = jets3tProperties.getIntProperty("cloudfront-service.internal-error-retry-max", 5);
 
-        this.httpClient = RestUtils.initHttpConnection(
+        initializeDefaults();
+
+        /* TODO: CloudFront service does not seem to support 100-continue protocol for 2009-04-02
+         * DistributionConfig updates, causing unnecessary timeouts when updating these settings.
+         * This will probably be fixed, remove the following line when full support returns.
+         */
+        this.httpClient.getParams().setBooleanParameter("http.protocol.expect-continue", false);
+    }
+
+    protected void initializeDefaults(){
+        this.httpClient = initHttpConnection();
+        initializeProxy();
+    }
+
+    protected HttpClient initHttpConnection() {
+        return RestUtils.initHttpConnection(
                 this,
-                jets3tProperties,
+                this.jets3tProperties,
                 this.invokingApplicationDescription,
                 this.credentialsProvider);
+    }
 
+    protected void initializeProxy() {
         // Retrieve Proxy settings.
         if (this.jets3tProperties.getBoolProperty("httpclient.proxy-autodetect", true)) {
             RestUtils.initHttpProxy(this.httpClient, this.jets3tProperties);
@@ -171,12 +188,6 @@ public class CloudFrontService implements AWSRequestAuthorizer {
             RestUtils.initHttpProxy(this.httpClient, this.jets3tProperties,
                 proxyHostAddress, proxyPort, proxyUser, proxyPassword, proxyDomain);
         }
-
-        /* TODO: CloudFront service does not seem to support 100-continue protocol for 2009-04-02
-         * DistributionConfig updates, causing unnecessary timeouts when updating these settings.
-         * This will probably be fixed, remove the following line when full support returns.
-         */
-        this.httpClient.getParams().setBooleanParameter("http.protocol.expect-continue", false);
     }
 
     /**
