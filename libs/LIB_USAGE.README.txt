@@ -17,11 +17,11 @@ Files       : commons-logging/commons-logging-1.1.1.jar
 
 
 Name        : Apache Commons Codec
-Version     : 1.3
+Version     : 1.4
 Location    : http://commons.apache.org/codec/
 Required?   : YES
 Description : Library for encoding and decoding data, such as Base 64.
-Files       : commons-codec/commons-codec-1.3.jar
+Files       : commons-codec/commons-codec-1.4.jar
 
 
 Name        : HttpClient
