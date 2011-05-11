@@ -35,28 +35,6 @@
         </javac>
     </target>
 
-    <target name="dist-sources" depends="compile">
-        <mkdir dir="${dir.dist}-src"/>
-        <mkdir dir="${dir.dist}-src/jets3t-${version}/jars"/>
-        <jar
-            basedir="${dir.src}"
-            file="${dir.dist}-src/jets3t-${version}/jars/${dist.file.src}"
-            index="true"
-            >
-            <!-- include name="org/jets3t/**"/>
-            <include name="org/apache/commons/httpclient/contrib/**"/>
-            <include name="contribs/mx/**" if="contribs.include-mx"/ -->
-        </jar>
-        <jar
-            basedir="${dir.build}"
-            file="${dir.dist}/jets3t-${version}/jars/${dist.file.guisupport}"
-            index="true"
-            >
-            <include name="org/jets3t/gui/**"/>
-            <include name="org/jets3t/gui/skins/**"/>
-        </jar>
-    </target>
-
     <target name="dist-service" depends="compile">
         <mkdir dir="${dir.dist}/jets3t-${version}/jars"/>
         <jar
@@ -181,7 +159,7 @@
     <target name="dist-apps" depends="dist-app-cockpit,dist-app-cockpitlite,dist-app-synchronize,dist-app-uploader">
     </target>
 
-    <target name="dist" depends="dist-service,dist-apps,dist-servlets,dist-sources">
+    <target name="dist" depends="dist-service,dist-apps,dist-servlets">
         <!-- Copy configs to dist directory -->
         <mkdir dir="${dir.dist}/jets3t-${version}/configs"/>
         <copy
