@@ -500,6 +500,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                             if (log.isDebugEnabled()) {
                                 log.debug("Ignoring NoSuchKey/404 error on PUT to: " + httpMethod.getURI().toString());
                             }
+                            completedWithoutRecoverableError = false;
                         }
 
                         else {
