@@ -51,7 +51,7 @@ import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.Distribution
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccessIdentityConfigHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccessIdentityHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccessIdentityListHandler;
-import org.jets3t.service.impl.rest.httpclient.AWSRequestAuthorizer;
+import org.jets3t.service.impl.rest.httpclient.JetS3tRequestAuthorizer;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.cloudfront.CustomOrigin;
 import org.jets3t.service.model.cloudfront.Distribution;
@@ -84,7 +84,7 @@ import com.jamesmurty.utils.XMLBuilder;
  *
  * @author James Murty
  */
-public class CloudFrontService implements AWSRequestAuthorizer {
+public class CloudFrontService implements JetS3tRequestAuthorizer {
     private static final Log log = LogFactory.getLog(CloudFrontService.class);
 
     public static final String ENDPOINT = "https://cloudfront.amazonaws.com/";

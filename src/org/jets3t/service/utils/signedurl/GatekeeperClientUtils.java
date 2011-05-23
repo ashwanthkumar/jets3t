@@ -114,7 +114,7 @@ public class GatekeeperClientUtils {
 
         DefaultHttpClient httpClient = new DefaultHttpClient(params);
         // Replace default error retry handler.
-        httpClient.setHttpRequestRetryHandler(new RestUtils.AWSRetryHandler(
+        httpClient.setHttpRequestRetryHandler(new RestUtils.JetS3tRetryHandler(
               maxRetryCount,
               null));
 

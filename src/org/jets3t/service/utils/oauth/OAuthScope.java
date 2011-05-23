@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2008 James Murty
+ * Copyright 2011 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jets3t.service.impl.rest.httpclient;
+package org.jets3t.service.utils.oauth;
 
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.protocol.HttpContext;
+/**
+ * Represents an OAuth scope URI.
+ */
+public class OAuthScope {
+    final public String uri;
 
-public interface AWSRequestAuthorizer {
+    public OAuthScope(String uri) {
+        this.uri = uri;
+    }
 
-    public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context)
-    throws Exception;
-
+    @Override
+    public String toString() {
+        return this.uri;
+    }
 }

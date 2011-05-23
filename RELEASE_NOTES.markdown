@@ -1,6 +1,23 @@
 JetS3t Release Notes
 ====================
 
+-----------------
+Version 0.8.2-dev
+-----------------
+
+### TOOLKIT
+
+General:
+
+ * Major update to use HttpClient library version 4.x instead of
+   version 3.x
+
+GoogleStorageService:
+
+ * Support for OAuth2 authentication mechanism, with automatic
+   access token refresh.
+
+
 ------------------------
 Version 0.8.1 - Apr 2011
 ------------------------

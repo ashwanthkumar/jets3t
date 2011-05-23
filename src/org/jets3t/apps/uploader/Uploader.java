@@ -1604,7 +1604,7 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
 
         DefaultHttpClient httpClient = new DefaultHttpClient(params);
         // Replace default error retry handler.
-        httpClient.setHttpRequestRetryHandler(new RestUtils.AWSRetryHandler(
+        httpClient.setHttpRequestRetryHandler(new RestUtils.JetS3tRetryHandler(
                 MAX_CONNECTION_RETRIES,
                 null));
 

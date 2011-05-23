@@ -48,11 +48,8 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.entity.BufferedHttpEntity;
-import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.RequestWrapper;
-import org.apache.http.impl.conn.SingleClientConnManager;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 import org.jets3t.service.Constants;
@@ -89,7 +86,7 @@ import com.jamesmurty.utils.XMLBuilder;
  *
  * @author James Murty, Google Developers
  */
-public abstract class RestStorageService extends StorageService implements AWSRequestAuthorizer {
+public abstract class RestStorageService extends StorageService implements JetS3tRequestAuthorizer {
     private static final Log log = LogFactory.getLog(RestStorageService.class);
 
     protected static enum HTTP_METHOD {PUT, POST, HEAD, GET, DELETE};
@@ -194,7 +191,7 @@ public abstract class RestStorageService extends StorageService implements AWSRe
     /**
      * Initialise HttpClient and HttpConnectionManager objects with the configuration settings
      * appropriate for communicating with S3. By default, this method simply delegates the
-     * configuration task to {@link org.jets3t.service.utils.RestUtils#initHttpConnection(org.jets3t.service.impl.rest.httpclient.AWSRequestAuthorizer,
+     * configuration task to {@link org.jets3t.service.utils.RestUtils#initHttpConnection(org.jets3t.service.impl.rest.httpclient.JetS3tRequestAuthorizer,
      * org.apache.commons.httpclient.HostConfiguration, org.jets3t.service.Jets3tProperties, String, org.apache.commons.httpclient.auth.CredentialsProvider)}.
      * <p>
      * To alter the low-level behaviour of the HttpClient library, override this method in
@@ -495,6 +492,11 @@ public abstract class RestStorageService extends StorageService implements AWSRe
                             completedWithoutRecoverableError = false;
                         }
 
+                        else if (responseCode == 403) {
+                            completedWithoutRecoverableError = this.isRecoverable403(
+                                httpMethod, exception);
+                        }
+
                         else {
                             throw exception;
                         }
@@ -616,12 +618,32 @@ public abstract class RestStorageService extends StorageService implements AWSRe
     }
 
     /**
-     * Authorizes an HTTP request by signing it. The signature is based on the target URL, and the
-     * signed authorization string is added to the request as an Authorization header.
+     * Determine whether a given 403 Forbidden HTTP error response is recoverable and should
+     * be retried. Normally 403s should only be retried if we can take some action as a side
+     * effect which makes the subsequent request likely to succeed.
+     *
+     * Generally, such errors should not be retried since a user's access permissions
+     * for an item are unlikely to change, but if a service is using expiring authorization tokens
+     * (e.g. OAuth) it may be worthwhile retrying after refreshing those tokens.
+     *
+     * @param httpRequest
+     * @param exception
+     * @return
+     * true if the request should be retried, otherwise false.
+     */
+    protected boolean isRecoverable403(HttpUriRequest httpRequest, Exception exception) {
+        return false;
+    }
+
+    /**
+     * Authorizes an HTTP/S request by signing it with an HMAC signature compatible with
+     * the S3 service and Google Storage (legacy) authorization techniques.
+     *
+     * The signature is added to the request as an Authorization header.
      *
      * @param httpMethod
-     *        the request object
-     * @throws org.jets3t.service.ServiceException
+     * the request object
+     * @throws ServiceException
      */
     public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context)
         throws Exception
@@ -669,9 +691,8 @@ public abstract class RestStorageService extends StorageService implements AWSRe
 
         // Set/update the date timestamp to the current time
         // Note that this will be over-ridden if an "x-amz-date" header is present.
-        httpMethod.setHeader(
-                "Date",
-                ServiceUtils.formatRfc822Date(getCurrentTimeWithOffset()));
+        httpMethod.setHeader("Date",
+            ServiceUtils.formatRfc822Date(getCurrentTimeWithOffset()));
 
         if (log.isDebugEnabled()) {
             log.debug("For creating canonical string, using uri: "+fullUrl);

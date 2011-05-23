@@ -22,14 +22,21 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.protocol.HttpContext;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.acl.gs.GSAccessControlList;
 import org.jets3t.service.model.GSBucket;
 import org.jets3t.service.model.GSObject;
+import org.jets3t.service.security.OAuth2Credentials;
+import org.jets3t.service.security.OAuth2Tokens;
 import org.jets3t.service.security.ProviderCredentials;
+import org.jets3t.service.utils.oauth.OAuthUtils;
 
 /**
  * REST/HTTP implementation of Google Storage Service based on the
@@ -43,10 +50,15 @@ import org.jets3t.service.security.ProviderCredentials;
  * @author Google Developers
  */
 public class GoogleStorageService extends RestStorageService {
+    private static final Log log = LogFactory.getLog(GoogleStorageService.class);
 
     private static final String GOOGLE_SIGNATURE_IDENTIFIER = "GOOG1";
     private static final String GOOGLE_REST_HEADER_PREFIX = "x-goog-";
     private static final String GOOGLE_REST_METADATA_PREFIX = "x-goog-meta-";
+
+    protected OAuth2Tokens oauth2Tokens = null;
+    protected OAuthUtils oauthUtils = null;
+
 
     /**
      * Constructs the service and initialises the properties.
@@ -106,6 +118,15 @@ public class GoogleStorageService extends RestStorageService {
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties) throws ServiceException
     {
         super(credentials, invokingApplicationDescription, credentialsProvider, jets3tProperties);
+
+        // If service initialized with OAuth2 credentials, init utility class for handling OAuth
+        if (credentials instanceof OAuth2Credentials) {
+            OAuth2Credentials oauth2Credentials = (OAuth2Credentials) credentials;
+            this.oauthUtils = new OAuthUtils(
+                OAuthUtils.OAuthImplementation.GOOGLE_STORAGE_OAUTH2_10,
+                oauth2Credentials.getClientId(),
+                oauth2Credentials.getClientSecret());
+        }
     }
 
     @Override
@@ -309,6 +330,79 @@ public class GoogleStorageService extends RestStorageService {
         throws ServiceException
     {
         return (GSObject) super.getObjectDetails(bucketName, objectKey);
+    }
+
+    /**
+     * Authorizes an HTTP/S request using the standard HMAC approach or OAuth 2,
+     * whichever technique is appropriate.
+     *
+     * @param httpMethod
+     * the request object
+     * @throws ServiceException
+     */
+    @Override
+    public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context)
+        throws Exception
+    {
+        if (getOAuth2Tokens() != null) {
+            this.authorizeHttpRequestWithOAuth2Tokens(httpMethod, context);
+        } else {
+            super.authorizeHttpRequest(httpMethod, context);
+        }
+    }
+
+    public void setOAuth2Tokens(OAuth2Tokens tokens) {
+        if (!(this.credentials instanceof OAuth2Credentials)) {
+            throw new IllegalStateException(
+                "Cannot use OAuth2 tokens with service that does not have OAuth2Credentials");
+        }
+        this.oauth2Tokens = tokens;
+    }
+
+    public OAuth2Tokens getOAuth2Tokens() {
+        return this.oauth2Tokens;
+    }
+
+    public void authorizeHttpRequestWithOAuth2Tokens(
+        HttpUriRequest httpMethod, HttpContext context) throws Exception
+    {
+        OAuth2Tokens tokens = getOAuth2Tokens();
+        if (tokens.isAccessTokenExpired()) {
+            this.refreshOAuth2Tokens();
+            tokens = getOAuth2Tokens(); // Get updated tokens object
+        }
+
+        log.debug("Authorizing service request with OAuth2 access token: "
+            + tokens.getAccessToken());
+        httpMethod.setHeader("Authorization", "OAuth " + tokens.getAccessToken());
+    }
+
+    @Override
+    protected boolean isRecoverable403(HttpUriRequest httpRequest, Exception exception) {
+        // Only retry if we're using OAuth2 authentication and can refresh the access token
+        // TODO Any way to distinguish between expired access token and other 403 reasons?
+        OAuth2Tokens tokens = getOAuth2Tokens();
+        if (tokens != null) {
+            try {
+                this.refreshOAuth2Tokens();
+                return true;
+            } catch (Exception e) {
+                log.warn("Failed to refresh OAuth2 token to retry request", e);
+            }
+        }
+
+        return super.isRecoverable403(httpRequest, exception);
+    }
+
+    protected void refreshOAuth2Tokens() throws Exception {
+        OAuth2Tokens oldTokens = getOAuth2Tokens();
+        log.debug("Refreshing OAuth2 access token using refresh token: "
+            + oldTokens.getRefreshToken());
+
+        OAuth2Tokens newTokens = this.oauthUtils.refreshOAuth2AccessToken(oldTokens);
+        setOAuth2Tokens(newTokens);
+        log.debug("Refreshed OAuth2 access token to " + newTokens.getAccessToken()
+            + " with expiry at " + newTokens.getExpiry());
     }
 
 }

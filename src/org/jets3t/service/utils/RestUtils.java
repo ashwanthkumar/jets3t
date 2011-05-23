@@ -37,6 +37,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
 import org.apache.http.HttpConnection;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpRequestInterceptor;
@@ -47,8 +48,10 @@ import org.apache.http.auth.AuthState;
 import org.apache.http.auth.Credentials;
 import org.apache.http.auth.NTCredentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.params.ClientPNames;
@@ -72,11 +75,12 @@ import org.apache.http.params.SyncBasicHttpParams;
 import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
+import org.apache.http.util.EntityUtils;
 import org.apache.http.util.VersionInfo;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.ServiceException;
-import org.jets3t.service.impl.rest.httpclient.AWSRequestAuthorizer;
+import org.jets3t.service.impl.rest.httpclient.JetS3tRequestAuthorizer;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.io.UnrecoverableIOException;
 
@@ -281,47 +285,56 @@ public class RestUtils {
     }
 
     /**
+     * @return
+     * an HttpClient response handler that returns String content data.
+     */
+    public static ResponseHandler<String> buildStringResponseHandler() {
+        return new ResponseHandler<String>() {
+            public String handleResponse(HttpResponse response)
+                throws ClientProtocolException, IOException
+            {
+                HttpEntity entity = response.getEntity();
+                if (entity != null) {
+                    return EntityUtils.toString(entity);
+                } else {
+                    return null;
+                }
+            }
+        };
+    }
+
+    /**
      * Initialises, or re-initialises, the underlying HttpConnectionManager and
      * HttpClient objects a service will use to communicate with an AWS service.
      * If proxy settings are specified in this service's {@link Jets3tProperties} object,
      * these settings will also be passed on to the underlying objects.
      */
     public static HttpClient initHttpConnection(
-            final AWSRequestAuthorizer awsRequestAuthorizer,
+            final JetS3tRequestAuthorizer requestAuthorizer,
             Jets3tProperties jets3tProperties,
             String userAgentDescription,
             CredentialsProvider credentialsProvider) {
         // Configure HttpClient properties based on Jets3t Properties.
         HttpParams params = createDefaultHttpParams();
-        params.setParameter(
-                Jets3tProperties.JETS3T_PROPERTIES_ID,
-                jets3tProperties);
+        params.setParameter(Jets3tProperties.JETS3T_PROPERTIES_ID, jets3tProperties);
 
         params.setParameter(
+            ClientPNames.CONNECTION_MANAGER_FACTORY_CLASS_NAME,
+            jets3tProperties.getStringProperty(
                 ClientPNames.CONNECTION_MANAGER_FACTORY_CLASS_NAME,
-                jets3tProperties.getStringProperty(
-                        ClientPNames.CONNECTION_MANAGER_FACTORY_CLASS_NAME,
-                        ConnManagerFactory.class.getName()));
+                ConnManagerFactory.class.getName()));
 
-        HttpConnectionParams.setConnectionTimeout(
-                params,
-                jets3tProperties.getIntProperty("httpclient.connection-timeout-ms",
-                        60000));
-        HttpConnectionParams.setSoTimeout(
-                params,
-                jets3tProperties.getIntProperty("httpclient.socket-timeout-ms",
-                        60000));
-        HttpConnectionParams.setStaleCheckingEnabled(
-                params,
-                jets3tProperties.getBoolProperty("httpclient.stale-checking-enabled",
-                        true));
+        HttpConnectionParams.setConnectionTimeout(params,
+            jets3tProperties.getIntProperty("httpclient.connection-timeout-ms", 60000));
+        HttpConnectionParams.setSoTimeout(params,
+            jets3tProperties.getIntProperty("httpclient.socket-timeout-ms", 60000));
+        HttpConnectionParams.setStaleCheckingEnabled(params,
+            jets3tProperties.getBoolProperty("httpclient.stale-checking-enabled", true));
 
         // Connection properties to take advantage of S3 window scaling.
         if (jets3tProperties.containsKey("httpclient.socket-receive-buffer")) {
-            HttpConnectionParams.setSocketBufferSize(
-                    params,
-                    jets3tProperties.getIntProperty("httpclient.socket-receive-buffer",
-                            0));
+            HttpConnectionParams.setSocketBufferSize(params,
+                jets3tProperties.getIntProperty("httpclient.socket-receive-buffer", 0));
         }
         /*
          * http-components-4.x: seems the send and receive buffer size be equal
@@ -336,8 +349,7 @@ public class RestUtils {
         HttpConnectionParams.setTcpNoDelay(params, true);
 
         // Set user agent string.
-        String userAgent = jets3tProperties.getStringProperty("httpclient.useragent",
-                null);
+        String userAgent = jets3tProperties.getStringProperty("httpclient.useragent", null);
         if (userAgent == null) {
             userAgent = ServiceUtils.getUserAgentDescription(userAgentDescription);
         }
@@ -353,16 +365,13 @@ public class RestUtils {
                 true);
         params.setBooleanParameter("http.protocol.expect-continue", expectContinue);
 
-        params.setParameter(
-                ConnManagerPNames.TIMEOUT,
-                jets3tProperties.getLongProperty(
-                        "httpclient.connection-manager-timeout",
-                        0));
+        params.setParameter(ConnManagerPNames.TIMEOUT,
+            jets3tProperties.getLongProperty("httpclient.connection-manager-timeout", 0));
 
         DefaultHttpClient httpClient = new DefaultHttpClient(params);
-        httpClient.setHttpRequestRetryHandler(new AWSRetryHandler(
-                jets3tProperties.getIntProperty("httpclient.retry-max", 5),
-                awsRequestAuthorizer));
+        httpClient.setHttpRequestRetryHandler(
+            new JetS3tRetryHandler(
+                jets3tProperties.getIntProperty("httpclient.retry-max", 5), requestAuthorizer));
 
         if (credentialsProvider != null) {
             if (log.isDebugEnabled()) {
@@ -664,16 +673,12 @@ public class RestUtils {
         }
     } //ThreadSafeConnManager
 
-    /**
-     * AWSRetryHandler
-     */
-    public static class AWSRetryHandler extends DefaultHttpRequestRetryHandler {
-        private final AWSRequestAuthorizer mAwsRequestAuthorizer;
+    public static class JetS3tRetryHandler extends DefaultHttpRequestRetryHandler {
+        private final JetS3tRequestAuthorizer requestAuthorizer;
 
-        public AWSRetryHandler(int pRetryMaxCount,
-                AWSRequestAuthorizer pAwsRequestAuthorizer) {
+        public JetS3tRetryHandler(int pRetryMaxCount, JetS3tRequestAuthorizer requestAuthorizer) {
             super(pRetryMaxCount, false);
-            mAwsRequestAuthorizer = pAwsRequestAuthorizer;
+            this.requestAuthorizer = requestAuthorizer;
         }
 
         @Override
@@ -714,8 +719,8 @@ public class RestUtils {
 
                 // Build the authorization string for the method.
                 try {
-                    if (mAwsRequestAuthorizer != null){
-                        mAwsRequestAuthorizer.authorizeHttpRequest(method, context);
+                    if (requestAuthorizer != null){
+                        requestAuthorizer.authorizeHttpRequest(method, context);
                     }
                 } catch (Exception e) {
                     if (log.isWarnEnabled()) {
