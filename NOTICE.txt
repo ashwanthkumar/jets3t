@@ -14,3 +14,5 @@
    Codehaus (http://castor.codehaus.org)
    
    Safehaus (http://jug.safehaus.org/Home)
+   
+   Tatu Saloranta (http://wiki.fasterxml.com/TatuSaloranta)

@@ -82,6 +82,16 @@ Description : Utility to generate Universally Unique IDentifiers (UUIDs)
 Files       : safehaus_jug/jug-asl-2.0.0.jar
 
 
+Name        : Jackson JSON Processor
+Version     : 1.8.1
+Location    : http://wiki.fasterxml.com/JacksonHome
+Required?   : NO. Only required by the OAuth2 authentication implementation
+              used in the Google Storage service.
+Description : Jackson is a multi-purpose Java library for processing JSON data
+Files       : jackson/jackson-core-asl-1.8.1.jar
+            : jackson/jackson-mapper-asl-1.8.1.jar
+
+
 Name        : JUnit
 Version     : 3.8.2
 Location    : http://www.junit.org/
