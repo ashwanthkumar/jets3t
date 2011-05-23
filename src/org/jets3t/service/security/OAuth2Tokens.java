@@ -29,7 +29,7 @@ import java.util.Date;
 public class OAuth2Tokens {
     protected final String accessToken;
     protected final String refreshToken;
-    protected final Date expiry;
+    protected Date expiry;
 
     /**
      * Store token data including the expiry date of the access token.
@@ -70,6 +70,14 @@ public class OAuth2Tokens {
 
     public Date getExpiry() {
         return this.expiry;
+    }
+
+    /**
+     * Forcibly expire the access token by setting the expiry
+     * timestamp to the epoch.
+     */
+    public void expireAccessToken() {
+        this.expiry = new Date(0);
     }
 
     /**

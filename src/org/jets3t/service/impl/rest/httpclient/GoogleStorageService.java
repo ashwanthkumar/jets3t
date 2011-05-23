@@ -344,7 +344,12 @@ public class GoogleStorageService extends RestStorageService {
     public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context)
         throws Exception
     {
-        if (getOAuth2Tokens() != null) {
+        if (this.credentials instanceof OAuth2Credentials) {
+            if (getOAuth2Tokens() == null) {
+                throw new ServiceException(
+                    "Cannot authenticate using OAuth2 until initial tokens are provided"
+                    + ", i.e. via setOAuth2Tokens()");
+            }
             this.authorizeHttpRequestWithOAuth2Tokens(httpMethod, context);
         } else {
             super.authorizeHttpRequest(httpMethod, context);
@@ -383,14 +388,9 @@ public class GoogleStorageService extends RestStorageService {
         // TODO Any way to distinguish between expired access token and other 403 reasons?
         OAuth2Tokens tokens = getOAuth2Tokens();
         if (tokens != null) {
-            try {
-                this.refreshOAuth2Tokens();
-                return true;
-            } catch (Exception e) {
-                log.warn("Failed to refresh OAuth2 token to retry request", e);
-            }
+            tokens.expireAccessToken();
+            return true;
         }
-
         return super.isRecoverable403(httpRequest, exception);
     }
 

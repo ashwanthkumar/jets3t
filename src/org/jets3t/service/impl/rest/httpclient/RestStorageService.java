@@ -316,9 +316,10 @@ public abstract class RestStorageService extends StorageService implements JetS3
             int internalErrorCount = 0;
             int requestTimeoutErrorCount = 0;
             int redirectCount = 0;
+            int authFailureCount = 0;
             boolean wasRecentlyRedirected = false;
 
-            // Perform the request, sleeping and retrying when S3 Internal Errors are encountered.
+            // Perform the request, sleeping and retrying when errors are encountered.
             int responseCode = -1;
             do {
                 // Build the authorization string for the method (Unless we have just been redirected).
@@ -493,10 +494,16 @@ public abstract class RestStorageService extends StorageService implements JetS3
                         }
 
                         else if (responseCode == 403 && this.isRecoverable403(httpMethod, exception)) {
+                            completedWithoutRecoverableError = false;
+                            authFailureCount++;
+
+                            if (authFailureCount > 1) {
+                                throw new ServiceException("Exceeded 403 retry limit (1).");
+                            }
+
                             if (log.isDebugEnabled()) {
                                 log.debug("Retrying after 403 Forbidden");
                             }
-                            completedWithoutRecoverableError = false;
                         }
 
                         else {
