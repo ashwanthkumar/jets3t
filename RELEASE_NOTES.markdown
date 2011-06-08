@@ -11,6 +11,11 @@ General:
 
  * Major update to use HttpClient library version 4.x instead of
    version 3.x
+ * All storage objects (e.g. StorageObject/StorageBucket and subclasses)
+   now ignore case in metadata item names. The case of item names is
+   retained and available if necessary, but metadata add/get methods
+   no longer pay attention to case.
+
 
 GoogleStorageService:
 

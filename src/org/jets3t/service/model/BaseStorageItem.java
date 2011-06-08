@@ -21,7 +21,9 @@ package org.jets3t.service.model;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * Base class to represent storage items that can contain metadata: both objects and buckets.
@@ -81,88 +83,158 @@ public abstract class BaseStorageItem {
 
     /**
      * @return
-     * an <b>immutable</b> map containing all the metadata associated with this object.
+     * an <b>immutable</b> map containing all the metadata associated with this object,
+     * with case-sensitive name strings as keys.
      */
     public Map<String, Object> getMetadataMap() {
-        return Collections.unmodifiableMap(metadata);
+        return Collections.unmodifiableMap(this.metadata);
+    }
+
+    /**
+     * Return true if the given string Metadata item names are equivalent, i.e.
+     * either both are null, or both are a case-insensitive match.
+     *
+     * @param name1
+     * @param name2
+     * @return
+     */
+    protected boolean isMatchingMetadataName(String name1, String name2) {
+       if (name1 == null && name2 == null) {
+           return true;
+       }
+       // No match if one or other is null, but both are not
+       if (name1 == null || name2 == null) {
+           return false;
+       }
+       // Match if lower-cased names are equivalent
+       return name1.toLowerCase().equals(name2.toLowerCase());
     }
 
     /**
      * @param name
-     * the metadata item name.
+     * the metadata item name, case-insensitive.
      *
      * @return
-     * the value of the metadata with the given name, or null if no such metadata item exists.
+     * the value of the metadata with the given case-insensitive name, or
+     * null if no such metadata item exists.
      */
     public Object getMetadata(String name) {
-        return this.metadata.get(name);
+        for (Entry<String, Object> entry: this.metadata.entrySet()) {
+            if (isMatchingMetadataName(entry.getKey(), name)) {
+                return entry.getValue();
+            }
+        }
+        return null;
     }
 
     /**
+     * Return true if a metdata data item with the given name (case-insensitive)
+     * is present.
+     *
      * @param name
-     * the metadata item name.
+     * the metadata item name, case-insensitive.
      *
      * @return
      * true if this object contains a metadata item with the given name, false otherwise.
      */
     public boolean containsMetadata(String name) {
-        return this.metadata.keySet().contains(name);
+        for (Entry<String, Object> entry: this.metadata.entrySet()) {
+            if (isMatchingMetadataName(entry.getKey(), name)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
-     * Adds a metadata item to the object.
+     * Add a metadata entry with the given name.
+     *
+     * Metadata item names are treated as case-insensitive when you set/get values.
+     * If a name values being set matches an existing metdata item (even if
+     * case is different) the original value will be replaced with the new one.
+     *
+     * The case of metadata item names is preserved when items are stored so the
+     * original names are accessible via {@link #getMetadataMap()}, but case is
+     * otherwise ignored.
+     *
+     * In other words, if you set two metadata items with the names "ETag" and "Etag"
+     * only one value will be stored, whichever was set most recently.
      *
      * @param name
-     * the metadata item name.
+     * the metadata item name, case-insensitive.
      * @param value
      * the metadata item value.
      */
-    public void addMetadata(String name, String value) {
+    protected void addMetadata(String name, Object value) {
+        this.removeMetadata(name);
         this.metadata.put(name, value);
+    }
+
+    /**
+     * Adds a String metadata item to the object.
+     *
+     * @param name
+     * the metadata item name, case-insensitive.
+     * @param value
+     * the metadata item's date value.
+     */
+    public void addMetadata(String name, String value) {
+        this.addMetadata(name, (Object) value);
     }
 
     /**
      * Adds a Date metadata item to the object.
      *
      * @param name
-     * the metadata item name.
+     * the metadata item name, case-insensitive.
      * @param value
      * the metadata item's date value.
      */
     public void addMetadata(String name, Date value) {
-        this.metadata.put(name, value);
+        this.addMetadata(name, (Object) value);
     }
 
     /**
      * Adds an owner metadata item to the object.
      *
      * @param name
-     * the metadata item name.
+     * the metadata item name, case-insensitive.
      * @param value
      * the metadata item's owner value.
      */
     public void addMetadata(String name, StorageOwner value) {
-        this.metadata.put(name, value);
+        this.addMetadata(name, (Object) value);
     }
 
     /**
      * Adds all the items in the provided map to this object's metadata.
      *
-     * @param metadata
-     * metadata items to add.
+     * @param metadataToAdd
+     * metadata items to add, names are case-insensitive.
      */
-    public void addAllMetadata(Map<String, Object> metadata) {
-        this.metadata.putAll(metadata);
+    public void addAllMetadata(Map<String, Object> metadataToAdd) {
+        for (Entry<String, Object> entry: metadataToAdd.entrySet()) {
+            this.addMetadata(entry.getKey(), entry.getValue());
+        }
     }
 
     /**
      * Removes a metadata item from the object.
      *
      * @param name
-     * the name of the metadata item to remove.
+     * the name of the metadata item to remove, case-insensitive.
      */
     public void removeMetadata(String name) {
-        this.metadata.remove(name);
+        String existingItemKey = null;
+        for (Entry<String, Object> entry: this.metadata.entrySet()) {
+            if (isMatchingMetadataName(entry.getKey(), name)) {
+                existingItemKey = entry.getKey();
+            }
+        }
+        // Remove existing matching entry, if present.
+        if (existingItemKey != null || name == null) {
+            this.metadata.remove(existingItemKey);
+        }
     }
 
     /**
@@ -175,7 +247,7 @@ public abstract class BaseStorageItem {
      */
     public void replaceAllMetadata(Map<String, Object> metadata) {
         this.metadata.clear();
-        addAllMetadata(metadata);
+        this.addAllMetadata(metadata);
     }
 
     /**

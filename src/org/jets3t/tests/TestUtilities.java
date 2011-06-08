@@ -3,6 +3,8 @@ package org.jets3t.tests;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.jets3t.service.io.SegmentedRepeatableFileInputStream;
 import org.jets3t.service.model.S3Object;
@@ -235,6 +237,69 @@ public class TestUtilities extends TestCase {
                 expectedBytesRead[i], byteCount);
             segFIS.close();
         }
+    }
+
+    public void testCaseInsensitiveObjectMetadataNames() {
+        StorageObject obj = new StorageObject("SomeName");
+
+        // Get metadata names, case-insensitive
+        obj.addMetadata("My-name", "1");
+        assertEquals("1", obj.getMetadata("My-name"));
+        assertEquals("1", obj.getMetadata("My-Name"));
+        assertEquals("1", obj.getMetadata("my-name"));
+
+        assertNull(obj.getMetadata(null));
+
+        // Check for presense of metadata, case-insensitive
+        assertTrue(obj.containsMetadata("My-name"));
+        assertTrue(obj.containsMetadata("My-Name"));
+        assertTrue(obj.containsMetadata("my-name"));
+
+        // New item with same case-insensitive name replaces old value
+        obj.addMetadata("My-Name", "2");
+        assertEquals("2", obj.getMetadata("My-name"));
+        assertEquals("2", obj.getMetadata("My-Name"));
+        assertEquals("2", obj.getMetadata("my-name"));
+
+        // Null metadata names are allowed (though a bad idea...)
+        obj.addMetadata(null, "3");
+        assertEquals("3", obj.getMetadata(null));
+        obj.addMetadata(null, "4");
+        assertEquals("4", obj.getMetadata(null));
+
+        // Last add operation with matching case-insensitive name wins
+        obj.addMetadata("CaseInsensitive", "5");
+        obj.addMetadata("Caseinsensitive", "6");
+        obj.addMetadata("caseinsensitive", "7");
+        obj.addMetadata("CASEINSENSITIVE", "8");
+        assertEquals("8", obj.getMetadata("CaseInsensitive"));
+
+        // Remove item is also case-insensitive
+        assertEquals(3, obj.getMetadataMap().size()); // Items added so far
+        obj.removeMetadata("my-namE");
+        obj.removeMetadata(null);
+        obj.removeMetadata("CASEinsensitive");
+
+        // Add all
+        Map<String, Object> newMetadata = new HashMap<String, Object>();
+        newMetadata.put("FIRST", "1st");
+        newMetadata.put("second", "2nd");
+        newMetadata.put("thIrd", "3rd");
+        obj.addAllMetadata(newMetadata);
+        assertEquals("1st", obj.getMetadata("first"));
+        assertEquals("2nd", obj.getMetadata("SECOND"));
+        assertEquals("3rd", obj.getMetadata("THiRD"));
+
+        // Replace all
+        newMetadata = new HashMap<String, Object>();
+        newMetadata.put("one", "1st");
+        newMetadata.put("TWO", "2nd");
+        newMetadata.put("THRee", "3rd");
+        obj.replaceAllMetadata(newMetadata);
+        assertEquals(3, obj.getMetadataMap().size());
+        assertEquals("1st", obj.getMetadata("ONE"));
+        assertEquals("2nd", obj.getMetadata("two"));
+        assertEquals("3rd", obj.getMetadata("thrEE"));
     }
 
 }
