@@ -343,7 +343,11 @@ public class RestS3Service extends S3Service {
             "requestPayment",
             "versions", "versioning", "versionId",
             "uploads", "uploadId", "partNumber",
-            "website", "notification"
+            "website", "notification",
+            // Response-altering special parameters
+            "response-content-type", "response-content-language",
+            "response-expires", "reponse-cache-control",
+            "response-content-disposition", "response-content-encoding"
         });
     }
 

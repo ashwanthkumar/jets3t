@@ -16,11 +16,15 @@ General:
    retained and available if necessary, but metadata add/get methods
    no longer pay attention to case.
 
-
 GoogleStorageService:
 
  * Support for OAuth2 authentication mechanism, with automatic
    access token refresh.
+
+RestS3Service:
+
+ * Support for signing S3 requests with response-altering request 
+   parameters like "response-content-type", "response-content-disposition"
 
 
 ------------------------

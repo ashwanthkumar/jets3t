@@ -267,6 +267,20 @@ public class TestRestS3Service extends BaseStorageServiceTests {
                 .readLine();
             assertEquals("Unexpected data content in S3 object", dataString, objectData);
 
+            // Confirm we got the expected Content-Type
+            assertEquals("text/html", conn.getHeaderField("content-type"));
+
+            // Modify response data via special "response-*" request parameters
+            signedGetUrl = service.createSignedUrl("GET", bucket.getName(), object.getKey(),
+                "response-content-type=text/plain&response-content-encoding=latin1",
+                null, // No headers
+                (expiryDate.getTime() / 1000) // Expiry time after epoch in seconds
+                );
+            url = new URL(signedGetUrl);
+            conn = (HttpURLConnection) url.openConnection();
+            assertEquals("text/plain", conn.getHeaderField("content-type"));
+            assertEquals("latin1", conn.getHeaderField("content-encoding"));
+
             // Clean up.
             service.deleteObject(bucketName, object.getKey());
         } finally {
