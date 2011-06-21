@@ -97,8 +97,8 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
     protected void releaseConnection() throws IOException {
         if (!alreadyReleased) {
             if (!underlyingStreamConsumed) {
-                // Underlying input stream has not been consumed, abort method
-                // to force connection to be closed and cleaned-up.
+                // Underlying input stream has not been consumed,
+                // trigger connection close and clean-up.
                 EntityUtils.consume(httpResponse.getEntity());
             }
             alreadyReleased = true;
@@ -201,13 +201,13 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
         if (!alreadyReleased) {
             if (log.isWarnEnabled()) {
                 log.warn("Attempting to release HttpMethod in finalize() as its response data stream has gone out of scope. "
-                + "This attempt will not always succeed and cannot be relied upon! Please ensure S3 response data streams are "
+                + "This attempt will not always succeed and cannot be relied upon! Please ensure response data streams are "
                 + "always fully consumed or closed to avoid HTTP connection starvation.");
             }
             releaseConnection();
             if (log.isWarnEnabled()) {
                 log.warn("Successfully released HttpMethod in finalize(). You were lucky this time... "
-                + "Please ensure S3 response data streams are always fully consumed or closed.");
+                + "Please ensure response data streams are always fully consumed or closed.");
             }
         }
         super.finalize();

@@ -133,11 +133,12 @@ public class XmlResponsesSaxParser {
             if (log.isDebugEnabled()) {
                 log.debug("Parsing XML response document with handler: " + handler.getClass());
             }
-            BufferedReader breader = new BufferedReader(new InputStreamReader(inputStream,
-                Constants.DEFAULT_ENCODING));
+            BufferedReader breader = new BufferedReader(
+                new InputStreamReader(inputStream, Constants.DEFAULT_ENCODING));
             xr.setContentHandler(handler);
             xr.setErrorHandler(handler);
             xr.parse(new InputSource(breader));
+            inputStream.close();
         } catch (Throwable t) {
             try {
                 inputStream.close();
