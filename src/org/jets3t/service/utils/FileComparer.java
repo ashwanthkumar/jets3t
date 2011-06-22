@@ -608,13 +608,18 @@ public class FileComparer {
      * Builds a service Object Map containing all the objects within the given target path,
      * where the map's key for each object is the relative path to the object.
      *
-     * @see #lookupObjectMetadataForPotentialClashes(StorageService, String, String, StorageObject[], Map, BytesProgressWatcher, StorageServiceEventListener)
+     * @see #lookupObjectMetadataForPotentialClashes(StorageService, String, String, StorageObject[], Map, boolean, BytesProgressWatcher, StorageServiceEventListener)
      *
      * @param service
      * @param bucketName
      * @param targetPath
      * @param objectKeyToFilepathMap
      * map of '/'-delimited object key names to local file absolute paths
+     * @param forceMetadataDownload
+     * if true, metadata is always downloaded for objects in the storage service. If false,
+     * metadata is only downloaded if deemed necessary. This flag should be set to true when
+     * data for any objects in the storage service has been transformed, such as by
+     * encryption or compression during upload.
      * @param progressWatcher
      * watcher to monitor bytes read during comparison operations, may be null.
      * @param eventListener
@@ -624,6 +629,7 @@ public class FileComparer {
      */
     public Map<String, StorageObject> buildObjectMap(StorageService service, String bucketName,
         String targetPath, Map<String, String> objectKeyToFilepathMap,
+        boolean forceMetadataDownload,
         BytesProgressWatcher progressWatcher, StorageServiceEventListener eventListener)
         throws ServiceException
     {
@@ -633,6 +639,7 @@ public class FileComparer {
         return lookupObjectMetadataForPotentialClashes(
             service, bucketName, targetPath,
             objectsIncomplete, objectKeyToFilepathMap,
+            forceMetadataDownload,
             progressWatcher, eventListener);
     }
 
@@ -649,7 +656,7 @@ public class FileComparer {
      * If the method is asked to perform only a partial listing, no bucket name
      * partitioning will be applied.
      *
-     * @see #lookupObjectMetadataForPotentialClashes(StorageService, String, String, StorageObject[], Map, BytesProgressWatcher, StorageServiceEventListener)
+     * @see #lookupObjectMetadataForPotentialClashes(StorageService, String, String, StorageObject[], Map, boolean, BytesProgressWatcher, StorageServiceEventListener)
      *
      * @param service
      * @param bucketName
@@ -658,6 +665,11 @@ public class FileComparer {
      * the prior last key value returned by a prior invocation of this method, if any.
      * @param objectKeyToFilepathMap
      * map of '/'-delimited object key names to local file absolute paths
+     * @param forceMetadataDownload
+     * if true, metadata is always downloaded for objects in the storage service. If false,
+     * metadata is only downloaded if deemed necessary. This flag should be set to true when
+     * data for any objects in the storage service has been transformed, such as by
+     * encryption or compression during upload.
      * @param completeListing
      * if true, this method will perform a complete listing of a service target.
      * If false, the method will list a partial set of objects commencing from the
@@ -674,6 +686,7 @@ public class FileComparer {
     public PartialObjectListing buildObjectMapPartial(StorageService service,
         String bucketName, String targetPath, String priorLastKey,
         Map<String, String> objectKeyToFilepathMap, boolean completeListing,
+        boolean forceMetadataDownload,
         BytesProgressWatcher progressWatcher, StorageServiceEventListener eventListener)
         throws ServiceException
     {
@@ -692,7 +705,7 @@ public class FileComparer {
 
         Map<String, StorageObject> objectsMap = lookupObjectMetadataForPotentialClashes(
             service, bucketName, targetPath, objects, objectKeyToFilepathMap,
-            progressWatcher, eventListener);
+            forceMetadataDownload, progressWatcher, eventListener);
         return new PartialObjectListing(objectsMap, resultPriorLastKey);
     }
 
@@ -711,6 +724,11 @@ public class FileComparer {
      * @param targetPath
      * @param objectsWithoutMetadata
      * @param objectKeyToFilepathMap
+     * @param forceMetadataDownload
+     * if true, metadata is always downloaded for objects in the storage service. If false,
+     * metadata is only downloaded if deemed necessary. This flag should be set to true when
+     * data for any objects in the storage service has been transformed, such as by
+     * encryption or compression during upload.
      * @param progressWatcher
      * watcher to monitor bytes read during comparison operations, may be null.
      * @param eventListener
@@ -721,6 +739,7 @@ public class FileComparer {
     public Map<String, StorageObject> lookupObjectMetadataForPotentialClashes(
         StorageService service, String bucketName, String targetPath,
         StorageObject[] objectsWithoutMetadata, Map<String, String> objectKeyToFilepathMap,
+        boolean forceMetadataDownload,
         BytesProgressWatcher progressWatcher, StorageServiceEventListener eventListener)
         throws ServiceException
     {
@@ -730,6 +749,11 @@ public class FileComparer {
         Set<StorageObject> objectsForMetadataRetrieval = new HashSet<StorageObject>();
         for (StorageObject object: objectsWithoutMetadata) {
             String objectKey = object.getKey();
+            if (forceMetadataDownload) {
+                // Always retrieve metadata when the force flag is set
+                objectsForMetadataRetrieval.add(object);
+                continue;
+            }
             if (!ServiceUtils.isEtagAlsoAnMD5Hash(object.getETag())) {
                 // Always retrieve metadata for objects whose ETags are
                 // not MD5 hash values (e.g. multipart uploads)
@@ -1102,17 +1126,17 @@ public class FileComparer {
                                 // sometimes does with Excel files.
                                 if (isAssumeLocalLatestInMismatch()) {
                                     if (log.isWarnEnabled()) {
-                                        log.warn("Backed-up object " + storageObject.getKey()
-                                        + " and local file " + file.getName()
-                                        + " have the same date but different hash values. "
+                                        log.warn("Backed-up object \"" + storageObject.getKey()
+                                        + "\" and local file \"" + file.getName()
+                                        + "\" have the same date but different hash values. "
                                         + "Assuming local file is the latest version.");
                                     }
                                     updatedOnClientKeys.add(keyPath);
                                     onlyOnClientKeys.remove(keyPath);
                                 } else {
-                                    throw new IOException("Backed-up object " + storageObject.getKey()
-                                        + " and local file " + file.getName()
-                                        + " have the same date but different hash values. "
+                                    throw new IOException("Backed-up object \"" + storageObject.getKey()
+                                        + "\" and local file \"" + file.getName()
+                                        + "\" have the same date but different hash values. "
                                         + "This shouldn't happen!");
                                 }
 

@@ -306,9 +306,11 @@ public class Synchronize {
                     + mergedDiscrepancyResults.getCountOfItemsCompared() + ")"
                 : ""));
 
+        boolean forceMetadataDownload = isEncryptionEnabled || isGzipEnabled;
+
         PartialObjectListing partialListing = fileComparer.buildObjectMapPartial(
             storageService, bucketName, rootObjectPath, priorLastKey,
-            objectKeyToFilepathMap, !isBatchMode,
+            objectKeyToFilepathMap, !isBatchMode, forceMetadataDownload,
             md5GenerationProgressWatcher, serviceEventAdaptor);
         if (serviceEventAdaptor.wasErrorThrown()) {
             throw new ServiceException("Unable to build map of objects",
