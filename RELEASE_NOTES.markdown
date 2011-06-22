@@ -26,6 +26,11 @@ RestS3Service:
  * Support for signing S3 requests with response-altering request 
    parameters like "response-content-type", "response-content-disposition"
 
+### SYNCHRONIZE
+
+ * Fixed bug in that prevented objects encrypted during upload from being
+   automatically decrypted during download (Issue 98)
+
 
 ------------------------
 Version 0.8.1 - Apr 2011
