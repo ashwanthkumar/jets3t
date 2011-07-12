@@ -18,6 +18,7 @@
  */
 package org.jets3t.service.impl.rest.httpclient;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -127,8 +128,23 @@ public class RepeatableRequestEntity implements HttpEntity {
             }
             if (inputStream.markSupported()) {
                 repeatableInputStream = inputStream;
-                // Mark the start of this input stream so we can reset it if necessary.
-                repeatableInputStream.mark(Integer.MAX_VALUE);
+                int bufferSize = -1;
+
+                // Mark the start of this input stream so we can reset it if necessary,
+                // while being careful with streams that use in-memory backing storage.
+                if (repeatableInputStream instanceof BufferedInputStream) {
+                    bufferSize = jets3tProperties.getIntProperty(
+                        "uploads.stream-retry-buffer-size", 131072);
+                    log.debug("Setting conservative read-ahead mark limit for BufferedInputStream"
+                        + " since it keeps read data in-memory and can cause memory starvation: "
+                        + bufferSize + " (from property 'uploads.stream-retry-buffer-size')");
+                } else {
+                    bufferSize = (int)Math.min(contentLength, Integer.MAX_VALUE);
+                    log.debug("Setting maximal read-ahead mark limit for markable input stream "
+                        + repeatableInputStream.getClass().getName()
+                        + " assuming it doesn't use in-memory storage: " + bufferSize);
+                }
+                repeatableInputStream.mark(bufferSize);
             }
 
             if (inputStream instanceof InputStreamWrapper) {
