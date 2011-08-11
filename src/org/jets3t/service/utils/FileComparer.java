@@ -929,8 +929,13 @@ public class FileComparer {
                 br = new BufferedReader(new FileReader(computedHashFile));
                 computedHash = ServiceUtils.fromHex(br.readLine().split("\\s")[0]);
             } catch (Exception e) {
-                if (log.isWarnEnabled()) {
-                    log.warn("Unable to read hash from computed MD5 file", e);
+                boolean wasDeleted = computedHashFile.delete();
+                if (log.isDebugEnabled() && wasDeleted) {
+                    log.debug("Unable to read hash from computed MD5 file; file has been deleted: "
+                        + computedHashFile.getAbsolutePath());
+                }
+                if (log.isWarnEnabled() && !wasDeleted) {
+                    log.warn("Unable to read hash from computed MD5 file and failed to delete it", e);
                 }
             } finally {
                 if (br != null) {
@@ -968,8 +973,13 @@ public class FileComparer {
                 fw = new FileWriter(computedHashFile);
                 fw.write(ServiceUtils.toHex(computedHash));
             } catch (Exception e) {
-                if (log.isWarnEnabled()) {
-                    log.warn("Unable to write computed MD5 hash to a file", e);
+                boolean wasDeleted = computedHashFile.delete();
+                if (log.isDebugEnabled() && wasDeleted) {
+                    log.debug("Unable to write computed MD5 hash to file; file has been deleted: "
+                        + computedHashFile.getAbsolutePath());
+                }
+                if (log.isWarnEnabled() && !wasDeleted) {
+                    log.warn("Unable to write computed MD5 hash to file", e);
                 }
             } finally {
                 if (fw != null) {
