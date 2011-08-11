@@ -325,7 +325,7 @@ public class ThreadedS3Service extends ThreadedStorageService {
 
         @Override
         public void forceInterruptCalled() {
-            super.forceInterrupt();
+            // operation cannot be interrupted, no-op
         }
     }
 
@@ -357,7 +357,7 @@ public class ThreadedS3Service extends ThreadedStorageService {
 
         @Override
         public void forceInterruptCalled() {
-            super.forceInterrupt();
+            // operation cannot be interrupted, no-op
         }
     }
 
