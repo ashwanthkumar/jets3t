@@ -943,17 +943,24 @@ public class Synchronize {
             bucket = new StorageBucket(bucketName);
         } else {
             // Using an authentication connection, so check for bucket ownership and create one if necessary.
-            bucket = storageService.getBucket(bucketName);
+            try {
+                bucket = storageService.getBucket(bucketName);
+            } catch (ServiceException e) {
+                // Don't give up if we cannot find our bucket in an account listing via ListAllBuckets,
+                // since the whole account may not be accessible but the bucket itself may be.
+            }
+
             if (bucket == null) {
-                // Bucket does not exist in this user's account, try creating it.
+                // Bucket does not exist in this user's account or is inaccessible, try creating it.
                 try {
                     bucket = storageService.createBucket(new StorageBucket(bucketName));
                 } catch (ServiceException e) {
-                    // Bucket could not be created, someone else must own it.
+                    // Bucket could not be created, either someone else already owns it
+                    // or we don't have create permissions.
                     try {
                         // Let's see if we can at least access the bucket...
                         storageService.listObjectsChunked(bucketName, null, null, 1, null, false);
-                        // ... if we get this far we're dealing with a third-party
+                        // ... if we get this far we're dealing with a
                         // bucket we can read. That's fine, let's proceed.
                         bucket = new StorageBucket(bucketName);
                     } catch (ServiceException e2) {
