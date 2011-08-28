@@ -336,7 +336,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 if (responseCode == 307) {
                     // Retry on Temporary Redirects, using new URI from location header
                     authorizeHttpRequest(httpMethod, context); // Re-authorize *before* we change the URI
-                    Header locationHeader = httpMethod.getFirstHeader("location");
+                    Header locationHeader = response.getFirstHeader("location");
 
                     // deal with implementations of HttpUriRequest
                     if (httpMethod instanceof HttpRequestBase){
