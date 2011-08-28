@@ -484,7 +484,9 @@ public abstract class RestStorageService extends StorageService implements JetS3
                         // Special handling for S3 object PUT failures causing NoSuchKey errors - Issue #85
                         else if (responseCode == 404
                                    && "PUT".equalsIgnoreCase(httpMethod.getMethod())
-                                   && "NoSuchKey".equals(exception.getErrorCode()))
+                                   && "NoSuchKey".equals(exception.getErrorCode())
+                                   // If PUT operation is trying to copy an existing source object, don't ignore 404
+                                   && httpMethod.getFirstHeader(getRestHeaderPrefix() + "copy-source") == null)
                         {
                             // Retrying after mysterious PUT NoSuchKey error caused by S3, don't throw exception.
                             if (log.isDebugEnabled()) {
