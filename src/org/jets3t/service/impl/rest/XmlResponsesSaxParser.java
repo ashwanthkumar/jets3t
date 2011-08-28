@@ -361,6 +361,14 @@ public class XmlResponsesSaxParser {
         return handler.getMultipartUpload();
     }
 
+    public MultipartPart parseMultipartUploadPartCopyResult(InputStream inputStream)
+        throws ServiceException
+    {
+        MultipartPartResultHandler handler = new MultipartPartResultHandler(xr);
+        parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
+        return handler.getMultipartPart();
+    }
+
     public ListMultipartUploadsResultHandler parseListMultipartUploadsResult(
         InputStream inputStream) throws ServiceException
     {
@@ -1213,10 +1221,10 @@ public class XmlResponsesSaxParser {
     }
 
     public class MultipartPartResultHandler extends SimpleHandler {
-        private Integer partNumber;
+        private Integer partNumber = -1; // CopyPartResult doesn't include part number, use clearly invalid default
         private Date lastModified;
         private String etag;
-        private Long size;
+        private Long size = -1l;  // CopyPartResult doesn't include size, use clearly invalid default
 
         public MultipartPartResultHandler(XMLReader xr) {
             super(xr);

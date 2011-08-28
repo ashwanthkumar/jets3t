@@ -3408,14 +3408,131 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public MultipartPart multipartUploadPart(MultipartUpload upload, Integer partNumber,
         S3Object object) throws S3ServiceException
     {
-        try {
-            MultipartPart part = multipartUploadPartImpl(upload.getUploadId(),
-                upload.getBucketName(),  partNumber, object);
-            upload.addMultipartPartToUploadedList(part);
-            return part;
-        } catch (S3ServiceException e) {
-            throw e;
-        }
+        MultipartPart part = multipartUploadPartImpl(upload.getUploadId(),
+            upload.getBucketName(),  partNumber, object);
+        upload.addMultipartPartToUploadedList(part);
+        return part;
+    }
+
+    /**
+     * From an existing object, copy an individual part that will comprise a piece of a
+     * multipart upload object.
+     *
+     * @param upload
+     * the multipart upload to which this part will be added.
+     * @param partNumber
+     * the part's number; must be between 1 and 10,000 and must uniquely identify a given
+     * part and represent its order compared to all other parts. Part numbers need not
+     * be sequential.
+     * @param sourceBucketName
+     * the name of the bucket that contains the original object.
+     * @param sourceObjectKey
+     * the key name of the original object.
+     * @param ifModifiedSince
+     * a precondition specifying a date after which the source object must have been
+     * modified, ignored if null.
+     * @param ifUnmodifiedSince
+     * a precondition specifying a date after which the source object must not have
+     * been modified, ignored if null.
+     * @param ifMatchTags
+     * a precondition specifying an MD5 hash the source object must match, ignored if
+     * null.
+     * @param ifNoneMatchTags
+     * a precondition specifying an MD5 hash the source object must not match, ignored
+     * if null.
+     * @param byteRangeStart
+     * include only a portion of the source object's data - starting at this point, ignored if null.
+     * Byte ranges may only be used for source objects larger than 5 GB.
+     * @param byteRangeEnd
+     * include only a portion of the source object's data - ending at this point, ignored if null.
+     * Byte ranges may only be used for source objects larger than 5 GB.
+     * @param versionId
+     * identifier matching an existing source object version that will be retrieved.
+     *
+     * @return
+     * information about the uploaded copy part, retain this information to eventually complete
+     * the object with {@link #multipartCompleteUpload(MultipartUpload, List)}.
+     * @throws S3ServiceException
+     */
+    public MultipartPart multipartUploadPartCopy(MultipartUpload upload, Integer partNumber,
+        String sourceBucketName, String sourceObjectKey,
+        Calendar ifModifiedSince, Calendar ifUnmodifiedSince,
+        String[] ifMatchTags, String[] ifNoneMatchTags,
+        Long byteRangeStart, Long byteRangeEnd,
+        String versionId) throws S3ServiceException
+    {
+        MultipartPart part = multipartUploadPartCopyImpl(upload.getUploadId(),
+            upload.getBucketName(), upload.getObjectKey(), partNumber,
+            sourceBucketName, sourceObjectKey,
+            ifModifiedSince, ifUnmodifiedSince,
+            ifMatchTags, ifNoneMatchTags,
+            byteRangeStart, byteRangeEnd, versionId);
+        upload.addMultipartPartToUploadedList(part);
+        return part;
+    }
+
+    /**
+     * From an existing object, copy an individual part that will comprise a piece of a
+     * multipart upload object.
+     *
+     * @param upload
+     * the multipart upload to which this part will be added.
+     * @param partNumber
+     * the part's number; must be between 1 and 10,000 and must uniquely identify a given
+     * part and represent its order compared to all other parts. Part numbers need not
+     * be sequential.
+     * @param sourceBucketName
+     * the name of the bucket that contains the original object.
+     * @param sourceObjectKey
+     * the key name of the original object.
+     * @param versionId
+     * identifier matching an existing source object version that will be retrieved.
+     *
+     * @return
+     * information about the uploaded copy part, retain this information to eventually complete
+     * the object with {@link #multipartCompleteUpload(MultipartUpload, List)}.
+     * @throws S3ServiceException
+     */
+    public MultipartPart multipartUploadPartCopy(MultipartUpload upload, Integer partNumber,
+        String sourceBucketName, String sourceObjectKey, String versionId) throws S3ServiceException
+    {
+        MultipartPart part = multipartUploadPartCopyImpl(upload.getUploadId(),
+            upload.getBucketName(), upload.getObjectKey(),
+            partNumber, sourceBucketName, sourceObjectKey,
+            null, null, null, null, null, null, versionId);
+        upload.addMultipartPartToUploadedList(part);
+        return part;
+    }
+
+    /**
+     * From an existing object, copy an individual part that will comprise a piece of a
+     * multipart upload object.
+     *
+     * @param upload
+     * the multipart upload to which this part will be added.
+     * @param partNumber
+     * the part's number; must be between 1 and 10,000 and must uniquely identify a given
+     * part and represent its order compared to all other parts. Part numbers need not
+     * be sequential.
+     * @param sourceBucketName
+     * the name of the bucket that contains the original object.
+     * @param sourceObjectKey
+     * the key name of the original object.
+     *
+     * @return
+     * information about the uploaded copy part, retain this information to eventually complete
+     * the object with {@link #multipartCompleteUpload(MultipartUpload, List)}.
+     * @throws S3ServiceException
+     */
+    public MultipartPart multipartUploadPartCopy(MultipartUpload upload, Integer partNumber,
+        String sourceBucketName, String sourceObjectKey) throws S3ServiceException
+    {
+        MultipartPart part = multipartUploadPartCopyImpl(upload.getUploadId(),
+            upload.getBucketName(), upload.getObjectKey(), partNumber,
+            sourceBucketName, sourceObjectKey,
+            null, null, null, null, null, null, null);
+        upload.addMultipartPartToUploadedList(part);
+        return part;
     }
 
     /**
@@ -3575,6 +3692,14 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
 
     protected abstract MultipartPart multipartUploadPartImpl(String uploadId, String bucketName,
         Integer partNumber, S3Object object) throws S3ServiceException;
+
+    protected abstract MultipartPart multipartUploadPartCopyImpl(String uploadId,
+        String targetBucketName, String targetObjectKey, Integer partNumber,
+        String sourceBucketName, String sourceObjectKey,
+        Calendar ifModifiedSince, Calendar ifUnmodifiedSince,
+        String[] ifMatchTags, String[] ifNoneMatchTags,
+        Long byteRangeStart, Long byteRangeEnd,
+        String versionId) throws S3ServiceException;
 
     protected abstract void setWebsiteConfigImpl(String bucketName, WebsiteConfig config)
         throws S3ServiceException;

@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +66,7 @@ import org.jets3t.service.model.WebsiteConfig;
 import org.jets3t.service.security.AWSDevPayCredentials;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.RestUtils;
+import org.jets3t.service.utils.ServiceUtils;
 
 import com.jamesmurty.utils.XMLBuilder;
 
@@ -868,6 +870,90 @@ public class RestS3Service extends S3Service {
             MultipartPart part = new MultipartPart(partNumber, object.getLastModifiedDate(),
                 object.getETag(), object.getContentLength());
             return part;
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
+    }
+
+    @Override
+    protected MultipartPart multipartUploadPartCopyImpl(String uploadId,
+        String targetBucketName, String targetObjectKey, Integer partNumber,
+        String sourceBucketName, String sourceObjectKey,
+        Calendar ifModifiedSince, Calendar ifUnmodifiedSince,
+        String[] ifMatchTags, String[] ifNoneMatchTags,
+        Long byteRangeStart, Long byteRangeEnd,
+        String versionId) throws S3ServiceException
+    {
+        try {
+            if (log.isDebugEnabled()) {
+                log.debug("Multipart Copy Object from " + sourceBucketName + ":" + sourceObjectKey
+                    + " to upload id=" + uploadId + "as part" + partNumber);
+            }
+
+            Map<String, Object> metadata = new HashMap<String, Object>();
+
+            String sourceKey = RestUtils.encodeUrlString(sourceBucketName + "/" + sourceObjectKey);
+
+            if (versionId != null) {
+                sourceKey += "?versionId=" + versionId;
+            }
+
+            metadata.put(getRestHeaderPrefix() + "copy-source", sourceKey);
+
+            if (ifModifiedSince != null) {
+                metadata.put(getRestHeaderPrefix() + "copy-source-if-modified-since",
+                    ServiceUtils.formatRfc822Date(ifModifiedSince.getTime()));
+                if (log.isDebugEnabled()) {
+                    log.debug("Only copy object if-modified-since:" + ifModifiedSince);
+                }
+            }
+            if (ifUnmodifiedSince != null) {
+                metadata.put(getRestHeaderPrefix() + "copy-source-if-unmodified-since",
+                    ServiceUtils.formatRfc822Date(ifUnmodifiedSince.getTime()));
+                if (log.isDebugEnabled()) {
+                    log.debug("Only copy object if-unmodified-since:" + ifUnmodifiedSince);
+                }
+            }
+            if (ifMatchTags != null) {
+                String tags = ServiceUtils.join(ifMatchTags, ",");
+                metadata.put(getRestHeaderPrefix() + "copy-source-if-match", tags);
+                if (log.isDebugEnabled()) {
+                    log.debug("Only copy object based on hash comparison if-match:" + tags);
+                }
+            }
+            if (ifNoneMatchTags != null) {
+                String tags = ServiceUtils.join(ifNoneMatchTags, ",");
+                metadata.put(getRestHeaderPrefix() + "copy-source-if-none-match", tags);
+                if (log.isDebugEnabled()) {
+                    log.debug("Only copy object based on hash comparison if-none-match:" + tags);
+                }
+            }
+
+            if ((byteRangeStart != null) || (byteRangeEnd != null)) {
+                if ((byteRangeStart == null) || (byteRangeEnd == null)) {
+                    throw new IllegalArgumentException("both range start and end must be set");
+                }
+                String range = String.format("bytes=%s-%s", byteRangeStart, byteRangeEnd);
+                metadata.put(getRestHeaderPrefix() + "copy-source-range", range);
+                if (log.isDebugEnabled()) {
+                    log.debug("Copy object range:" + range);
+                }
+            }
+
+            Map<String, String> requestParameters = new HashMap<String, String>();
+            requestParameters.put("partNumber", String.valueOf(partNumber));
+            requestParameters.put("uploadId", String.valueOf(uploadId));
+
+            HttpResponseAndByteCount responseAndByteCount = this.performRestPut(
+                targetBucketName, targetObjectKey, metadata, requestParameters, null, false);
+
+            MultipartPart part = getXmlResponseSaxParser()
+                .parseMultipartUploadPartCopyResult(
+                    new HttpMethodReleaseInputStream(responseAndByteCount.getHttpResponse()));
+
+            // CopyPartResult XML response does not include part number or size info.
+            // We can compensate for the lack of part number, but cannot for size...
+            return new MultipartPart(partNumber, part.getLastModified(), part.getEtag(), -1l);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }

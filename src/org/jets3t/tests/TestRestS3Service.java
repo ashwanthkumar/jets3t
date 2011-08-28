@@ -412,17 +412,16 @@ public class TestRestS3Service extends BaseStorageServiceTests {
         String bucketName = bucket.getName();
 
         try {
-            int fiveMb = 5 * 1024 * 1024;
-
             // Check stripping of double-quote characters from etag
             MultipartPart testEtagSanitized = new MultipartPart(
                 1, new Date(), "\"fakeEtagWithDoubleQuotes\"", 0l);
             assertEquals("fakeEtagWithDoubleQuotes", testEtagSanitized.getEtag());
 
             // Create 5MB of test data
-            byte[] testData = new byte[fiveMb];
-            for (int offset = 0; offset < testData.length; offset++) {
-                testData[offset] = (byte) (offset % 256);
+            int fiveMB = 5 * 1024 * 1024;
+            byte[] fiveMBTestData = new byte[fiveMB];
+            for (int offset = 0; offset < fiveMBTestData.length; offset++) {
+                fiveMBTestData[offset] = (byte) (offset % 256);
             }
 
             // Define name and String metadata values for multipart upload object
@@ -481,7 +480,7 @@ public class TestRestS3Service extends BaseStorageServiceTests {
 
             // Upload a first part, must be 5MB+
             S3Object partObject = new S3Object(
-                testMultipartUpload.getObjectKey(), testData);
+                testMultipartUpload.getObjectKey(), fiveMBTestData);
             MultipartPart uploadedPart = service.multipartUploadPart(
                 testMultipartUpload, ++partNumber, partObject);
             assertEquals(uploadedPart.getPartNumber().longValue(), partNumber);
@@ -493,9 +492,30 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             assertEquals(listedParts.size(), 1);
             assertEquals(listedParts.get(0).getSize().longValue(), partObject.getContentLength());
 
-            // Upload a second and final part, can be as small as 1 byte
+            // Upload a second part by copying an object already in S3, must be >= 5 MB
+            S3Object objectToCopy = service.putObject(bucketName,
+                new S3Object("objectToCopy.txt", fiveMBTestData));
+            MultipartPart copiedPart = service.multipartUploadPartCopy(testMultipartUpload,
+                ++partNumber, bucketName, objectToCopy.getKey());
+            assertEquals(copiedPart.getPartNumber().longValue(), partNumber);
+            assertEquals(copiedPart.getEtag(), objectToCopy.getETag());
+            // Note: result part from copy operation does *not* include correct part size, due
+            // to lack of this info in the CopyPartResult XML response.
+            // assertEquals(copiedPart.getSize().longValue(), partObject.getContentLength());
+
+            // List multipart parts that have been received by the service
+            listedParts = service.multipartListParts(testMultipartUpload);
+            assertEquals(listedParts.size(), 2);
+            assertEquals(listedParts.get(1).getSize().longValue(), objectToCopy.getContentLength());
+
+            // TODO Test multipart upload copy with version ID
+            // TODO Test multipart upload copy with byte range (need object >= 5 GB !)
+            // TODO Test multipart upload copy with ETag (mis)match test
+            // TODO Test multipart upload copy with (un)modified since test
+
+            // Upload a third and final part, can be as small as 1 byte
             partObject = new S3Object(
-                testMultipartUpload.getObjectKey(), new byte[] {testData[0]});
+                testMultipartUpload.getObjectKey(), new byte[] {fiveMBTestData[0]});
             uploadedPart = service.multipartUploadPart(
                 testMultipartUpload, ++partNumber, partObject);
             assertEquals(uploadedPart.getPartNumber().longValue(), partNumber);
@@ -504,8 +524,8 @@ public class TestRestS3Service extends BaseStorageServiceTests {
 
             // List multipart parts that have been received by the service
             listedParts = service.multipartListParts(testMultipartUpload);
-            assertEquals(listedParts.size(), 2);
-            assertEquals(listedParts.get(1).getSize().longValue(), partObject.getContentLength());
+            assertEquals(listedParts.size(), 3);
+            assertEquals(listedParts.get(2).getSize().longValue(), partObject.getContentLength());
 
             // Reverse order of parts to ensure multipartCompleteUpload corrects the problem
             Collections.reverse(listedParts);
@@ -516,22 +536,30 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             assertEquals(multipartCompleted.getBucketName(), testMultipartUpload.getBucketName());
             assertEquals(multipartCompleted.getObjectKey(), testMultipartUpload.getObjectKey());
 
-            // Confirm completed object exists and has expected metadata
+            // Confirm completed object exists and has expected size and metadata
             S3Object completedObject = (S3Object) service.getObjectDetails(
                 bucketName, testMultipartUpload.getObjectKey());
+            assertEquals(completedObject.getContentLength(), fiveMBTestData.length * 2 + 1);
             assertEquals(
                 metadata.get("test-md-value"),
                 completedObject.getMetadata("test-md-value"));
             assertEquals(
                 metadata.get("test-timestamp-value").toString(),
                 completedObject.getMetadata("test-timestamp-value").toString());
+        } finally {
+            cleanupBucketForTest("testMultipartUploads");
+        }
+    }
 
-            /*
-             * Perform a multipart upload using the convenience method.
-             * The object in this case *must* be file-based.
-             */
+    public void testMultipartUploadWithConvenienceMethod() throws Exception {
+        RestS3Service service = (RestS3Service) getStorageService(getCredentials());
+        StorageBucket bucket = createBucketForTest("testMultipartUploadWithConvenienceMethod");
+        String bucketName = bucket.getName();
 
-            byte[] testDataOverLimit = new byte[fiveMb + 100];
+        try {
+            int fiveMB = 5 * 1024 * 1024;
+
+            byte[] testDataOverLimit = new byte[fiveMB + 100];
             for (int i = 0; i < testDataOverLimit.length; i++) {
                 testDataOverLimit[i] = (byte) (i % 256);
             }
@@ -539,13 +567,13 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             // Confirm that non-file-based objects are not accepted
             try {
                 StorageObject myObject = new StorageObject();
-                service.putObjectMaybeAsMultipart(bucketName, myObject, fiveMb);
+                service.putObjectMaybeAsMultipart(bucketName, myObject, fiveMB);
                 fail("");
             } catch (ServiceException se) {
             }
 
             // Create file for testing
-            File testDataFile = File.createTempFile("JetS3t-testMultipartUploads", ".txt");
+            File testDataFile = File.createTempFile("JetS3t-testMultipartUploadWithConvenienceMethod", ".txt");
             BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(testDataFile));
             bos.write(testDataOverLimit);
             bos.close();
@@ -559,7 +587,7 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             objectViaConvenienceMethod.setStorageClass(S3Object.STORAGE_CLASS_REDUCED_REDUNDANCY);
 
             // Upload object
-            service.putObjectMaybeAsMultipart(bucketName, objectViaConvenienceMethod, fiveMb);
+            service.putObjectMaybeAsMultipart(bucketName, objectViaConvenienceMethod, fiveMB);
 
             // Confirm completed object exists and has expected metadata
             objectViaConvenienceMethod = service.getObjectDetails(
@@ -583,11 +611,17 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             MultipartUpload threadedMultipartUpload =
                 service.multipartStartUpload(bucketName, objectKeyForThreaded, metadataForThreaded);
 
+            // Create 5MB of test data
+            byte[] fiveMBTestData = new byte[fiveMB];
+            for (int offset = 0; offset < fiveMBTestData.length; offset++) {
+                fiveMBTestData[offset] = (byte) (offset % 256);
+            }
+
             // Prepare objects for upload (2 * 5MB, and 1 * 1 byte)
             S3Object[] objectsForThreadedUpload = new S3Object[] {
-                new S3Object(threadedMultipartUpload.getObjectKey(), testData),
-                new S3Object(threadedMultipartUpload.getObjectKey(), testData),
-                new S3Object(threadedMultipartUpload.getObjectKey(), new byte[] {testData[0]}),
+                new S3Object(threadedMultipartUpload.getObjectKey(), fiveMBTestData),
+                new S3Object(threadedMultipartUpload.getObjectKey(), fiveMBTestData),
+                new S3Object(threadedMultipartUpload.getObjectKey(), new byte[] {fiveMBTestData[0]}),
             };
 
             // Create threaded service and perform upload in multiple threads
@@ -605,9 +639,9 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             // Confirm completed object exists and has expected size
             S3Object finalObjectForThreaded = (S3Object) service.getObjectDetails(
                 bucketName, threadedMultipartUpload.getObjectKey());
-            assertEquals(testData.length * 2 + 1, finalObjectForThreaded.getContentLength());
+            assertEquals(fiveMB * 2 + 1, finalObjectForThreaded.getContentLength());
         } finally {
-            cleanupBucketForTest("testMultipartUploads");
+            cleanupBucketForTest("testMultipartUploadWithConvenienceMethod");
         }
     }
 

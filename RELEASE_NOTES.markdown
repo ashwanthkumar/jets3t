@@ -23,6 +23,8 @@ GoogleStorageService:
 
 RestS3Service:
 
+ * Support for Multipart Upload Part - Copy operation, to add data from
+   existing S3 objects to multipart uploads.
  * Support for signing S3 requests with response-altering request 
    parameters like "response-content-type", "response-content-disposition"
 
@@ -33,8 +35,10 @@ RestS3Service:
 
 ### KUDOS TO
 
+ * davidphillips on BitBucket for initial patch that led to implementation
+   of Multipart Upload Part - Copy operation.
  * vaporwarecorp on BitBucket for patch to improve generality of 
-   StorageService.   
+   StorageService.
 
 
 ------------------------
