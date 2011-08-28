@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -1246,7 +1247,11 @@ public abstract class BaseStorageServiceTests extends TestCase {
             // Ensure local file's timestamp differs by at least 1 sec
             local1.setLastModified(local1.lastModified() + 1000);
 
+            data = "Updated remote file".getBytes("UTF-8");
             StorageObject remoteObject = new StorageObject(local3Path);
+            // Ensure remote file's JetS3t timestamp differs from local file by at least 1 sec
+            remoteObject.addMetadata(Constants.METADATA_JETS3T_LOCAL_FILE_DATE,
+                ServiceUtils.formatIso8601Date(new Date(local3.lastModified() + 1000)));
             remoteObject.setDataInputStream(new ByteArrayInputStream(data));
             remoteObject.setContentLength(data.length);
             service.putObject(bucketName, remoteObject);
