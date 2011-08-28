@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2008-2010 James Murty, 2008 Zmanda Inc
+ * Copyright 2008-2011 James Murty, 2008 Zmanda Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,14 +29,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser;
-import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
-import org.jets3t.service.model.GSBucket;
-import org.jets3t.service.model.GSObject;
-import org.jets3t.service.model.S3Bucket;
-import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
-import org.jets3t.service.model.StorageOwner;
 import org.jets3t.service.model.StorageObject;
+import org.jets3t.service.model.StorageOwner;
 import org.jets3t.service.mx.MxDelegate;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.RestUtils;
@@ -225,26 +220,24 @@ public abstract class StorageService {
         return jets3tProperties;
     }
 
-    protected XmlResponsesSaxParser getXmlResponseSaxParser() throws ServiceException {
-        return new XmlResponsesSaxParser(this.jets3tProperties,
-            (this instanceof GoogleStorageService));
-    }
+    /**
+     * @return
+     * an XML SAX Parser capable of parsing responses from the implemented storage service.
+     * @throws ServiceException
+     */
+    protected abstract XmlResponsesSaxParser getXmlResponseSaxParser() throws ServiceException;
 
-    protected StorageBucket newBucket() {
-        if (this instanceof GoogleStorageService) {
-            return new GSBucket();
-        } else {
-            return new S3Bucket();
-        }
-    }
+    /**
+     * @return
+     * a service-specific {#link {@link StorageBucket} implementation.
+     */
+    protected abstract StorageBucket newBucket();
 
-    protected StorageObject newObject() {
-        if (this instanceof GoogleStorageService) {
-            return new GSObject();
-        } else {
-            return new S3Object();
-        }
-    }
+    /**
+     * @return
+     * a service-specific {#link {@link StorageObject} implementation.
+     */
+    protected abstract StorageObject newObject();
 
     /**
      * Sleeps for a period of time based on the number of Internal Server errors a request has

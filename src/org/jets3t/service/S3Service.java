@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2008-2010 James Murty, 2008 Zmanda Inc
+ * Copyright 2008-2011 James Murty, 2008 Zmanda Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -3260,7 +3260,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     {
         return multipartStartUploadImpl(bucketName, objectKey, metadata, acl, storageClass);
     }
-    
+
     /**
      * Start a multipart upload process for a given object; must be done before
      * individual parts can be uploaded.
@@ -3564,9 +3564,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         String objectKey) throws S3ServiceException;
 
     protected abstract List<MultipartUpload> multipartListUploadsImpl(String bucketName,
-        String nextKeyMarker, String nextUploadIdMarker, Integer maxUploads) 
+        String nextKeyMarker, String nextUploadIdMarker, Integer maxUploads)
         throws S3ServiceException;
-    
+
     protected abstract List<MultipartPart> multipartListPartsImpl(String uploadId,
         String bucketName, String objectKey) throws S3ServiceException;
 

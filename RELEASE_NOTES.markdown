@@ -31,6 +31,11 @@ RestS3Service:
  * Fixed bug in that prevented objects encrypted during upload from being
    automatically decrypted during download (Issue 98)
 
+### KUDOS TO
+
+ * vaporwarecorp on BitBucket for patch to improve generality of 
+   StorageService.   
+
 
 ------------------------
 Version 0.8.1 - Apr 2011

@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2010 James Murty
+ * Copyright 2010-2011 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,8 +31,11 @@ import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.acl.gs.GSAccessControlList;
+import org.jets3t.service.impl.rest.XmlResponsesSaxParser;
 import org.jets3t.service.model.GSBucket;
 import org.jets3t.service.model.GSObject;
+import org.jets3t.service.model.StorageBucket;
+import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.security.OAuth2Credentials;
 import org.jets3t.service.security.OAuth2Tokens;
 import org.jets3t.service.security.ProviderCredentials;
@@ -234,6 +237,21 @@ public class GoogleStorageService extends RestStorageService {
     @Override
     protected boolean getEnableStorageClasses() {
       return false;
+    }
+
+    @Override
+    protected XmlResponsesSaxParser getXmlResponseSaxParser() throws ServiceException {
+        return new XmlResponsesSaxParser(this.jets3tProperties, true);
+    }
+
+    @Override
+    protected StorageBucket newBucket() {
+        return new GSBucket();
+    }
+
+    @Override
+    protected StorageObject newObject() {
+        return new GSObject();
     }
 
     ////////////////////////////////////////////////////////////

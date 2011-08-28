@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2006-2010 James Murty
+ * Copyright 2006-2011 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,6 +45,7 @@ import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.VersionOrDeleteMarkersChunk;
 import org.jets3t.service.acl.AccessControlList;
+import org.jets3t.service.impl.rest.XmlResponsesSaxParser;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.CompleteMultipartUploadResultHandler;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListMultipartPartsResultHandler;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListMultipartUploadsResultHandler;
@@ -54,9 +55,11 @@ import org.jets3t.service.model.MultipartCompleted;
 import org.jets3t.service.model.MultipartPart;
 import org.jets3t.service.model.MultipartUpload;
 import org.jets3t.service.model.NotificationConfig;
+import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3BucketVersioningStatus;
 import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.WebsiteConfig;
 import org.jets3t.service.security.AWSDevPayCredentials;
@@ -165,6 +168,21 @@ public class RestS3Service extends S3Service {
     protected boolean isTargettingGoogleStorageService() {
         return Constants.GS_DEFAULT_HOSTNAME.equals(
             this.getJetS3tProperties().getStringProperty("s3service.s3-endpoint", null));
+    }
+
+    @Override
+    protected XmlResponsesSaxParser getXmlResponseSaxParser() throws ServiceException {
+        return new XmlResponsesSaxParser(this.jets3tProperties, false);
+    }
+
+    @Override
+    protected StorageBucket newBucket() {
+        return new S3Bucket();
+    }
+
+    @Override
+    protected StorageObject newObject() {
+        return new S3Object();
     }
 
     /**
