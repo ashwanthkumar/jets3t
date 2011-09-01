@@ -1029,14 +1029,18 @@ public abstract class RestStorageService extends StorageService implements JetS3
         }
         if (requestEntity != null) {
             ((HttpPut)httpMethod).setEntity(requestEntity);
+
+            /* Explicitly apply any latent Content-Type header from the request entity to the
+             * httpMethod to ensure it is included in the request signature, since it will be
+             * included in the wire request by HttpClient. But only apply the latent mimetype
+             * if an explicit Content-Type is not already set. See issue #109
+             */
+            if (requestEntity.getContentType() != null
+                && httpMethod.getFirstHeader("Content-Type") == null)
+            {
+                httpMethod.setHeader(requestEntity.getContentType());
+            }
         }
-        /* TODO: Remove?
-         *
-         * Http-client now raises an exception if the 'Content-Length' header
-         * is already set (!)
-         */
-        // Need an explicit Content-Length even if no data is being uploaded.
-        // httpMethod.setHeader("Content-Length", "0");
 
         HttpResponse result = performRequest(httpMethod, new int[] {200, 204});
 
@@ -1259,12 +1263,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
         // Set mandatory Request headers.
         if (httpMethod.getFirstHeader("Date") == null) {
-            httpMethod.setHeader(
-                    "Date",
-                    ServiceUtils.formatRfc822Date(getCurrentTimeWithOffset()));
-        }
-        if (httpMethod.getFirstHeader("Content-Type") == null) {
-            httpMethod.setHeader("Content-Type", "");
+            httpMethod.setHeader("Date",
+                ServiceUtils.formatRfc822Date(getCurrentTimeWithOffset()));
         }
 
         return httpMethod;
