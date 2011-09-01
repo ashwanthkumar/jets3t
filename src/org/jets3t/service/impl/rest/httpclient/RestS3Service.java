@@ -666,7 +666,6 @@ public class RestS3Service extends S3Service {
             throw new S3ServiceException("Unable to generate LoggingStatus XML document", e);
         }
         try {
-            metadata.put("Content-Length", String.valueOf(statusAsXml.length()));
             performRestPut(bucketName, null, metadata, requestParameters,
                 new StringEntity(statusAsXml, "text/plain", Constants.DEFAULT_ENCODING),
                 true);
@@ -705,7 +704,6 @@ public class RestS3Service extends S3Service {
         metadata.put("Content-Type", "text/plain");
 
         try {
-            metadata.put("Content-Length", String.valueOf(policyDocument.length()));
             performRestPut(bucketName, null, metadata, requestParameters,
                 new StringEntity(policyDocument, "text/plain", Constants.DEFAULT_ENCODING),
                 true);
@@ -770,7 +768,6 @@ public class RestS3Service extends S3Service {
                     "</Payer>" +
                 "</RequestPaymentConfiguration>";
 
-            metadata.put("Content-Length", String.valueOf(xml.length()));
             performRestPut(bucketName, null, metadata, requestParameters,
                 new StringEntity(xml, "text/plain", Constants.DEFAULT_ENCODING),
                 true);
@@ -1149,7 +1146,6 @@ public class RestS3Service extends S3Service {
         }
 
         try {
-            metadata.put("Content-Length", xml.length());
             performRestPut(bucketName, null, metadata, requestParameters,
                 new StringEntity(xml, "text/plain", Constants.DEFAULT_ENCODING),
                 true);
@@ -1206,7 +1202,6 @@ public class RestS3Service extends S3Service {
         }
 
         try {
-            metadata.put("Content-Length", xml.length());
             performRestPut(bucketName, null, metadata, requestParameters,
                 new StringEntity(xml, "text/plain", Constants.DEFAULT_ENCODING),
                 true);
