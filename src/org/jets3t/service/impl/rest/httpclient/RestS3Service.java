@@ -823,15 +823,17 @@ public class RestS3Service extends S3Service {
         requestParameters.put("partNumber", "" + partNumber);
 
         // Remove all non-HTTP headers from object metadata for multipart part uploads
-        List<String> metadataNamesToRemove = new ArrayList<String>();
-        for (String name: object.getMetadataMap().keySet()) {
-            if (!RestUtils.HTTP_HEADER_METADATA_NAMES.contains(name.toLowerCase())) {
-                // Actual metadata name in object does not include the prefix
-                metadataNamesToRemove.add(name);
+        synchronized(object) { // Thread-safe header handling.
+            List<String> metadataNamesToRemove = new ArrayList<String>();
+            for (String name: object.getMetadataMap().keySet()) {
+                if (!RestUtils.HTTP_HEADER_METADATA_NAMES.contains(name.toLowerCase())) {
+                    // Actual metadata name in object does not include the prefix
+                    metadataNamesToRemove.add(name);
+                }
             }
-        }
-        for (String name: metadataNamesToRemove) {
-            object.removeMetadata(name);
+            for (String name: metadataNamesToRemove) {
+                object.removeMetadata(name);
+            }
         }
 
         try {
