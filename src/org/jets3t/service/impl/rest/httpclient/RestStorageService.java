@@ -695,7 +695,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
             }
         }
 
-        String queryString = uri.getQuery();
+        String queryString = uri.getRawQuery();
         if (queryString != null && queryString.length() > 0) {
             fullUrl += "?" + queryString;
         }
