@@ -2186,7 +2186,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
                 destinationBucketName, destinationObject.getKey(),
                 destinationObject.getAcl(), destinationMetadata,
                 ifModifiedSince, ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, versionId,
-                destinationObject.getStorageClass());
+                destinationObject.getStorageClass(), destinationObject.getServerSideEncryptionAlgorithm());
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }
@@ -3258,7 +3258,8 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         Map<String, Object> metadata, AccessControlList acl, String storageClass)
         throws S3ServiceException
     {
-        return multipartStartUploadImpl(bucketName, objectKey, metadata, acl, storageClass);
+        return multipartStartUploadImpl(
+            bucketName, objectKey, metadata, acl, storageClass, null);
     }
 
     /**
@@ -3269,7 +3270,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * the name of the bucket in which the object will be stored.
      * @param object
      * object containing details to apply to the completed object, including:
-     * key name, metadata, ACL, storage class
+     * key name, metadata, ACL, storage class, server-side encryption algorithm
      * @return
      * object representing this multipart upload.
      * @throws S3ServiceException
@@ -3278,7 +3279,8 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         throws S3ServiceException
     {
         return multipartStartUploadImpl(bucketName, object.getKey(),
-            object.getMetadataMap(), object.getAcl(), object.getStorageClass());
+            object.getMetadataMap(), object.getAcl(), object.getStorageClass(),
+            object.getServerSideEncryptionAlgorithm());
     }
 
     /**
@@ -3675,7 +3677,8 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         String bucketName) throws S3ServiceException;
 
     protected abstract MultipartUpload multipartStartUploadImpl(String bucketName, String objectKey,
-        Map<String, Object> metadata, AccessControlList acl, String storageClass) throws S3ServiceException;
+        Map<String, Object> metadata, AccessControlList acl, String storageClass,
+        String serverSideEncryptionAlgorithm) throws S3ServiceException;
 
     protected abstract void multipartAbortUploadImpl(String uploadId, String bucketName,
         String objectKey) throws S3ServiceException;

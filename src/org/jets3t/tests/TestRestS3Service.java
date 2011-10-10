@@ -113,6 +113,12 @@ public class TestRestS3Service extends BaseStorageServiceTests {
     {
         Jets3tProperties properties = new Jets3tProperties();
         properties.setProperty("s3service.s3-endpoint", endpointHostname);
+        return getStorageService(credentials, properties);
+    }
+
+    protected RestStorageService getStorageService(ProviderCredentials credentials,
+        Jets3tProperties properties) throws ServiceException
+    {
         return new RestS3Service(credentials, null, null, properties);
     }
 
@@ -798,4 +804,58 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             cleanupBucketForTest("testNotificationConfig");
         }
     }
+
+    public void testServerSideEncryption() throws Exception {
+        S3Service s3Service = (S3Service) getStorageService(getCredentials());
+        StorageBucket bucket = createBucketForTest("testServerSideEncryption");
+        String bucketName = bucket.getName();
+
+        try {
+            // NONE server-side encryption variable == null
+            assertEquals(S3Object.SERVER_SIDE_ENCRYPTION__NONE, null);
+
+            // Create a normal object
+            S3Object object = new S3Object("unencrypted-object", "Some data");
+            object.setServerSideEncryptionAlgorithm(S3Object.SERVER_SIDE_ENCRYPTION__NONE);
+            s3Service.putObject(bucketName, object);
+            // Confirm object is not encrypted
+            StorageObject objDetails = s3Service.getObjectDetails(bucketName, object.getKey());
+            assertEquals(null, objDetails.getServerSideEncryptionAlgorithm());
+
+            // Fail to create an encrypted object, due to invalid algorithm
+            object = new S3Object("failed-encrypted-object", "Some data");
+            object.setServerSideEncryptionAlgorithm("AES999");
+            try {
+                s3Service.putObject(bucketName, object);
+                fail("Expected error about invalid server-side encryption algorithm");
+            } catch (S3ServiceException e) {
+                assertEquals("InvalidEncryptionAlgorithmError", e.getErrorCode());
+            }
+
+            // Create an encrypted object, set explicitly
+            object = new S3Object("encrypted-object", "Some data");
+            object.setServerSideEncryptionAlgorithm(S3Object.SERVER_SIDE_ENCRYPTION__AES256);
+            s3Service.putObject(bucketName, object);
+            // Confirm object is encrypted
+            objDetails = s3Service.getObjectDetails(bucketName, object.getKey());
+            assertEquals(S3Object.SERVER_SIDE_ENCRYPTION__AES256, objDetails.getMetadata("server-side-encryption"));
+            assertEquals(S3Object.SERVER_SIDE_ENCRYPTION__AES256, objDetails.getServerSideEncryptionAlgorithm());
+
+            // Create an encrypted object, per default algorithm set in service properties
+            Jets3tProperties properties = new Jets3tProperties();
+            properties.setProperty("s3service.server-side-encryption",
+                S3Object.SERVER_SIDE_ENCRYPTION__AES256);
+            s3Service = (S3Service) getStorageService(getCredentials(), properties);
+            object = new S3Object("encrypted-object-as-default", "Some data");
+            s3Service.putObject(bucketName, object);
+            // Confirm object is encrypted
+            objDetails = s3Service.getObjectDetails(bucketName, object.getKey());
+            assertEquals(S3Object.SERVER_SIDE_ENCRYPTION__AES256, objDetails.getMetadata("server-side-encryption"));
+            assertEquals(S3Object.SERVER_SIDE_ENCRYPTION__AES256, objDetails.getServerSideEncryptionAlgorithm());
+
+        } finally {
+            cleanupBucketForTest("testServerSideEncryption");
+        }
+    }
+
 }

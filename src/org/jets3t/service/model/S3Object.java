@@ -37,6 +37,9 @@ public class S3Object extends StorageObject implements Cloneable {
     public static final String STORAGE_CLASS_STANDARD = "STANDARD";
     public static final String STORAGE_CLASS_REDUCED_REDUNDANCY = "REDUCED_REDUNDANCY";
 
+    public static final String SERVER_SIDE_ENCRYPTION__NONE = null;
+    public static final String SERVER_SIDE_ENCRYPTION__AES256 = "AES256";
+
     /*
      * S3-specific metadata/header names.
      */

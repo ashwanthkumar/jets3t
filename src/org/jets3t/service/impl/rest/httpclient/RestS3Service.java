@@ -429,6 +429,16 @@ public class RestS3Service extends S3Service {
             isTargettingGoogleStorageService() ? false : true);
     }
 
+    /**
+     * @return
+     * If true, JetS3t will enable support for Server-Side Encryption. Only enabled for
+     * Amazon S3 end-point by default.
+     */
+    @Override
+    protected boolean getEnableServerSideEncryption() {
+        return ! isTargettingGoogleStorageService();
+    }
+
     @Override
     protected BaseVersionOrDeleteMarker[] listVersionedObjectsImpl(String bucketName,
         String prefix, String delimiter, String keyMarker, String versionMarker,
@@ -778,9 +788,18 @@ public class RestS3Service extends S3Service {
         }
     }
 
-    @Override
     protected MultipartUpload multipartStartUploadImpl(String bucketName, String objectKey,
         Map<String, Object> metadataProvided, AccessControlList acl, String storageClass)
+        throws S3ServiceException
+    {
+        return this.multipartStartUploadImpl(
+            bucketName, objectKey, metadataProvided, acl, storageClass, null);
+    }
+
+    @Override
+    protected MultipartUpload multipartStartUploadImpl(String bucketName, String objectKey,
+        Map<String, Object> metadataProvided, AccessControlList acl, String storageClass,
+        String serverSideEncryptionAlgorithm)
         throws S3ServiceException
     {
         Map<String, String> requestParameters = new HashMap<String, String>();
@@ -797,8 +816,10 @@ public class RestS3Service extends S3Service {
             }
         }
 
-        // Apply per-object or default storage class when uploading object
+        // Apply per-object or default object properties when uploading object
         prepareStorageClass(metadata, storageClass, true, objectKey);
+        prepareServerSideEncryption(metadata, serverSideEncryptionAlgorithm, objectKey);
+
         boolean putNonStandardAcl = !prepareRESTHeaderAcl(metadata, acl);
 
         try {

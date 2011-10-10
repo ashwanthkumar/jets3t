@@ -95,6 +95,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
     protected CredentialsProvider credentialsProvider = null;
 
     protected String defaultStorageClass = null;
+    protected String defaultServerSideEncryptionAlgorithm = null;
+
     protected volatile boolean shuttingDown;
 
     /**
@@ -153,6 +155,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
         this.defaultStorageClass = this.jets3tProperties.getStringProperty(
                 "s3service.default-storage-class", null);
+        this.defaultServerSideEncryptionAlgorithm = this.jets3tProperties.getStringProperty(
+            "s3service.server-side-encryption", null);
         initializeDefaults();
     }
 
@@ -1651,7 +1655,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
         }
 
         Map<String, Object> map = createObjectImpl(bucketName, null, null,
-            requestEntity, metadata, null, acl, null);
+            requestEntity, metadata, null, acl, null, null);
 
         StorageBucket bucket = newBucket();
         bucket.setName(bucketName);
@@ -1730,7 +1734,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
         Map<String, Object> map = createObjectImpl(bucketName, object.getKey(),
             object.getContentType(), requestEntity, object.getMetadataMap(),
-            requestParams, object.getAcl(), object.getStorageClass());
+            requestParams, object.getAcl(), object.getStorageClass(),
+            object.getServerSideEncryptionAlgorithm());
 
         try {
             object.closeDataInputStream();
@@ -1766,7 +1771,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
     protected Map<String, Object> createObjectImpl(String bucketName, String objectKey, String contentType,
         HttpEntity requestEntity, Map<String, Object> metadata,
-        Map<String, String> requestParams, AccessControlList acl, String storageClass)
+        Map<String, String> requestParams, AccessControlList acl,
+        String storageClass, String serverSideEncryptionAlgorithm)
         throws ServiceException
     {
         if (metadata == null) {
@@ -1781,8 +1787,10 @@ public abstract class RestStorageService extends StorageService implements JetS3
             metadata.put("Content-Type", Mimetypes.MIMETYPE_OCTET_STREAM);
         }
 
-        // Apply per-object or default storage class when uploading object,
+        // Apply per-object or default options when uploading object
         prepareStorageClass(metadata, storageClass, true, objectKey);
+        prepareServerSideEncryption(metadata, serverSideEncryptionAlgorithm, objectKey);
+
         boolean isExtraAclPutRequired = !prepareRESTHeaderAcl(metadata, acl);
 
         if (log.isDebugEnabled()) {
@@ -1844,24 +1852,50 @@ public abstract class RestStorageService extends StorageService implements JetS3
         return true;
     }
 
-    protected void prepareStorageClass(
-            Map<String, Object> metadata,
-            String storageClass,
-            boolean useDefaultStorageClass,
-            String objectKey) {
-        if (metadata == null){
+    protected void prepareStorageClass(Map<String, Object> metadata, String storageClass,
+            boolean useDefaultStorageClass, String objectKey)
+    {
+        if (metadata == null) {
             throw new IllegalArgumentException("Null metadata not allowed.");
         }
         if (getEnableStorageClasses()) {
-            if (storageClass == null && useDefaultStorageClass && this.defaultStorageClass != null) {
+            if (storageClass == null
+                && useDefaultStorageClass
+                && this.defaultStorageClass != null)
+            {
                 // Apply default storage class
                 storageClass = this.defaultStorageClass;
                 log.debug("Applied default storage class '" + storageClass
                     + "' to object '" + objectKey + "'");
             }
-            if (storageClass != null){
+            if (storageClass != null) {
                 metadata.put(this.getRestHeaderPrefix() + "storage-class", storageClass);
             }
+        }
+    }
+
+    protected void prepareServerSideEncryption(Map<String, Object> metadata,
+        String serverSideEncryptionAlgorithm, String objectKey)
+    {
+        if (metadata == null) {
+            throw new IllegalArgumentException("Null metadata not allowed.");
+        }
+        if (! getEnableServerSideEncryption()) {
+            // Feature disabled
+            return;
+        }
+        if (serverSideEncryptionAlgorithm == null
+            && this.defaultServerSideEncryptionAlgorithm != null)
+        {
+            // Apply default server side encryption algorithm
+            serverSideEncryptionAlgorithm = this.defaultServerSideEncryptionAlgorithm;
+            log.debug("Applied default server-side encryption algorithm '"
+                + serverSideEncryptionAlgorithm
+                + "' to object '" + objectKey + "'");
+        }
+        if (serverSideEncryptionAlgorithm != null) {
+            metadata.put(this.getRestHeaderPrefix() + "server-side-encryption",
+                serverSideEncryptionAlgorithm);
         }
     }
 
@@ -1870,7 +1904,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
         String destinationBucketName, String destinationObjectKey,
         AccessControlList acl, Map<String, Object> destinationMetadata, Calendar ifModifiedSince,
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags,
-        String versionId, String destinationObjectStorageClass)
+        String versionId, String destinationObjectStorageClass,
+        String destinationObjectServerSideEncryptionAlgorithm)
         throws ServiceException
     {
         if (log.isDebugEnabled()) {
@@ -1889,6 +1924,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
         metadata.put(this.getRestHeaderPrefix() + "copy-source", sourceKey);
 
         prepareStorageClass(metadata, destinationObjectStorageClass, false, destinationObjectKey);
+        prepareServerSideEncryption(metadata, destinationObjectServerSideEncryptionAlgorithm, destinationObjectKey);
 
         if (destinationMetadata != null) {
             metadata.put(this.getRestHeaderPrefix() + "metadata-directive", "REPLACE");

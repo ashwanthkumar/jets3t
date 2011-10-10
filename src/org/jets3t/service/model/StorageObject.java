@@ -53,12 +53,14 @@ public class StorageObject extends BaseStorageItem implements Cloneable {
      */
     public static final String METADATA_HEADER_HASH_MD5 = "md5-hash";
     public static final String METADATA_HEADER_ORIGINAL_HASH_MD5 = "original-md5-hash";
+    public static final String METADATA_HEADER_SERVER_SIDE_ENCRYPTION  = "server-side-encryption";
 
     protected AccessControlList acl = null;
     protected transient InputStream dataInputStream = null;
     protected boolean isMetadataComplete = false;
     protected String bucketName = null;
     protected String storageClass = null;
+    protected String serverSideEncryptionAlgorithm = null;
 
     /**
      * Store references to files when the object's data comes from a file, to allow for lazy
@@ -531,6 +533,29 @@ public class StorageObject extends BaseStorageItem implements Cloneable {
      */
     public void setStorageClass(String storageClass) {
         this.storageClass = storageClass;
+    }
+
+    /**
+     * @return
+     * the encryption algorithm used for server-side encryption (unencrypted if null).
+     */
+    public String getServerSideEncryptionAlgorithm() {
+        // First see if we have an explicit server-side encryption value, and return that if so...
+        if (serverSideEncryptionAlgorithm != null) {
+            return serverSideEncryptionAlgorithm;
+        }
+        // ...otherwise, look up server-side encryption setting in metadata
+        return (String) getMetadata(METADATA_HEADER_SERVER_SIDE_ENCRYPTION);
+    }
+
+    /**
+     * Set the encryption algorithm to use for server-side encryption of this object
+     * (will be unencrypted if set to null)
+     *
+     * @param serverSideEncryptionAlgorithm
+     */
+    public void setServerSideEncryptionAlgorithm(String serverSideEncryptionAlgorithm) {
+        this.serverSideEncryptionAlgorithm = serverSideEncryptionAlgorithm;
     }
 
     /**

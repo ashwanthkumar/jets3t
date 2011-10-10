@@ -23,6 +23,8 @@ GoogleStorageService:
 
 RestS3Service:
 
+ * Support for server-side encryption, with per-object setting of algorithm
+   and default algorithm configuration 's3service.server-side-encryption'
  * Support for Multipart Upload Part - Copy operation, to add data from
    existing S3 objects to multipart uploads.
  * Support for signing S3 requests with response-altering request 

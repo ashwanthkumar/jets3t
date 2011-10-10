@@ -232,12 +232,22 @@ public class GoogleStorageService extends RestStorageService {
 
     /**
      * @return
-     * If true, JetS3t will enable support for Storage Classes.
+     * False, since Google Storage does not support storage classes.
      */
     @Override
     protected boolean getEnableStorageClasses() {
       return false;
     }
+
+    /**
+     * @return
+     * False, since Google Storage does not support server-side encryption.
+     */
+    @Override
+    protected boolean getEnableServerSideEncryption() {
+        return false;
+    }
+
 
     @Override
     protected XmlResponsesSaxParser getXmlResponseSaxParser() throws ServiceException {
