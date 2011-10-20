@@ -47,8 +47,6 @@ public class S3Bucket extends StorageBucket {
     public static final String LOCATION_ASIA_PACIFIC_TOKYO = LOCATION_ASIA_PACIFIC_NORTHEAST;
 
 
-    private String location = LOCATION_US;
-    private boolean isLocationKnown = false;
     private boolean requesterPays = false;
     private boolean isRequesterPaysKnown = false;
 
@@ -65,7 +63,7 @@ public class S3Bucket extends StorageBucket {
      * @param name the name for the bucket
      */
     public S3Bucket(String name) {
-        super(name);
+        super(name, null);
     }
 
     /**
@@ -77,9 +75,7 @@ public class S3Bucket extends StorageBucket {
      * {@link #LOCATION_EUROPE}.
      */
     public S3Bucket(String name, String location) {
-        this(name);
-        this.location = location;
-        this.isLocationKnown = true;
+        super(name, location);
     }
 
     @Override
@@ -89,39 +85,6 @@ public class S3Bucket extends StorageBucket {
             ",creationDate=" + getCreationDate() + ",owner=" + getOwner()
             + "] Metadata=" + getMetadataMap();
     }
-
-    /**
-     * Set's the bucket's location. This method should only be used internally by
-     * JetS3t methods that retrieve information directly from S3.
-     *
-     * @param location
-     * A string representing the location. Legal values include
-     * {@link #LOCATION_US} and null (which are equivalent), or
-     * {@link #LOCATION_EUROPE}.
-     */
-    public void setLocation(String location) {
-        this.location = location;
-        this.isLocationKnown = true;
-    }
-
-    /**
-     * @return
-     * true if this object knows the bucket's location, false otherwise.
-     */
-    public boolean isLocationKnown() {
-        return this.isLocationKnown;
-    }
-
-    /**
-     * @return
-     * the bucket's location represented as a string. "EU"
-     * denotes a bucket located in Europe, while null denotes a bucket located
-     * in the US.
-     */
-    public String getLocation() {
-        return location;
-    }
-
 
     /**
      * Set's the bucket's Requester Pays Configuration setting.

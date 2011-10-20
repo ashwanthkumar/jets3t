@@ -29,6 +29,8 @@ import org.jets3t.service.acl.AccessControlList;
  */
 public class StorageBucket extends BaseStorageItem {
     private AccessControlList acl = null;
+    private String location = null;
+    private boolean isLocationKnown = false;
 
     /**
      * Create a bucket without any name or location specified
@@ -42,6 +44,12 @@ public class StorageBucket extends BaseStorageItem {
      */
     public StorageBucket(String name) {
         super(name);
+    }
+
+    public StorageBucket(String name, String location) {
+        super(name);
+        this.location = location;
+        this.isLocationKnown = true;
     }
 
     @Override
@@ -85,4 +93,35 @@ public class StorageBucket extends BaseStorageItem {
         this.acl = acl;
     }
 
+    /**
+     * Set's the bucket's location. This method should only be used internally by
+     * JetS3t methods that retrieve information directly from S3.
+     *
+     * @param location
+     * A string representing the location. Legal values include
+     * {@link #LOCATION_US} and null (which are equivalent), or
+     * {@link #LOCATION_EUROPE}.
+     */
+    public void setLocation(String location) {
+        this.location = location;
+        this.isLocationKnown = true;
+    }
+
+    /**
+     * @return
+     * true if this object knows the bucket's location, false otherwise.
+     */
+    public boolean isLocationKnown() {
+        return this.isLocationKnown;
+    }
+
+    /**
+     * @return
+     * the bucket's location represented as a string. "EU"
+     * denotes a bucket located in Europe, while null denotes a bucket located
+     * in the US.
+     */
+    public String getLocation() {
+        return location;
+    }
 }

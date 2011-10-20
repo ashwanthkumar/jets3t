@@ -1660,9 +1660,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
         StorageBucket bucket = newBucket();
         bucket.setName(bucketName);
-        if (bucket instanceof S3Bucket) {
-            ((S3Bucket) bucket).setLocation(location);
-        }
+        bucket.setLocation(location);
         bucket.setAcl(acl);
         bucket.replaceAllMetadata(map);
         return bucket;
@@ -1682,6 +1680,22 @@ public abstract class RestStorageService extends StorageService implements JetS3
         boolean disableLiveMd5 = jets3tProperties.getBoolProperty(
             "storage-service.disable-live-md5", false);
         return !disableLiveMd5;
+    }
+
+    protected String getBucketLocationImpl(String bucketName)
+        throws ServiceException
+    {
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving location of Bucket: " + bucketName);
+        }
+
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put("location", "");
+
+        HttpResponse httpResponse = performRestGet(bucketName, null, requestParameters, null);
+        return getXmlResponseSaxParser()
+                .parseBucketLocationResponse(
+                        new HttpMethodReleaseInputStream(httpResponse));
     }
 
     protected StorageBucketLoggingStatus getBucketLoggingStatusImpl(String bucketName)

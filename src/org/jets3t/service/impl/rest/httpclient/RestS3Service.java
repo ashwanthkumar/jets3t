@@ -617,18 +617,8 @@ public class RestS3Service extends S3Service {
     protected String getBucketLocationImpl(String bucketName)
         throws S3ServiceException
     {
-        if (log.isDebugEnabled()) {
-            log.debug("Retrieving location of Bucket: " + bucketName);
-        }
-
-        Map<String, String> requestParameters = new HashMap<String, String>();
-        requestParameters.put("location", "");
-
         try {
-            HttpResponse httpResponse = performRestGet(bucketName, null, requestParameters, null);
-            return getXmlResponseSaxParser()
-                .parseBucketLocationResponse(
-                    new HttpMethodReleaseInputStream(httpResponse));
+            return super.getBucketLocationImpl(bucketName);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }

@@ -29,6 +29,9 @@ import org.jets3t.service.acl.gs.GSAccessControlList;
  * @author James Murty
  */
 public class GSBucket extends StorageBucket {
+    public static final String LOCATION_US = null;
+    public static final String LOCATION_EUROPE = "EU";
+
     private GSAccessControlList acl = null;
 
     /**
@@ -44,6 +47,10 @@ public class GSBucket extends StorageBucket {
      */
     public GSBucket(String name) {
         super(name);
+    }
+
+    public GSBucket(String name, String location) {
+        super(name, location);
     }
 
     @Override

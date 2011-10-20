@@ -2906,7 +2906,11 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * @throws S3ServiceException
      */
     public String getBucketLocation(String bucketName) throws S3ServiceException {
-        return getBucketLocationImpl(bucketName);
+        try {
+            return getBucketLocationImpl(bucketName);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -3620,9 +3624,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     ///////////////////////////////////////////////////////////
     // Abstract methods that must be implemented by S3 services
     ///////////////////////////////////////////////////////////
-
-    protected abstract String getBucketLocationImpl(String bucketName)
-        throws S3ServiceException;
 
     protected abstract void setBucketPolicyImpl(String bucketName, String policyDocument)
         throws S3ServiceException;
