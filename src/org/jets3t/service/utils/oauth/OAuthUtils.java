@@ -161,7 +161,7 @@ public class OAuthUtils {
      * @return
      * object representing OAuth token and expiry data.
      *
-     * @throws Exception
+     * @throws IOException
      */
     @SuppressWarnings("serial")
     public OAuth2Tokens retrieveOAuth2TokensFromAuthorization(
@@ -229,7 +229,7 @@ public class OAuthUtils {
      * a new object containing the refreshed access token, an updated expiry timestamp
      * (if applicable) and the original refresh token.
      *
-     * @throws Exception
+     * @throws IOException
      */
     @SuppressWarnings("serial")
     public OAuth2Tokens refreshOAuth2AccessToken(final OAuth2Tokens tokens) throws IOException {
