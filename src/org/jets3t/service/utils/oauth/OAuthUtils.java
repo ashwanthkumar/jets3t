@@ -165,7 +165,7 @@ public class OAuthUtils {
      */
     @SuppressWarnings("serial")
     public OAuth2Tokens retrieveOAuth2TokensFromAuthorization(
-        final String authorizationCode) throws Exception
+        final String authorizationCode) throws IOException
     {
         log.debug("Retrieving OAuth2 tokens using implementation " + implementation
             + " with authorization code: " + authorizationCode);
@@ -185,13 +185,13 @@ public class OAuthUtils {
                 log.debug("Retrieved authorization data from OAuth2 token endpoint "
                     + GSOAuth2_10.Endpoints.Token + ": " + responseData);
             } catch (Exception e) {
-                throw new Exception("Failed to access OAuth token endpoint or parse response", e);
+                throw new IOException("Failed to access OAuth token endpoint or parse response", e);
             }
 
             // Pass on error message in response data
             String error = (String) responseData.get("error");
             if (error != null) {
-                throw new Exception("OAuth2 authentication-to-tokens error: " + error);
+                throw new IOException("OAuth2 authentication-to-tokens error: " + error);
             }
 
             // Retrieve tokens and expiry data from response
@@ -202,11 +202,11 @@ public class OAuthUtils {
 
             // Sanity-check response data
             if (!"Bearer".equals(tokenType)) {
-                throw new Exception("OAuth2 authentication-to-tokens error, invalid token type in data: "
+                throw new IOException("OAuth2 authentication-to-tokens error, invalid token type in data: "
                     + responseData);
             }
             if (accessToken == null || refreshToken == null) {
-                throw new Exception("OAuth2 authentication-to-tokens error, missing token(s) in data: "
+                throw new IOException("OAuth2 authentication-to-tokens error, missing token(s) in data: "
                     + responseData);
             }
 
@@ -232,7 +232,7 @@ public class OAuthUtils {
      * @throws Exception
      */
     @SuppressWarnings("serial")
-    public OAuth2Tokens refreshOAuth2AccessToken(final OAuth2Tokens tokens) throws Exception {
+    public OAuth2Tokens refreshOAuth2AccessToken(final OAuth2Tokens tokens) throws IOException {
         log.debug("Refreshing OAuth2 access token using implementation " + implementation
             + " with refresh token: " + tokens.getRefreshToken());
         Map<String,Object> responseData = null;
@@ -249,14 +249,14 @@ public class OAuthUtils {
                     }});
                 log.debug("Retrieved access token refresh data from OAuth2 token endpoint "
                     + GSOAuth2_10.Endpoints.Token + ": " + responseData);
-            } catch (Exception e) {
-                throw new Exception("Failed to access OAuth token endpoint or parse response", e);
+            } catch (IOException e) {
+                throw new IOException("Failed to access OAuth token endpoint or parse response", e);
             }
 
             // Pass on error message in response data
             String error = (String) responseData.get("error");
             if (error != null) {
-                throw new Exception("OAuth2 error refreshing access token: " + error);
+                throw new IOException("OAuth2 error refreshing access token: " + error);
             }
 
             // Retrieve tokens and expiry data from response
@@ -266,11 +266,11 @@ public class OAuthUtils {
 
             // Sanity-check response data
             if (!"Bearer".equals(tokenType)) {
-                throw new Exception("OAuth2 error refreshing access token, invalid token type in data: "
+                throw new IOException("OAuth2 error refreshing access token, invalid token type in data: "
                     + responseData);
             }
             if (accessToken == null) {
-                throw new Exception("OAuth2 error refreshing access token, missing token in data: "
+                throw new IOException("OAuth2 error refreshing access token, missing token in data: "
                     + responseData);
             }
 
