@@ -175,9 +175,7 @@ public class GoogleStorageService extends RestStorageService {
     @Override
     public List<String> getResourceParameterNames() {
         // Special HTTP parameter names that refer to resources in Google Storage
-        return Arrays.asList(new String[] {
-            "acl"
-        });
+        return Arrays.asList("acl");
     }
 
     /**
