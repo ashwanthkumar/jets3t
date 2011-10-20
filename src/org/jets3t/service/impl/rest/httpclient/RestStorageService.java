@@ -546,29 +546,6 @@ public abstract class RestStorageService extends StorageService implements JetS3
                     }
                 }
             } while (!completedWithoutRecoverableError);
-
-            // TODO: Remove?
-            // NOTE: Does not seem necessary with httpclient-4.x. With httpclient-4.1
-            // invoking HttpEntity().getContent() on an entity whose content was
-            // already read raises IllegalStateException
-            /*
-            // Release immediately any connections without response bodies.
-            if ((response.getEntity().getContentType() == null
-                    || response.getEntity().getContent().available() == 0)
-                    && response.getEntity().getContentLength() <= 0){
-
-                if (log.isDebugEnabled()) {
-                    log.debug("Releasing response without content");
-                }
-                byte[] responseBody = EntityUtils.toByteArray(response.getEntity());
-                if (responseBody != null && responseBody.length > 0){
-                    throw new ServiceException("Oops, too keen to release " +
-                          "connection with a non-empty response body");
-                }
-                httpMethod.abort();
-            }
-            */
-
         } catch (Throwable t) {
             if (log.isErrorEnabled()){
                 String msg = "Rethrowing as a ServiceException error in performRequest: " + t;
