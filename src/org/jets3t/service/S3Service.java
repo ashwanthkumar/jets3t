@@ -2920,7 +2920,11 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * @throws S3ServiceException
      */
     public S3BucketLoggingStatus getBucketLoggingStatus(String bucketName) throws S3ServiceException {
-        return getBucketLoggingStatusImpl(bucketName);
+        try {
+            return (S3BucketLoggingStatus) getBucketLoggingStatusImpl(bucketName);
+        } catch(ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -3618,12 +3622,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     ///////////////////////////////////////////////////////////
 
     protected abstract String getBucketLocationImpl(String bucketName)
-        throws S3ServiceException;
-
-    protected abstract S3BucketLoggingStatus getBucketLoggingStatusImpl(String bucketName)
-        throws S3ServiceException;
-
-    protected abstract void setBucketLoggingStatusImpl(String bucketName, S3BucketLoggingStatus status)
         throws S3ServiceException;
 
     protected abstract void setBucketPolicyImpl(String bucketName, String policyDocument)

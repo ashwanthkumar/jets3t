@@ -635,58 +635,6 @@ public class RestS3Service extends S3Service {
     }
 
     @Override
-    protected S3BucketLoggingStatus getBucketLoggingStatusImpl(String bucketName)
-        throws S3ServiceException
-    {
-        if (log.isDebugEnabled()) {
-            log.debug("Retrieving Logging Status for Bucket: " + bucketName);
-        }
-
-        Map<String, String> requestParameters = new HashMap<String, String>();
-        requestParameters.put("logging", "");
-
-        try {
-            HttpResponse httpResponse = performRestGet(bucketName, null, requestParameters, null);
-            return getXmlResponseSaxParser()
-                .parseLoggingStatusResponse(
-                    new HttpMethodReleaseInputStream(httpResponse)).getBucketLoggingStatus();
-        } catch (ServiceException se) {
-            throw new S3ServiceException(se);
-        }
-    }
-
-    @Override
-    protected void setBucketLoggingStatusImpl(String bucketName, S3BucketLoggingStatus status)
-        throws S3ServiceException
-    {
-        if (log.isDebugEnabled()) {
-            log.debug("Setting Logging Status for bucket: " + bucketName);
-        }
-
-        Map<String, String> requestParameters = new HashMap<String, String>();
-        requestParameters.put("logging", "");
-
-        Map<String, Object> metadata = new HashMap<String, Object>();
-        metadata.put("Content-Type", "text/plain");
-
-        String statusAsXml = null;
-        try {
-            statusAsXml = status.toXml();
-        } catch (Exception e) {
-            throw new S3ServiceException("Unable to generate LoggingStatus XML document", e);
-        }
-        try {
-            performRestPut(bucketName, null, metadata, requestParameters,
-                new StringEntity(statusAsXml, "text/plain", Constants.DEFAULT_ENCODING),
-                true);
-        } catch (ServiceException se) {
-            throw new S3ServiceException(se);
-        } catch (UnsupportedEncodingException e) {
-            throw new S3ServiceException("Unable to encode LoggingStatus XML document", e);
-        }
-    }
-
-    @Override
     protected String getBucketPolicyImpl(String bucketName)
         throws S3ServiceException
     {

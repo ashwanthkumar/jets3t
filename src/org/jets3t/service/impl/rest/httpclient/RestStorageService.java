@@ -65,6 +65,7 @@ import org.jets3t.service.model.CreateBucketConfiguration;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
+import org.jets3t.service.model.StorageBucketLoggingStatus;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.StorageOwner;
 import org.jets3t.service.mx.MxDelegate;
@@ -1681,6 +1682,52 @@ public abstract class RestStorageService extends StorageService implements JetS3
         boolean disableLiveMd5 = jets3tProperties.getBoolProperty(
             "storage-service.disable-live-md5", false);
         return !disableLiveMd5;
+    }
+
+    protected StorageBucketLoggingStatus getBucketLoggingStatusImpl(String bucketName)
+        throws ServiceException
+    {
+        if (log.isDebugEnabled()) {
+            log.debug("Retrieving Logging Status for Bucket: " + bucketName);
+        }
+
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put("logging", "");
+
+        HttpResponse httpResponse = performRestGet(bucketName, null, requestParameters, null);
+        return getXmlResponseSaxParser()
+                .parseLoggingStatusResponse(
+                        new HttpMethodReleaseInputStream(httpResponse)).getBucketLoggingStatus();
+    }
+
+    protected void setBucketLoggingStatusImpl(String bucketName, StorageBucketLoggingStatus status)
+        throws ServiceException
+    {
+        if (log.isDebugEnabled()) {
+            log.debug("Setting Logging Status for bucket: " + bucketName);
+        }
+
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put("logging", "");
+
+        Map<String, Object> metadata = new HashMap<String, Object>();
+        metadata.put("Content-Type", "text/plain");
+
+        String statusAsXml = null;
+        try {
+            statusAsXml = status.toXml();
+        } catch (Exception e) {
+            throw new ServiceException("Unable to generate LoggingStatus XML document", e);
+        }
+        try {
+            performRestPut(bucketName, null, metadata, requestParameters,
+                new StringEntity(statusAsXml, "text/plain", Constants.DEFAULT_ENCODING),
+                true);
+        } catch (ServiceException se) {
+            throw new ServiceException(se);
+        } catch (UnsupportedEncodingException e) {
+            throw new ServiceException("Unable to encode LoggingStatus XML document", e);
+        }
     }
 
     /**

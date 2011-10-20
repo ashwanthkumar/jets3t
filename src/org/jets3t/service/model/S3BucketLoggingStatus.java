@@ -28,7 +28,6 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 
 import org.jets3t.service.Constants;
-import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.acl.GrantAndPermission;
 
 import com.jamesmurty.utils.XMLBuilder;
@@ -50,38 +49,14 @@ import com.jamesmurty.utils.XMLBuilder;
  * @author James Murty
  *
  */
-public class S3BucketLoggingStatus {
-    private String targetBucketName = null;
-    private String logfilePrefix = null;
+public class S3BucketLoggingStatus extends StorageBucketLoggingStatus {
     private final List<GrantAndPermission> targetGrantsList = new ArrayList<GrantAndPermission>();
 
     public S3BucketLoggingStatus() {
     }
 
     public S3BucketLoggingStatus(String targetBucketName, String logfilePrefix) {
-        this.targetBucketName = targetBucketName;
-        this.logfilePrefix = logfilePrefix;
-    }
-
-    public boolean isLoggingEnabled() {
-        return targetBucketName != null
-            && logfilePrefix != null;
-    }
-
-    public String getLogfilePrefix() {
-        return logfilePrefix;
-    }
-
-    public void setLogfilePrefix(String logfilePrefix) {
-        this.logfilePrefix = logfilePrefix;
-    }
-
-    public String getTargetBucketName() {
-        return targetBucketName;
-    }
-
-    public void setTargetBucketName(String targetBucketName) {
-        this.targetBucketName = targetBucketName;
+        super(targetBucketName, logfilePrefix);
     }
 
     public GrantAndPermission[] getTargetGrants() {
@@ -100,28 +75,9 @@ public class S3BucketLoggingStatus {
 
     @Override
     public String toString() {
-        String result = "LoggingStatus enabled=" + isLoggingEnabled();
-        if (isLoggingEnabled()) {
-            result += ", targetBucketName=" + getTargetBucketName()
-                + ", logfilePrefix=" + getLogfilePrefix();
-        }
+        String result = super.toString();
         result += ", targetGrants=[" + targetGrantsList + "]";
         return result;
-    }
-
-    /**
-     *
-     * @return
-     * An XML representation of the object suitable for use as an input to the REST/HTTP interface.
-     *
-     * @throws S3ServiceException
-     */
-    public String toXml() throws S3ServiceException {
-        try {
-            return toXMLBuilder().asString();
-        } catch (Exception e) {
-            throw new S3ServiceException("Failed to build XML document for ACL", e);
-        }
     }
 
     public XMLBuilder toXMLBuilder() throws ParserConfigurationException,
@@ -147,5 +103,4 @@ public class S3BucketLoggingStatus {
         }
         return builder;
     }
-
 }

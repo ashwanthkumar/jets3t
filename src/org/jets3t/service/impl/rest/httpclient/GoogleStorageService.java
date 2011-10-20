@@ -34,6 +34,7 @@ import org.jets3t.service.ServiceException;
 import org.jets3t.service.acl.gs.GSAccessControlList;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser;
 import org.jets3t.service.model.GSBucket;
+import org.jets3t.service.model.GSBucketLoggingStatus;
 import org.jets3t.service.model.GSObject;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
@@ -275,6 +276,18 @@ public class GoogleStorageService extends RestStorageService {
     @Override
     public GSBucket createBucket(String bucketName) throws ServiceException {
         return (GSBucket) super.createBucket(bucketName);
+    }
+
+    public GSBucketLoggingStatus getBucketLoggingStatus(String bucketName)
+        throws ServiceException
+    {
+        return (GSBucketLoggingStatus) super.getBucketLoggingStatusImpl(bucketName);
+    }
+
+    public void setBucketLoggingStatus(String bucketName, GSBucketLoggingStatus status)
+            throws ServiceException
+    {
+        super.setBucketLoggingStatusImpl(bucketName, status);
     }
 
     @Override

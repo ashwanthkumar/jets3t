@@ -34,31 +34,14 @@ import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.ServiceException;
+import org.jets3t.service.acl.gs.GSAccessControlList;
 import org.jets3t.service.acl.CanonicalGrantee;
 import org.jets3t.service.acl.EmailAddressGrantee;
 import org.jets3t.service.acl.GrantAndPermission;
 import org.jets3t.service.acl.GranteeInterface;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
-import org.jets3t.service.model.BaseVersionOrDeleteMarker;
-import org.jets3t.service.model.GSBucket;
-import org.jets3t.service.model.GSObject;
-import org.jets3t.service.model.GSOwner;
-import org.jets3t.service.model.MultipartCompleted;
-import org.jets3t.service.model.MultipartPart;
-import org.jets3t.service.model.MultipartUpload;
-import org.jets3t.service.model.NotificationConfig;
-import org.jets3t.service.model.S3Bucket;
-import org.jets3t.service.model.S3BucketLoggingStatus;
-import org.jets3t.service.model.S3BucketVersioningStatus;
-import org.jets3t.service.model.S3DeleteMarker;
-import org.jets3t.service.model.S3Object;
-import org.jets3t.service.model.S3Owner;
-import org.jets3t.service.model.S3Version;
-import org.jets3t.service.model.StorageBucket;
-import org.jets3t.service.model.StorageObject;
-import org.jets3t.service.model.StorageOwner;
-import org.jets3t.service.model.WebsiteConfig;
+import org.jets3t.service.model.*;
 import org.jets3t.service.utils.ServiceUtils;
 import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
@@ -248,7 +231,7 @@ public class XmlResponsesSaxParser {
     public AccessControlListHandler parseAccessControlListResponse(InputStream inputStream)
         throws ServiceException
     {
-        AccessControlListHandler handler = null;
+        AccessControlListHandler handler;
         if (this.isGoogleStorageMode) {
             handler = new GSAccessControlListHandler();
         } else {
@@ -291,7 +274,30 @@ public class XmlResponsesSaxParser {
     public BucketLoggingStatusHandler parseLoggingStatusResponse(InputStream inputStream)
         throws ServiceException
     {
-        BucketLoggingStatusHandler handler = new BucketLoggingStatusHandler();
+        BucketLoggingStatusHandler handler;
+        if (this.isGoogleStorageMode) {
+            handler = new GSBucketLoggingStatusHandler();
+        } else {
+            handler = new S3BucketLoggingStatusHandler();
+        }
+        parseXmlInputStream(handler, inputStream);
+        return handler;
+    }
+
+    /**
+     * Parses a LoggingStatus response XML document for a bucket from an input stream.
+     *
+     * @param inputStream
+     * XML data input stream.
+     * @return
+     * the XML handler object populated with data parsed from the XML stream.
+     *
+     * @throws ServiceException
+     */
+    public BucketLoggingStatusHandler parseLoggingStatusResponse(InputStream inputStream,
+                                                                 BucketLoggingStatusHandler handler)
+        throws ServiceException
+    {
         parseXmlInputStream(handler, inputStream);
         return handler;
     }
@@ -652,6 +658,18 @@ public class XmlResponsesSaxParser {
         }
     }
 
+    public class BucketLoggingStatusHandler extends DefaultXmlHandler {
+        protected StorageBucketLoggingStatus bucketLoggingStatus;
+
+        /**
+         * @return
+         * an object representing the bucket's LoggingStatus document.
+         */
+        public StorageBucketLoggingStatus getBucketLoggingStatus() {
+            return bucketLoggingStatus;
+        }
+    }
+
     /**
      * Handler for LoggingStatus response XML documents for a bucket.
      * The document is parsed into an {@link S3BucketLoggingStatus} object available via the
@@ -660,21 +678,11 @@ public class XmlResponsesSaxParser {
      * @author James Murty
      *
      */
-    public class BucketLoggingStatusHandler extends DefaultXmlHandler {
-        private S3BucketLoggingStatus bucketLoggingStatus = null;
-
+    public class S3BucketLoggingStatusHandler extends BucketLoggingStatusHandler {
         private String targetBucket = null;
         private String targetPrefix = null;
         private GranteeInterface currentGrantee = null;
         private Permission currentPermission = null;
-
-        /**
-         * @return
-         * an object representing the bucket's LoggingStatus document.
-         */
-        public S3BucketLoggingStatus getBucketLoggingStatus() {
-            return bucketLoggingStatus;
-        }
 
         @Override
         public void startElement(String name) {
@@ -710,7 +718,52 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("Grant")) {
                 GrantAndPermission grantAndPermission = new GrantAndPermission(
                     currentGrantee, currentPermission);
-                bucketLoggingStatus.addTargetGrant(grantAndPermission);
+                ((S3BucketLoggingStatus)bucketLoggingStatus).addTargetGrant(grantAndPermission);
+            }
+        }
+    }
+
+    /**
+     * Handler for Logging response XML documents for a bucket.
+     * The document is parsed into an {@link GSBucketLoggingStatus} object available via the
+     * {@link #getBucketLoggingStatus()} method.
+     *
+     * @author David Kocher
+     *
+     */
+    public class GSBucketLoggingStatusHandler extends BucketLoggingStatusHandler {
+        @Override
+        public void startElement(String name) {
+            if (name.equals("Logging")) {
+                bucketLoggingStatus = new GSBucketLoggingStatus();
+            }
+        }
+
+        @Override
+        public void endElement(String name, String elementText) {
+            if (name.equals("LogBucket")) {
+                bucketLoggingStatus.setTargetBucketName(elementText);
+            } else if (name.equals("LogObjectPrefix")) {
+                bucketLoggingStatus.setLogfilePrefix(elementText);
+            } else if (name.equals("PredefinedAcl")) {
+                if(elementText.equals(GSAccessControlList.REST_CANNED_PRIVATE.getValueForRESTHeaderACL())) {
+                    ((GSBucketLoggingStatus)bucketLoggingStatus).setPredefinedAcl(GSAccessControlList.REST_CANNED_PRIVATE);
+                }
+                else if(elementText.equals(GSAccessControlList.REST_CANNED_PUBLIC_READ.getValueForRESTHeaderACL())) {
+                    ((GSBucketLoggingStatus)bucketLoggingStatus).setPredefinedAcl(GSAccessControlList.REST_CANNED_PUBLIC_READ);
+                }
+                else if(elementText.equals(GSAccessControlList.REST_CANNED_PUBLIC_READ_WRITE.getValueForRESTHeaderACL())) {
+                    ((GSBucketLoggingStatus)bucketLoggingStatus).setPredefinedAcl(GSAccessControlList.REST_CANNED_PUBLIC_READ_WRITE);
+                }
+                else if(elementText.equals(GSAccessControlList.REST_CANNED_AUTHENTICATED_READ.getValueForRESTHeaderACL())) {
+                    ((GSBucketLoggingStatus)bucketLoggingStatus).setPredefinedAcl(GSAccessControlList.REST_CANNED_AUTHENTICATED_READ);
+                }
+                else if(elementText.equals(GSAccessControlList.REST_CANNED_BUCKET_OWNER_READ.getValueForRESTHeaderACL())) {
+                    ((GSBucketLoggingStatus)bucketLoggingStatus).setPredefinedAcl(GSAccessControlList.REST_CANNED_BUCKET_OWNER_READ);
+                }
+                else if(elementText.equals(GSAccessControlList.REST_CANNED_BUCKET_OWNER_FULL_CONTROL.getValueForRESTHeaderACL())) {
+                    ((GSBucketLoggingStatus)bucketLoggingStatus).setPredefinedAcl(GSAccessControlList.REST_CANNED_BUCKET_OWNER_FULL_CONTROL);
+                }
             }
         }
     }
