@@ -62,7 +62,6 @@ import org.jets3t.service.impl.rest.HttpException;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.CopyObjectResultHandler;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListBucketHandler;
 import org.jets3t.service.model.CreateBucketConfiguration;
-import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageBucketLoggingStatus;
@@ -206,10 +205,6 @@ public abstract class RestStorageService extends StorageService implements JetS3
      * configured HttpClient library client and connection manager objects.
      */
     protected HttpClient initHttpConnection() {
-        // TODO: Google Storage Service does not work well with Expect: 100-Continue
-        if (this.isTargettingGoogleStorageService()) {
-            jets3tProperties.setProperty("http.protocol.expect-continue", "false");
-        }
         return RestUtils.initHttpConnection(
                 this,
                 jets3tProperties,
