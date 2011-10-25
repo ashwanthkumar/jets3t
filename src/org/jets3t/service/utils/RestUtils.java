@@ -58,7 +58,7 @@ import org.apache.http.client.params.ClientPNames;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.ClientConnectionManagerFactory;
-import org.apache.http.conn.params.ConnManagerPNames;
+import org.apache.http.conn.params.ConnManagerParams;
 import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.impl.auth.BasicScheme;
@@ -111,16 +111,15 @@ public class RestUtils {
      * <tr><td>content-encoding</td></tr>
      * </table>
      */
-    public static final List<String> HTTP_HEADER_METADATA_NAMES = Arrays.asList(new String[] {
-        "content-type",
-        "content-md5",
-        "content-length",
-        "content-language",
-        "expires",
-        "cache-control",
-        "content-disposition",
-        "content-encoding"
-        });
+    public static final List<String> HTTP_HEADER_METADATA_NAMES = Arrays.asList(
+            "content-type",
+            "content-md5",
+            "content-length",
+            "content-language",
+            "expires",
+            "cache-control",
+            "content-disposition",
+            "content-encoding");
 
 
     /**
@@ -336,15 +335,6 @@ public class RestUtils {
             HttpConnectionParams.setSocketBufferSize(params,
                 jets3tProperties.getIntProperty("httpclient.socket-receive-buffer", 0));
         }
-        /*
-         * http-components-4.x: seems the send and receive buffer size be equal
-         *
-        if (jets3tProperties.containsKey("httpclient.socket-send-buffer")) {
-            params.setSendBufferSize(
-                    jets3tProperties.getIntProperty(
-                            "httpclient.socket-send-buffer", 0));
-        }
-        */
 
         HttpConnectionParams.setTcpNoDelay(params, true);
 
@@ -358,15 +348,13 @@ public class RestUtils {
         }
         HttpProtocolParams.setUserAgent(params, userAgent);
 
-        // version is already set by default
-        // clientParams.setParameter("http.protocol.version", HttpVersion.HTTP_1_1);
-        boolean expectContinue = jets3tProperties.getBoolProperty(
-                "http.protocol.expect-continue",
-                true);
-        params.setBooleanParameter("http.protocol.expect-continue", expectContinue);
+        boolean expectContinue
+                = jets3tProperties.getBoolProperty("http.protocol.expect-continue", true);
+        HttpProtocolParams.setUseExpectContinue(params, expectContinue);
 
-        params.setParameter(ConnManagerPNames.TIMEOUT,
-            jets3tProperties.getLongProperty("httpclient.connection-manager-timeout", 0));
+        long connectionManagerTimeout
+                = jets3tProperties.getLongProperty("httpclient.connection-manager-timeout", 0);
+        ConnManagerParams.setTimeout(params, connectionManagerTimeout);
 
         DefaultHttpClient httpClient = new DefaultHttpClient(params);
         httpClient.setHttpRequestRetryHandler(
