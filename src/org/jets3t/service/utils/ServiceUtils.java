@@ -190,7 +190,7 @@ public class ServiceUtils {
      * @throws IOException
      */
     public static String readInputStreamToString(InputStream is, String encoding) throws IOException {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         BufferedReader br = null;
         if (encoding != null) {
             br = new BufferedReader(new InputStreamReader(is, encoding));
@@ -384,7 +384,7 @@ public class ServiceUtils {
      * hex-encoded string.
      */
     public static String toHex(byte[] data) {
-        StringBuffer sb = new StringBuffer(data.length * 2);
+        StringBuilder sb = new StringBuilder(data.length * 2);
         for (int i = 0; i < data.length; i++) {
             String hex = Integer.toHexString(data[i]);
             if (hex.length() == 1) {
@@ -451,7 +451,7 @@ public class ServiceUtils {
      * a delimited string
      */
     public static String join(List<?> items, String delimiter) {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < items.size(); i++) {
             sb.append(items.get(i).toString());
             if (i < items.size() - 1) {
@@ -474,7 +474,7 @@ public class ServiceUtils {
      * a delimited string
      */
     public static String join(Object[] items, String delimiter) {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < items.length; i++) {
             sb.append(items[i]);
             if (i < items.length - 1) {
@@ -495,7 +495,7 @@ public class ServiceUtils {
      * a delimited string
      */
     public static String join(int[] ints, String delimiter) {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         for (int i = 0; i < ints.length; i++) {
             sb.append(ints[i]);
             if (i < ints.length - 1) {
@@ -816,7 +816,7 @@ public class ServiceUtils {
         return "";
       }
       String temp;
-      StringBuffer output = new StringBuffer();
+        StringBuilder output = new StringBuilder();
       StringBuffer workBuf = new StringBuffer();
 
       StringTokenizer strTok = new StringTokenizer(p_Input, p_Delims, true);

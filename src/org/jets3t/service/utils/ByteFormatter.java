@@ -79,7 +79,7 @@ public class ByteFormatter {
         this.kilobyteSuffix = kilobyteSuffix;
         this.byteSuffix = byteSuffix;
 
-        StringBuffer numberFormatString = new StringBuffer();
+        StringBuilder numberFormatString = new StringBuilder();
         numberFormatString.append("0").append((decimalPlaces > 0? "." : ""));
         for (int i = 0; i < decimalPlaces; i++) {
             numberFormatString.append("0");
