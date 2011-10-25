@@ -23,14 +23,14 @@ import org.xml.sax.helpers.DefaultHandler;
 
 public class DefaultXmlHandler extends DefaultHandler {
 
-    private StringBuffer currText = null;
+    private StringBuilder currText = null;
 
         public void startDocument() {}
 
         public void endDocument() {}
 
         public void startElement(String uri, String name, String qName, Attributes attrs) {
-            this.currText = new StringBuffer();
+            this.currText = new StringBuilder();
             this.startElement(name, attrs);
         }
 

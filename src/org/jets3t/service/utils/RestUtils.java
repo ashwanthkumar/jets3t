@@ -155,7 +155,7 @@ public class RestUtils {
      * @throws ServiceException
      */
     public static String encodeUrlPath(String path, String delimiter) throws ServiceException {
-        StringBuffer result = new StringBuffer();
+        StringBuilder result = new StringBuilder();
         String tokens[] = path.split(delimiter);
         for (int i = 0; i < tokens.length; i++) {
             result.append(encodeUrlString(tokens[i]));
@@ -176,8 +176,8 @@ public class RestUtils {
         Map<String, Object> headersMap, String expires, String headerPrefix,
         List<String> serviceResourceParameterNames) throws UnsupportedEncodingException
     {
-        StringBuffer canonicalStringBuf = new StringBuffer();
-        canonicalStringBuf.append(method + "\n");
+        StringBuilder canonicalStringBuf = new StringBuilder();
+        canonicalStringBuf.append(method).append("\n");
 
         // Add all interesting headers to a list, then sort them.  "Interesting"
         // is defined as Content-MD5, Content-Type, Date, and x-amz-
@@ -274,7 +274,7 @@ public class RestUtils {
                 }
                 canonicalStringBuf.append(entry.getKey());
                 if (entry.getValue() != null) {
-                    canonicalStringBuf.append("=" + entry.getValue());
+                    canonicalStringBuf.append("=").append(entry.getValue());
                 }
                 addedParam = true;
             }

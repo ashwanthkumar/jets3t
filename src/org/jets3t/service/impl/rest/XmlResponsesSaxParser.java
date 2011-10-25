@@ -153,7 +153,7 @@ public class XmlResponsesSaxParser {
                  * string buffer, so we can replace troublesome characters before
                  * sending the document to the XML parser.
                  */
-                StringBuffer listingDocBuffer = new StringBuffer();
+                StringBuilder listingDocBuffer = new StringBuilder();
                 BufferedReader br = new BufferedReader(
                     new InputStreamReader(inputStream, Constants.DEFAULT_ENCODING));
 

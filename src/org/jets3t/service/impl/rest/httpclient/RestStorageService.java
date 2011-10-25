@@ -421,14 +421,14 @@ public abstract class RestStorageService extends StorageService implements JetS3
                                 + "' - Received error response with XML message");
                         }
 
-                        StringBuffer sb = new StringBuffer();
+                        StringBuilder sb = new StringBuilder();
                         BufferedReader reader = null;
                         try {
                             reader = new BufferedReader(new InputStreamReader(
                                 new HttpMethodReleaseInputStream(response)));
                             String line = null;
                             while ((line = reader.readLine()) != null) {
-                                sb.append(line + "\n");
+                                sb.append(line).append("\n");
                             }
                         } finally {
                             if (reader != null) {
@@ -758,7 +758,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
     {
         if (requestHeaders != null) {
             for (Map.Entry<String, Object> entry: requestHeaders.entrySet()) {
-                String key = entry.getKey().toString();
+                String key = entry.getKey();
                 String value = entry.getValue().toString();
 
                 httpMethod.setHeader(key, value);
