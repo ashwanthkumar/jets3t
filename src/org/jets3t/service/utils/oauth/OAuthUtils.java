@@ -53,7 +53,7 @@ import org.jets3t.service.utils.oauth.OAuthConstants.GSOAuth2_10;
 public class OAuthUtils {
     private static final Log log = LogFactory.getLog(OAuthUtils.class);
 
-    protected String HTTP_USER_AGENT = "OAuthUtils/" + Constants.JETS3T_VERSION;
+    protected static final String HTTP_USER_AGENT = "OAuthUtils/" + Constants.JETS3T_VERSION;
 
     /**
      * Which OAuth implementation to target.
@@ -71,7 +71,6 @@ public class OAuthUtils {
     protected OAuthImplementation implementation = null;
     protected String clientId = null;
     protected String clientSecret = null;
-    protected Jets3tProperties jets3tProperties = null;
 
     /**
      * Create utility class for a given OAuth implementation that will use the given
@@ -86,25 +85,38 @@ public class OAuthUtils {
     public OAuthUtils(OAuthImplementation implementation, String clientId, String clientSecret,
         Jets3tProperties jets3tProperties)
     {
+        this(RestUtils.initHttpConnection(
+                    null, // requestAuthorizer
+                    jets3tProperties,
+                    HTTP_USER_AGENT,
+                    null), implementation, clientId, clientSecret);
+    }
+
+    /**
+     * Create utility class for a given OAuth implementation that will use the given
+     * client ID and Secret. Values in the given {@link Jets3tProperties} object are
+     * used to configure HTTP/S connections that may be performed by this class.
+     *
+     * @param httpClient
+     * @param implementation
+     * @param clientId
+     * @param clientSecret
+     * @param jets3tProperties
+     */
+    public OAuthUtils(HttpClient httpClient, OAuthImplementation implementation, String clientId, String clientSecret) {
         this.implementation = implementation;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
-        this.jets3tProperties = jets3tProperties;
+        this.httpClient = httpClient;
 
         if (this.implementation == null
             || this.clientId == null
             || this.clientSecret == null
-            || this.jets3tProperties == null)
+            || this.httpClient == null)
         {
             throw new IllegalArgumentException(
                 "Null arguments not permitted when constructing " + this.getClass().getName());
         }
-
-        this.httpClient = RestUtils.initHttpConnection(
-            null, // requestAuthorizer
-            this.jets3tProperties,
-            HTTP_USER_AGENT,
-            null); // credentialsProvider
     }
 
     /**
@@ -119,6 +131,14 @@ public class OAuthUtils {
     public OAuthUtils(OAuthImplementation implementation, String clientId, String clientSecret) {
         this(implementation, clientId, clientSecret,
             Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME));
+    }
+
+    public String getClientId() {
+        return clientId;
+    }
+
+    public String getClientSecret() {
+        return clientSecret;
     }
 
     /**
