@@ -37,6 +37,7 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.params.HttpProtocolParams;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 import org.apache.commons.logging.Log;
@@ -157,7 +158,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
          * DistributionConfig updates, causing unnecessary timeouts when updating these settings.
          * This will probably be fixed, remove the following line when full support returns.
          */
-        this.httpClient.getParams().setBooleanParameter("http.protocol.expect-continue", false);
+        HttpProtocolParams.setUseExpectContinue(this.httpClient.getParams(), false);
     }
 
     protected void initializeDefaults(){
