@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -118,6 +119,14 @@ public class GoogleStorageService extends RestStorageService {
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties) throws ServiceException
     {
         super(credentials, invokingApplicationDescription, credentialsProvider, jets3tProperties);
+    }
+
+    @Override
+    protected HttpUriRequest setupConnection(HTTP_METHOD method, String bucketName, String objectKey,
+                                             Map<String, String> requestParameters) throws ServiceException {
+        final HttpUriRequest request = super.setupConnection(method, bucketName, objectKey, requestParameters);
+        request.setHeader("x-goog-api-version", "2");
+        return request;
     }
 
     @Override
