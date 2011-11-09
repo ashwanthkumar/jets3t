@@ -57,12 +57,18 @@ public class OAuth2Credentials extends ProviderCredentials {
      * @param friendlyName a name identifying the owner of the credentials, such as 'James'.
      */
     public OAuth2Credentials(String clientId, String clientSecret, String friendlyName) {
-        super(clientId, clientSecret, friendlyName);
+        this(new OAuthUtils(OAuthUtils.OAuthImplementation.GOOGLE_STORAGE_OAUTH2_10, clientId, clientSecret),
+                friendlyName);
+    }
+
+    /**
+     * @param oauth Implementation
+     * @param friendlyName a name identifying the owner of the credentials, such as 'James'.
+     */
+    public OAuth2Credentials(OAuthUtils oauth, String friendlyName) {
+        super(oauth.getClientId(), oauth.getClientSecret(), friendlyName);
         // If service initialized with OAuth2 credentials, init utility class for handling OAuth
-        this.oauthUtils = new OAuthUtils(
-                OAuthUtils.OAuthImplementation.GOOGLE_STORAGE_OAUTH2_10,
-                this.getClientId(),
-                this.getClientSecret());
+        this.oauthUtils = oauth;
         this.oauth2Tokens = null;
     }
 
@@ -105,14 +111,14 @@ public class OAuth2Credentials extends ProviderCredentials {
      * @return the OAuth2 Client ID (stored as access key)
      */
     public String getClientId() {
-        return this.accessKey;
+        return this.getAccessKey();
     }
 
     /**
      * @return the OAuth2 Client Secret (stored as secret key)
      */
     public String getClientSecret() {
-        return this.secretKey;
+        return this.getSecretKey();
     }
 
     /**
