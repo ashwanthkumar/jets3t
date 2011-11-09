@@ -84,8 +84,8 @@ public class StorageBucket extends BaseStorageItem {
     }
 
     /**
-     * Sets the bucket's Access Control List in S3 - this should only be used internally by J3tS3t
-     * methods that retrieve information directly from S3.
+     * Sets the bucket's Access Control List  - this should only be used internally by JetS3t
+     * methods that retrieve information directly from a storage service.
      *
      * @param acl
      */
@@ -99,8 +99,8 @@ public class StorageBucket extends BaseStorageItem {
      *
      * @param location
      * A string representing the location. Legal values include
-     * {@link #LOCATION_US} and null (which are equivalent), or
-     * {@link #LOCATION_EUROPE}.
+     * {@link S3Bucket#LOCATION_US}, {@link S3Bucket#LOCATION_EUROPE}, {@link GSBucket#LOCATION_US}
+     * etc.
      */
     public void setLocation(String location) {
         this.location = location;
