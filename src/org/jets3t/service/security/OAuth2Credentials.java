@@ -71,6 +71,9 @@ public class OAuth2Credentials extends ProviderCredentials {
     }
 
     public OAuth2Tokens getOAuth2Tokens() throws IOException {
+        if(null == this.oauth2Tokens) {
+            return null;
+        }
         if (this.oauth2Tokens.isAccessTokenExpired()) {
             this.oauth2Tokens = this.refreshOAuth2Tokens();
         }
