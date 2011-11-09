@@ -30,6 +30,8 @@ public class S3Bucket extends StorageBucket {
     public static final String LOCATION_US = null;
     public static final String LOCATION_US_STANDARD = null;
     public static final String LOCATION_US_WEST = "us-west-1";
+    public static final String LOCATION_US_WEST_NORTHERN_CALIFORNIA = LOCATION_US_WEST;
+    public static final String LOCATION_US_WEST_OREGON = "us-west-2";
     public static final String LOCATION_EUROPE = "EU";
     public static final String LOCATION_ASIA_PACIFIC_SOUTHEAST = "ap-southeast-1";
     /**
