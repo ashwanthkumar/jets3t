@@ -43,10 +43,13 @@ public class OAuth2Tokens {
         this.refreshToken = refreshToken;
         this.expiry = expiry;
 
-        if (accessToken == null || refreshToken == null) {
+        if (refreshToken == null) {
             throw new IllegalArgumentException(
-                "Null access/refresh tokens not permitted when constructing "
+                "Null refresh tokens not permitted when constructing "
                 + this.getClass().getName());
+        }
+        if (accessToken == null) {
+            this.expireAccessToken();
         }
     }
 
