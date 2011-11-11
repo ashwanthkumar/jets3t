@@ -280,9 +280,14 @@ public abstract class BaseStorageServiceTests extends TestCase {
         String bucketName = getBucketNameForTest("testBucketLocations-test1");
         try {
             service.createBucket(bucketName);
-            StorageBucket bucket = service.getBucket(bucketName);
             assertEquals(StorageService.BUCKET_STATUS__MY_BUCKET, service.checkBucketStatus(bucketName));
-            assertEquals(null, bucket.getLocation());
+            if (service instanceof S3Service) {
+                assertEquals(null, // For S3, the default/null location is literally null
+                    ((S3Service) service).getBucketLocation(bucketName));
+            } else {
+                assertEquals("US", // For GS, "US" is default/null location
+                    ((GoogleStorageService) service).getBucketLocation(bucketName));
+            }
         } finally {
             service.deleteBucket(bucketName);
         }
