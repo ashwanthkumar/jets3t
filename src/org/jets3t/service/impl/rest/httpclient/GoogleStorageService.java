@@ -125,7 +125,10 @@ public class GoogleStorageService extends RestStorageService {
     protected HttpUriRequest setupConnection(HTTP_METHOD method, String bucketName, String objectKey,
                                              Map<String, String> requestParameters) throws ServiceException {
         final HttpUriRequest request = super.setupConnection(method, bucketName, objectKey, requestParameters);
-        request.setHeader("x-goog-api-version", "2");
+        // Use API version 2 iff we are using OAuth2 credentials
+        if (this.credentials instanceof OAuth2Credentials) {
+            request.setHeader("x-goog-api-version", "2");
+        }
         return request;
     }
 
