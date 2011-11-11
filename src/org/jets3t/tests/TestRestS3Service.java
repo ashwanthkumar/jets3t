@@ -128,12 +128,6 @@ public class TestRestS3Service extends BaseStorageServiceTests {
         return new RestS3Service(credentials, null, null, properties);
     }
 
-    protected StorageBucket createBucketForTest(String testName, String location) throws Exception {
-        String bucketName = getBucketNameForTest(testName);
-        StorageService service = getStorageService(getCredentials());
-        return ((S3Service)service).getOrCreateBucket(bucketName, location);
-    }
-
     public void testUrlSigning() throws Exception {
         RestS3Service service = (RestS3Service) getStorageService(getCredentials());
         StorageBucket bucket = createBucketForTest("testUrlSigning");

@@ -300,6 +300,10 @@ public class GoogleStorageService extends RestStorageService {
         super.setBucketLoggingStatusImpl(bucketName, status);
     }
 
+    public String getBucketLocation(String bucketName) throws ServiceException {
+        return getBucketLocationImpl(bucketName);
+    }
+
     @Override
     public GSAccessControlList getBucketAcl(String bucketName) throws ServiceException {
         return (GSAccessControlList) super.getBucketAcl(bucketName);
