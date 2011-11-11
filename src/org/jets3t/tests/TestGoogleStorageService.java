@@ -23,6 +23,8 @@ import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.gs.GSAccessControlList;
 import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
+import org.jets3t.service.model.GSBucketLoggingStatus;
+import org.jets3t.service.model.StorageBucketLoggingStatus;
 import org.jets3t.service.security.GSCredentials;
 import org.jets3t.service.security.ProviderCredentials;
 
@@ -58,6 +60,13 @@ public class TestGoogleStorageService extends BaseStorageServiceTests {
     @Override
     protected AccessControlList buildAccessControlList() {
         return new GSAccessControlList();
+    }
+
+    @Override
+    protected StorageBucketLoggingStatus getBucketLoggingStatus(
+        String targetBucketName, String logfilePrefix) throws Exception
+    {
+        return new GSBucketLoggingStatus(targetBucketName, logfilePrefix);
     }
 
     /*

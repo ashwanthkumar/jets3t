@@ -47,16 +47,18 @@ import org.jets3t.service.ServiceException;
 import org.jets3t.service.StorageObjectsChunk;
 import org.jets3t.service.StorageService;
 import org.jets3t.service.acl.AccessControlList;
-import org.jets3t.service.acl.CanonicalGrantee;
+import org.jets3t.service.acl.GrantAndPermission;
 import org.jets3t.service.acl.GranteeInterface;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
 import org.jets3t.service.acl.gs.AllUsersGrantee;
 import org.jets3t.service.acl.gs.GSAccessControlList;
-import org.jets3t.service.acl.gs.UserByIdGrantee;
 import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
+import org.jets3t.service.model.GSBucketLoggingStatus;
+import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.StorageBucket;
+import org.jets3t.service.model.StorageBucketLoggingStatus;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.StorageOwner;
 import org.jets3t.service.multi.SimpleThreadedStorageService;
@@ -73,6 +75,8 @@ import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.ObjectUtils;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
+
+import sun.security.jgss.GSSToken;
 
 /**
  * Runs generic functional tests that any storage service implementation should be
@@ -109,6 +113,9 @@ public abstract class BaseStorageServiceTests extends TestCase {
     protected abstract String getTargetService();
 
     protected abstract AccessControlList buildAccessControlList();
+
+    protected abstract StorageBucketLoggingStatus getBucketLoggingStatus(
+        String targetBucketName, String logfilePrefix) throws Exception;
 
     /**
      * @param testName
@@ -1314,5 +1321,109 @@ public abstract class BaseStorageServiceTests extends TestCase {
             cleanupBucketForTest("testFileComparer");
         }
     }
+
+    public void testBucketLogging() throws Exception {
+        StorageService service = getStorageService(getCredentials());
+        StorageBucket bucket = createBucketForTest("testBucketLogging");
+        String bucketName = bucket.getName();
+
+        // TODO Test case doesn't work when accessing GS via S3 service (perhaps impossible
+        // due to Google Storage API?)
+        if (TARGET_SERVICE_GS.equals(getTargetService()) && !(service instanceof GoogleStorageService)) {
+            return;
+        }
+
+        try {
+            // Check logging status is false
+            StorageBucketLoggingStatus loggingStatus = null;
+            if (service instanceof GoogleStorageService) {
+                loggingStatus = ((GoogleStorageService)service)
+                    .getBucketLoggingStatus(bucket.getName());
+            } else {
+                loggingStatus = ((S3Service)service)
+                    .getBucketLoggingStatus(bucket.getName());
+            }
+            assertFalse("Expected logging to be disabled for bucket " + bucketName,
+                loggingStatus.isLoggingEnabled());
+
+            // Enable logging (non-existent target bucket)
+            // NOTE: throws Exception with S3, but not with GS!
+            try {
+                StorageBucketLoggingStatus newLoggingStatus = getBucketLoggingStatus(
+                    getCredentials().getAccessKey() + ".NonExistentBucketName", "access-log-");
+                if (service instanceof GoogleStorageService) {
+                    ((GoogleStorageService)service)
+                        .setBucketLoggingStatus(bucket.getName(), (GSBucketLoggingStatus)newLoggingStatus);
+                } else {
+                    ((S3Service)service)
+                        .setBucketLoggingStatus(bucket.getName(), (S3BucketLoggingStatus)newLoggingStatus, true);
+                    fail("Using non-existent target bucket should have caused an exception");
+                }
+            } catch (Exception e) {
+            }
+
+            // Enable logging (in same bucket)
+            StorageBucketLoggingStatus newLoggingStatus = getBucketLoggingStatus(bucketName, "access-log-");
+            if (service instanceof GoogleStorageService) {
+                ((GoogleStorageService)service)
+                    .setBucketLoggingStatus(bucket.getName(), (GSBucketLoggingStatus)newLoggingStatus);
+            } else {
+                ((S3Service)service)
+                    .setBucketLoggingStatus(bucket.getName(), (S3BucketLoggingStatus)newLoggingStatus, true);
+            }
+            if (service instanceof GoogleStorageService) {
+                loggingStatus = ((GoogleStorageService)service)
+                    .getBucketLoggingStatus(bucket.getName());
+            } else {
+                loggingStatus = ((S3Service)service)
+                    .getBucketLoggingStatus(bucket.getName());
+            }
+            assertTrue("Expected logging to be enabled for bucket " + bucketName,
+                loggingStatus.isLoggingEnabled());
+            assertEquals("Target bucket", bucketName, loggingStatus.getTargetBucketName());
+            assertEquals("Log file prefix", "access-log-", loggingStatus.getLogfilePrefix());
+
+            // Add TargetGrants ACLs for log files (S3 only)
+            if (!(service instanceof GoogleStorageService)) {
+                ((S3BucketLoggingStatus)newLoggingStatus).addTargetGrant(new GrantAndPermission(
+                    GroupGrantee.ALL_USERS, Permission.PERMISSION_READ));
+                ((S3BucketLoggingStatus)newLoggingStatus).addTargetGrant(new GrantAndPermission(
+                    GroupGrantee.AUTHENTICATED_USERS, Permission.PERMISSION_READ_ACP));
+                ((S3Service)service)
+                    .setBucketLoggingStatus(bucket.getName(), (S3BucketLoggingStatus)newLoggingStatus, true);
+                loggingStatus = ((S3Service)service)
+                    .getBucketLoggingStatus(bucket.getName());
+                assertEquals(2, ((S3BucketLoggingStatus)loggingStatus).getTargetGrants().length);
+                GrantAndPermission gap = ((S3BucketLoggingStatus)loggingStatus).getTargetGrants()[0];
+                assertEquals(gap.getGrantee().getIdentifier(), GroupGrantee.ALL_USERS.getIdentifier());
+                assertEquals(gap.getPermission(), Permission.PERMISSION_READ);
+                gap = ((S3BucketLoggingStatus)loggingStatus).getTargetGrants()[1];
+                assertEquals(gap.getGrantee().getIdentifier(), GroupGrantee.AUTHENTICATED_USERS.getIdentifier());
+                assertEquals(gap.getPermission(), Permission.PERMISSION_READ_ACP);
+            }
+
+            // Disable logging
+            newLoggingStatus = getBucketLoggingStatus(null, null);
+            if (service instanceof GoogleStorageService) {
+                ((GoogleStorageService)service)
+                    .setBucketLoggingStatus(bucket.getName(), (GSBucketLoggingStatus)newLoggingStatus);
+            } else {
+                ((S3Service)service)
+                    .setBucketLoggingStatus(bucket.getName(), (S3BucketLoggingStatus)newLoggingStatus, true);
+            }
+            if (service instanceof GoogleStorageService) {
+                loggingStatus = ((GoogleStorageService)service)
+                    .getBucketLoggingStatus(bucket.getName());
+            } else {
+                loggingStatus = ((S3Service)service)
+                    .getBucketLoggingStatus(bucket.getName());
+            }
+            assertFalse("Expected logging to be disabled for bucket " + bucketName,
+                loggingStatus.isLoggingEnabled());
+        } finally {
+            cleanupBucketForTest("testBucketLogging");
+        }
+    }
+
 
 }
