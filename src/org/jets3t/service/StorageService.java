@@ -458,7 +458,7 @@ public abstract class StorageService {
      */
     public StorageBucket createBucket(StorageBucket bucket) throws ServiceException
     {
-        return createBucketImpl(bucket.getName(), null, bucket.getAcl());
+        return createBucketImpl(bucket.getName(), bucket.getLocation(), bucket.getAcl());
     }
 
     /**

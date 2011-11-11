@@ -55,7 +55,9 @@ import org.jets3t.service.acl.gs.AllUsersGrantee;
 import org.jets3t.service.acl.gs.GSAccessControlList;
 import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
+import org.jets3t.service.model.GSBucket;
 import org.jets3t.service.model.GSBucketLoggingStatus;
+import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageBucketLoggingStatus;
@@ -130,9 +132,18 @@ public abstract class BaseStorageServiceTests extends TestCase {
     }
 
     protected StorageBucket createBucketForTest(String testName) throws Exception {
+        return this.createBucketForTest(testName, null);
+    }
+
+    protected StorageBucket createBucketForTest(String testName, String location) throws Exception {
         String bucketName = getBucketNameForTest(testName);
         StorageService service = getStorageService(getCredentials());
-        return service.getOrCreateBucket(bucketName);
+        if (service instanceof S3Service) {
+            return ((S3Service)service).getOrCreateBucket(bucketName, location);
+        } else {
+            GSBucket bucket = new GSBucket(bucketName, location);
+            return ((GoogleStorageService)service).createBucket(bucket);
+        }
     }
 
     protected void deleteAllObjectsInBucket(String bucketName) {
@@ -259,6 +270,43 @@ public abstract class BaseStorageServiceTests extends TestCase {
             assertEquals(S3Service.BUCKET_STATUS__MY_BUCKET, status);
         } finally {
             // Clean up
+            service.deleteBucket(bucketName);
+        }
+    }
+
+    public void testBucketLocations() throws Exception {
+        RestStorageService service = getStorageService(getCredentials());
+        // Create bucket in default (null) location
+        String bucketName = getBucketNameForTest("testBucketLocations-test1");
+        try {
+            service.createBucket(bucketName);
+            StorageBucket bucket = service.getBucket(bucketName);
+            assertEquals(StorageService.BUCKET_STATUS__MY_BUCKET, service.checkBucketStatus(bucketName));
+            assertEquals(null, bucket.getLocation());
+        } finally {
+            service.deleteBucket(bucketName);
+        }
+        // Create bucket in alternate location
+        bucketName = getBucketNameForTest("testBucketLocations-test2");
+        try {
+            StorageBucket newBucket = null;
+            String targetLocation = null;
+            if (service instanceof S3Service) {
+                targetLocation = S3Bucket.LOCATION_US_WEST;
+                newBucket = new S3Bucket(bucketName, targetLocation);
+            } else {
+                targetLocation = GSBucket.LOCATION_EUROPE;
+                newBucket = new GSBucket(bucketName, targetLocation);
+            }
+            service.createBucket(newBucket);
+            assertEquals(StorageService.BUCKET_STATUS__MY_BUCKET, service.checkBucketStatus(bucketName));
+            // TODO: Note mismatch in how S3 bucket location is retrieved vs Google Storage
+            if (service instanceof S3Service) {
+                assertEquals(targetLocation, ((S3Service) service).getBucketLocation(bucketName));
+            } else {
+                assertEquals(targetLocation, ((GoogleStorageService) service).getBucketLocation(bucketName));
+            }
+        } finally {
             service.deleteBucket(bucketName);
         }
     }
