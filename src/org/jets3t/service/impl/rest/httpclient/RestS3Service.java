@@ -355,20 +355,18 @@ public class RestS3Service extends S3Service {
     @Override
     public List<String> getResourceParameterNames() {
         // Special HTTP parameter names that refer to resources in S3
-        return Arrays.asList(new String[] {
-            "acl", "policy",
-            "torrent",
-            "logging",
-            "location",
-            "requestPayment",
-            "versions", "versioning", "versionId",
-            "uploads", "uploadId", "partNumber",
-            "website", "notification",
-            // Response-altering special parameters
-            "response-content-type", "response-content-language",
-            "response-expires", "reponse-cache-control",
-            "response-content-disposition", "response-content-encoding"
-        });
+        return Arrays.asList("acl", "policy",
+                "torrent",
+                "logging",
+                "location",
+                "requestPayment",
+                "versions", "versioning", "versionId",
+                "uploads", "uploadId", "partNumber",
+                "website", "notification",
+                // Response-altering special parameters
+                "response-content-type", "response-content-language",
+                "response-expires", "reponse-cache-control",
+                "response-content-disposition", "response-content-encoding");
     }
 
     /**
@@ -534,7 +532,7 @@ public class RestS3Service extends S3Service {
                 parameters.remove("version-id-marker");
             }
 
-            HttpResponse httpResponse = null;
+            HttpResponse httpResponse;
             try {
                 httpResponse = performRestGet(bucketName, null, parameters, null);
             } catch (ServiceException se) {
