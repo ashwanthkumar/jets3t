@@ -24,6 +24,8 @@ import org.jets3t.service.ServiceException;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
+import org.jets3t.service.model.GSBucketLoggingStatus;
+import org.jets3t.service.model.StorageBucketLoggingStatus;
 import org.jets3t.service.security.GSCredentials;
 import org.jets3t.service.security.ProviderCredentials;
 
@@ -62,8 +64,11 @@ public class TestRestS3ServiceToGoogleStorage extends BaseStorageServiceTests {
         return new AccessControlList();
     }
 
-    /*
-     * S3 Features supported by Google Storage
-     */
+    @Override
+    protected StorageBucketLoggingStatus getBucketLoggingStatus(
+        String targetBucketName, String logfilePrefix) throws Exception
+    {
+        return new GSBucketLoggingStatus(targetBucketName, logfilePrefix);
+    }
 
 }

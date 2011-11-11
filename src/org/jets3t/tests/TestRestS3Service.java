@@ -47,22 +47,20 @@ import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.StorageService;
 import org.jets3t.service.acl.AccessControlList;
-import org.jets3t.service.acl.GrantAndPermission;
-import org.jets3t.service.acl.GroupGrantee;
-import org.jets3t.service.acl.Permission;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
 import org.jets3t.service.model.MultipartCompleted;
 import org.jets3t.service.model.MultipartPart;
 import org.jets3t.service.model.MultipartUpload;
 import org.jets3t.service.model.NotificationConfig;
-import org.jets3t.service.model.NotificationConfig.TopicConfig;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
+import org.jets3t.service.model.StorageBucketLoggingStatus;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.WebsiteConfig;
+import org.jets3t.service.model.NotificationConfig.TopicConfig;
 import org.jets3t.service.multi.s3.MultipartUploadAndParts;
 import org.jets3t.service.multi.s3.S3ServiceEventAdaptor;
 import org.jets3t.service.multi.s3.ThreadedS3Service;
@@ -108,6 +106,14 @@ public class TestRestS3Service extends BaseStorageServiceTests {
         return getStorageService(credentials, Constants.S3_DEFAULT_HOSTNAME);
     }
 
+    @Override
+    protected StorageBucketLoggingStatus getBucketLoggingStatus(
+        String targetBucketName, String logfilePrefix) throws Exception
+    {
+        return new S3BucketLoggingStatus(targetBucketName, logfilePrefix);
+    }
+
+
     protected RestStorageService getStorageService(ProviderCredentials credentials,
         String endpointHostname) throws ServiceException
     {
@@ -126,62 +132,6 @@ public class TestRestS3Service extends BaseStorageServiceTests {
         String bucketName = getBucketNameForTest(testName);
         StorageService service = getStorageService(getCredentials());
         return ((S3Service)service).getOrCreateBucket(bucketName, location);
-    }
-
-    public void testBucketLogging() throws Exception {
-        S3Service s3Service = (S3Service) getStorageService(getCredentials());
-        StorageBucket bucket = createBucketForTest("testBucketLogging");
-        String bucketName = bucket.getName();
-
-        try {
-            // Check logging status is false
-            S3BucketLoggingStatus loggingStatus = s3Service.getBucketLoggingStatus(bucket.getName());
-            assertFalse("Expected logging to be disabled for bucket " + bucketName,
-                loggingStatus.isLoggingEnabled());
-
-            // Enable logging (non-existent target bucket)
-            try {
-                S3BucketLoggingStatus newLoggingStatus = new S3BucketLoggingStatus(
-                    getCredentials().getAccessKey() + ".NonExistentBucketName", "access-log-");
-                s3Service.setBucketLoggingStatus(bucket.getName(), newLoggingStatus, true);
-                fail("Using non-existent target bucket should have caused an exception");
-            } catch (Exception e) {
-            }
-
-            // Enable logging (in same bucket)
-            S3BucketLoggingStatus newLoggingStatus = new S3BucketLoggingStatus(bucketName, "access-log-");
-            s3Service.setBucketLoggingStatus(bucket.getName(), newLoggingStatus, true);
-            loggingStatus = s3Service.getBucketLoggingStatus(bucket.getName());
-            assertTrue("Expected logging to be enabled for bucket " + bucketName,
-                loggingStatus.isLoggingEnabled());
-            assertEquals("Target bucket", bucketName, loggingStatus.getTargetBucketName());
-            assertEquals("Log file prefix", "access-log-", loggingStatus.getLogfilePrefix());
-
-            // Add TargetGrants ACLs for log files
-            newLoggingStatus.addTargetGrant(new GrantAndPermission(
-                GroupGrantee.ALL_USERS, Permission.PERMISSION_READ));
-            newLoggingStatus.addTargetGrant(new GrantAndPermission(
-                GroupGrantee.AUTHENTICATED_USERS, Permission.PERMISSION_READ_ACP));
-            s3Service.setBucketLoggingStatus(bucket.getName(), newLoggingStatus, false);
-            // Retrieve and verify TargetGrants
-            loggingStatus = s3Service.getBucketLoggingStatus(bucket.getName());
-            assertEquals(2, loggingStatus.getTargetGrants().length);
-            GrantAndPermission gap = loggingStatus.getTargetGrants()[0];
-            assertEquals(gap.getGrantee().getIdentifier(), GroupGrantee.ALL_USERS.getIdentifier());
-            assertEquals(gap.getPermission(), Permission.PERMISSION_READ);
-            gap = loggingStatus.getTargetGrants()[1];
-            assertEquals(gap.getGrantee().getIdentifier(), GroupGrantee.AUTHENTICATED_USERS.getIdentifier());
-            assertEquals(gap.getPermission(), Permission.PERMISSION_READ_ACP);
-
-            // Disable logging
-            newLoggingStatus = new S3BucketLoggingStatus();
-            s3Service.setBucketLoggingStatus(bucket.getName(), newLoggingStatus, true);
-            loggingStatus = s3Service.getBucketLoggingStatus(bucket.getName());
-            assertFalse("Expected logging to be disabled for bucket " + bucketName,
-                loggingStatus.isLoggingEnabled());
-        } finally {
-            cleanupBucketForTest("testBucketLogging");
-        }
     }
 
     public void testUrlSigning() throws Exception {
