@@ -101,7 +101,6 @@ public class OAuthUtils {
      * @param implementation
      * @param clientId
      * @param clientSecret
-     * @param jets3tProperties
      */
     public OAuthUtils(HttpClient httpClient, OAuthImplementation implementation, String clientId, String clientSecret) {
         this.implementation = implementation;
