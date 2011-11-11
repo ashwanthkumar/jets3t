@@ -28,6 +28,8 @@ import org.jets3t.service.acl.GrantAndPermission;
 import org.jets3t.service.acl.GranteeInterface;
 import org.jets3t.service.acl.Permission;
 
+import java.util.Arrays;
+
 import com.jamesmurty.utils.XMLBuilder;
 
 /**
@@ -55,13 +57,14 @@ public class GSAccessControlList extends AccessControlList {
     public static final GSAccessControlList REST_CANNED_AUTHENTICATED_READ = new GSAccessControlList();
     public static final GSAccessControlList REST_CANNED_BUCKET_OWNER_READ = new GSAccessControlList();
     public static final GSAccessControlList REST_CANNED_BUCKET_OWNER_FULL_CONTROL = new GSAccessControlList();
+    public static final GSAccessControlList REST_CANNED_PROJECT_PRIVATE = new GSAccessControlList();
 
     /**
      * Returns a string representation of the ACL contents, useful for debugging.
      */
     @Override
     public String toString() {
-        return "GSAccessControlList [owner=" + owner + ", grants=" + getGrantAndPermissions() + "]";
+        return "GSAccessControlList [owner=" + owner + ", grants=" + Arrays.toString(getGrantAndPermissions()) + "]";
     }
 
     @Override
@@ -108,6 +111,8 @@ public class GSAccessControlList extends AccessControlList {
             return "bucket-owner-read";
         } else if (GSAccessControlList.REST_CANNED_BUCKET_OWNER_FULL_CONTROL.equals(this)) {
             return "bucket-owner-full-control";
+        } else if (GSAccessControlList.REST_CANNED_PROJECT_PRIVATE.equals(this)) {
+            return "project-private";
         }
         return null;
     }
