@@ -187,7 +187,7 @@ public class GoogleStorageService extends RestStorageService {
     @Override
     public List<String> getResourceParameterNames() {
         // Special HTTP parameter names that refer to resources in Google Storage
-        return Arrays.asList("acl", "logging");
+        return Arrays.asList("acl", "logging", "location");
     }
 
     /**
@@ -298,6 +298,10 @@ public class GoogleStorageService extends RestStorageService {
             throws ServiceException
     {
         super.setBucketLoggingStatusImpl(bucketName, status);
+    }
+
+    public String getBucketLocation(String bucketName) throws ServiceException {
+        return getBucketLocationImpl(bucketName);
     }
 
     @Override
