@@ -1647,7 +1647,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
         // We do not need to calculate the data MD5 hash during upload if the
         // expected hash value was provided as the object's Content-MD5 header.
         if (object.getMetadata(StorageObject.METADATA_HEADER_CONTENT_MD5) != null) {
-            return true;
+            return false;
         }
         boolean disableLiveMd5 = jets3tProperties.getBoolProperty(
             "storage-service.disable-live-md5", false);
