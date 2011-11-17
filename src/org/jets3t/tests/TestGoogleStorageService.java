@@ -23,12 +23,12 @@ import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.gs.GSAccessControlList;
 import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
+import org.jets3t.service.model.GSBucket;
 import org.jets3t.service.model.GSBucketLoggingStatus;
+import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageBucketLoggingStatus;
 import org.jets3t.service.security.GSCredentials;
 import org.jets3t.service.security.ProviderCredentials;
-import org.jets3t.service.model.GSBucket;
-import org.jets3t.service.model.StorageBucket;
 
 /**
  * Test cases specific to general S3 compatibility -- that is, features supported by
@@ -50,8 +50,8 @@ public class TestGoogleStorageService extends BaseStorageServiceTests {
     @Override
     protected ProviderCredentials getCredentials() {
         return new GSCredentials(
-            testProperties.getProperty("gsservice.accesskey"),
-            testProperties.getProperty("gsservice.secretkey"));
+                testProperties.getProperty("gsservice.accesskey"),
+                testProperties.getProperty("gsservice.secretkey"));
     }
 
     @Override
@@ -66,63 +66,65 @@ public class TestGoogleStorageService extends BaseStorageServiceTests {
 
     @Override
     protected StorageBucketLoggingStatus getBucketLoggingStatus(
-        String targetBucketName, String logfilePrefix) throws Exception
-    {
+            String targetBucketName, String logfilePrefix) throws Exception {
         return new GSBucketLoggingStatus(targetBucketName, logfilePrefix);
     }
 
     /**
      * Test creating a bucket with the canned project-private ACL.
-     * @throws Exception 
+     *
+     * @throws Exception
      */
-    public void testProjectPrivateAcl () throws Exception{
+    public void testProjectPrivateAcl() throws Exception {
         String bucketName = getBucketNameForTest("testProjectPrivateAcl");
-        GoogleStorageService service = (GoogleStorageService)getStorageService(getCredentials());
+        GoogleStorageService service = (GoogleStorageService) getStorageService(getCredentials());
         try {
-            service.createBucket(bucketName,null,
+            service.createBucket(bucketName, null,
                     GSAccessControlList.REST_CANNED_PROJECT_PRIVATE);
-        } finally {
+        }
+        finally {
             // Clean up
             service.deleteBucket(bucketName);
         }
-        
+
     }
-    
+
     public void testCreateBucketInProject() throws Exception {
         String bucketName = getBucketNameForTest("testCreateBucketInProject");
-        String projectId=testProperties.getProperty("gsservice.project_id");
-                GoogleStorageService service = (GoogleStorageService)getStorageService(getCredentials());
+        String projectId = testProperties.getProperty("gsservice.project_id");
+        GoogleStorageService service = (GoogleStorageService) getStorageService(getCredentials());
         try {
-            service.createBucket(bucketName,null,
+            service.createBucket(bucketName, null,
                     GSAccessControlList.REST_CANNED_PROJECT_PRIVATE, projectId);
-        } finally {
+        }
+        finally {
             // Clean up
             service.deleteBucket(bucketName);
         }
-        
+
     }
 
     public void testListBucketsByProject() throws Exception {
-        
-        String projectId=testProperties.getProperty("gsservice.project_id");
+
+        String projectId = testProperties.getProperty("gsservice.project_id");
 
         // Ensure newly-created bucket is listed
         String bucketName = getBucketNameForTest("testListBucketsByProject");
         try {
-           GoogleStorageService service=(GoogleStorageService)
-                getStorageService(getCredentials());
+            GoogleStorageService service = (GoogleStorageService)
+                    getStorageService(getCredentials());
 
-            service.createBucket(bucketName,null,
+            service.createBucket(bucketName, null,
                     GSAccessControlList.REST_CANNED_PROJECT_PRIVATE, projectId);
-            GSBucket[] buckets=service.listAllBuckets(projectId);
+            GSBucket[] buckets = service.listAllBuckets(projectId);
             boolean found = false;
-            for (StorageBucket bucket: buckets) {
+            for(StorageBucket bucket : buckets) {
                 found = (bucket.getName().equals(bucketName)) || found;
             }
             assertTrue("Newly-created bucket was not listed", found);
-        } finally {
+        }
+        finally {
             cleanupBucketForTest("testListBucketsByProject");
-        }       
-        
+        }
     }
 }
