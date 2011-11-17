@@ -57,19 +57,37 @@ public class OAuth2Credentials extends ProviderCredentials {
      * @param friendlyName a name identifying the owner of the credentials, such as 'James'.
      */
     public OAuth2Credentials(String clientId, String clientSecret, String friendlyName) {
+        this(clientId, clientSecret, friendlyName, null);
+    }
+
+    /**
+     * Construct credentials, and associate them with a human-friendly name. Start with
+     * a valid refresh token
+     *
+     * @param clientId     Client ID to identify the application to an OAuth2 end-point.
+     * @param clientSecret Client Secret for the application to authenticate against an OAuth2 end-point.
+     * @param friendlyName a name identifying the owner of the credentials, such as 'James'.
+     * @param refreshToken a refresh token that was obtained previously.
+     */
+    public OAuth2Credentials(String clientId, String clientSecret, String friendlyName, String refreshToken) {
         this(new OAuthUtils(OAuthUtils.OAuthImplementation.GOOGLE_STORAGE_OAUTH2_10, clientId, clientSecret),
-                friendlyName);
+                friendlyName, refreshToken);
     }
 
     /**
      * @param oauth Implementation
      * @param friendlyName a name identifying the owner of the credentials, such as 'James'.
      */
-    public OAuth2Credentials(OAuthUtils oauth, String friendlyName) {
+    public OAuth2Credentials(OAuthUtils oauth, String friendlyName, String refreshToken) {
         super(oauth.getClientId(), oauth.getClientSecret(), friendlyName);
         // If service initialized with OAuth2 credentials, init utility class for handling OAuth
         this.oauthUtils = oauth;
-        this.oauth2Tokens = null;
+        if (refreshToken == null) {
+            this.oauth2Tokens = null;
+        }
+        else {
+            this.oauth2Tokens = new OAuth2Tokens(null, refreshToken);
+        }
     }
 
     public void setOAuth2Tokens(OAuth2Tokens tokens) {
