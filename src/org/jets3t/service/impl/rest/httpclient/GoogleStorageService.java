@@ -18,12 +18,6 @@
  */
 package org.jets3t.service.impl.rest.httpclient;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.CredentialsProvider;
@@ -32,6 +26,7 @@ import org.apache.http.protocol.HttpContext;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.ServiceException;
+import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.gs.GSAccessControlList;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser;
 import org.jets3t.service.model.GSBucket;
@@ -39,9 +34,18 @@ import org.jets3t.service.model.GSBucketLoggingStatus;
 import org.jets3t.service.model.GSObject;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
+import org.jets3t.service.mx.MxDelegate;
 import org.jets3t.service.security.OAuth2Credentials;
 import org.jets3t.service.security.OAuth2Tokens;
 import org.jets3t.service.security.ProviderCredentials;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 
 /**
  * REST/HTTP implementation of Google Storage Service based on the
@@ -60,7 +64,7 @@ public class GoogleStorageService extends RestStorageService {
     private static final String GOOGLE_SIGNATURE_IDENTIFIER = "GOOG1";
     private static final String GOOGLE_REST_HEADER_PREFIX = "x-goog-";
     private static final String GOOGLE_REST_METADATA_PREFIX = "x-goog-meta-";
-
+    
     /**
      * Constructs the service and initialises the properties.
      *
@@ -268,8 +272,22 @@ public class GoogleStorageService extends RestStorageService {
 
     @Override
     public GSBucket[] listAllBuckets() throws ServiceException {
-        return GSBucket.cast(super.listAllBuckets());
+        return listAllBuckets(null);
     }
+    
+    /**
+     * List all buckets in a given project
+     * @param projectId The ID of the project being listed
+     * @return a list of {@link GSBucket}
+     * @throws ServiceException 
+     */
+    public GSBucket[] listAllBuckets(String projectId) throws ServiceException {
+        assertAuthenticatedConnection("List all buckets");
+        StorageBucket[] buckets = listAllBucketsImpl(projectId);
+        MxDelegate.getInstance().registerStorageBucketMBeans(buckets);
+        return GSBucket.cast(buckets);
+    }
+    
 
     @Override
     public GSObject[] listObjects(String bucketName) throws ServiceException {
@@ -287,7 +305,48 @@ public class GoogleStorageService extends RestStorageService {
     public GSBucket createBucket(String bucketName) throws ServiceException {
         return (GSBucket) super.createBucket(bucketName);
     }
-
+    
+    /**
+     * Creates a bucket in a specific location, without checking whether the bucket already
+     * exists. <b>Caution:</b> Performing this operation unnecessarily when a bucket already
+     * exists may cause OperationAborted errors with the message "A conflicting conditional
+     * operation is currently in progress against this resource.". To avoid this error, use the
+     * {@link #getOrCreateBucket(String)} in situations where the bucket may already exist.
+     * <p>
+     * This method cannot be performed by anonymous services.
+     *
+     * @param bucketName
+     * the name of the bucket to create.
+     * @param location
+     * the location of the S3 data centre in which the bucket will be created, or null for the
+     * default {@link S3Bucket#LOCATION_US_STANDARD} location. Valid values
+     * include {@link S3Bucket#LOCATION_EUROPE}, {@link S3Bucket#LOCATION_US_WEST},
+     * {@link S3Bucket#LOCATION_ASIA_PACIFIC}, and the default US location that can be
+     * expressed in two ways:
+     * {@link S3Bucket#LOCATION_US_STANDARD} or {@link S3Bucket#LOCATION_US}.
+     * @param acl
+     * the access control settings to apply to the new bucket, or null for default ACL values.
+     * @param projectId
+     * the project within which to create the bucket
+     *
+     * @return
+     * the created bucket object. <b>Note:</b> the object returned has minimal information about
+     * the bucket that was created, including only the bucket's name.
+     * @throws S3ServiceException
+     */    
+    public GSBucket createBucket(String bucketName, String location, AccessControlList acl, String projectId)
+            throws ServiceException 
+    {
+        return (GSBucket)createBucketImpl(bucketName, location, acl, projectId);
+    }
+    
+    
+    public GSBucket createBucket(String bucketName, String location, AccessControlList acl)
+            throws ServiceException 
+    {
+        return createBucket(bucketName, location, acl, null);
+    }
+    
     public GSBucketLoggingStatus getBucketLoggingStatus(String bucketName)
         throws ServiceException
     {
@@ -401,7 +460,8 @@ public class GoogleStorageService extends RestStorageService {
     }
 
     @Override
-    protected boolean isRecoverable403(HttpUriRequest httpRequest, Exception exception) {
+    protected boolean isRecoverable403(HttpUriRequest httpRequest, Exception exception)
+    {
         if (this.credentials instanceof OAuth2Credentials) {
             // Only retry if we're using OAuth2 authentication and can refresh the access token
             // TODO Any way to distinguish between expired access token and other 403 reasons?
@@ -420,4 +480,17 @@ public class GoogleStorageService extends RestStorageService {
         return super.isRecoverable403(httpRequest, exception);
     }
 
+    protected StorageBucket[] listAllBucketsImpl(String projectId)
+            throws ServiceException
+    {
+        return super.listAllBucketsImpl(Collections.<String, Object>singletonMap("x-goog-project-id", projectId));
+    }
+    
+    protected StorageBucket createBucketImpl(String bucketName, String location,
+                                             AccessControlList acl, String projectId)
+        throws ServiceException
+    {
+        return super.createBucketImpl(bucketName, location, acl, 
+                Collections.<String, Object>singletonMap("x-goog-project-id", projectId));
+    }
 }

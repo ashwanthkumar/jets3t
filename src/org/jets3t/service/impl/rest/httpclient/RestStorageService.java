@@ -1342,14 +1342,14 @@ public abstract class RestStorageService extends StorageService implements JetS3
     }
 
     @Override
-    protected StorageBucket[] listAllBucketsImpl() throws ServiceException {
+    protected StorageBucket[] listAllBucketsImpl(Map<String, Object> headers) throws ServiceException {
         if (log.isDebugEnabled()) {
             log.debug("Listing all buckets for user: "
                 + getProviderCredentials().getAccessKey());
         }
 
         String bucketName = ""; // Root path of S3 service lists the user's buckets.
-        HttpResponse httpResponse =  performRestGet(bucketName, null, null, null);
+        HttpResponse httpResponse =  performRestGet(bucketName, null, null, headers);
         String contentType = httpResponse.getFirstHeader("Content-Type").getValue();
 
         if (!isXmlContentType(contentType)) {
@@ -1605,7 +1605,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
     }
 
     @Override
-    protected StorageBucket createBucketImpl(String bucketName, String location, AccessControlList acl)
+    protected StorageBucket createBucketImpl(String bucketName, String location, 
+                                             AccessControlList acl, Map<String, Object> headers)
         throws ServiceException
     {
         if (log.isDebugEnabled()) {
@@ -1613,6 +1614,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
         }
 
         Map<String, Object> metadata = new HashMap<String, Object>();
+        metadata.putAll(headers);
         HttpEntity requestEntity = null;
 
         if (location != null && !"US".equalsIgnoreCase(location)) {
