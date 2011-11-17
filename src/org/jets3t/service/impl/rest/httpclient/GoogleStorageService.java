@@ -483,6 +483,9 @@ public class GoogleStorageService extends RestStorageService {
     protected StorageBucket[] listAllBucketsImpl(String projectId)
             throws ServiceException
     {
+        if(null == projectId) {
+            return super.listAllBucketsImpl();
+        }
         return super.listAllBucketsImpl(Collections.<String, Object>singletonMap("x-goog-project-id", projectId));
     }
     
@@ -490,7 +493,10 @@ public class GoogleStorageService extends RestStorageService {
                                              AccessControlList acl, String projectId)
         throws ServiceException
     {
-        return super.createBucketImpl(bucketName, location, acl, 
+        if(null == projectId) {
+            return super.createBucketImpl(bucketName, location, acl);
+        }
+        return super.createBucketImpl(bucketName, location, acl,
                 Collections.<String, Object>singletonMap("x-goog-project-id", projectId));
     }
 }
