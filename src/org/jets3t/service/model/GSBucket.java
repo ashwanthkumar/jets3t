@@ -29,7 +29,8 @@ import org.jets3t.service.acl.gs.GSAccessControlList;
  * @author James Murty
  */
 public class GSBucket extends StorageBucket {
-    public static final String LOCATION_US = null;
+    public static final String LOCATION_DEFAULT = null;
+    public static final String LOCATION_US = "US";
     public static final String LOCATION_EUROPE = "EU";
 
     private GSAccessControlList acl = null;
