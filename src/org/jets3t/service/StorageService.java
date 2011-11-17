@@ -19,6 +19,7 @@
 package org.jets3t.service;
 
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -1370,7 +1371,18 @@ public abstract class StorageService {
      *
      * @throws ServiceException
      */
-    protected abstract StorageBucket[] listAllBucketsImpl() throws ServiceException;
+    protected StorageBucket[] listAllBucketsImpl() throws ServiceException {
+        return this.listAllBucketsImpl(Collections.<String, Object>emptyMap());
+    }
+
+    /**
+     * @param headers Additional metadata to send with request
+     * @return
+     * the buckets in your account.
+     *
+     * @throws ServiceException
+     */
+    protected abstract StorageBucket[] listAllBucketsImpl(Map<String, Object> headers) throws ServiceException;
 
     /**
      * @return
@@ -1447,8 +1459,34 @@ public abstract class StorageService {
      * the created bucket object, populated with all metadata made available by the creation operation.
      * @throws ServiceException
      */
+    protected StorageBucket createBucketImpl(String bucketName, String location,
+        AccessControlList acl) throws ServiceException {
+        return this.createBucketImpl(bucketName, location, acl, Collections.<String, Object>emptyMap());
+    }
+
+    /**
+     * Creates a bucket.
+     *
+     * <b>Implementation notes</b><p>
+     * The implementing method must populate the bucket object's metadata with the results of the
+     * operation before returning the object. It must also apply any <code>AccessControlList</code>
+     * settings included with the bucket.
+     *
+     * @param bucketName
+     * the name of the bucket to create.
+     * @param location
+     * the geographical location where the bucket will be stored (if applicable for the target
+     * service). A null string value will cause the bucket to be stored in the default location.
+     * @param acl
+     * an access control object representing the initial acl values for the bucket.
+     * May be null, in which case the default permissions are applied.
+     * @param headers Additional metadata to add to request
+     * @return
+     * the created bucket object, populated with all metadata made available by the creation operation.
+     * @throws ServiceException
+     */
     protected abstract StorageBucket createBucketImpl(String bucketName, String location,
-        AccessControlList acl) throws ServiceException;
+        AccessControlList acl, Map<String, Object> headers) throws ServiceException;
 
     protected abstract void deleteBucketImpl(String bucketName) throws ServiceException;
 
