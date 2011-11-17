@@ -49,7 +49,7 @@ public class GSAccessControlList extends AccessControlList {
     /*
      * Predefined ACLs that can be applied on creation of an object or bucket,
      * topic "Applying ACLs with an extension request header" at
-     * http://code.google.com/apis/storage/docs/developer-guide.html#authentication
+     * http://code.google.com/apis/storage/docs/accesscontrol.html#applyacls
      */
     public static final GSAccessControlList REST_CANNED_PRIVATE = new GSAccessControlList();
     public static final GSAccessControlList REST_CANNED_PUBLIC_READ = new GSAccessControlList();
