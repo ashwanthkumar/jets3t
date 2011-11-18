@@ -78,6 +78,15 @@ public class OAuth2Credentials extends ProviderCredentials {
      * @param oauth Implementation
      * @param friendlyName a name identifying the owner of the credentials, such as 'James'.
      */
+    public OAuth2Credentials(OAuthUtils oauth, String friendlyName) {
+        this(oauth, friendlyName, null);
+    }
+
+    /**
+     * @param oauth Implementation
+     * @param friendlyName a name identifying the owner of the credentials, such as 'James'.
+     * @param refreshToken a refresh token that was obtained previously.
+     */
     public OAuth2Credentials(OAuthUtils oauth, String friendlyName, String refreshToken) {
         super(oauth.getClientId(), oauth.getClientSecret(), friendlyName);
         // If service initialized with OAuth2 credentials, init utility class for handling OAuth
