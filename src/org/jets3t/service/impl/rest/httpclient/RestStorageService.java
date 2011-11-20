@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2010 James Murty
+ * Copyright 2010-2011 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -388,22 +388,6 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 }
 
                 if (!didReceiveExpectedResponseCode) {
-                    if (log.isWarnEnabled()) {
-                        String requestDescription =
-                            httpMethod.getMethod()
-                            + " '" + httpMethod.getURI().getPath()
-                            + (httpMethod.getURI().getQuery() != null
-                               && httpMethod.getURI().getQuery().length() > 0
-                                ? "?" + httpMethod.getURI().getQuery() : "")
-                            + "'"
-                            + " -- ResponseCode: " + responseCode
-                            + ", ResponseStatus: " + response.getStatusLine().getReasonPhrase()
-                            + ", Request Headers: [" + ServiceUtils.join(httpMethod.getAllHeaders(), ", ") + "]"
-                            + ", Response Headers: [" + ServiceUtils.join(response.getAllHeaders(), ", ") + "]";
-                        requestDescription = requestDescription.replaceAll("[\\n\\r\\f]", "");  // Remove any newlines.
-                        log.warn("Error Response: " + requestDescription);
-                    }
-
                     if (log.isDebugEnabled()) {
                         log.debug("Response xml: " + isXmlContentType(contentType));
                         log.debug("Response entity: " + response.getEntity());
@@ -543,6 +527,24 @@ public abstract class RestStorageService extends StorageService implements JetS3
                                     response.getAllHeaders()));
                             throw exception;
                         }
+                    }
+
+                    // Print warning message if a non-fatal error occurred (we only reach this
+                    // point in the code if an exception isn't thrown above)
+                    if (log.isWarnEnabled()) {
+                        String requestDescription =
+                            httpMethod.getMethod()
+                            + " '" + httpMethod.getURI().getPath()
+                            + (httpMethod.getURI().getQuery() != null
+                               && httpMethod.getURI().getQuery().length() > 0
+                                ? "?" + httpMethod.getURI().getQuery() : "")
+                            + "'"
+                            + " -- ResponseCode: " + responseCode
+                            + ", ResponseStatus: " + response.getStatusLine().getReasonPhrase()
+                            + ", Request Headers: [" + ServiceUtils.join(httpMethod.getAllHeaders(), ", ") + "]"
+                            + ", Response Headers: [" + ServiceUtils.join(response.getAllHeaders(), ", ") + "]";
+                        requestDescription = requestDescription.replaceAll("[\\n\\r\\f]", "");  // Remove any newlines.
+                        log.warn("Error Response: " + requestDescription);
                     }
                 }
             } while (!completedWithoutRecoverableError);
@@ -1605,7 +1607,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
     }
 
     @Override
-    protected StorageBucket createBucketImpl(String bucketName, String location, 
+    protected StorageBucket createBucketImpl(String bucketName, String location,
                                              AccessControlList acl, Map<String, Object> headers)
         throws ServiceException
     {
