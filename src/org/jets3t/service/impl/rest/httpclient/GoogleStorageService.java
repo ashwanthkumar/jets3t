@@ -64,7 +64,7 @@ public class GoogleStorageService extends RestStorageService {
     private static final String GOOGLE_SIGNATURE_IDENTIFIER = "GOOG1";
     private static final String GOOGLE_REST_HEADER_PREFIX = "x-goog-";
     private static final String GOOGLE_REST_METADATA_PREFIX = "x-goog-meta-";
-    
+
     /**
      * Constructs the service and initialises the properties.
      *
@@ -274,12 +274,12 @@ public class GoogleStorageService extends RestStorageService {
     public GSBucket[] listAllBuckets() throws ServiceException {
         return listAllBuckets(null);
     }
-    
+
     /**
      * List all buckets in a given project
      * @param projectId The ID of the project being listed
      * @return a list of {@link GSBucket}
-     * @throws ServiceException 
+     * @throws ServiceException
      */
     public GSBucket[] listAllBuckets(String projectId) throws ServiceException {
         assertAuthenticatedConnection("List all buckets");
@@ -287,7 +287,7 @@ public class GoogleStorageService extends RestStorageService {
         MxDelegate.getInstance().registerStorageBucketMBeans(buckets);
         return GSBucket.cast(buckets);
     }
-    
+
 
     @Override
     public GSObject[] listObjects(String bucketName) throws ServiceException {
@@ -305,7 +305,7 @@ public class GoogleStorageService extends RestStorageService {
     public GSBucket createBucket(String bucketName) throws ServiceException {
         return (GSBucket) super.createBucket(bucketName);
     }
-    
+
     /**
      * Creates a bucket in a specific location, without checking whether the bucket already
      * exists. <b>Caution:</b> Performing this operation unnecessarily when a bucket already
@@ -318,12 +318,9 @@ public class GoogleStorageService extends RestStorageService {
      * @param bucketName
      * the name of the bucket to create.
      * @param location
-     * the location of the S3 data centre in which the bucket will be created, or null for the
-     * default {@link S3Bucket#LOCATION_US_STANDARD} location. Valid values
-     * include {@link S3Bucket#LOCATION_EUROPE}, {@link S3Bucket#LOCATION_US_WEST},
-     * {@link S3Bucket#LOCATION_ASIA_PACIFIC}, and the default US location that can be
-     * expressed in two ways:
-     * {@link S3Bucket#LOCATION_US_STANDARD} or {@link S3Bucket#LOCATION_US}.
+     * the location of the Google Storage data centre in which the bucket will be created,
+     * or null for the default {@link GSBucket#LOCATION_DEFAULT} location. Valid values
+     * include {@link GSBucket#LOCATION_US} and {@link GSBucket#LOCATION_EUROPE}.
      * @param acl
      * the access control settings to apply to the new bucket, or null for default ACL values.
      * @param projectId
@@ -332,21 +329,21 @@ public class GoogleStorageService extends RestStorageService {
      * @return
      * the created bucket object. <b>Note:</b> the object returned has minimal information about
      * the bucket that was created, including only the bucket's name.
-     * @throws S3ServiceException
-     */    
+     * @throws ServiceException
+     */
     public GSBucket createBucket(String bucketName, String location, AccessControlList acl, String projectId)
-            throws ServiceException 
+            throws ServiceException
     {
         return (GSBucket)createBucketImpl(bucketName, location, acl, projectId);
     }
-    
-    
+
+
     public GSBucket createBucket(String bucketName, String location, AccessControlList acl)
-            throws ServiceException 
+            throws ServiceException
     {
         return createBucket(bucketName, location, acl, null);
     }
-    
+
     public GSBucketLoggingStatus getBucketLoggingStatus(String bucketName)
         throws ServiceException
     {
@@ -488,7 +485,7 @@ public class GoogleStorageService extends RestStorageService {
         }
         return super.listAllBucketsImpl(Collections.<String, Object>singletonMap("x-goog-project-id", projectId));
     }
-    
+
     protected StorageBucket createBucketImpl(String bucketName, String location,
                                              AccessControlList acl, String projectId)
         throws ServiceException
