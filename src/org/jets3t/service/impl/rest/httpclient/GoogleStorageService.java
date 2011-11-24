@@ -129,7 +129,7 @@ public class GoogleStorageService extends RestStorageService {
     protected HttpUriRequest setupConnection(HTTP_METHOD method, String bucketName, String objectKey,
                                              Map<String, String> requestParameters) throws ServiceException {
         final HttpUriRequest request = super.setupConnection(method, bucketName, objectKey, requestParameters);
-        // Use API version 2 iff we are using OAuth2 credentials
+        // Use API version 2 if we are using OAuth2 credentials
         if (this.credentials instanceof OAuth2Credentials) {
             request.setHeader("x-goog-api-version", "2");
         }
@@ -319,11 +319,11 @@ public class GoogleStorageService extends RestStorageService {
      * the name of the bucket to create.
      * @param location
      * the location of the S3 data centre in which the bucket will be created, or null for the
-     * default {@link S3Bucket#LOCATION_US_STANDARD} location. Valid values
-     * include {@link S3Bucket#LOCATION_EUROPE}, {@link S3Bucket#LOCATION_US_WEST},
-     * {@link S3Bucket#LOCATION_ASIA_PACIFIC}, and the default US location that can be
+     * default {@link GSBucket#LOCATION_US} location. Valid values
+     * include {@link GSBucket#LOCATION_US}, {@link GSBucket#LOCATION_EUROPE},
+     * and the default US location that can be
      * expressed in two ways:
-     * {@link S3Bucket#LOCATION_US_STANDARD} or {@link S3Bucket#LOCATION_US}.
+     * {@link GSBucket#LOCATION_US} or {@link GSBucket#LOCATION_DEFAULT}.
      * @param acl
      * the access control settings to apply to the new bucket, or null for default ACL values.
      * @param projectId
@@ -332,7 +332,7 @@ public class GoogleStorageService extends RestStorageService {
      * @return
      * the created bucket object. <b>Note:</b> the object returned has minimal information about
      * the bucket that was created, including only the bucket's name.
-     * @throws S3ServiceException
+     * @throws ServiceException
      */    
     public GSBucket createBucket(String bucketName, String location, AccessControlList acl, String projectId)
             throws ServiceException 
@@ -465,7 +465,7 @@ public class GoogleStorageService extends RestStorageService {
         if (this.credentials instanceof OAuth2Credentials) {
             // Only retry if we're using OAuth2 authentication and can refresh the access token
             // TODO Any way to distinguish between expired access token and other 403 reasons?
-            OAuth2Tokens tokens = null;
+            OAuth2Tokens tokens;
             try {
                 tokens = ((OAuth2Credentials)this.credentials).getOAuth2Tokens();
             }
