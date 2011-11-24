@@ -78,8 +78,6 @@ import org.jets3t.service.utils.ObjectUtils;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 
-import sun.security.jgss.GSSToken;
-
 /**
  * Runs generic functional tests that any storage service implementation should be
  * able to perform.
