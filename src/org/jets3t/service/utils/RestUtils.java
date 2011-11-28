@@ -284,25 +284,6 @@ public class RestUtils {
     }
 
     /**
-     * @return
-     * an HttpClient response handler that returns String content data.
-     */
-    public static ResponseHandler<String> buildStringResponseHandler() {
-        return new ResponseHandler<String>() {
-            public String handleResponse(HttpResponse response)
-                throws ClientProtocolException, IOException
-            {
-                HttpEntity entity = response.getEntity();
-                if (entity != null) {
-                    return EntityUtils.toString(entity);
-                } else {
-                    return null;
-                }
-            }
-        };
-    }
-
-    /**
      * Initialises, or re-initialises, the underlying HttpConnectionManager and
      * HttpClient objects a service will use to communicate with an AWS service.
      * If proxy settings are specified in this service's {@link Jets3tProperties} object,
