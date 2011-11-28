@@ -549,15 +549,13 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 }
             } while (!completedWithoutRecoverableError);
         } catch (Throwable t) {
-            if (log.isErrorEnabled()){
+            if (log.isTraceEnabled()){
                 String msg = "Rethrowing as a ServiceException error in performRequest: " + t;
                 if (t.getCause() != null){
                     msg += ", with cause: " + t.getCause();
                 }
                 if (log.isTraceEnabled()){
                     log.trace(msg, t);
-                } else {
-                    log.error(msg);
                 }
             }
             if (log.isDebugEnabled() && !shuttingDown) {
