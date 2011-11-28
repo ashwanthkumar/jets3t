@@ -554,9 +554,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 if (t.getCause() != null){
                     msg += ", with cause: " + t.getCause();
                 }
-                if (log.isTraceEnabled()){
-                    log.trace(msg, t);
-                }
+                log.trace(msg, t);
             }
             if (log.isDebugEnabled() && !shuttingDown) {
                 log.debug("Releasing HttpClient connection after error: " + t.getMessage());
