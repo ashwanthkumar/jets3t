@@ -25,13 +25,18 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
+import org.apache.http.StatusLine;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
@@ -41,7 +46,7 @@ import org.jets3t.service.utils.oauth.OAuthConstants.GSOAuth2_10;
 
 /**
  * Utilties for obtaining OAuth authentication tokens.
- *
+ * <p/>
  * Implementation is currently specific to the Google Storage OAuth 2.0 implementation,
  * though hopefully generic enough it may be extensible in the future.
  *
@@ -78,9 +83,13 @@ public class OAuthUtils {
      * used to configure HTTP/S connections that may be performed by this class.
      *
      * @param implementation
+     * OAuth implementation version
      * @param clientId
+     * Client ID for installed application
      * @param clientSecret
+     * Client secret for installed applications
      * @param jets3tProperties
+     * Properties to configure HTTP/S connections
      */
     public OAuthUtils(OAuthImplementation implementation, String clientId, String clientSecret,
         Jets3tProperties jets3tProperties)
@@ -98,9 +107,13 @@ public class OAuthUtils {
      * used to configure HTTP/S connections that may be performed by this class.
      *
      * @param httpClient
+     * HTTP Client
      * @param implementation
+     * OAuth implementation version
      * @param clientId
+     * Client ID for installed application
      * @param clientSecret
+     * Client secret for installed applications
      */
     public OAuthUtils(HttpClient httpClient, OAuthImplementation implementation, String clientId, String clientSecret) {
         this.implementation = implementation;
@@ -124,8 +137,11 @@ public class OAuthUtils {
      * are used to configure HTTP/S connections that may be performed by this class.
      *
      * @param implementation
+     * OAuth implementation version
      * @param clientId
+     * Client ID for installed application
      * @param clientSecret
+     * Client secret for installed applications
      */
     public OAuthUtils(OAuthImplementation implementation, String clientId, String clientSecret) {
         this(implementation, clientId, clientSecret,
@@ -249,6 +265,7 @@ public class OAuthUtils {
      * (if applicable) and the original refresh token.
      *
      * @throws IOException
+     * Invalid response data
      */
     @SuppressWarnings("serial")
     public OAuth2Tokens refreshOAuth2AccessToken(final OAuth2Tokens tokens) throws IOException {
@@ -306,9 +323,13 @@ public class OAuthUtils {
      * and parses the response document, which must be JSON, into a Map of name/value objects.
      *
      * @param endpointUri
+     * Authorization or token endpoint
      * @param postParams
+     * Name value pairs
      * @return
+     * JSON mapped response
      * @throws ClientProtocolException
+     * No HTTP 200 response
      * @throws IOException
      */
     protected Map<String,Object> performPostRequestAndParseJSONResponse(
@@ -321,8 +342,24 @@ public class OAuthUtils {
         HttpPost post = new HttpPost(endpointUri);
         post.setEntity(new UrlEncodedFormEntity(postParams, "UTF-8"));
 
-        ResponseHandler<String> handler = RestUtils.buildStringResponseHandler();
-        String responseDataString = httpClient.execute(post, handler);
+        String responseDataString = httpClient.execute(post, new ResponseHandler<String>() {
+            public String handleResponse(HttpResponse response)
+                    throws ClientProtocolException, IOException
+            {
+                StatusLine statusLine = response.getStatusLine();
+                int statusCode = statusLine.getStatusCode();
+                if(statusCode == HttpStatus.SC_OK) {
+                    HttpEntity entity = response.getEntity();
+                    if(entity != null) {
+                        return EntityUtils.toString(entity);
+                    } else {
+                        return null;
+                    }
+                }
+                throw new ClientProtocolException(String.format("%d %s",
+                    statusLine.getStatusCode(), statusLine.getReasonPhrase()));
+            }
+        });
 
         return jsonMapper.readValue(responseDataString, Map.class);
     }
