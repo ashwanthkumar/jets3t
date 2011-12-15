@@ -55,14 +55,15 @@ import org.jets3t.service.model.BaseVersionOrDeleteMarker;
 import org.jets3t.service.model.MultipartCompleted;
 import org.jets3t.service.model.MultipartPart;
 import org.jets3t.service.model.MultipartUpload;
+import org.jets3t.service.model.MultipleDeleteResult;
 import org.jets3t.service.model.NotificationConfig;
 import org.jets3t.service.model.S3Bucket;
-import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3BucketVersioningStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.WebsiteConfig;
+import org.jets3t.service.model.container.ObjectKeyAndVersion;
 import org.jets3t.service.security.AWSDevPayCredentials;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.RestUtils;
@@ -363,10 +364,12 @@ public class RestS3Service extends S3Service {
                 "versions", "versioning", "versionId",
                 "uploads", "uploadId", "partNumber",
                 "website", "notification",
+                "delete", // multiple object delete
                 // Response-altering special parameters
                 "response-content-type", "response-content-language",
                 "response-expires", "reponse-cache-control",
-                "response-content-disposition", "response-content-encoding");
+                "response-content-disposition", "response-content-encoding"
+                );
     }
 
     /**
@@ -948,11 +951,11 @@ public class RestS3Service extends S3Service {
                     .e("ETag").t(part.getEtag());
             }
 
-                HttpResponse httpResponse = performRestPostWithXmlBuilder(
+            HttpResponse httpResponse = performRestPostWithXmlBuilder(
                 bucketName, objectKey, null, requestParameters, builder);
             CompleteMultipartUploadResultHandler handler = getXmlResponseSaxParser()
                 .parseCompleteMultipartUploadResult(
-                        new HttpMethodReleaseInputStream(httpResponse));
+                    new HttpMethodReleaseInputStream(httpResponse));
 
             // Check whether completion actually succeeded
             if (handler.getServiceException() != null) {
@@ -962,8 +965,8 @@ public class RestS3Service extends S3Service {
                 throw e;
             }
             return handler.getMultipartCompleted();
-            } catch (S3ServiceException se) {
-                throw se;
+        } catch (S3ServiceException se) {
+            throw se;
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         } catch (ParserConfigurationException e) {
@@ -1164,6 +1167,56 @@ public class RestS3Service extends S3Service {
             performRestPut(bucketName, null, metadata, requestParameters,
                 new StringEntity(xml, "text/plain", Constants.DEFAULT_ENCODING),
                 true);
+        } catch (ServiceException se) {
+            throw new S3ServiceException(se);
+        } catch (UnsupportedEncodingException e) {
+            throw new S3ServiceException("Unable to encode XML document", e);
+        }
+    }
+
+    @Override
+    public MultipleDeleteResult deleteMultipleObjectsWithMFAImpl(
+        String bucketName, ObjectKeyAndVersion[] objectNameAndVersions,
+        String multiFactorSerialNumber, String multiFactorAuthCode,
+        boolean isQuiet) throws S3ServiceException
+    {
+        String xml, xmlMd5Hash;
+        try {
+            XMLBuilder builder = XMLBuilder.create("Delete")
+                .attr("xmlns", Constants.XML_NAMESPACE)
+                .elem("Quiet").text( (isQuiet ? "true" : "false") ).up();
+            for (ObjectKeyAndVersion nav: objectNameAndVersions) {
+                XMLBuilder objectBuilder =
+                    builder.elem("Object")
+                        .elem("Key").text(nav.getKey()).up();
+                if (nav.getVersion() != null) {
+                    objectBuilder.elem("Version").text(nav.getVersion());
+                }
+            }
+            xml = builder.asString();
+            xmlMd5Hash = ServiceUtils.toBase64(
+                ServiceUtils.computeMD5Hash(xml.getBytes(Constants.DEFAULT_ENCODING)));
+        } catch (Exception e) {
+            throw new S3ServiceException("Failed to build XML request document", e);
+        }
+
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put("delete", "");
+
+        Map<String, Object> metadata = new HashMap<String, Object>();
+        metadata.put("Content-Type", "text/plain");
+        metadata.put("Content-MD5", xmlMd5Hash);
+        if (multiFactorSerialNumber != null || multiFactorAuthCode != null) {
+            metadata.put(Constants.AMZ_MULTI_FACTOR_AUTH_CODE,
+                multiFactorSerialNumber + " " + multiFactorAuthCode);
+        }
+
+        try {
+            HttpResponse httpResponse = performRestPost(
+                bucketName, null, metadata, requestParameters,
+                    new StringEntity(xml, "text/plain", Constants.DEFAULT_ENCODING), false);
+            return getXmlResponseSaxParser().parseMultipleDeleteResponse(
+                new HttpMethodReleaseInputStream(httpResponse));
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         } catch (UnsupportedEncodingException e) {
