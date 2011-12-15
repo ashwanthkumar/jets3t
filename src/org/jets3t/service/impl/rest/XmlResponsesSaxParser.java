@@ -34,14 +34,36 @@ import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.ServiceException;
-import org.jets3t.service.acl.gs.GSAccessControlList;
 import org.jets3t.service.acl.CanonicalGrantee;
 import org.jets3t.service.acl.EmailAddressGrantee;
 import org.jets3t.service.acl.GrantAndPermission;
 import org.jets3t.service.acl.GranteeInterface;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
-import org.jets3t.service.model.*;
+import org.jets3t.service.acl.gs.GSAccessControlList;
+import org.jets3t.service.model.BaseVersionOrDeleteMarker;
+import org.jets3t.service.model.GSBucket;
+import org.jets3t.service.model.GSBucketLoggingStatus;
+import org.jets3t.service.model.GSObject;
+import org.jets3t.service.model.GSOwner;
+import org.jets3t.service.model.MultipartCompleted;
+import org.jets3t.service.model.MultipartPart;
+import org.jets3t.service.model.MultipartUpload;
+import org.jets3t.service.model.MultipleDeleteResult;
+import org.jets3t.service.model.NotificationConfig;
+import org.jets3t.service.model.S3Bucket;
+import org.jets3t.service.model.S3BucketLoggingStatus;
+import org.jets3t.service.model.S3BucketVersioningStatus;
+import org.jets3t.service.model.S3DeleteMarker;
+import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.S3Owner;
+import org.jets3t.service.model.S3Version;
+import org.jets3t.service.model.StorageBucket;
+import org.jets3t.service.model.StorageBucketLoggingStatus;
+import org.jets3t.service.model.StorageObject;
+import org.jets3t.service.model.StorageOwner;
+import org.jets3t.service.model.WebsiteConfig;
+import org.jets3t.service.model.NotificationConfig.TopicConfig;
 import org.jets3t.service.utils.ServiceUtils;
 import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
@@ -413,6 +435,14 @@ public class XmlResponsesSaxParser {
         NotificationConfigurationHandler handler = new NotificationConfigurationHandler();
         parseXmlInputStream(handler, inputStream);
         return handler.getNotificationConfig();
+    }
+
+    public MultipleDeleteResult parseMultipleDeleteResponse(
+        InputStream inputStream) throws ServiceException
+    {
+        MultipleDeleteResultHandler handler = new MultipleDeleteResultHandler();
+        parseXmlInputStream(handler, inputStream);
+        return handler.getMultipleDeleteResult();
     }
 
     //////////////
@@ -1585,6 +1615,68 @@ public class XmlResponsesSaxParser {
                 config.addTopicConfig(config.new TopicConfig(
                     this.lastTopic, this.lastEvent));
             } else if (name.equals("NotificationConfiguration")) {
+            }
+        }
+    }
+
+    public class MultipleDeleteResultHandler extends DefaultXmlHandler {
+        private MultipleDeleteResult result = new MultipleDeleteResult();
+
+        private List<MultipleDeleteResult.DeletedObjectResult> deletedObjectResults =
+            new ArrayList<MultipleDeleteResult.DeletedObjectResult>();
+        private List<MultipleDeleteResult.ErrorResult> errorResults =
+            new ArrayList<MultipleDeleteResult.ErrorResult>();
+
+        private boolean inDeleted, inError;
+        private String key, version, deleteMarkerVersion, errorCode, message;
+        private Boolean withDeleteMarker;
+
+        public MultipleDeleteResult getMultipleDeleteResult() {
+            return result;
+        }
+
+        @Override
+        public void startElement(String name) {
+            if ("Deleted".equals(name)) {
+                inDeleted = true;
+            } else if ("Error".equals(name)) {
+                inError = true;
+            }
+        }
+
+        @Override
+        public void endElement(String name, String elementText) {
+            if ("Key".equals(name)) {
+                key = elementText;
+            } else if ("VersionId".equals(name)) {
+                version = elementText;
+            } else if ("DeleteMarker".equals(name)) {
+                withDeleteMarker = Boolean.valueOf(elementText);
+            } else if ("DeleteMarkerVersionId".equals(name)) {
+                deleteMarkerVersion = elementText;
+            } else if ("Code".equals(name)) {
+                errorCode = elementText;
+            } else if ("Message".equals(name)) {
+                message = elementText;
+            }
+
+            else if ("Deleted".equals(name)) {
+                deletedObjectResults.add(result.new DeletedObjectResult(
+                    key, version, withDeleteMarker, deleteMarkerVersion));
+                inDeleted = false;
+                key = version = deleteMarkerVersion = errorCode = message = null;
+                withDeleteMarker = null;
+            } else if ("Error".equals(name)) {
+                errorResults.add(result.new ErrorResult(
+                    key, version, errorCode, message));
+                inError = false;
+                key = version = deleteMarkerVersion = errorCode = message = null;
+                withDeleteMarker = null;
+            }
+
+            else if (name.equals("DeleteResult")) {
+                result.setDeletedObjectResults(deletedObjectResults);
+                result.setErrorResults(errorResults);
             }
         }
     }
