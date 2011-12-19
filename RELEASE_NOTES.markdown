@@ -23,6 +23,9 @@ GoogleStorageService:
 
 RestS3Service:
 
+ * Support for multiple object deletes in a single request
+ * Explicit support for new S3 locations: Oregon (us-west-2),
+   South America (sa-east-1)
  * Support for server-side encryption, with per-object setting of algorithm
    and default algorithm configuration 's3service.server-side-encryption'
  * Support for Multipart Upload Part - Copy operation, to add data from
