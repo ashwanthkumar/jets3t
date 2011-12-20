@@ -43,7 +43,6 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpVersion;
-import org.apache.http.NoHttpResponseException;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.AuthState;
 import org.apache.http.auth.Credentials;
@@ -655,9 +654,7 @@ public class RestUtils {
         public boolean retryRequest(IOException exception,
                 int executionCount,
                 HttpContext context) {
-            if (super.retryRequest(exception, executionCount, context)
-                || (exception instanceof NoHttpResponseException))
-            {
+            if (super.retryRequest(exception, executionCount, context)){
 
                 if (exception instanceof UnrecoverableIOException) {
                     if (log.isDebugEnabled()) {
