@@ -65,6 +65,7 @@ import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.AbstractHttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
+import org.apache.http.impl.client.RequestWrapper;
 import org.apache.http.impl.conn.tsccm.AbstractConnPool;
 import org.apache.http.impl.conn.tsccm.ConnPoolByRoute;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
@@ -664,6 +665,11 @@ public class RestUtils {
                 }
                 HttpRequest request = (HttpRequest) context.getAttribute(
                         ExecutionContext.HTTP_REQUEST);
+
+                // Convert RequestWrapper to original HttpBaseRequest (issue #127)
+                if (request instanceof RequestWrapper) {
+                    request = ((RequestWrapper)request).getOriginal();
+                }
 
                 if (!(request instanceof HttpRequestBase)) {
                     return false;
