@@ -704,6 +704,7 @@ public class RestUtils {
                     }
                 }
 
+                return true; // request OK'd for retry by base handler and myself
             }
 
             return false;
