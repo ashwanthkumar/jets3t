@@ -55,8 +55,8 @@ set CP=%CP%;%MY_JETS3T_HOME%/jars/jets3t-gui-{jets3t-version}.jar
 set CP=%CP%;%MY_JETS3T_HOME%/jars/uploader-{jets3t-version}.jar
 set CP=%CP%;%MY_JETS3T_HOME%/libs/commons-logging/commons-logging-1.1.1.jar
 set CP=%CP%;%MY_JETS3T_HOME%/libs/commons-codec/commons-codec-1.4.jar
-set CP=%CP%;%MY_JETS3T_HOME%/libs/commons-httpclient/httpclient-4.1.1.jar
-set CP=%CP%;%MY_JETS3T_HOME%/libs/commons-httpclient/httpcore-4.1.jar
+set CP=%CP%;%MY_JETS3T_HOME%/libs/httpcomponents/httpclient-4.1.2.jar
+set CP=%CP%;%MY_JETS3T_HOME%/libs/httpcomponents/httpcore-4.1.2.jar
 set CP=%CP%;%MY_JETS3T_HOME%/libs/misc/BareBonesBrowserLaunch.jar
 set CP=%CP%;%MY_JETS3T_HOME%/libs/logging-log4j/log4j-1.2.15.jar
 

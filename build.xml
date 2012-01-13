@@ -139,7 +139,7 @@
             >
 
             <lib dir="${dir.dist}/jets3t-${version}/jars" includes="${dist.file.service}"/>
-            <lib dir="${dir.libs}/commons-httpclient" includes="*.jar"/>
+            <lib dir="${dir.libs}/httpcomponents" includes="*.jar"/>
             <lib dir="${dir.libs}/commons-logging" includes="*.jar"/>
             <lib dir="${dir.libs}/commons-codec" includes="*.jar"/>
             <lib dir="${dir.libs}/logging-log4j" includes="*.jar"/>
@@ -249,7 +249,7 @@
             <fileset dir="${dir.libs}">
                 <include name="**/commons-logging/*.jar"/>
                 <include name="**/commons-codec/*.jar"/>
-                <include name="**/commons-httpclient/*.jar"/>
+                <include name="**/httpcomponents/*.jar"/>
                 <include name="**/bouncycastle/*.jar"/>
                 <include name="**/java-xmlbuilder/*.jar"/>
             </fileset>
