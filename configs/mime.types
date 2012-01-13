@@ -9,6 +9,10 @@
 # registry is at <http://www.iana.org/assignments/media-types/>.
 
 # MIME type			Extensions
+
+# Default mimetype
+application/octet-stream    *
+
 application/activemessage
 application/andrew-inset	ez
 application/applefile
