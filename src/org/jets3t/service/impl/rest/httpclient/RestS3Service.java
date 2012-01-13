@@ -823,6 +823,8 @@ public class RestS3Service extends S3Service {
                 }
             }
 
+            // Override any storage class with an empty value, which means don't apply one (Issue #121)
+            object.setStorageClass("");
             this.putObjectWithRequestEntityImpl(bucketName, object, requestEntity, requestParameters);
 
             // Populate part with response data that is accessible via the object's metadata
