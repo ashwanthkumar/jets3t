@@ -2,7 +2,7 @@ JetS3t Release Notes
 ====================
 
 -----------------
-Version 0.8.2-dev
+Version 0.9.0-dev
 -----------------
 
 ### TOOLKIT
