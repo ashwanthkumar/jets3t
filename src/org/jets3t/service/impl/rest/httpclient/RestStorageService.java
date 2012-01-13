@@ -1904,7 +1904,9 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 log.debug("Applied default storage class '" + storageClass
                     + "' to object '" + objectKey + "'");
             }
-            if (storageClass != null) {
+            if (storageClass != null
+                && storageClass != "")  // Hack to avoid applying default storage class
+            {
                 metadata.put(this.getRestHeaderPrefix() + "storage-class", storageClass);
             }
         }
