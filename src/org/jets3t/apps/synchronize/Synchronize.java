@@ -499,7 +499,8 @@ public class Synchronize {
                     List<StorageObject> objectsForMultipartUpload = new ArrayList<StorageObject>();
 
                     // Invoke lazy upload object creator.
-                    for (int i = 0; i < uploadBatchSize; i++) {
+                    int maxBatchSize = Math.min(uploadBatchSize, objectsToUpload.size());
+                    for (int i = 0; i < maxBatchSize; i++) {
                         LazyPreparedUploadObject lazyObj = objectsToUpload.remove(0);
                         StorageObject object = null;
 
