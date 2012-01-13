@@ -15,6 +15,9 @@ General:
    now ignore case in metadata item names. The case of item names is
    retained and available if necessary, but metadata add/get methods
    no longer pay attention to case.
+ * Specify a default mimetype to use for uploaded files with an
+   unrecognized or missing extension by defining a '*' extension
+   in the mime.types config file.
 
 GoogleStorageService:
 

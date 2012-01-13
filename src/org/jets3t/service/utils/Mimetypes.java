@@ -163,7 +163,7 @@ public class Mimetypes {
      * Determines the mimetype of a file by looking up the file's extension in an internal listing
      * to find the corresponding mime type. If the file has no extension, or the extension is not
      * available in the listing contained in this class, the default mimetype
-     * <code>application/octet-stream</code> is returned.
+     * is returned (generally <code>application/octet-stream</code>).
      * <p>
      * A file extension is one or more characters that occur after the last period (.) in the file's name.
      * If a file has no extension,
@@ -173,15 +173,22 @@ public class Mimetypes {
      * the name of the file whose extension may match a known mimetype.
      *
      * @return
-     * the file's mimetype based on its extension, or a default value of
-     * <code>application/octet-stream</code> if a mime type value cannot be found.
+     * the file's mimetype based on its extension, or a default value if a mimetype mapping
+     * is not found.
      */
     public String getMimetype(String fileName) {
+        // Look up default mimetype, represented by '*' in the mime.types file or use
+        // application/octet-stream as a fallback.
+        String mimetype = extensionToMimetypeMap.get("*");
+        if (mimetype == null) {
+            mimetype = MIMETYPE_OCTET_STREAM;
+        }
+
         int lastPeriodIndex = fileName.lastIndexOf(".");
         if (lastPeriodIndex > 0 && lastPeriodIndex + 1 < fileName.length()) {
             String ext = fileName.substring(lastPeriodIndex + 1);
             if (extensionToMimetypeMap.keySet().contains(ext)) {
-                String mimetype = extensionToMimetypeMap.get(ext);
+                mimetype = extensionToMimetypeMap.get(ext);
                 if (log.isDebugEnabled()) {
                     log.debug("Recognised extension '" + ext + "', mimetype is: '" + mimetype + "'");
                 }
@@ -189,7 +196,7 @@ public class Mimetypes {
             } else {
                 if (log.isDebugEnabled()) {
                     log.debug("Extension '" + ext + "' is unrecognized in mime type listing"
-                    + ", using default mime type: '" + MIMETYPE_OCTET_STREAM + "'");
+                    + ", using default mime type: '" + mimetype + "'");
                 }
             }
         } else {
@@ -197,7 +204,7 @@ public class Mimetypes {
                 log.debug("File name has no extension, mime type cannot be recognised for: " + fileName);
             }
         }
-        return MIMETYPE_OCTET_STREAM;
+        return mimetype;
     }
 
     /**
