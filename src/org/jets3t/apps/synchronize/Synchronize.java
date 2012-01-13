@@ -310,7 +310,7 @@ public class Synchronize {
 
         PartialObjectListing partialListing = fileComparer.buildObjectMapPartial(
             storageService, bucketName, rootObjectPath, priorLastKey,
-            objectKeyToFilepathMap, !isBatchMode, forceMetadataDownload,
+            objectKeyToFilepathMap, !isBatchMode, forceMetadataDownload, isForce,
             md5GenerationProgressWatcher, serviceEventAdaptor);
         if (serviceEventAdaptor.wasErrorThrown()) {
             throw new ServiceException("Unable to build map of objects",
@@ -325,7 +325,7 @@ public class Synchronize {
         // Compare the listed objects with the local system.
         printProgressLine("Comparing service contents with local system");
         FileComparerResults discrepancyResults = fileComparer.buildDiscrepancyLists(
-            objectKeyToFilepathMap, objectsMap, md5GenerationProgressWatcher);
+            objectKeyToFilepathMap, objectsMap, md5GenerationProgressWatcher, isForce);
 
         // Merge objects and discrepancies to track overall changes.
         mergedDiscrepancyResults.merge(discrepancyResults);

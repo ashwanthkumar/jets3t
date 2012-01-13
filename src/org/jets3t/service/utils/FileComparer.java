@@ -617,7 +617,7 @@ public class FileComparer {
      * Builds a service Object Map containing all the objects within the given target path,
      * where the map's key for each object is the relative path to the object.
      *
-     * @see #lookupObjectMetadataForPotentialClashes(StorageService, String, String, StorageObject[], Map, boolean, BytesProgressWatcher, StorageServiceEventListener)
+     * @see #lookupObjectMetadataForPotentialClashes(StorageService, String, String, StorageObject[], Map, boolean, boolean, BytesProgressWatcher, StorageServiceEventListener)
      *
      * @param service
      * @param bucketName
@@ -629,6 +629,9 @@ public class FileComparer {
      * metadata is only downloaded if deemed necessary. This flag should be set to true when
      * data for any objects in the storage service has been transformed, such as by
      * encryption or compression during upload.
+     * @param isForceUpload
+     * set to true if the calling tool will upload files regardless of the comparison, so this
+     * method will avoid any unnecessary and potentially expensive data/date comparison checks.
      * @param progressWatcher
      * watcher to monitor bytes read during comparison operations, may be null.
      * @param eventListener
@@ -638,7 +641,7 @@ public class FileComparer {
      */
     public Map<String, StorageObject> buildObjectMap(StorageService service, String bucketName,
         String targetPath, Map<String, String> objectKeyToFilepathMap,
-        boolean forceMetadataDownload,
+        boolean forceMetadataDownload, boolean isForceUpload,
         BytesProgressWatcher progressWatcher, StorageServiceEventListener eventListener)
         throws ServiceException
     {
@@ -648,7 +651,7 @@ public class FileComparer {
         return lookupObjectMetadataForPotentialClashes(
             service, bucketName, targetPath,
             objectsIncomplete, objectKeyToFilepathMap,
-            forceMetadataDownload,
+            forceMetadataDownload, isForceUpload,
             progressWatcher, eventListener);
     }
 
@@ -665,7 +668,7 @@ public class FileComparer {
      * If the method is asked to perform only a partial listing, no bucket name
      * partitioning will be applied.
      *
-     * @see #lookupObjectMetadataForPotentialClashes(StorageService, String, String, StorageObject[], Map, boolean, BytesProgressWatcher, StorageServiceEventListener)
+     * @see #lookupObjectMetadataForPotentialClashes(StorageService, String, String, StorageObject[], Map, boolean, boolean, BytesProgressWatcher, StorageServiceEventListener)
      *
      * @param service
      * @param bucketName
@@ -679,6 +682,9 @@ public class FileComparer {
      * metadata is only downloaded if deemed necessary. This flag should be set to true when
      * data for any objects in the storage service has been transformed, such as by
      * encryption or compression during upload.
+     * @param isForceUpload
+     * set to true if the calling tool will upload files regardless of the comparison, so this
+     * method will avoid any unnecessary and potentially expensive data/date comparison checks.
      * @param completeListing
      * if true, this method will perform a complete listing of a service target.
      * If false, the method will list a partial set of objects commencing from the
@@ -695,7 +701,7 @@ public class FileComparer {
     public PartialObjectListing buildObjectMapPartial(StorageService service,
         String bucketName, String targetPath, String priorLastKey,
         Map<String, String> objectKeyToFilepathMap, boolean completeListing,
-        boolean forceMetadataDownload,
+        boolean forceMetadataDownload, boolean isForceUpload,
         BytesProgressWatcher progressWatcher, StorageServiceEventListener eventListener)
         throws ServiceException
     {
@@ -714,7 +720,7 @@ public class FileComparer {
 
         Map<String, StorageObject> objectsMap = lookupObjectMetadataForPotentialClashes(
             service, bucketName, targetPath, objects, objectKeyToFilepathMap,
-            forceMetadataDownload, progressWatcher, eventListener);
+            forceMetadataDownload, isForceUpload, progressWatcher, eventListener);
         return new PartialObjectListing(objectsMap, resultPriorLastKey);
     }
 
@@ -738,6 +744,9 @@ public class FileComparer {
      * metadata is only downloaded if deemed necessary. This flag should be set to true when
      * data for any objects in the storage service has been transformed, such as by
      * encryption or compression during upload.
+     * @param isForceUpload
+     * set to true if the calling tool will upload files regardless of the comparison, so this
+     * method will avoid any unnecessary and potentially expensive data/date comparison checks.
      * @param progressWatcher
      * watcher to monitor bytes read during comparison operations, may be null.
      * @param eventListener
@@ -748,11 +757,17 @@ public class FileComparer {
     public Map<String, StorageObject> lookupObjectMetadataForPotentialClashes(
         StorageService service, String bucketName, String targetPath,
         StorageObject[] objectsWithoutMetadata, Map<String, String> objectKeyToFilepathMap,
-        boolean forceMetadataDownload,
+        boolean forceMetadataDownload, boolean isForceUpload,
         BytesProgressWatcher progressWatcher, StorageServiceEventListener eventListener)
         throws ServiceException
     {
         Map<String, StorageObject> objectMap = populateObjectMap(targetPath, objectsWithoutMetadata);
+
+        // If we are forcing an upload there's no point comparing local files with service
+        // objects, since any service objects will be replaced no matter the comparison.
+        if (isForceUpload) {
+            return objectMap;
+        }
 
         // Identify objects that might clash with local files
         Set<StorageObject> objectsForMetadataRetrieval = new HashSet<StorageObject>();
@@ -1012,7 +1027,7 @@ public class FileComparer {
         Map<String, String> objectKeyToFilepathMap, Map<String, StorageObject> objectsMap)
         throws NoSuchAlgorithmException, FileNotFoundException, IOException, ParseException
     {
-        return buildDiscrepancyLists(objectKeyToFilepathMap, objectsMap, null);
+        return buildDiscrepancyLists(objectKeyToFilepathMap, objectsMap, null, false);
     }
 
     /**
@@ -1036,6 +1051,36 @@ public class FileComparer {
      */
     public FileComparerResults buildDiscrepancyLists(Map<String, String> objectKeyToFilepathMap,
         Map<String, StorageObject> objectsMap, BytesProgressWatcher progressWatcher)
+        throws NoSuchAlgorithmException, FileNotFoundException, IOException, ParseException
+    {
+        return buildDiscrepancyLists(objectKeyToFilepathMap, objectsMap, progressWatcher, false);
+    }
+
+    /**
+     * Compares the contents of a directory on the local file system with the contents of a service
+     * resource. This comparison is performed on a map of files and a map of service objects previously
+     * generated using other methods in this class.
+     *
+     * @param objectKeyToFilepathMap
+     * map of '/'-delimited object key names to local file absolute paths
+     * @param objectsMap
+     * a map of keys to StorageObjects.
+     * @param progressWatcher
+     * watcher to monitor bytes read during comparison operations, may be null.
+     * @param isForceUpload
+     * set to true if the calling tool will upload files regardless of the comparison, so this
+     * method will avoid any unnecessary and potentially expensive data/date comparison checks.
+     * @return
+     * an object containing the results of the file comparison.
+     *
+     * @throws NoSuchAlgorithmException
+     * @throws FileNotFoundException
+     * @throws IOException
+     * @throws ParseException
+     */
+    public FileComparerResults buildDiscrepancyLists(Map<String, String> objectKeyToFilepathMap,
+        Map<String, StorageObject> objectsMap, BytesProgressWatcher progressWatcher,
+        boolean isForceUpload)
         throws NoSuchAlgorithmException, FileNotFoundException, IOException, ParseException
     {
         List<String> onlyOnServerKeys = new ArrayList<String>();
@@ -1088,6 +1133,14 @@ public class FileComparer {
                                 onlyOnClientKeys.remove(keyPath + "/");
                             }
                         }
+                    }
+                    // If upload is forced, don't bother comparing object MD5 hashes
+                    else if (isForceUpload) {
+                        // Treat file as if it's already synchronized with the service, whether
+                        // it is or not doesn't really matter since we're uploading it regardless
+                        alreadySynchronisedKeys.add(keyPath);
+                        alreadySynchronisedLocalPaths.add(localPath);
+                        onlyOnClientKeys.remove(keyPath);
                     }
                     // Compare file hashes.
                     else {
