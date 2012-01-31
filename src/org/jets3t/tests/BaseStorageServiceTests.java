@@ -78,8 +78,6 @@ import org.jets3t.service.utils.ObjectUtils;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 
-import sun.security.jgss.GSSToken;
-
 /**
  * Runs generic functional tests that any storage service implementation should be
  * able to perform.
@@ -1286,7 +1284,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
 
             // Build a map of objects in storage service
             Map<String, StorageObject> objectMap = comparer.buildObjectMap(
-                service, bucket.getName(), "", objectKeyToFilepathMap, false, null, null);
+                service, bucket.getName(), "", objectKeyToFilepathMap, false, false, null, null);
             assertEquals(5, objectMap.size());
             assertTrue(objectMap.keySet().contains(local3Path));
 
@@ -1317,7 +1315,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             service.putObject(bucketName, remoteObject);
 
             objectMap = comparer.buildObjectMap(
-                service, bucket.getName(), "", objectKeyToFilepathMap, false, null, null);
+                service, bucket.getName(), "", objectKeyToFilepathMap, false, false, null, null);
 
             comparerResults =
                 comparer.buildDiscrepancyLists(objectKeyToFilepathMap, objectMap);
@@ -1338,7 +1336,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             objectKeyToFilepathMap = comparer.buildObjectKeyToFilepathMap(
                 new File[] {parentDir1, parentDir2}, "", true);
             objectMap = comparer.buildObjectMap(
-                service, bucket.getName(), "", objectKeyToFilepathMap, false, null, null);
+                service, bucket.getName(), "", objectKeyToFilepathMap, false, false, null, null);
 
             comparerResults = comparer.buildDiscrepancyLists(objectKeyToFilepathMap, objectMap);
             assertEquals(3, comparerResults.alreadySynchronisedKeys.size());
@@ -1363,7 +1361,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             objectKeyToFilepathMap = comparer.buildObjectKeyToFilepathMap(
                 new File[] {parentDir1, parentDir2}, "", true);
             objectMap = comparer.buildObjectMap(
-                service, bucket.getName(), "", objectKeyToFilepathMap, false, null, null);
+                service, bucket.getName(), "", objectKeyToFilepathMap, false, false, null, null);
 
             comparerResults = comparer.buildDiscrepancyLists(objectKeyToFilepathMap, objectMap);
             assertEquals(1, comparerResults.onlyOnClientKeys.size());
