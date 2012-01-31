@@ -679,7 +679,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
         }
 
         // Set/update the date timestamp to the current time
-        // Note that this will be over-ridden if an "x-amz-date" header is present.
+        // Note that this will be over-ridden if an "x-amz-date" or
+        // "x-goog-date" header is present.
         httpMethod.setHeader("Date",
             ServiceUtils.formatRfc822Date(getCurrentTimeWithOffset()));
 
