@@ -2,7 +2,7 @@ JetS3t Release Notes
 ====================
 
 -----------------
-Version 0.8.2-dev
+Version 0.9.0-dev
 -----------------
 
 ### TOOLKIT
@@ -15,6 +15,9 @@ General:
    now ignore case in metadata item names. The case of item names is
    retained and available if necessary, but metadata add/get methods
    no longer pay attention to case.
+ * Specify a default mimetype to use for uploaded files with an
+   unrecognized or missing extension by defining a '*' extension
+   in the mime.types config file.
 
 GoogleStorageService:
 
@@ -23,6 +26,10 @@ GoogleStorageService:
 
 RestS3Service:
 
+ * Support for multiple object deletes in a single request
+ * Explicit support for new S3 locations: Oregon (us-west-2),
+   South America (sa-east-1), GovCloud US West (s3-us-gov-west-1),
+   GovCloud US West FIPS 140-2 (s3-fips-us-gov-west-1)
  * Support for server-side encryption, with per-object setting of algorithm
    and default algorithm configuration 's3service.server-side-encryption'
  * Support for Multipart Upload Part - Copy operation, to add data from

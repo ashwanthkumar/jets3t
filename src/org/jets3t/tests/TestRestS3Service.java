@@ -45,13 +45,13 @@ import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.ServiceException;
-import org.jets3t.service.StorageService;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
 import org.jets3t.service.model.MultipartCompleted;
 import org.jets3t.service.model.MultipartPart;
 import org.jets3t.service.model.MultipartUpload;
+import org.jets3t.service.model.MultipleDeleteResult;
 import org.jets3t.service.model.NotificationConfig;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
@@ -61,6 +61,7 @@ import org.jets3t.service.model.StorageBucketLoggingStatus;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.WebsiteConfig;
 import org.jets3t.service.model.NotificationConfig.TopicConfig;
+import org.jets3t.service.model.container.ObjectKeyAndVersion;
 import org.jets3t.service.multi.s3.MultipartUploadAndParts;
 import org.jets3t.service.multi.s3.S3ServiceEventAdaptor;
 import org.jets3t.service.multi.s3.ThreadedS3Service;
@@ -799,6 +800,52 @@ public class TestRestS3Service extends BaseStorageServiceTests {
 
         } finally {
             cleanupBucketForTest("testServerSideEncryption");
+        }
+    }
+
+    public void testMultipleObjectDelete() throws Exception {
+        S3Service s3Service = (S3Service) getStorageService(getCredentials());
+        StorageBucket bucket = createBucketForTest("testMultipleObjectDelete");
+        String bucketName = bucket.getName();
+
+        try {
+            // Can delete non-existent objects
+            String[] keys = new String[] {
+                "non-existent-1", "non-existent-2", "non-existent-3", "non-existent-4"};
+            MultipleDeleteResult result = s3Service.deleteMultipleObjects(bucketName, keys);
+            assertFalse(result.hasErrors());
+            assertEquals(0, result.getErrorResults().size());
+            assertEquals(4, result.getDeletedObjectResults().size());
+
+            // Delete existing objects
+            keys = new String[] {
+                "existent-1", "existent-2", "existent-3", "existent-4"};
+            for (String key: keys) {
+                s3Service.putObject(bucketName, new S3Object(key, "Some data"));
+            }
+            result = s3Service.deleteMultipleObjects(bucketName, keys);
+            assertFalse(result.hasErrors());
+            assertEquals(4, result.getDeletedObjectResults().size());
+            for (String key: keys) {
+                assertFalse(s3Service.isObjectInBucket(bucketName, key));
+            }
+
+            // Quiet mode does not list deleted objects in result
+            ObjectKeyAndVersion[] keyAndVersions = new ObjectKeyAndVersion[keys.length];
+            int i = 0;
+            for (String key: keys) {
+                s3Service.putObject(bucketName, new S3Object(key, "Some data"));
+                keyAndVersions[i++] = new ObjectKeyAndVersion(key);
+            }
+            result = s3Service.deleteMultipleObjects(bucketName, keyAndVersions, true);
+            assertFalse(result.hasErrors());
+            assertEquals(0, result.getDeletedObjectResults().size());
+            for (String key: keys) {
+                assertFalse(s3Service.isObjectInBucket(bucketName, key));
+            }
+
+        } finally {
+            cleanupBucketForTest("testMultipleObjectDelete");
         }
     }
 

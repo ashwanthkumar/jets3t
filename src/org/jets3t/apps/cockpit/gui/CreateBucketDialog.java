@@ -76,15 +76,28 @@ public class CreateBucketDialog extends JDialog implements ActionListener {
     private final Insets insetsDefault = new Insets(3, 5, 3, 5);
 
 
+    static int locOffset = 0;
     static {
         locationNames = new String[] {
-            "US Standard", "US West (N. California)",
-            "EU West (Ireland)", "Asia Pacific (Singapore)"
+            "US Standard",
+            "US West (N. California)",
+            "US West (Oregon)",
+            "EU West (Ireland)",
+            "Asia Pacific (Singapore)",
+            "Asia Pacific (Tokyo)",
+            "South America (Sao Paulo)",
+            "GovCloud US West",
+            "GovCloud US West (FIPS 140-2)"
         };
-        locationValueMap.put(locationNames[0], S3Bucket.LOCATION_US);
-        locationValueMap.put(locationNames[1], S3Bucket.LOCATION_US_WEST);
-        locationValueMap.put(locationNames[2], S3Bucket.LOCATION_EUROPE);
-        locationValueMap.put(locationNames[3], S3Bucket.LOCATION_ASIA_PACIFIC);
+        locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_US);
+        locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_US_WEST_NORTHERN_CALIFORNIA);
+        locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_US_WEST_OREGON);
+        locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_EUROPE);
+        locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_ASIA_PACIFIC_SINGAPORE);
+        locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_ASIA_PACIFIC_TOKYO);
+        locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_SOUTH_AMERICA_SAO_PAULO);
+        locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_GOVCLOUD_US_WEST);
+        locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_GOVCLOUD_FIPS_US_WEST);
     }
 
     public CreateBucketDialog(String suggestedBucketName, Frame ownerFrame,

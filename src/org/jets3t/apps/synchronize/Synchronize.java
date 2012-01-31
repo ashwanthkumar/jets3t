@@ -310,7 +310,7 @@ public class Synchronize {
 
         PartialObjectListing partialListing = fileComparer.buildObjectMapPartial(
             storageService, bucketName, rootObjectPath, priorLastKey,
-            objectKeyToFilepathMap, !isBatchMode, forceMetadataDownload,
+            objectKeyToFilepathMap, !isBatchMode, forceMetadataDownload, isForce,
             md5GenerationProgressWatcher, serviceEventAdaptor);
         if (serviceEventAdaptor.wasErrorThrown()) {
             throw new ServiceException("Unable to build map of objects",
@@ -325,7 +325,7 @@ public class Synchronize {
         // Compare the listed objects with the local system.
         printProgressLine("Comparing service contents with local system");
         FileComparerResults discrepancyResults = fileComparer.buildDiscrepancyLists(
-            objectKeyToFilepathMap, objectsMap, md5GenerationProgressWatcher);
+            objectKeyToFilepathMap, objectsMap, md5GenerationProgressWatcher, isForce);
 
         // Merge objects and discrepancies to track overall changes.
         mergedDiscrepancyResults.merge(discrepancyResults);
@@ -499,7 +499,8 @@ public class Synchronize {
                     List<StorageObject> objectsForMultipartUpload = new ArrayList<StorageObject>();
 
                     // Invoke lazy upload object creator.
-                    for (int i = 0; i < uploadBatchSize; i++) {
+                    int maxBatchSize = Math.min(uploadBatchSize, objectsToUpload.size());
+                    for (int i = 0; i < maxBatchSize; i++) {
                         LazyPreparedUploadObject lazyObj = objectsToUpload.remove(0);
                         StorageObject object = null;
 

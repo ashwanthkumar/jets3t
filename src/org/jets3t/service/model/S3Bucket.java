@@ -47,6 +47,14 @@ public class S3Bucket extends StorageBucket {
      * Alias of {@link #LOCATION_ASIA_PACIFIC_NORTHEAST}
      */
     public static final String LOCATION_ASIA_PACIFIC_TOKYO = LOCATION_ASIA_PACIFIC_NORTHEAST;
+    public static final String LOCATION_SOUTH_AMERICA_SAO_PAULO = "sa-east-1";
+    /**
+     * Alias of {@link #LOCATION_SOUTH_AMERICA_SAO_PAULO}
+     */
+    public static final String LOCATION_SOUTH_AMERICA_EAST = LOCATION_SOUTH_AMERICA_SAO_PAULO;
+
+    public static final String LOCATION_GOVCLOUD_US_WEST = "s3-us-gov-west-1";
+    public static final String LOCATION_GOVCLOUD_FIPS_US_WEST = "s3-fips-us-gov-west-1";
 
 
     private boolean requesterPays = false;
