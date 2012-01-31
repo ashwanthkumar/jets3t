@@ -202,9 +202,10 @@ public class RestUtils {
             }
         }
 
-        // Remove default date timestamp if "x-amz-date" is set.
-        if (interestingHeaders.containsKey(Constants.REST_METADATA_ALTERNATE_DATE)) {
-            interestingHeaders.put("date", "");
+        // Remove default date timestamp if "x-amz-date" or "x-goog-date" is set.
+        if (interestingHeaders.containsKey(Constants.REST_METADATA_ALTERNATE_DATE_AMZ)
+            || interestingHeaders.containsKey(Constants.REST_METADATA_ALTERNATE_DATE_GOOG)) {
+          interestingHeaders.put("date", "");
         }
 
         // Use the expires value as the timestamp if it is available. This trumps both the default
