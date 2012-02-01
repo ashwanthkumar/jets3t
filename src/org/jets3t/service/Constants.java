@@ -140,7 +140,13 @@ public class Constants {
     /**
      * Header prefix for Amazon's alternative date header: x-amz-date
      */
-    public static final String REST_METADATA_ALTERNATE_DATE = "x-amz-date";
+    public static final String REST_METADATA_ALTERNATE_DATE_AMZ = "x-amz-date";
+    
+    /**
+     * Header prefix for Google's alternative date header: x-goog-date
+     */
+    public static final String REST_METADATA_ALTERNATE_DATE_GOOG = "x-goog-date";
+    
     /**
      * XML namespace URL used when generating S3-compatible XML documents:
      * http://s3.amazonaws.com/doc/2006-03-01/
