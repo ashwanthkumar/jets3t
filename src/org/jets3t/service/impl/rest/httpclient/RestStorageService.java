@@ -91,11 +91,11 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
     protected static enum HTTP_METHOD {PUT, POST, HEAD, GET, DELETE};
 
-    protected HttpClient httpClient = null;
-    protected CredentialsProvider credentialsProvider = null;
+    protected HttpClient httpClient;
+    protected CredentialsProvider credentialsProvider;
 
-    protected String defaultStorageClass = null;
-    protected String defaultServerSideEncryptionAlgorithm = null;
+    protected String defaultStorageClass;
+    protected String defaultServerSideEncryptionAlgorithm;
 
     protected volatile boolean shuttingDown;
 
@@ -160,7 +160,9 @@ public abstract class RestStorageService extends StorageService implements JetS3
         initializeDefaults();
     }
 
+    @Override
     protected void initializeDefaults(){
+        super.initializeDefaults();
         this.httpClient = initHttpConnection();
         initializeProxy();
     }
@@ -195,8 +197,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
     /**
      * Initialise HttpClient and HttpConnectionManager objects with the configuration settings
      * appropriate for communicating with S3. By default, this method simply delegates the
-     * configuration task to {@link org.jets3t.service.utils.RestUtils#initHttpConnection(org.jets3t.service.impl.rest.httpclient.JetS3tRequestAuthorizer,
-     * org.apache.commons.httpclient.HostConfiguration, org.jets3t.service.Jets3tProperties, String, org.apache.commons.httpclient.auth.CredentialsProvider)}.
+     * configuration task to {@link org.jets3t.service.utils.RestUtils#initHttpConnection(JetS3tRequestAuthorizer, org.jets3t.service.Jets3tProperties, String, org.apache.http.client.CredentialsProvider)}.
      * <p>
      * To alter the low-level behaviour of the HttpClient library, override this method in
      * a subclass and apply your own settings before returning the objects.
@@ -1175,7 +1176,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
     }
 
     /**
-     * Creates an {@link org.apache.commons.httpclient.HttpMethod} object to handle a particular connection method.
+     * Creates an {@link org.apache.http.HttpRequest} object to handle a particular connection method.
      *
      * @param method
      *        the HTTP method/connection-type to use, must be one of: PUT, HEAD, GET, DELETE
