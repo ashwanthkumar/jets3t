@@ -95,12 +95,12 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
     public static final String ORIGIN_ACCESS_IDENTITY_URI_PATH = "/origin-access-identity/cloudfront";
     public static final String ORIGIN_ACCESS_IDENTITY_PREFIX = "origin-access-identity/cloudfront/";
 
-    private HttpClient httpClient = null;
-    private CredentialsProvider credentialsProvider = null;
+    protected HttpClient httpClient;
+    private CredentialsProvider credentialsProvider;
 
-    private ProviderCredentials credentials = null;
-    protected Jets3tProperties jets3tProperties = null;
-    private String invokingApplicationDescription = null;
+    private ProviderCredentials credentials;
+    protected Jets3tProperties jets3tProperties;
+    private String invokingApplicationDescription;
     protected int internalErrorRetryMax = 5;
 
 
@@ -144,25 +144,22 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
             jets3tProperties = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME);
         }
         this.jets3tProperties = jets3tProperties;
+        this.internalErrorRetryMax = jets3tProperties.getIntProperty("cloudfront-service.internal-error-retry-max", 5);
+        this.initializeDefaults();
+    }
 
+    protected void initializeDefaults(){
         // Configure the InetAddress DNS caching times to work well with CloudFront. The cached DNS will
         // timeout after 5 minutes, while failed DNS lookups will be retried after 1 second.
         System.setProperty("networkaddress.cache.ttl", "300");
         System.setProperty("networkaddress.cache.negative.ttl", "1");
 
-        this.internalErrorRetryMax = jets3tProperties.getIntProperty("cloudfront-service.internal-error-retry-max", 5);
-
-        initializeDefaults();
-
+        this.httpClient = initHttpConnection();
         /* TODO: CloudFront service does not seem to support 100-continue protocol for 2009-04-02
          * DistributionConfig updates, causing unnecessary timeouts when updating these settings.
          * This will probably be fixed, remove the following line when full support returns.
          */
         HttpProtocolParams.setUseExpectContinue(this.httpClient.getParams(), false);
-    }
-
-    protected void initializeDefaults(){
-        this.httpClient = initHttpConnection();
         initializeProxy();
     }
 
