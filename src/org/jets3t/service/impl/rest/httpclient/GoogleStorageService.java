@@ -442,10 +442,16 @@ public class GoogleStorageService extends RestStorageService {
      */
     @Override
     public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context)
-        throws Exception
+            throws ServiceException
     {
         if (this.credentials instanceof OAuth2Credentials) {
-            OAuth2Tokens tokens = ((OAuth2Credentials)this.credentials).getOAuth2Tokens();
+            OAuth2Tokens tokens;
+            try {
+                tokens = ((OAuth2Credentials)this.credentials).getOAuth2Tokens();
+            }
+            catch(IOException e) {
+                throw new ServiceException("Failure retrieving OAuth2 tokens", e);
+            }
             if (tokens == null) {
                 throw new ServiceException(
                         "Cannot authenticate using OAuth2 until initial tokens are provided"

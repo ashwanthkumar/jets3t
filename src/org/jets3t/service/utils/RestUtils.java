@@ -692,13 +692,13 @@ public class RestUtils {
                     if (requestAuthorizer != null){
                         requestAuthorizer.authorizeHttpRequest(method, context);
                     }
+                    return true;
                 } catch (Exception e) {
                     if (log.isWarnEnabled()) {
                         log.warn("Unable to generate updated authorization string for retried request",
                                 e);
                     }
                 }
-
             }
 
             return false;

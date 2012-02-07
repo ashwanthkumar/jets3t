@@ -637,7 +637,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
      * @throws ServiceException
      */
     public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context)
-        throws Exception
+            throws ServiceException
     {
         if (getProviderCredentials() != null) {
             if (log.isDebugEnabled()) {
@@ -691,13 +691,19 @@ public abstract class RestStorageService extends StorageService implements JetS3
         }
 
         // Generate a canonical string representing the operation.
-        String canonicalString = RestUtils.makeServiceCanonicalString(
-                httpMethod.getMethod(),
-                fullUrl,
-                convertHeadersToMap(httpMethod.getAllHeaders()),
-                null,
-                getRestHeaderPrefix(),
-                getResourceParameterNames());
+        String canonicalString = null;
+        try {
+            canonicalString = RestUtils.makeServiceCanonicalString(
+                    httpMethod.getMethod(),
+                    fullUrl,
+                    convertHeadersToMap(httpMethod.getAllHeaders()),
+                    null,
+                    getRestHeaderPrefix(),
+                    getResourceParameterNames());
+        }
+        catch(UnsupportedEncodingException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
         if (log.isDebugEnabled()) {
             log.debug("Canonical string ('|' is a newline): " + canonicalString.replace('\n', '|'));
         }
