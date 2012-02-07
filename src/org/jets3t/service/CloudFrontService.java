@@ -225,10 +225,8 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      *
      * @param httpMethod
      * the request object
-     * @throws Exception
      */
-    public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context)
-    throws Exception {
+    public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context) throws ServiceException {
         String date = ServiceUtils.formatRfc822Date(getCurrentTimeWithOffset());
 
         // Set/update the date timestamp to the current time
