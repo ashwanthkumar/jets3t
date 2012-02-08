@@ -49,7 +49,6 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
-import org.jets3t.service.S3Service;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.model.S3Object;
 import org.xml.sax.SAXException;
@@ -277,6 +276,11 @@ public class ServiceUtils {
      * of metadata with the HTTP-connection-specific metadata items removed.
      *
      * @param metadata
+     * metadata map to be cleaned
+     * @param headerPrefix
+     * prefix denoting service-specific "header" HTTP header values (case insensitive)
+     * @param metadataPrefix
+     * prefix denoting service-specific "metadata" HTTP header values (case insensitive)
      * @return
      * metadata map with HTTP-connection-specific items removed.
      */
@@ -294,17 +298,16 @@ public class ServiceUtils {
 
                 // Trim prefixes from keys.
                 String keyStr = (key != null ? key.toString() : "");
-                if (keyStr.startsWith(metadataPrefix)) {
-                    key = keyStr
-                        .substring(metadataPrefix.length(), keyStr.length());
+                if (keyStr.toLowerCase().startsWith(metadataPrefix)) {
+                    key = keyStr.substring(metadataPrefix.length(), keyStr.length());
                     if (log.isDebugEnabled()) {
                         log.debug("Removed meatadata header prefix "
-                            + headerPrefix + " from key: " + keyStr + "=>" + key);
+                            + metadataPrefix + " from key: " + keyStr + "=>" + key);
                     }
-                } else if (keyStr.startsWith(headerPrefix)) {
+                } else if (keyStr.toLowerCase().startsWith(headerPrefix)) {
                     key = keyStr.substring(headerPrefix.length(), keyStr.length());
                     if (log.isDebugEnabled()) {
-                        log.debug("Removed Amazon header prefix "
+                        log.debug("Removed header prefix "
                             + headerPrefix + " from key: " + keyStr + "=>" + key);
                     }
                 } else if (RestUtils.HTTP_HEADER_METADATA_NAMES.contains(keyStr.toLowerCase(Locale.getDefault()))) {
