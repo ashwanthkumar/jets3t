@@ -18,11 +18,6 @@
  */
 package org.jets3t.service.utils.oauth;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpEntity;
@@ -44,6 +39,11 @@ import org.jets3t.service.security.OAuth2Tokens;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.oauth.OAuthConstants.GSOAuth2_10;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 /**
  * Utilties for obtaining OAuth authentication tokens.
  * <p/>
@@ -51,7 +51,6 @@ import org.jets3t.service.utils.oauth.OAuthConstants.GSOAuth2_10;
  * though hopefully generic enough it may be extensible in the future.
  *
  * @author jmurty
- *
  * @see <a href="http://code.google.com/apis/storage/docs/authentication.html#oauth">Google Storage: OAuth 2.0 Authentication</a>
  * @see <a href="http://code.google.com/apis/accounts/docs/OAuth2.html">Using OAuth 2.0 to Access Google APIs</a>
  */
@@ -68,7 +67,9 @@ public class OAuthUtils {
          * Google Storage OAuth 2.0 (release 10)
          */
         GOOGLE_STORAGE_OAUTH2_10
-        };
+    }
+
+    ;
 
     protected HttpClient httpClient = null;
     protected ObjectMapper jsonMapper = new ObjectMapper();
@@ -82,23 +83,18 @@ public class OAuthUtils {
      * client ID and Secret. Values in the given {@link Jets3tProperties} object are
      * used to configure HTTP/S connections that may be performed by this class.
      *
-     * @param implementation
-     * OAuth implementation version
-     * @param clientId
-     * Client ID for installed application
-     * @param clientSecret
-     * Client secret for installed applications
-     * @param jets3tProperties
-     * Properties to configure HTTP/S connections
+     * @param implementation   OAuth implementation version
+     * @param clientId         Client ID for installed application
+     * @param clientSecret     Client secret for installed applications
+     * @param jets3tProperties Properties to configure HTTP/S connections
      */
     public OAuthUtils(OAuthImplementation implementation, String clientId, String clientSecret,
-        Jets3tProperties jets3tProperties)
-    {
+                      Jets3tProperties jets3tProperties) {
         this(RestUtils.initHttpConnection(
-                    null, // requestAuthorizer
-                    jets3tProperties,
-                    HTTP_USER_AGENT,
-                    null), implementation, clientId, clientSecret);
+                null, // requestAuthorizer
+                jets3tProperties,
+                HTTP_USER_AGENT,
+                null), implementation, clientId, clientSecret);
     }
 
     /**
@@ -106,14 +102,10 @@ public class OAuthUtils {
      * client ID and Secret. Values in the given {@link Jets3tProperties} object are
      * used to configure HTTP/S connections that may be performed by this class.
      *
-     * @param httpClient
-     * HTTP Client
-     * @param implementation
-     * OAuth implementation version
-     * @param clientId
-     * Client ID for installed application
-     * @param clientSecret
-     * Client secret for installed applications
+     * @param httpClient     HTTP Client
+     * @param implementation OAuth implementation version
+     * @param clientId       Client ID for installed application
+     * @param clientSecret   Client secret for installed applications
      */
     public OAuthUtils(HttpClient httpClient, OAuthImplementation implementation, String clientId, String clientSecret) {
         this.implementation = implementation;
@@ -121,13 +113,12 @@ public class OAuthUtils {
         this.clientSecret = clientSecret;
         this.httpClient = httpClient;
 
-        if (this.implementation == null
-            || this.clientId == null
-            || this.clientSecret == null
-            || this.httpClient == null)
-        {
+        if(this.implementation == null
+                || this.clientId == null
+                || this.clientSecret == null
+                || this.httpClient == null) {
             throw new IllegalArgumentException(
-                "Null arguments not permitted when constructing " + this.getClass().getName());
+                    "Null arguments not permitted when constructing " + this.getClass().getName());
         }
     }
 
@@ -136,16 +127,13 @@ public class OAuthUtils {
      * client ID and Secret. Values in the default system {@link Jets3tProperties} object
      * are used to configure HTTP/S connections that may be performed by this class.
      *
-     * @param implementation
-     * OAuth implementation version
-     * @param clientId
-     * Client ID for installed application
-     * @param clientSecret
-     * Client secret for installed applications
+     * @param implementation OAuth implementation version
+     * @param clientId       Client ID for installed application
+     * @param clientSecret   Client secret for installed applications
      */
     public OAuthUtils(OAuthImplementation implementation, String clientId, String clientSecret) {
         this(implementation, clientId, clientSecret,
-            Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME));
+                Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME));
     }
 
     public String getClientId() {
@@ -162,26 +150,23 @@ public class OAuthUtils {
      * the given scope. The URL will contain the Client ID stored in this class, along with
      * other information that may be specific to the OAuth implementation.
      *
-     * @param scope
-     * URI representing the access scope a user will be prompted to authorize, for example
-     * example <pre>OAuthConstants.GSOAuth2_10.Scopes.ReadOnly</pre>
-     *
-     * @return
-     * URL to an OAuth authorization end-point.
-     *
+     * @param scope URI representing the access scope a user will be prompted to authorize, for example
+     *              example <pre>OAuthConstants.GSOAuth2_10.Scopes.ReadOnly</pre>
+     * @return URL to an OAuth authorization end-point.
      * @see <a href="http://code.google.com/apis/accounts/docs/OAuth2.html#IA">OAuth 2.0 for native applications</a>
      */
     public String generateBrowserUrlToAuthorizeNativeApplication(OAuthScope scope) {
-        if (this.implementation == OAuthImplementation.GOOGLE_STORAGE_OAUTH2_10) {
+        if(this.implementation == OAuthImplementation.GOOGLE_STORAGE_OAUTH2_10) {
             String url = GSOAuth2_10.Endpoints.Authorization
-                + "?response_type=" + GSOAuth2_10.ResponseTypes.Code
-                + "&redirect_uri=" + GSOAuth2_10.NATIVE_APPLICATION_REDIRECT_URI
-                + "&client_id=" + this.clientId
-                + "&scope=" + scope;
+                    + "?response_type=" + GSOAuth2_10.ResponseTypes.Code
+                    + "&redirect_uri=" + GSOAuth2_10.NATIVE_APPLICATION_REDIRECT_URI
+                    + "&client_id=" + this.clientId
+                    + "&scope=" + scope;
             log.debug("Generated authorization URL for OAuth implementation "
-                + this.implementation + ": " + url);
+                    + this.implementation + ": " + url);
             return url;
-        } else {
+        }
+        else {
             throw new IllegalStateException("Unsupported implementation: " + this.implementation);
         }
     }
@@ -190,42 +175,39 @@ public class OAuthUtils {
      * Swap the given authorization token for access/refresh tokens (and optional expiry time)
      * from an OAuth token endpoint.
      *
-     * @param authorizationCode
-     * token representing a pre-approved authorization (e.g. as might be generated by a user who
-     * visits the {@link #generateBrowserUrlToAuthorizeNativeApplication(OAuthScope)} URL)
-     * @return
-     * object representing OAuth token and expiry data.
-     *
+     * @param authorizationCode token representing a pre-approved authorization (e.g. as might be generated by a user who
+     *                          visits the {@link #generateBrowserUrlToAuthorizeNativeApplication(OAuthScope)} URL)
+     * @return object representing OAuth token and expiry data.
      * @throws IOException
      */
     @SuppressWarnings("serial")
     public OAuth2Tokens retrieveOAuth2TokensFromAuthorization(
-        final String authorizationCode) throws IOException
-    {
+            final String authorizationCode) throws IOException {
         log.debug("Retrieving OAuth2 tokens using implementation " + implementation
-            + " with authorization code: " + authorizationCode);
-        Map<String,Object> responseData = null;
+                + " with authorization code: " + authorizationCode);
+        Map<String, Object> responseData = null;
 
-        if (this.implementation == OAuthImplementation.GOOGLE_STORAGE_OAUTH2_10) {
+        if(this.implementation == OAuthImplementation.GOOGLE_STORAGE_OAUTH2_10) {
             try {
                 responseData = this.performPostRequestAndParseJSONResponse(
-                    GSOAuth2_10.Endpoints.Token,
-                    new ArrayList<NameValuePair>() {{
-                        add(new BasicNameValuePair("client_id", clientId));
-                        add(new BasicNameValuePair("client_secret", clientSecret));
-                        add(new BasicNameValuePair("code", authorizationCode));
-                        add(new BasicNameValuePair("grant_type", GSOAuth2_10.GrantTypes.Authorization));
-                        add(new BasicNameValuePair("redirect_uri", GSOAuth2_10.NATIVE_APPLICATION_REDIRECT_URI));
-                    }});
+                        GSOAuth2_10.Endpoints.Token,
+                        new ArrayList<NameValuePair>() {{
+                            add(new BasicNameValuePair("client_id", clientId));
+                            add(new BasicNameValuePair("client_secret", clientSecret));
+                            add(new BasicNameValuePair("code", authorizationCode));
+                            add(new BasicNameValuePair("grant_type", GSOAuth2_10.GrantTypes.Authorization));
+                            add(new BasicNameValuePair("redirect_uri", GSOAuth2_10.NATIVE_APPLICATION_REDIRECT_URI));
+                        }});
                 log.debug("Retrieved authorization data from OAuth2 token endpoint "
-                    + GSOAuth2_10.Endpoints.Token + ": " + responseData);
-            } catch (Exception e) {
+                        + GSOAuth2_10.Endpoints.Token + ": " + responseData);
+            }
+            catch(Exception e) {
                 throw new IOException("Failed to access OAuth token endpoint or parse response", e);
             }
 
             // Pass on error message in response data
             String error = (String) responseData.get("error");
-            if (error != null) {
+            if(error != null) {
                 throw new IOException("OAuth2 authentication-to-tokens error: " + error);
             }
 
@@ -236,19 +218,20 @@ public class OAuthUtils {
             String tokenType = (String) responseData.get("token_type");
 
             // Sanity-check response data
-            if (!"Bearer".equals(tokenType)) {
+            if(!"Bearer".equals(tokenType)) {
                 throw new IOException("OAuth2 authentication-to-tokens error, invalid token type in data: "
-                    + responseData);
+                        + responseData);
             }
-            if (accessToken == null || refreshToken == null) {
+            if(accessToken == null || refreshToken == null) {
                 throw new IOException("OAuth2 authentication-to-tokens error, missing token(s) in data: "
-                    + responseData);
+                        + responseData);
             }
 
             return new OAuth2Tokens(
-                accessToken, refreshToken,
-                OAuth2Tokens.calculateExpiry(expiresIn));
-        } else {
+                    accessToken, refreshToken,
+                    OAuth2Tokens.calculateExpiry(expiresIn));
+        }
+        else {
             throw new IllegalStateException("Unsupported implementation: " + this.implementation);
         }
     }
@@ -257,41 +240,37 @@ public class OAuthUtils {
      * Retrieve and return a refreshed access token from an OAuth2 token end-point using the
      * refresh token in the provided tokens object.
      *
-     * @param tokens
-     * OAuth token data that must include a valid refresh token.
-     *
-     * @return
-     * a new object containing the refreshed access token, an updated expiry timestamp
-     * (if applicable) and the original refresh token.
-     *
-     * @throws IOException
-     * Invalid response data
+     * @param tokens OAuth token data that must include a valid refresh token.
+     * @return a new object containing the refreshed access token, an updated expiry timestamp
+     *         (if applicable) and the original refresh token.
+     * @throws IOException Invalid response data
      */
     @SuppressWarnings("serial")
     public OAuth2Tokens refreshOAuth2AccessToken(final OAuth2Tokens tokens) throws IOException {
         log.debug("Refreshing OAuth2 access token using implementation " + implementation
-            + " with refresh token: " + tokens.getRefreshToken());
-        Map<String,Object> responseData = null;
+                + " with refresh token: " + tokens.getRefreshToken());
+        Map<String, Object> responseData = null;
 
-        if (this.implementation == OAuthImplementation.GOOGLE_STORAGE_OAUTH2_10) {
+        if(this.implementation == OAuthImplementation.GOOGLE_STORAGE_OAUTH2_10) {
             try {
                 responseData = this.performPostRequestAndParseJSONResponse(
-                    GSOAuth2_10.Endpoints.Token,
-                    new ArrayList<NameValuePair>() {{
-                        add(new BasicNameValuePair("client_id", clientId));
-                        add(new BasicNameValuePair("client_secret", clientSecret));
-                        add(new BasicNameValuePair("refresh_token", tokens.getRefreshToken()));
-                        add(new BasicNameValuePair("grant_type", GSOAuth2_10.GrantTypes.RefreshToken));
-                    }});
+                        GSOAuth2_10.Endpoints.Token,
+                        new ArrayList<NameValuePair>() {{
+                            add(new BasicNameValuePair("client_id", clientId));
+                            add(new BasicNameValuePair("client_secret", clientSecret));
+                            add(new BasicNameValuePair("refresh_token", tokens.getRefreshToken()));
+                            add(new BasicNameValuePair("grant_type", GSOAuth2_10.GrantTypes.RefreshToken));
+                        }});
                 log.debug("Retrieved access token refresh data from OAuth2 token endpoint "
-                    + GSOAuth2_10.Endpoints.Token + ": " + responseData);
-            } catch (IOException e) {
+                        + GSOAuth2_10.Endpoints.Token + ": " + responseData);
+            }
+            catch(IOException e) {
                 throw new IOException("Failed to access OAuth token endpoint or parse response", e);
             }
 
             // Pass on error message in response data
             String error = (String) responseData.get("error");
-            if (error != null) {
+            if(error != null) {
                 throw new IOException("OAuth2 error refreshing access token: " + error);
             }
 
@@ -301,19 +280,20 @@ public class OAuthUtils {
             String tokenType = (String) responseData.get("token_type");
 
             // Sanity-check response data
-            if (!"Bearer".equals(tokenType)) {
+            if(!"Bearer".equals(tokenType)) {
                 throw new IOException("OAuth2 error refreshing access token, invalid token type in data: "
-                    + responseData);
+                        + responseData);
             }
-            if (accessToken == null) {
+            if(accessToken == null) {
                 throw new IOException("OAuth2 error refreshing access token, missing token in data: "
-                    + responseData);
+                        + responseData);
             }
 
             return new OAuth2Tokens(
-                accessToken, tokens.getRefreshToken(),
-                OAuth2Tokens.calculateExpiry(expiresIn));
-        } else {
+                    accessToken, tokens.getRefreshToken(),
+                    OAuth2Tokens.calculateExpiry(expiresIn));
+        }
+        else {
             throw new IllegalStateException("Unsupported implementation: " + this.implementation);
         }
     }
@@ -322,46 +302,39 @@ public class OAuthUtils {
      * Performs an HTTP/S POST request to a given URL with the given POST parameters
      * and parses the response document, which must be JSON, into a Map of name/value objects.
      *
-     * @param endpointUri
-     * Authorization or token endpoint
-     * @param postParams
-     * Name value pairs
-     * @return
-     * JSON mapped response
-     * @throws ClientProtocolException
-     * No HTTP 200 response
+     * @param endpointUri Authorization or token endpoint
+     * @param postParams  Name value pairs
+     * @return JSON mapped response
+     * @throws ClientProtocolException No HTTP 200 response
      * @throws IOException
      */
-    protected Map<String,Object> performPostRequestAndParseJSONResponse(
-        String endpointUri, List<NameValuePair> postParams)
-        throws ClientProtocolException, IOException
-    {
+    protected Map<String, Object> performPostRequestAndParseJSONResponse(
+            String endpointUri, List<NameValuePair> postParams)
+            throws ClientProtocolException, IOException {
         log.debug("Performing POST request to " + endpointUri
-            + " and expecting JSON response. POST parameters: " + postParams);
+                + " and expecting JSON response. POST parameters: " + postParams);
 
         HttpPost post = new HttpPost(endpointUri);
         post.setEntity(new UrlEncodedFormEntity(postParams, "UTF-8"));
 
         String responseDataString = httpClient.execute(post, new ResponseHandler<String>() {
             public String handleResponse(HttpResponse response)
-                    throws ClientProtocolException, IOException
-            {
+                    throws ClientProtocolException, IOException {
                 StatusLine statusLine = response.getStatusLine();
                 int statusCode = statusLine.getStatusCode();
                 if(statusCode == HttpStatus.SC_OK) {
                     HttpEntity entity = response.getEntity();
                     if(entity != null) {
                         return EntityUtils.toString(entity);
-                    } else {
+                    }
+                    else {
                         return null;
                     }
                 }
                 throw new ClientProtocolException(String.format("%d %s",
-                    statusLine.getStatusCode(), statusLine.getReasonPhrase()));
+                        statusLine.getStatusCode(), statusLine.getReasonPhrase()));
             }
         });
-
         return jsonMapper.readValue(responseDataString, Map.class);
     }
-
 }

@@ -64,7 +64,7 @@ public class GoogleStorageService extends RestStorageService {
     private static final String GOOGLE_SIGNATURE_IDENTIFIER = "GOOG1";
     private static final String GOOGLE_REST_HEADER_PREFIX = "x-goog-";
     private static final String GOOGLE_REST_METADATA_PREFIX = "x-goog-meta-";
-
+    
     /**
      * Constructs the service and initialises the properties.
      *
@@ -129,7 +129,7 @@ public class GoogleStorageService extends RestStorageService {
     protected HttpUriRequest setupConnection(HTTP_METHOD method, String bucketName, String objectKey,
                                              Map<String, String> requestParameters) throws ServiceException {
         final HttpUriRequest request = super.setupConnection(method, bucketName, objectKey, requestParameters);
-        // Use API version 2 iff we are using OAuth2 credentials
+        // Use API version 2 if we are using OAuth2 credentials
         if (this.credentials instanceof OAuth2Credentials) {
             request.setHeader("x-goog-api-version", "2");
         }
@@ -274,12 +274,12 @@ public class GoogleStorageService extends RestStorageService {
     public GSBucket[] listAllBuckets() throws ServiceException {
         return listAllBuckets(null);
     }
-
+    
     /**
      * List all buckets in a given project
      * @param projectId The ID of the project being listed
      * @return a list of {@link GSBucket}
-     * @throws ServiceException
+     * @throws ServiceException 
      */
     public GSBucket[] listAllBuckets(String projectId) throws ServiceException {
         assertAuthenticatedConnection("List all buckets");
@@ -287,7 +287,7 @@ public class GoogleStorageService extends RestStorageService {
         MxDelegate.getInstance().registerStorageBucketMBeans(buckets);
         return GSBucket.cast(buckets);
     }
-
+    
 
     @Override
     public GSObject[] listObjects(String bucketName) throws ServiceException {
@@ -305,7 +305,7 @@ public class GoogleStorageService extends RestStorageService {
     public GSBucket createBucket(String bucketName) throws ServiceException {
         return (GSBucket) super.createBucket(bucketName);
     }
-
+    
     /**
      * Creates a bucket in a specific location, without checking whether the bucket already
      * exists. <b>Caution:</b> Performing this operation unnecessarily when a bucket already
@@ -318,9 +318,12 @@ public class GoogleStorageService extends RestStorageService {
      * @param bucketName
      * the name of the bucket to create.
      * @param location
-     * the location of the Google Storage data centre in which the bucket will be created,
-     * or null for the default {@link GSBucket#LOCATION_DEFAULT} location. Valid values
-     * include {@link GSBucket#LOCATION_US} and {@link GSBucket#LOCATION_EUROPE}.
+     * the location of the S3 data centre in which the bucket will be created, or null for the
+     * default {@link GSBucket#LOCATION_US} location. Valid values
+     * include {@link GSBucket#LOCATION_US}, {@link GSBucket#LOCATION_EUROPE},
+     * and the default US location that can be
+     * expressed in two ways:
+     * {@link GSBucket#LOCATION_US} or {@link GSBucket#LOCATION_DEFAULT}.
      * @param acl
      * the access control settings to apply to the new bucket, or null for default ACL values.
      * @param projectId
@@ -330,20 +333,20 @@ public class GoogleStorageService extends RestStorageService {
      * the created bucket object. <b>Note:</b> the object returned has minimal information about
      * the bucket that was created, including only the bucket's name.
      * @throws ServiceException
-     */
+     */    
     public GSBucket createBucket(String bucketName, String location, AccessControlList acl, String projectId)
-            throws ServiceException
+            throws ServiceException 
     {
         return (GSBucket)createBucketImpl(bucketName, location, acl, projectId);
     }
-
-
+    
+    
     public GSBucket createBucket(String bucketName, String location, AccessControlList acl)
-            throws ServiceException
+            throws ServiceException 
     {
         return createBucket(bucketName, location, acl, null);
     }
-
+    
     public GSBucketLoggingStatus getBucketLoggingStatus(String bucketName)
         throws ServiceException
     {
@@ -439,10 +442,16 @@ public class GoogleStorageService extends RestStorageService {
      */
     @Override
     public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context)
-        throws Exception
+            throws ServiceException
     {
         if (this.credentials instanceof OAuth2Credentials) {
-            OAuth2Tokens tokens = ((OAuth2Credentials)this.credentials).getOAuth2Tokens();
+            OAuth2Tokens tokens;
+            try {
+                tokens = ((OAuth2Credentials)this.credentials).getOAuth2Tokens();
+            }
+            catch(IOException e) {
+                throw new ServiceException("Failure retrieving OAuth2 tokens", e);
+            }
             if (tokens == null) {
                 throw new ServiceException(
                         "Cannot authenticate using OAuth2 until initial tokens are provided"
@@ -462,7 +471,7 @@ public class GoogleStorageService extends RestStorageService {
         if (this.credentials instanceof OAuth2Credentials) {
             // Only retry if we're using OAuth2 authentication and can refresh the access token
             // TODO Any way to distinguish between expired access token and other 403 reasons?
-            OAuth2Tokens tokens = null;
+            OAuth2Tokens tokens;
             try {
                 tokens = ((OAuth2Credentials)this.credentials).getOAuth2Tokens();
             }
@@ -485,7 +494,7 @@ public class GoogleStorageService extends RestStorageService {
         }
         return super.listAllBucketsImpl(Collections.<String, Object>singletonMap("x-goog-project-id", projectId));
     }
-
+    
     protected StorageBucket createBucketImpl(String bucketName, String location,
                                              AccessControlList acl, String projectId)
         throws ServiceException
