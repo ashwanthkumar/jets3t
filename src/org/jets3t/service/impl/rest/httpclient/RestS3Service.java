@@ -65,6 +65,7 @@ import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.WebsiteConfig;
 import org.jets3t.service.model.container.ObjectKeyAndVersion;
 import org.jets3t.service.security.AWSDevPayCredentials;
+import org.jets3t.service.security.AWSSessionCredentials;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
@@ -150,7 +151,7 @@ public class RestS3Service extends S3Service {
      */
     public RestS3Service(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties)
-    throws S3ServiceException
+        throws S3ServiceException
     {
         super(credentials, invokingApplicationDescription, credentialsProvider, jets3tProperties);
 
@@ -299,6 +300,17 @@ public class RestS3Service extends S3Service {
                     log.debug("Including DevPay user token in request: "
                         + Constants.AMZ_SECURITY_TOKEN + "=" + getDevPayUserToken());
                 }
+            }
+        }
+
+        // Set the session token from Temporary Security (Session) Credentials
+        // NOTE: a session token will override any DevPay credential values set above.
+        if (this.credentials instanceof AWSSessionCredentials) {
+            String sessionToken = ((AWSSessionCredentials)this.credentials).getSessionToken();
+            httpMethod.setHeader(Constants.AMZ_SECURITY_TOKEN, sessionToken);
+            if (log.isDebugEnabled()) {
+                log.debug("Including AWS session token in request: "
+                    + Constants.AMZ_SECURITY_TOKEN + "=" + sessionToken);
             }
         }
 

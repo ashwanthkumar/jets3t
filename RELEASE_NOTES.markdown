@@ -36,6 +36,8 @@ RestS3Service:
    existing S3 objects to multipart uploads.
  * Support for signing S3 requests with response-altering request 
    parameters like "response-content-type", "response-content-disposition"
+ * Support for temporary/session-based AWS account credentials, via the new
+   AWSSessionCredentials class.
 
 ### SYNCHRONIZE
 
