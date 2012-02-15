@@ -91,6 +91,7 @@ public class CopyObjectsEvent extends ServiceEvent {
         Throwable[] ignoredErrors, Object uniqueOperationId)
     {
         CopyObjectsEvent event = new CopyObjectsEvent(EVENT_IGNORED_ERRORS, uniqueOperationId);
+        event.setThreadWatcher(threadWatcher);
         event.setIgnoredErrors(ignoredErrors);
         return event;
     }
