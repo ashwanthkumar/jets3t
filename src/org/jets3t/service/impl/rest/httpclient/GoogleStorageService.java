@@ -72,7 +72,7 @@ public class GoogleStorageService extends RestStorageService {
      * the user credentials to use when communicating with Google Storage, may be null in which case the
      * communication is done as an anonymous user.
      *
-     * @throws ServiceException
+     * @throws ServiceException Service error
      */
     public GoogleStorageService(ProviderCredentials credentials) throws ServiceException {
         this(credentials, null, null);
@@ -92,7 +92,7 @@ public class GoogleStorageService extends RestStorageService {
      * an implementation of the HttpClient CredentialsProvider interface, to provide a means for
      * prompting for credentials when necessary.
      *
-     * @throws ServiceException
+     * @throws ServiceException Service error
      */
     public GoogleStorageService(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider) throws ServiceException
@@ -117,7 +117,7 @@ public class GoogleStorageService extends RestStorageService {
      * @param jets3tProperties
      * JetS3t properties that will be applied within this service.
      *
-     * @throws ServiceException
+     * @throws ServiceException Service error
      */
     public GoogleStorageService(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties) throws ServiceException
@@ -279,7 +279,7 @@ public class GoogleStorageService extends RestStorageService {
      * List all buckets in a given project
      * @param projectId The ID of the project being listed
      * @return a list of {@link GSBucket}
-     * @throws ServiceException 
+     * @throws ServiceException Service error
      */
     public GSBucket[] listAllBuckets(String projectId) throws ServiceException {
         assertAuthenticatedConnection("List all buckets");
@@ -332,7 +332,7 @@ public class GoogleStorageService extends RestStorageService {
      * @return
      * the created bucket object. <b>Note:</b> the object returned has minimal information about
      * the bucket that was created, including only the bucket's name.
-     * @throws ServiceException
+     * @throws ServiceException Service error
      */    
     public GSBucket createBucket(String bucketName, String location, AccessControlList acl, String projectId)
             throws ServiceException 
@@ -377,7 +377,8 @@ public class GoogleStorageService extends RestStorageService {
      *
      * @param bucketName
      * a name of the bucket with ACL settings to apply.
-     * @throws ServiceException
+     * @param acl Permissions
+     * @throws ServiceException Service error
      */
     public void putBucketAcl(String bucketName, GSAccessControlList acl) throws ServiceException {
         if (acl == null) {
@@ -396,7 +397,7 @@ public class GoogleStorageService extends RestStorageService {
      *
      * @param bucket
      * a bucket with ACL settings to apply.
-     * @throws ServiceException
+     * @throws ServiceException Service error
      */
     public void putBucketAcl(GSBucket bucket) throws ServiceException {
         assertValidBucket(bucket, "Put Bucket Access Control List");
