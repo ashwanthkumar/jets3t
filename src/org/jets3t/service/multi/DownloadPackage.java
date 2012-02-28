@@ -120,7 +120,7 @@ public class DownloadPackage {
      * @return
      * an output stream that writes data to the output target managed by this class.
      *
-     * @throws Exception
+     * @throws IOException
      */
     public OutputStream getOutputStream() throws IOException {
         OutputStream outputStream = null;
