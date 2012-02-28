@@ -42,6 +42,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
+import org.jets3t.service.MultipartUploadChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.ServiceException;
@@ -414,8 +415,59 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             assertEquals(1, uploads.size());
             assertEquals(objectKey + "2", uploads.get(0).getObjectKey());
 
-            // Delete incomplete/unwanted multipart upload
+            // List multipart uploads with prefix/delimiter constraints
+            MultipartUpload testMultipartUpload3 =
+                service.multipartStartUpload(bucketName, objectKey + "/delimited", metadata);
+
+            MultipartUploadChunk chunk = service.multipartListUploadsChunked(bucketName,
+                "multipart-object", // prefix
+                null, // delimiter
+                null, null, 1000, true);
+            assertEquals("multipart-object", chunk.getPrefix());
+            assertEquals(null, chunk.getDelimiter());
+            assertEquals(3, chunk.getUploads().length);
+
+            chunk = service.multipartListUploadsChunked(bucketName,
+                "multipart-object.txt2", // prefix
+                null, // delimiter
+                null, null, 1000, true);
+            assertEquals("multipart-object.txt2", chunk.getPrefix());
+            assertEquals(null, chunk.getDelimiter());
+            assertEquals(1, chunk.getUploads().length);
+
+            chunk = service.multipartListUploadsChunked(bucketName,
+                "multipart-object", // prefix
+                "/", // delimiter
+                null, null, 1000, true);
+            assertEquals("multipart-object", chunk.getPrefix());
+            assertEquals("/", chunk.getDelimiter());
+            assertEquals(2, chunk.getUploads().length);
+            assertEquals(1, chunk.getCommonPrefixes().length);
+            assertEquals("multipart-object.txt/", chunk.getCommonPrefixes()[0]);
+
+            chunk = service.multipartListUploadsChunked(bucketName,
+                "multipart-object", // prefix
+                null, // delimiter
+                null, null,
+                1, // Max number of uploads to return per LIST request
+                false // Do *not* complete listing, just get first chunk
+                );
+            assertEquals(1, chunk.getUploads().length);
+            assertEquals(0, chunk.getCommonPrefixes().length);
+
+            chunk = service.multipartListUploadsChunked(bucketName,
+                "multipart-object", // prefix
+                null, // delimiter
+                null, null,
+                1, // Max number of uploads to return per LIST request
+                true // *Do* complete listing, 1 item at a time
+                );
+            assertEquals(3, chunk.getUploads().length);
+            assertEquals(0, chunk.getCommonPrefixes().length);
+
+            // Delete incomplete/unwanted multipart uploads
             service.multipartAbortUpload(testMultipartUpload2);
+            service.multipartAbortUpload(testMultipartUpload3);
 
             // Ensure the incomplete multipart upload has been deleted
             uploads = service.multipartListUploads(bucketName);
