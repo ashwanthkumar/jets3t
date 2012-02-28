@@ -480,7 +480,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                             completedWithoutRecoverableError = false;
                         }
 
-                        else if (responseCode == 403 && this.isRecoverable403(httpMethod, exception)) {
+                        else if ((responseCode == 403 || responseCode == 401) && this.isRecoverable403(httpMethod, exception)) {
                             completedWithoutRecoverableError = false;
                             authFailureCount++;
 
