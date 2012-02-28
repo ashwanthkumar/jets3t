@@ -20,13 +20,19 @@ package org.jets3t.service.multi;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.io.GZipInflatingOutputStream;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.security.EncryptionUtil;
+
+import javax.crypto.NoSuchPaddingException;
 
 /**
  * A simple container object to associate a {@link StorageObject} with an
@@ -116,7 +122,7 @@ public class DownloadPackage {
      *
      * @throws Exception
      */
-    public OutputStream getOutputStream() throws Exception {
+    public OutputStream getOutputStream() throws IOException {
         OutputStream outputStream = null;
         if (outputFile != null) {
             // Create parent directories for file, if necessary.
@@ -135,7 +141,29 @@ public class DownloadPackage {
         }
         if (encryptionUtil != null) {
             log.debug("Decrypting encrypted data for object: " + object.getKey());
-            outputStream = encryptionUtil.decrypt(outputStream);
+            try {
+                outputStream = encryptionUtil.decrypt(outputStream);
+            }
+            catch(InvalidKeyException e) {
+                final IOException exception = new IOException(e.getMessage());
+                exception.initCause(e);
+                throw exception;
+            }
+            catch(InvalidAlgorithmParameterException e) {
+                final IOException exception = new IOException(e.getMessage());
+                exception.initCause(e);
+                throw exception;
+            }
+            catch(NoSuchAlgorithmException e) {
+                final IOException exception = new IOException(e.getMessage());
+                exception.initCause(e);
+                throw exception;
+            }
+            catch(NoSuchPaddingException e) {
+                final IOException exception = new IOException(e.getMessage());
+                exception.initCause(e);
+                throw exception;
+            }
         }
         return outputStream;
     }

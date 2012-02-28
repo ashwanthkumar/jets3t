@@ -20,10 +20,11 @@ package org.jets3t.service.impl.rest.httpclient;
 
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.protocol.HttpContext;
+import org.jets3t.service.ServiceException;
 
 public interface JetS3tRequestAuthorizer {
 
     public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context)
-        throws Exception;
+        throws ServiceException;
 
 }

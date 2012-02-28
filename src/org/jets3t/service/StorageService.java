@@ -122,6 +122,10 @@ public abstract class StorageService {
         this.internalErrorRetryMax = jets3tProperties.getIntProperty(
             "storage-service.internal-error-retry-max", 5);
 
+        this.initializeDefaults();
+    }
+
+    protected void initializeDefaults() {
         // Configure the InetAddress DNS caching times to work well with remote services. The cached
         // DNS will timeout after 5 minutes, while failed DNS lookups will be retried after 1 second.
         System.setProperty("networkaddress.cache.ttl", "300");
