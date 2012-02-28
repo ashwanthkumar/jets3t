@@ -54,7 +54,6 @@ import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.StorageObjectsChunk;
 import org.jets3t.service.StorageService;
@@ -63,13 +62,11 @@ import org.jets3t.service.impl.rest.HttpException;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.CopyObjectResultHandler;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListBucketHandler;
 import org.jets3t.service.model.CreateBucketConfiguration;
-import org.jets3t.service.model.MultipleDeleteResult;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageBucketLoggingStatus;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.StorageOwner;
-import org.jets3t.service.model.container.ObjectKeyAndVersion;
 import org.jets3t.service.mx.MxDelegate;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.Mimetypes;
@@ -94,11 +91,11 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
     protected static enum HTTP_METHOD {PUT, POST, HEAD, GET, DELETE};
 
-    protected HttpClient httpClient = null;
-    protected CredentialsProvider credentialsProvider = null;
+    protected HttpClient httpClient;
+    protected CredentialsProvider credentialsProvider;
 
-    protected String defaultStorageClass = null;
-    protected String defaultServerSideEncryptionAlgorithm = null;
+    protected String defaultStorageClass;
+    protected String defaultServerSideEncryptionAlgorithm;
 
     protected volatile boolean shuttingDown;
 
@@ -163,7 +160,9 @@ public abstract class RestStorageService extends StorageService implements JetS3
         initializeDefaults();
     }
 
+    @Override
     protected void initializeDefaults(){
+        super.initializeDefaults();
         this.httpClient = initHttpConnection();
         initializeProxy();
     }
@@ -198,8 +197,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
     /**
      * Initialise HttpClient and HttpConnectionManager objects with the configuration settings
      * appropriate for communicating with S3. By default, this method simply delegates the
-     * configuration task to {@link org.jets3t.service.utils.RestUtils#initHttpConnection(org.jets3t.service.impl.rest.httpclient.JetS3tRequestAuthorizer,
-     * org.apache.commons.httpclient.HostConfiguration, org.jets3t.service.Jets3tProperties, String, org.apache.commons.httpclient.auth.CredentialsProvider)}.
+     * configuration task to {@link org.jets3t.service.utils.RestUtils#initHttpConnection(JetS3tRequestAuthorizer, org.jets3t.service.Jets3tProperties, String, org.apache.http.client.CredentialsProvider)}.
      * <p>
      * To alter the low-level behaviour of the HttpClient library, override this method in
      * a subclass and apply your own settings before returning the objects.
@@ -482,7 +480,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                             completedWithoutRecoverableError = false;
                         }
 
-                        else if (responseCode == 403 && this.isRecoverable403(httpMethod, exception)) {
+                        else if ((responseCode == 403 || responseCode == 401) && this.isRecoverable403(httpMethod, exception)) {
                             completedWithoutRecoverableError = false;
                             authFailureCount++;
 
@@ -552,19 +550,23 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 }
             } while (!completedWithoutRecoverableError);
         } catch (Throwable t) {
-            if (log.isTraceEnabled()){
+            if (log.isDebugEnabled()){
                 String msg = "Rethrowing as a ServiceException error in performRequest: " + t;
                 if (t.getCause() != null){
                     msg += ", with cause: " + t.getCause();
                 }
-                log.trace(msg, t);
+                if (log.isTraceEnabled()){
+                    log.trace(msg, t);
+                } else {
+                    log.debug(msg);
+                }
             }
             if (log.isDebugEnabled() && !shuttingDown) {
                 log.debug("Releasing HttpClient connection after error: " + t.getMessage());
             }
             httpMethod.abort();
 
-            ServiceException serviceException = null;
+            ServiceException serviceException;
             if (t instanceof ServiceException) {
                 serviceException = (ServiceException) t;
             } else {
@@ -635,7 +637,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
      * @throws ServiceException
      */
     public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context)
-        throws Exception
+            throws ServiceException
     {
         if (getProviderCredentials() != null) {
             if (log.isDebugEnabled()) {
@@ -689,13 +691,19 @@ public abstract class RestStorageService extends StorageService implements JetS3
         }
 
         // Generate a canonical string representing the operation.
-        String canonicalString = RestUtils.makeServiceCanonicalString(
-                httpMethod.getMethod(),
-                fullUrl,
-                convertHeadersToMap(httpMethod.getAllHeaders()),
-                null,
-                getRestHeaderPrefix(),
-                getResourceParameterNames());
+        String canonicalString = null;
+        try {
+            canonicalString = RestUtils.makeServiceCanonicalString(
+                    httpMethod.getMethod(),
+                    fullUrl,
+                    convertHeadersToMap(httpMethod.getAllHeaders()),
+                    null,
+                    getRestHeaderPrefix(),
+                    getResourceParameterNames());
+        }
+        catch(UnsupportedEncodingException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
         if (log.isDebugEnabled()) {
             log.debug("Canonical string ('|' is a newline): " + canonicalString.replace('\n', '|'));
         }
@@ -1174,7 +1182,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
     }
 
     /**
-     * Creates an {@link org.apache.commons.httpclient.HttpMethod} object to handle a particular connection method.
+     * Creates an {@link org.apache.http.HttpRequest} object to handle a particular connection method.
      *
      * @param method
      *        the HTTP method/connection-type to use, must be one of: PUT, HEAD, GET, DELETE
@@ -1905,9 +1913,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 log.debug("Applied default storage class '" + storageClass
                     + "' to object '" + objectKey + "'");
             }
-            if (storageClass != null
-                && storageClass != "")  // Hack to avoid applying default storage class
-            {
+            if (storageClass != null) {
                 metadata.put(this.getRestHeaderPrefix() + "storage-class", storageClass);
             }
         }

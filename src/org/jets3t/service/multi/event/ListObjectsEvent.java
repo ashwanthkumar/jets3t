@@ -66,13 +66,11 @@ public class ListObjectsEvent extends ServiceEvent {
     }
 
     public static ListObjectsEvent newCompletedEvent(Object uniqueOperationId) {
-        ListObjectsEvent event = new ListObjectsEvent(EVENT_COMPLETED, uniqueOperationId);
-        return event;
+        return new ListObjectsEvent(EVENT_COMPLETED, uniqueOperationId);
     }
 
     public static ListObjectsEvent newCancelledEvent(Object uniqueOperationId) {
-        ListObjectsEvent event = new ListObjectsEvent(EVENT_CANCELLED, uniqueOperationId);
-        return event;
+        return new ListObjectsEvent(EVENT_CANCELLED, uniqueOperationId);
     }
 
     public static ListObjectsEvent newIgnoredErrorsEvent(ThreadWatcher threadWatcher,
