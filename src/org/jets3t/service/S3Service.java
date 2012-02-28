@@ -3414,32 +3414,95 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public List<MultipartUpload> multipartListUploads(String bucketName)
         throws S3ServiceException
     {
-        return multipartListUploads(bucketName, null, null, null);
+        return multipartListUploads(bucketName, null, null, null, null, null);
+    }
+
+    public List<MultipartUpload> multipartListUploads(String bucketName,
+            String nextKeyMarker, String nextUploadIdMarker, Integer maxUploads)
+            throws S3ServiceException
+    {
+        return multipartListUploads(
+            bucketName, null, null, nextKeyMarker, nextUploadIdMarker, maxUploads);
     }
 
     /**
-     * List a subset of the multipart uploads that have been started within
+     * List the multipart uploads that have been started within
      * a bucket and have not yet been completed or aborted.
      *
      * @param bucketName
      * the bucket whose multipart uploads will be listed.
+     * @param prefix
+     * the prefix to use gor the started uploads
+     * @param delimiter
+     * the delimiter (e.g. '/')
      * @param nextKeyMarker
      * marker indicating where this list subset should start by key name.
      * @param nextUploadIdMarker
      * marker indicating where this list subset should start by upload ID.
      * @param maxUploads
-     * maximum number of uploads to list in a subset.
+     * maximum number of uploads to retrieve at a time.
      * @return
      * a list of incomplete multipart uploads.
      * @throws S3ServiceException
      */
     public List<MultipartUpload> multipartListUploads(String bucketName,
+        String prefix, String delimiter,
         String nextKeyMarker, String nextUploadIdMarker, Integer maxUploads)
         throws S3ServiceException
     {
-        return multipartListUploadsImpl(
-            bucketName, nextKeyMarker, nextUploadIdMarker, maxUploads);
+
+        MultipartUploadChunk result = multipartListUploadsChunkedImpl(bucketName,
+                prefix,
+                delimiter,
+                nextKeyMarker,
+                nextUploadIdMarker,
+                maxUploads,
+                true);
+        return Arrays.asList(result.getUploads());
     }
+
+    /**
+     * List all or a subset of the multipart uploads that have been started
+     * within a bucket and have not yet been completed or aborted.
+     *
+     * @param bucketName
+     * the bucket whose multipart uploads will be listed.
+     * @param prefix
+     * the prefix to use gor the started uploads
+     * @param delimiter
+     * the delimiter (e.g. '/')
+     * @param keyMarker
+     * marker indicating where this list subset should start by key name.
+     * @param uploadIdMarker
+     * marker indicating where this list subset should start by upload ID.
+     * @param maxUploads
+     * maximum number of uploads to retrieve at a time.
+     * @param completeListing
+     * true to go on listing as long as there are uploads to be retrieved
+     * @return
+     * a MultipartUploadChunk holding a list of incomplete multipart uploads.
+     * @see MultipartUploadChunk
+     * @throws S3ServiceException
+     */
+    public MultipartUploadChunk multipartListUploadsChunked(
+            String bucketName,
+            String prefix,
+            String delimiter,
+            String keyMarker,
+            String uploadIdMarker,
+            Integer maxUploads,
+            boolean completeListing) throws S3ServiceException
+    {
+        return multipartListUploadsChunkedImpl(
+                bucketName,
+                prefix,
+                delimiter,
+                keyMarker,
+                uploadIdMarker,
+                maxUploads,
+                completeListing);
+    }
+
 
     /**
      * List the parts that have been uploaded for a given multipart upload.
@@ -3779,9 +3842,14 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     protected abstract void multipartAbortUploadImpl(String uploadId, String bucketName,
         String objectKey) throws S3ServiceException;
 
-    protected abstract List<MultipartUpload> multipartListUploadsImpl(String bucketName,
-        String nextKeyMarker, String nextUploadIdMarker, Integer maxUploads)
-        throws S3ServiceException;
+    protected abstract MultipartUploadChunk multipartListUploadsChunkedImpl(
+            String bucketName,
+            String prefix,
+            String delimiter,
+            String keyMarker,
+            String uploadIdMarker,
+            Integer maxUploads,
+            boolean completeListing) throws S3ServiceException;
 
     protected abstract List<MultipartPart> multipartListPartsImpl(String uploadId,
         String bucketName, String objectKey) throws S3ServiceException;
