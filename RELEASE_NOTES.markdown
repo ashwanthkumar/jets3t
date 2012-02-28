@@ -50,6 +50,8 @@ RestS3Service:
    of Multipart Upload Part - Copy operation.
  * vaporwarecorp on BitBucket for patch to improve generality of 
    StorageService.
+ * Gilles Gaillard (gillouxg) for a patch to add support for prefix and
+   delimiter constraints when listing multipart uploads.
 
 
 ------------------------

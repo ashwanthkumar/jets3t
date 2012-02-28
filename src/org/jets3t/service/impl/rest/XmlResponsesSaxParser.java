@@ -63,7 +63,6 @@ import org.jets3t.service.model.StorageBucketLoggingStatus;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.StorageOwner;
 import org.jets3t.service.model.WebsiteConfig;
-import org.jets3t.service.model.NotificationConfig.TopicConfig;
 import org.jets3t.service.utils.ServiceUtils;
 import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
@@ -1220,6 +1219,8 @@ public class XmlResponsesSaxParser {
 
     public class ListMultipartUploadsResultHandler extends SimpleHandler {
         private final List<MultipartUpload> uploads = new ArrayList<MultipartUpload>();
+        private final List<String> commonPrefixes = new ArrayList<String>();
+        private boolean insideCommonPrefixes;
         private String bucketName = null;
         private String keyMarker = null;
         private String uploadIdMarker = null;
@@ -1264,8 +1265,16 @@ public class XmlResponsesSaxParser {
             return maxUploads;
         }
 
+        public String[] getCommonPrefixes() {
+            return commonPrefixes.toArray(new String[commonPrefixes.size()]);
+        }
+
         public void startUpload() {
             transferControlToHandler(new MultipartUploadResultHandler(xr));
+        }
+
+        public void startCommonPrefixes(){
+            insideCommonPrefixes = true;
         }
 
         @Override
@@ -1301,6 +1310,17 @@ public class XmlResponsesSaxParser {
         public void endIsTruncated(String text) {
             this.isTruncated = "true".equalsIgnoreCase(text);
         }
+
+        public void endPrefix(String text) {
+            if (insideCommonPrefixes){
+                commonPrefixes.add(text);
+            }
+        }
+
+        public void endCommonPrefixes(){
+            insideCommonPrefixes = false;
+        }
+
     }
 
     public class MultipartPartResultHandler extends SimpleHandler {

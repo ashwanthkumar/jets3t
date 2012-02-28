@@ -41,6 +41,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
+import org.jets3t.service.MultipartUploadChunk;
 import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.ServiceException;
@@ -547,7 +548,7 @@ public class RestS3Service extends S3Service {
                 parameters.remove("version-id-marker");
             }
 
-            HttpResponse httpResponse;
+            HttpResponse httpResponse = null;
             try {
                 httpResponse = performRestGet(bucketName, null, parameters, null);
             } catch (ServiceException se) {
@@ -991,9 +992,14 @@ public class RestS3Service extends S3Service {
     }
 
     @Override
-    protected List<MultipartUpload> multipartListUploadsImpl(String bucketName, String keyMarker,
-            String uploadIdMarker, Integer maxUploads)
-        throws S3ServiceException
+    protected MultipartUploadChunk multipartListUploadsChunkedImpl(
+            String bucketName,
+            String prefix,
+            String delimiter,
+            String keyMarker,
+            String uploadIdMarker,
+            Integer maxUploads,
+            boolean autoMergeChunks) throws S3ServiceException
     {
         if (bucketName == null || bucketName.length()==0){
             throw new IllegalArgumentException(
@@ -1001,8 +1007,15 @@ public class RestS3Service extends S3Service {
         }
         Map<String, String> requestParameters = new HashMap<String, String>();
         requestParameters.put("uploads", "");
-        requestParameters.put("max-uploads",
-            maxUploads==null ? "" : maxUploads.toString());
+        if (prefix != null) {
+            requestParameters.put("prefix", prefix);
+        }
+        if (delimiter != null) {
+            requestParameters.put("delimiter", delimiter);
+        }
+        if (maxUploads != null) {
+            requestParameters.put("max-uploads", maxUploads.toString());
+        }
         if (keyMarker != null) {
             requestParameters.put("key-marker", keyMarker);
         }
@@ -1010,40 +1023,93 @@ public class RestS3Service extends S3Service {
             requestParameters.put("upload-id-marker", uploadIdMarker);
         }
 
+        String nextKeyMarker = keyMarker;
+        String nextUploadIdMarker = uploadIdMarker;
+
+        List<MultipartUpload> uploads = new ArrayList<MultipartUpload>();
+        List<String> commonPrefixes = new ArrayList<String>();
+
+        boolean incompleteListing = true;
+        int ioErrorRetryCount = 0;
+        int MAX_LISTING_IO_ERROR_RETRIES = 5;  // TODO: Shouldn't be hard-coded
+
         try {
-            List<MultipartUpload> uploads = new ArrayList<MultipartUpload>();
-            String nextKeyMarker = null;
-            String nextUploadIdMarker = null;
-            boolean incompleteListing = true;
-            do {
+            while (incompleteListing) {
                 if (nextKeyMarker != null) {
                     requestParameters.put("key-marker", nextKeyMarker);
+                } else {
+                    requestParameters.remove("key-marker");
                 }
                 if (nextUploadIdMarker != null) {
                     requestParameters.put("upload-id-marker", nextUploadIdMarker);
+                } else {
+                    requestParameters.remove("upload-id-marker");
                 }
 
                 HttpResponse httpResponse = performRestGet(bucketName, null, requestParameters, null);
-                ListMultipartUploadsResultHandler handler = getXmlResponseSaxParser()
-                    .parseListMultipartUploadsResult(
+                ListMultipartUploadsResultHandler handler = null;
+                try {
+                    handler = getXmlResponseSaxParser().parseListMultipartUploadsResult(
                         new HttpMethodReleaseInputStream(httpResponse));
-                requestParameters.remove("key-marker");
-                requestParameters.remove("upload-id-marker");
-                uploads.addAll(handler.getMultipartUploadList());
+                    ioErrorRetryCount = 0;
+                } catch (ServiceException e) {
+                    if (e.getCause() instanceof IOException
+                        && ioErrorRetryCount < MAX_LISTING_IO_ERROR_RETRIES)
+                    {
+                        ioErrorRetryCount++;
+                        if (log.isWarnEnabled()) {
+                            log.warn("Retrying bucket listing failure due to IO error", e);
+                        }
+                        continue;
+                    } else {
+                        throw e;
+                    }
+                }
+
+                List<MultipartUpload> partial = handler.getMultipartUploadList();
+                if (log.isDebugEnabled()) {
+                    log.debug("Found " + partial.size() + " objects in one batch");
+                }
+                uploads.addAll(partial);
+
+                String[] partialCommonPrefixes = handler.getCommonPrefixes();
+                if (log.isDebugEnabled()) {
+                    log.debug("Found " + partialCommonPrefixes.length + " common prefixes in one batch");
+                }
+                commonPrefixes.addAll(Arrays.asList(partialCommonPrefixes));
 
                 incompleteListing = handler.isTruncated();
-                nextKeyMarker = handler.getNextKeyMarker();
-                nextUploadIdMarker = handler.getNextUploadIdMarker();
 
-                // Sanity check for valid pagination values.
-                if (incompleteListing && nextKeyMarker == null && nextUploadIdMarker == null)
-                {
-                    throw new ServiceException("Unable to retrieve paginated "
-                        + "ListMultipartUploadsResult without valid NextKeyMarker "
-                        + " or NextUploadIdMarker value.");
+                if (incompleteListing){
+                    nextKeyMarker = handler.getNextKeyMarker();
+                    nextUploadIdMarker = handler.getNextUploadIdMarker();
+                    // Sanity check for valid pagination values.
+                    if (nextKeyMarker == null && nextUploadIdMarker == null) {
+                        throw new ServiceException("Unable to retrieve paginated "
+                            + "ListMultipartUploadsResult without valid NextKeyMarker "
+                            + " or NextUploadIdMarker value.");
+                    }
+                } else {
+                    nextKeyMarker = null;
+                    nextUploadIdMarker = null;
                 }
-            } while (incompleteListing);
-            return uploads;
+
+                if (!autoMergeChunks){
+                    break;
+                }
+            }
+
+            if (autoMergeChunks && log.isDebugEnabled()) {
+                log.debug("Found " + uploads.size() + " uploads in total");
+            }
+
+            return new MultipartUploadChunk(
+                    prefix,
+                    delimiter,
+                    uploads.toArray(new MultipartUpload[uploads.size()]),
+                    commonPrefixes.toArray(new String[commonPrefixes.size()]),
+                    nextKeyMarker,
+                    nextUploadIdMarker);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }
