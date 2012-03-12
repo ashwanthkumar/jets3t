@@ -60,13 +60,11 @@ public class ThreadWatcher extends org.jets3t.service.multi.ThreadWatcher {
 
     public void updateThreadsCompletedCount(long completedThreads,
         org.jets3t.service.multithread.CancelEventTrigger cancelEventListener) {
-        // TODO Auto-generated method stub
         super.updateThreadsCompletedCount(completedThreads, cancelEventListener);
     }
 
     @Override
     public org.jets3t.service.multithread.CancelEventTrigger getCancelEventListener() {
-        // TODO Auto-generated method stub
         return (org.jets3t.service.multithread.CancelEventTrigger) super.getCancelEventListener();
     }
 
