@@ -46,6 +46,8 @@ RestS3Service:
 
 ### KUDOS TO
 
+ * David Kocher for many improvements to HTTP handling and OAuth support
+   for Google Storage.
  * davidphillips on BitBucket for initial patch that led to implementation
    of Multipart Upload Part - Copy operation.
  * vaporwarecorp on BitBucket for patch to improve generality of 
