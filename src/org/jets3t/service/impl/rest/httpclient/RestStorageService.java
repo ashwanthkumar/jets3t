@@ -889,7 +889,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
         // an opaque value and is not a hex-encoded MD5 hash value of the uploaded data like all
         // other S3 ETag response values (Issue #141).
         // See https://forums.aws.amazon.com/thread.jspa?messageID=203436&#203436
-        if (expectedETag.length() != 16) {
+        if (expectedETag.length() != 32) {
             log.warn("The ETag header value '" + expectedETag + "' returned for "
                 + uploadedObject + " is not a valid hex-encoded MD5 hash value;"
                 + " cannot verify the correctness of the uploaded data");
