@@ -1374,8 +1374,6 @@ public abstract class BaseStorageServiceTests extends TestCase {
 
     public void testBucketLogging() throws Exception {
         StorageService service = getStorageService(getCredentials());
-        StorageBucket bucket = createBucketForTest("testBucketLogging");
-        String bucketName = bucket.getName();
 
         // TODO Test case doesn't work when accessing GS via S3 service (perhaps impossible
         // due to Google Storage API?)
@@ -1384,6 +1382,9 @@ public abstract class BaseStorageServiceTests extends TestCase {
         }
 
         try {
+            StorageBucket bucket = createBucketForTest("testBucketLogging");
+            String bucketName = bucket.getName();
+
             // Check logging status is false
             StorageBucketLoggingStatus loggingStatus = null;
             if (service instanceof GoogleStorageService) {
