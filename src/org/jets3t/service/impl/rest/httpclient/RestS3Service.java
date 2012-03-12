@@ -1031,7 +1031,8 @@ public class RestS3Service extends S3Service {
 
         boolean incompleteListing = true;
         int ioErrorRetryCount = 0;
-        int MAX_LISTING_IO_ERROR_RETRIES = 5;  // TODO: Shouldn't be hard-coded
+        int ioErrorRetryMaxCount = jets3tProperties.getIntProperty(
+            "httpclient.retry-max", 5);
 
         try {
             while (incompleteListing) {
@@ -1054,7 +1055,7 @@ public class RestS3Service extends S3Service {
                     ioErrorRetryCount = 0;
                 } catch (ServiceException e) {
                     if (e.getCause() instanceof IOException
-                        && ioErrorRetryCount < MAX_LISTING_IO_ERROR_RETRIES)
+                        && ioErrorRetryCount < ioErrorRetryMaxCount)
                     {
                         ioErrorRetryCount++;
                         if (log.isWarnEnabled()) {
