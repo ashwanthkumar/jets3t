@@ -885,6 +885,17 @@ public abstract class RestStorageService extends StorageService implements JetS3
     protected void verifyExpectedAndActualETagValues(String expectedETag, StorageObject uploadedObject)
         throws ServiceException
     {
+        // Special handling for S3 MultiPart Part uploads, for which the response's ETag value is
+        // an opaque value and is not a hex-encoded MD5 hash value of the uploaded data like all
+        // other S3 ETag response values (Issue #141).
+        // See https://forums.aws.amazon.com/thread.jspa?messageID=203436&#203436
+        if (expectedETag.length() != 16) {
+            log.warn("The ETag header value '" + expectedETag + "' returned for "
+                + uploadedObject + " is not a valid hex-encoded MD5 hash value;"
+                + " cannot verify the correctness of the uploaded data");
+            return;
+        }
+
         // Compare our locally-calculated hash with the ETag returned by S3.
         if (!expectedETag.equals(uploadedObject.getETag())) {
             throw new ServiceException("Mismatch between MD5 hash of uploaded data ("
@@ -1799,9 +1810,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
         // Note that we can only confirm the data if we used a RepeatableRequestEntity to
         // upload it, if the user did not provide a content length with the original
         // object we are SOL.
-        boolean md5Verify =
-            isLiveMD5HashingRequired(object) &&
-            requestEntity instanceof RepeatableRequestEntity;
+        boolean md5Verify = isLiveMD5HashingRequired(object)
+            && requestEntity instanceof RepeatableRequestEntity;
         if (log.isTraceEnabled()) {
             log.trace("Will " + (md5Verify ? "" : "NOT ")
                     + "verify expected and actual e-tag values.");

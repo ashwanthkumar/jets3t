@@ -810,9 +810,9 @@ public class RestS3Service extends S3Service {
         }
 
         try {
-            // We do not need to calculate the data MD5 hash during upload if the
-            // expected hash value was provided as the object's Content-MD5 header.
-            boolean isLiveMD5HashingRequired = isLiveMD5HashingRequired(object);
+            // Always disable live MD5 hash check for MultiPart Part uploads, since the ETag
+            // hash value returned by S3 is not an MD5 hash of the uploaded data anyway (Issue #141).
+            boolean isLiveMD5HashingRequired = false;
 
             HttpEntity requestEntity = null;
             if (object.getDataInputStream() != null) {
