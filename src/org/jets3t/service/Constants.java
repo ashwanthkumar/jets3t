@@ -31,7 +31,7 @@ public class Constants {
     /**
      * The JetS3t suite version number implemented by this service.
      */
-    public static final String JETS3T_VERSION = "0.9.0-dev";
+    public static final String JETS3T_VERSION = "0.9.0";
 
     public static String S3_DEFAULT_HOSTNAME = "s3.amazonaws.com";
     public static String GS_DEFAULT_HOSTNAME = "commondatastorage.googleapis.com";
@@ -141,12 +141,12 @@ public class Constants {
      * Header prefix for Amazon's alternative date header: x-amz-date
      */
     public static final String REST_METADATA_ALTERNATE_DATE_AMZ = "x-amz-date";
-    
+
     /**
      * Header prefix for Google's alternative date header: x-goog-date
      */
     public static final String REST_METADATA_ALTERNATE_DATE_GOOG = "x-goog-date";
-    
+
     /**
      * XML namespace URL used when generating S3-compatible XML documents:
      * http://s3.amazonaws.com/doc/2006-03-01/
