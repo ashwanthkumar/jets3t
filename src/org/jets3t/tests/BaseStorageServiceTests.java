@@ -251,17 +251,17 @@ public abstract class BaseStorageServiceTests extends TestCase {
         String bucketName = getBucketNameForTest("testBucketStatusLookup");
         RestStorageService service = getStorageService(getCredentials());
 
-        // Non-existent bucket
-        int status = service.checkBucketStatus(bucketName);
-        assertEquals(S3Service.BUCKET_STATUS__DOES_NOT_EXIST, status);
-
-        // Bucket is owned by someone else
-        // NOTE: This test will fail if you actually own the "testing" bucket,
-        // or if it is owned by someone else but has been made publicly readable.
-        status = service.checkBucketStatus("testing");
-        assertEquals(S3Service.BUCKET_STATUS__ALREADY_CLAIMED, status);
-
         try {
+            // Non-existent bucket
+            int status = service.checkBucketStatus(bucketName);
+            assertEquals(S3Service.BUCKET_STATUS__DOES_NOT_EXIST, status);
+
+            // Bucket is owned by someone else
+            // NOTE: This test will fail if you actually own the "testing" bucket,
+            // or if it is owned by someone else but has been made publicly readable.
+            status = service.checkBucketStatus("testing");
+            assertEquals(S3Service.BUCKET_STATUS__ALREADY_CLAIMED, status);
+
             service.createBucket(bucketName);
             // Bucket now exists and is owned by me.
             status = service.checkBucketStatus(bucketName);
