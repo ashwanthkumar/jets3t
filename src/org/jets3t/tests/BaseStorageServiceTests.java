@@ -279,12 +279,13 @@ public abstract class BaseStorageServiceTests extends TestCase {
         try {
             service.createBucket(bucketName);
             assertEquals(StorageService.BUCKET_STATUS__MY_BUCKET, service.checkBucketStatus(bucketName));
-            if (service instanceof S3Service) {
-                assertEquals(null, // For S3, the default/null location is literally null
-                    ((S3Service) service).getBucketLocation(bucketName));
+            String bucketLocation = (service instanceof S3Service
+                ? ((S3Service) service).getBucketLocation(bucketName)
+                : ((GoogleStorageService) service).getBucketLocation(bucketName) );
+            if (TARGET_SERVICE_S3.equals(getTargetService())) {
+                assertEquals(null, bucketLocation); // For S3, the default/null location is literally null
             } else {
-                assertEquals("US", // For GS, "US" is default/null location
-                    ((GoogleStorageService) service).getBucketLocation(bucketName));
+                assertEquals("US", bucketLocation); // For GS, "US" is default/null location
             }
         } finally {
             service.deleteBucket(bucketName);
@@ -294,7 +295,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
         try {
             StorageBucket newBucket = null;
             String targetLocation = null;
-            if (service instanceof S3Service) {
+            if (TARGET_SERVICE_S3.equals(getTargetService())) {
                 targetLocation = S3Bucket.LOCATION_US_WEST;
                 newBucket = new S3Bucket(bucketName, targetLocation);
             } else {
@@ -303,12 +304,10 @@ public abstract class BaseStorageServiceTests extends TestCase {
             }
             service.createBucket(newBucket);
             assertEquals(StorageService.BUCKET_STATUS__MY_BUCKET, service.checkBucketStatus(bucketName));
-            // TODO: Note mismatch in how S3 bucket location is retrieved vs Google Storage
-            if (service instanceof S3Service) {
-                assertEquals(targetLocation, ((S3Service) service).getBucketLocation(bucketName));
-            } else {
-                assertEquals(targetLocation, ((GoogleStorageService) service).getBucketLocation(bucketName));
-            }
+            String bucketLocation = (service instanceof S3Service
+                ? ((S3Service) service).getBucketLocation(bucketName)
+                : ((GoogleStorageService) service).getBucketLocation(bucketName) );
+            assertEquals(targetLocation, bucketLocation);
         } finally {
             service.deleteBucket(bucketName);
         }
