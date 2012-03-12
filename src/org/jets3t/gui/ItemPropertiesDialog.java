@@ -380,7 +380,7 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
 
         this.pack();
         if (isObjectBased) {
-            this.setSize(400, (includeMetadata ? 500 : 300));
+            this.setSize(400, (includeMetadata ? 550 : 400));
         }
         this.setLocationRelativeTo(this.getOwner());
     }
@@ -436,7 +436,7 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
         }
 
         this.pack();
-        this.setSize(this.getWidth(), 350);
+        this.setSize(this.getWidth(), 450);
         this.setLocationRelativeTo(this.getOwner());
     }
 
