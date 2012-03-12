@@ -403,9 +403,14 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             }
             assertTrue("Expected to find the new upload in listing", foundNewUpload);
 
-            // Start a second multipart upload
+            // Start a second, encrypted multipart upload
+            S3Object encryptedMultiPartObject = new S3Object(objectKey + "2");
+            encryptedMultiPartObject.setServerSideEncryptionAlgorithm(
+                S3Object.SERVER_SIDE_ENCRYPTION__AES256);
             MultipartUpload testMultipartUpload2 =
-                service.multipartStartUpload(bucketName, objectKey + "2", metadata);
+                service.multipartStartUpload(bucketName, encryptedMultiPartObject);
+            assertEquals("AES256",
+                testMultipartUpload2.getMetadata().get("x-amz-server-side-encryption"));
 
             // List multipart uploads with markers -- Find second upload only
             uploads = service.multipartListUploads(bucketName,
@@ -708,7 +713,7 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             s3Service.setWebsiteConfig(bucketName,
                 new WebsiteConfig("index.html", "error.html"));
 
-            Thread.sleep(5000);
+            Thread.sleep(10000);  // Config updates can take a long time... ugh!
 
             // Confirm index document and error document set
             config = s3Service.getWebsiteConfig(bucketName);
