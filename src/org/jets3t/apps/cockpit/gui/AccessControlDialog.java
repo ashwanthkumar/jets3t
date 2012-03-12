@@ -312,7 +312,7 @@ public class AccessControlDialog extends JDialog implements ActionListener {
         this.getContentPane().add(container);
         this.pack();
 
-        this.setSize(new Dimension(700, 450));
+        this.setSize(new Dimension(700, 500));
         this.setLocationRelativeTo(this.getOwner());
 
         // Resize columns.
@@ -443,6 +443,9 @@ public class AccessControlDialog extends JDialog implements ActionListener {
 
                 @Override
                 public Component getTableCellRendererComponent(JTable arg0, Object value, boolean arg2, boolean arg3, int arg4, int arg5) {
+                    if (value == null) {
+                        return null;
+                    }
                     GroupGrantee groupGrantee = (GroupGrantee) value;
                     return super.getTableCellRendererComponent(arg0, groupGrantee.getIdentifier(), arg2, arg3, arg4, arg5);
                 }
@@ -455,7 +458,11 @@ public class AccessControlDialog extends JDialog implements ActionListener {
         @Override
         public int getSelectedRow() {
             int tableIndex = super.getSelectedRow();
-            return sorter.modelIndex(tableIndex);
+            if (tableIndex >= 0) {
+                return sorter.modelIndex(tableIndex);
+            } else {
+                return 0;
+            }
         }
     }
 
