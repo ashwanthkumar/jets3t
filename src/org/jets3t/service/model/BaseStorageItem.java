@@ -90,12 +90,11 @@ public abstract class BaseStorageItem {
     }
 
     /**
-     * Return true if the given string Metadata item names are equivalent, i.e.
-     * either both are null, or both are a case-insensitive match.
-     *
      * @param name1
      * @param name2
      * @return
+     * Return true if the given string Metadata item names are equivalent, i.e.
+     * either both are null, or both are a case-insensitive match.
      */
     protected boolean isMatchingMetadataName(String name1, String name2) {
        if (name1 == null && name2 == null) {

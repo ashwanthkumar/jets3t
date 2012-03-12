@@ -261,16 +261,16 @@ public class RestS3Service extends S3Service {
     }
 
     /**
-     * Creates an {@link org.apache.commons.httpclient.HttpMethod} object to handle a particular connection method.
+     * Creates an {@link HttpUriRequest} object to handle a particular connection method.
      *
      * @param method
-     *        the HTTP method/connection-type to use, must be one of: PUT, HEAD, GET, DELETE
+     * the HTTP method/connection-type to use, must be one of: PUT, HEAD, GET, DELETE
      * @param bucketName
-     *        the bucket's name
+     * the bucket's name
      * @param objectKey
-     *        the object's key name, may be null if the operation is on a bucket only.
+     * the object's key name, may be null if the operation is on a bucket only.
      * @return
-     *        the HTTP method object used to perform the request
+     * the HTTP method object used to perform the request
      *
      * @throws org.jets3t.service.S3ServiceException
      */
