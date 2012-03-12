@@ -751,25 +751,4 @@ public class ManageDistributionsDialog extends JDialog
     public void followHyperlink(URL url, String target) {
     }
 
-    /**
-     * TODO: Remove once testing is complete.
-     *
-     * @param args
-     * @throws Exception
-     */
-    public static void main(String[] args) throws Exception {
-        JFrame testFrame = new JFrame("Test");
-        CloudFrontService cloudFrontService = new CloudFrontService(SamplesUtils.loadAWSCredentials());
-        S3Service s3Service = new RestS3Service(SamplesUtils.loadAWSCredentials());
-
-        S3Bucket[] buckets = s3Service.listAllBuckets();
-        String[] bucketNames = new String[buckets.length];
-        for (int i = 0; i < buckets.length; i++) {
-            bucketNames[i] = buckets[i].getName();
-        }
-
-        ManageDistributionsDialog.showDialog(testFrame, cloudFrontService, bucketNames, null);
-        testFrame.dispose();
-    }
-
 }

@@ -88,7 +88,6 @@ public class DownloadPackage extends org.jets3t.service.multi.DownloadPackage {
 
     @Override
     public S3Object getObject() {
-        // TODO Auto-generated method stub
         return (S3Object) super.getObject();
     }
 
