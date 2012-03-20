@@ -317,6 +317,7 @@ public class CloudFrontXmlResponsesSaxParser {
         private final List<String> trustedSignerAwsAccountNumberList = new ArrayList<String>();
         private final List<String> requiredProtocols = new ArrayList<String>();
         private String defaultRootObject = null;
+        private Long minTTL = null;
 
         public DistributionConfigHandler(XMLReader xr) {
             super(xr);
@@ -383,6 +384,10 @@ public class CloudFrontXmlResponsesSaxParser {
             this.defaultRootObject = text;
         }
 
+        public void endMinTTL(String text) {
+            this.minTTL = new Long(text);
+        }
+
         public void endDistributionConfig(String text) {
             this.distributionConfig = new DistributionConfig(
                 origin, callerReference,
@@ -392,7 +397,8 @@ public class CloudFrontXmlResponsesSaxParser {
                     new String[trustedSignerAwsAccountNumberList.size()]),
                 requiredProtocols.toArray(
                     new String[requiredProtocols.size()]),
-                    defaultRootObject
+                defaultRootObject,
+                this.minTTL
                 );
             returnControlToParentHandler();
         }
