@@ -5,6 +5,17 @@ JetS3t Release Notes
 Version 0.9.1-dev
 -----------------
 
+### TOOLKIT
+
+CloudFrontService:
+
+ * Added support for setting time-to-live (TTL) values as low as zero
+   seconds.
+
+### COCKPIT
+
+ * Distribution management dialog now supports viewing and setting the
+   MinTTL value for non-streaming distributions.
 
 
 -------------

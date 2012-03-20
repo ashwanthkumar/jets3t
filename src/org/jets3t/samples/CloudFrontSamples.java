@@ -108,6 +108,12 @@ public class CloudFrontSamples {
         );
         System.out.println("HTTPS only distribution Config: " + updatedDistributionConfig);
 
+        // Update a distribution's configuration to change the time-to-live (MinTTL) setting.
+        updatedDistributionConfig.setMinTTL(5L);  // Set TTL to 5 seconds
+        updatedDistributionConfig = cloudFrontService.updateDistributionConfig(
+            testDistributionId, updatedDistributionConfig);
+        System.out.println("Distribution Config with custom MinTTL: " + updatedDistributionConfig);
+
         // Disable a distribution, e.g. so that it may be deleted.
         // The CloudFront service may take some time to disable and deploy the distribution.
         DistributionConfig disabledDistributionConfig = cloudFrontService.updateDistributionConfig(

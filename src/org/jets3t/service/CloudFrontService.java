@@ -27,6 +27,8 @@ import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
@@ -40,15 +42,13 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.params.HttpProtocolParams;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.DistributionConfigHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.DistributionHandler;
+import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.DistributionListHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.ErrorHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.InvalidationHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.InvalidationListHandler;
-import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.DistributionListHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccessIdentityConfigHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccessIdentityHandler;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccessIdentityListHandler;
@@ -89,7 +89,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
     private static final Log log = LogFactory.getLog(CloudFrontService.class);
 
     public static final String ENDPOINT = "https://cloudfront.amazonaws.com/";
-    public static final String VERSION = "2010-11-01";
+    public static final String VERSION = "2012-03-15";
     public static final String XML_NAMESPACE = "http://cloudfront.amazonaws.com/doc/" + VERSION + "/";
     public static final String DEFAULT_BUCKET_SUFFIX = ".s3.amazonaws.com";
     public static final String ORIGIN_ACCESS_IDENTITY_URI_PATH = "/origin-access-identity/cloudfront";
@@ -458,6 +458,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
     /**
      * List streaming or non-stream distributions whose origin is the given S3 bucket name.
      *
+     * @param isStreaming
      * @param bucketName
      * the name of the S3 bucket whose distributions will be returned.
      * @return
@@ -586,7 +587,8 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
     protected String buildDistributionConfigXmlDocument(boolean isStreamingDistribution,
         Origin origin, String callerReference, String[] cnames, String comment, boolean enabled,
         LoggingStatus loggingStatus, boolean trustedSignerSelf,
-        String[] trustedSignerAwsAccountNumbers, String[] requiredProtocols, String defaultRootObject)
+        String[] trustedSignerAwsAccountNumbers, String[] requiredProtocols,
+        String defaultRootObject, Long minTTL)
         throws TransformerException, ParserConfigurationException, FactoryConfigurationError
     {
         XMLBuilder builder = XMLBuilder.create(
@@ -627,6 +629,11 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
                 .e("Prefix").t(loggingStatus.getPrefix()).up()
             .up();
         }
+        if (minTTL != null) {
+            builder.e("CachingBehavior")
+                .e("MinTTL").t(minTTL.toString()).up()
+                .up();
+        }
         if (requiredProtocols != null && requiredProtocols.length > 0) {
             XMLBuilder rpsBuilder = builder.e("RequiredProtocols");
             for (int i = 0; i < requiredProtocols.length; i++) {
@@ -658,7 +665,8 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         boolean isStreaming, Origin origin, String callerReference,
         String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus,
         boolean trustedSignerSelf,
-        String[] trustedSignerAwsAccountNumbers, String[] requiredProtocols, String defaultRootObject)
+        String[] trustedSignerAwsAccountNumbers, String[] requiredProtocols,
+        String defaultRootObject, Long minTTL)
         throws CloudFrontServiceException
     {
         if (log.isDebugEnabled()) {
@@ -685,7 +693,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
             String distributionConfigXml = buildDistributionConfigXmlDocument(
                 isStreaming, origin, callerReference, cnames, comment, enabled,
                 loggingStatus, trustedSignerSelf, trustedSignerAwsAccountNumbers,
-                requiredProtocols, defaultRootObject);
+                requiredProtocols, defaultRootObject, minTTL);
 
             httpMethod.setEntity(new StringEntity(
                     distributionConfigXml,
@@ -761,9 +769,71 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         String[] requiredProtocols, String defaultRootObject)
         throws CloudFrontServiceException
     {
+        return this.createDistribution(
+            origin, callerReference, cnames, comment, enabled, loggingStatus,
+            trustedSignerSelf, trustedSignerAwsAccountNumbers, requiredProtocols, defaultRootObject,
+            null // minTTL
+            );
+    }
+
+    /**
+     * Create a public or private CloudFront distribution for an S3 bucket.
+     *
+     * @param origin
+     * the origin to associate with the distribution, either an Amazon S3 bucket or
+     * a custom HTTP/S-accessible location.
+     * @param callerReference
+     * A user-set unique reference value that ensures the request can't be replayed
+     * (max UTF-8 encoding size 128 bytes). This parameter may be null, in which
+     * case your computer's local epoch time in milliseconds will be used.
+     * @param cnames
+     * A list of up to 10 CNAME aliases to associate with the distribution. This
+     * parameter may be a null or empty array.
+     * @param comment
+     * An optional comment to describe the distribution in your own terms
+     * (max 128 characters). May be null.
+     * @param enabled
+     * Should the distribution should be enabled and publicly accessible upon creation?
+     * @param loggingStatus
+     * Logging status settings (bucket, prefix) for the distribution. If this value
+     * is null, logging will be disabled for the distribution.
+     * @param trustedSignerSelf
+     * If true the owner of the distribution (you) will be be allowed to generate
+     * signed URLs for a private distribution. Note: If either trustedSignerSelf or
+     * trustedSignerAwsAccountNumbers parameters are provided the private distribution
+     * will require signed URLs to access content.
+     * @param trustedSignerAwsAccountNumbers
+     * Account Number identifiers for AWS account holders other than the
+     * distribution's owner who will be allowed to generate signed URLs for a private
+     * distribution. If null or empty, no additional AWS account holders may generate
+     * signed URLs. Note: If either trustedSignerSelf or
+     * trustedSignerAwsAccountNumbers parameters are provided the private distribution
+     * will require signed URLs to access content.
+     * @param requiredProtocols
+     * List of protocols that must be used by clients to retrieve content from the
+     * distribution. If this value is null or is an empty array, all protocols will be
+     * supported.
+     * @param defaultRootObject
+     * The name of an object that will be served when someone visits the root of a
+     * distribution.
+     * @param minTTL
+     * The time to live (TTL) to apply to objects served by this distribution.
+     *
+     * @return
+     * an object that describes the newly-created distribution, in particular the
+     * distribution's identifier and domain name values.
+     *
+     * @throws CloudFrontServiceException
+     */
+    public Distribution createDistribution(Origin origin, String callerReference,
+        String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus,
+        boolean trustedSignerSelf, String[] trustedSignerAwsAccountNumbers,
+        String[] requiredProtocols, String defaultRootObject, Long minTTL)
+        throws CloudFrontServiceException
+    {
         return createDistributionImpl(false, origin, callerReference, cnames, comment,
             enabled, loggingStatus, trustedSignerSelf, trustedSignerAwsAccountNumbers,
-            requiredProtocols, defaultRootObject);
+            requiredProtocols, defaultRootObject, minTTL);
     }
 
     /**
@@ -893,7 +963,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
     {
         return (StreamingDistribution) createDistributionImpl(true, origin, callerReference,
             cnames, comment, enabled, loggingStatus, trustedSignerSelf,
-            trustedSignerAwsAccountNumbers, null, null);
+            trustedSignerAwsAccountNumbers, null, null, null);
     }
 
     /**
@@ -929,7 +999,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         throws CloudFrontServiceException
     {
         return (StreamingDistribution) createDistributionImpl(true, origin, callerReference,
-            cnames, comment, enabled, loggingStatus, false, null, null, null);
+            cnames, comment, enabled, loggingStatus, false, null, null, null, null);
     }
 
     /**
@@ -1098,7 +1168,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         boolean isStreaming, String id, Origin origin, String[] cnames,
         String comment, boolean enabled, LoggingStatus loggingStatus,
         boolean trustedSignerSelf, String[] trustedSignerAwsAccountNumbers,
-        String[] requiredProtocols, String defaultRootObject)
+        String[] requiredProtocols, String defaultRootObject, Long minTTL)
         throws CloudFrontServiceException
     {
         if (log.isDebugEnabled()) {
@@ -1130,7 +1200,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
             String distributionConfigXml = buildDistributionConfigXmlDocument(isStreaming,
                     origin, oldConfig.getCallerReference(), cnames, comment, enabled,
                     loggingStatus, trustedSignerSelf, trustedSignerAwsAccountNumbers,
-                    requiredProtocols, defaultRootObject);
+                    requiredProtocols, defaultRootObject, minTTL);
 
             httpMethod.setEntity(new StringEntity(
                     distributionConfigXml,
@@ -1168,6 +1238,76 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      *
      * @param id
      * the distribution's unique identifier.
+     * @param origin
+     * the origin to associate with the distribution, either an Amazon S3 bucket or
+     * a custom HTTP/S-accessible location.
+     * @param cnames
+     * A list of up to 10 CNAME aliases to associate with the distribution. This
+     * parameter may be null, in which case the original CNAME aliases are retained.
+     * @param comment
+     * An optional comment to describe the distribution in your own terms
+     * (max 128 characters). May be null, in which case the original comment is retained.
+     * @param enabled
+     * Should the distribution should be enabled and publicly accessible after the
+     * configuration update?
+     * @param loggingStatus
+     * Logging status settings (bucket, prefix) for the distribution. If this value
+     * is null, logging will be disabled for the distribution.
+     * @param trustedSignerSelf
+     * If true the owner of the distribution (you) will be be allowed to generate
+     * signed URLs for a private distribution. Note: If either trustedSignerSelf or
+     * trustedSignerAwsAccountNumbers parameters are provided the private distribution
+     * will require signed URLs to access content.
+     * @param trustedSignerAwsAccountNumbers
+     * Account Number identifiers for AWS account holders other than the
+     * distribution's owner who will be allowed to generate signed URLs for a private
+     * distribution. If null or empty, no additional AWS account holders may generate
+     * signed URLs. Note: If either trustedSignerSelf or
+     * trustedSignerAwsAccountNumbers parameters are provided the private distribution
+     * will require signed URLs to access content.
+     * @param requiredProtocols
+     * List of protocols that must be used by clients to retrieve content from the
+     * distribution. If this value is null or is an empty array all protocols will be
+     * permitted.
+     * @param defaultRootObject
+     * The name of an object that will be served when someone visits the root of a
+     * distribution.
+     * @param minTTL
+     * The time to live (TTL) to apply to objects served by this distribution.
+     *
+     * @return
+     * an object that describes the distribution's updated configuration, including its
+     * origin bucket and CNAME aliases.
+     *
+     * @throws CloudFrontServiceException
+     */
+    public DistributionConfig updateDistributionConfig(String id, Origin origin,
+        String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus,
+        boolean trustedSignerSelf, String[] trustedSignerAwsAccountNumbers,
+        String[] requiredProtocols, String defaultRootObject, Long minTTL)
+        throws CloudFrontServiceException
+    {
+        return updateDistributionConfigImpl(false, id, origin, cnames, comment, enabled,
+            loggingStatus, trustedSignerSelf, trustedSignerAwsAccountNumbers,
+            requiredProtocols, defaultRootObject, minTTL);
+    }
+
+    /**
+     * Update the configuration of an existing distribution to change its properties
+     * or public/private status. The new configuration properties provided
+     * <strong>replace</strong> any existing configuration, and may take some time
+     * to be fully applied.
+     * <p>
+     * This method performs all the steps necessary to update the configuration. It
+     * first performs lookup on the distribution  using
+     * {@link #getDistributionConfig(String)} to find its origin and caller reference
+     * values, then uses this information to apply your configuration changes.
+     *
+     * @param id
+     * the distribution's unique identifier.
+     * @param origin
+     * the origin to associate with the distribution, either an Amazon S3 bucket or
+     * a custom HTTP/S-accessible location.
      * @param cnames
      * A list of up to 10 CNAME aliases to associate with the distribution. This
      * parameter may be null, in which case the original CNAME aliases are retained.
@@ -1212,9 +1352,10 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         String[] requiredProtocols, String defaultRootObject)
         throws CloudFrontServiceException
     {
-        return updateDistributionConfigImpl(false, id, origin, cnames, comment, enabled,
-            loggingStatus, trustedSignerSelf, trustedSignerAwsAccountNumbers,
-            requiredProtocols, defaultRootObject);
+        return this.updateDistributionConfig(id, origin, cnames, comment, enabled, loggingStatus,
+            trustedSignerSelf, trustedSignerAwsAccountNumbers, requiredProtocols, defaultRootObject,
+            null // minTTL
+            );
     }
 
     /**
@@ -1229,6 +1370,9 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      *
      * @param id
      * the distribution's unique identifier.
+     * @param origin
+     * the origin to associate with the distribution, either an Amazon S3 bucket or
+     * a custom HTTP/S-accessible location.
      * @param cnames
      * A list of up to 10 CNAME aliases to associate with the distribution. This
      * parameter may be null, in which case the original CNAME aliases are retained.
@@ -1254,7 +1398,8 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         throws CloudFrontServiceException
     {
         return (StreamingDistributionConfig) updateDistributionConfigImpl(
-            true, id, origin, cnames, comment, enabled, loggingStatus, false, null, null, null);
+            true, id, origin, cnames, comment, enabled, loggingStatus, false,
+            null, null, null, null);
     }
 
     /**
@@ -1311,7 +1456,8 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
     {
         return (StreamingDistributionConfig) updateDistributionConfigImpl(
             true, id, origin, cnames, comment, enabled, loggingStatus,
-            trustedSignerSelf, trustedSignerAwsAccountNumbers, null, null);
+            trustedSignerSelf, trustedSignerAwsAccountNumbers,
+            null, null, null);
     }
 
     /**
@@ -1327,6 +1473,9 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      *
      * @param id
      * the distribution's unique identifier.
+     * @param origin
+     * the origin to associate with the distribution, either an Amazon S3 bucket or
+     * a custom HTTP/S-accessible location.
      * @param cnames
      * A list of up to 10 CNAME aliases to associate with the distribution. This
      * parameter may be null, in which case the original CNAME aliases are retained.

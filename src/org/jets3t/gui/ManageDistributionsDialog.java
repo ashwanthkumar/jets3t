@@ -92,6 +92,7 @@ public class ManageDistributionsDialog extends JDialog
     private JButton addCname = null;
     private JButton removeCname = null;
     private JTextArea commentTextArea = null;
+    private JTextField minTTLTextField = null;
     private JButton actionButton = null;
     private JButton deleteButton = null;
     private JButton finishedButton = null;
@@ -122,6 +123,8 @@ public class ManageDistributionsDialog extends JDialog
         httpsOnlyCheckbox = new JCheckBox();
         JLabel defaultRootObjectLabel = new JLabel("Default Root Object");
         defaultRootObjectTextField = new JTextField();
+        JLabel minTTLLabel = new JLabel("Minimum TTL");
+        minTTLTextField = new JTextField("0");
 
         JLabel loggingBucketLabel = new JLabel("Logging bucket");
         loggingBucketComboBox = new JComboBox(bucketNames);
@@ -228,6 +231,10 @@ public class ManageDistributionsDialog extends JDialog
             1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
         detailPanel.add(defaultRootObjectTextField, new GridBagConstraints(1, row++,
             1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+        detailPanel.add(minTTLLabel, new GridBagConstraints(0, row,
+            1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
+        detailPanel.add(minTTLTextField, new GridBagConstraints(1, row++,
+            1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
 
         detailPanel.add(loggingBucketLabel, new GridBagConstraints(0, row,
             1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.NONE, insetsDefault, 0, 0));
@@ -259,7 +266,7 @@ public class ManageDistributionsDialog extends JDialog
 
         // Size dialog
         this.pack();
-        this.setSize(690, 550);
+        this.setSize(690, 600);
 
         // Micro-managed column widths, because Java table columns are stupid... yuk.
         TableColumnModel columnModel = distributionListTable.getColumnModel();
@@ -347,6 +354,7 @@ public class ManageDistributionsDialog extends JDialog
                 enabledCheckbox.setSelected(false);
                 httpsOnlyCheckbox.setEnabled(false);
                 defaultRootObjectTextField.setText("");
+                minTTLTextField.setText("");
 
                 loggingBucketComboBox.setSelectedIndex(0);
                 loggingPrefixTextField.setText("");
@@ -377,6 +385,18 @@ public class ManageDistributionsDialog extends JDialog
                 enabledCheckbox.setSelected(distribution.isEnabled());
                 httpsOnlyCheckbox.setSelected(distributionConfig.isHttpsProtocolRequired());
                 defaultRootObjectTextField.setText(distributionConfig.getDefaultRootObject());
+                if (distributionConfig.isStreamingDistributionConfig()) {
+                    minTTLTextField.setEnabled(false);
+                    minTTLTextField.setText("N/A");
+                } else {
+                    minTTLTextField.setEnabled(true);
+                    Long minTTL = distributionConfig.getMinTTL();
+                    if (minTTL == null) {
+                        minTTLTextField.setText("0");
+                    } else {
+                        minTTLTextField.setText(minTTL.toString());
+                    }
+                }
 
                 if (distributionConfig.getLoggingStatus() != null) {
                     loggingBucketComboBox.setSelectedItem(
@@ -506,6 +526,16 @@ public class ManageDistributionsDialog extends JDialog
                             defaultRootObject = null;
                         }
 
+                        Long minTTL = null;
+                        if (minTTLTextField.isEnabled()) {
+                            try {
+                                minTTL = new Long(minTTLTextField.getText());
+                            } catch (NumberFormatException e) {}
+                            if (minTTL == null || minTTL < 0) {
+                                throw new Exception("Minimum TTL must be an integer value 0 or greater");
+                            }
+                        }
+
                         cloudFrontService.createDistribution(
                             new S3Origin(bucketName), null,
                             cnamesTableModel.getCnames(), commentTextArea.getText(),
@@ -513,7 +543,8 @@ public class ManageDistributionsDialog extends JDialog
                             false, // trustedSignerSelf
                             null,  // trustedSignerAwsAccountNumbers
                             requiredProtocols,
-                            defaultRootObject);
+                            defaultRootObject,
+                            minTTL);
                         refreshDistributions();
                     } catch (Exception e) {
                         SwingUtilities.invokeLater(new Runnable() {
@@ -575,6 +606,16 @@ public class ManageDistributionsDialog extends JDialog
                             defaultRootObject = null;
                         }
 
+                        Long minTTL = null;
+                        if (minTTLTextField.isEnabled()) {
+                            try {
+                                minTTL = new Long(minTTLTextField.getText());
+                            } catch (NumberFormatException e) {}
+                            if (minTTL == null || minTTL < 0) {
+                                throw new Exception("Minimum TTL must be an integer value 0 or greater");
+                            }
+                        }
+
                         cloudFrontService.updateDistributionConfig(distribution.getId(),
                             null, // origin
                             cnamesTableModel.getCnames(), commentTextArea.getText(),
@@ -582,7 +623,8 @@ public class ManageDistributionsDialog extends JDialog
                             false, // trustedSignerSelf
                             null,  // trustedSignerAwsAccountNumbers
                             requiredProtocols,
-                            defaultRootObject);
+                            defaultRootObject,
+                            minTTL);
                         refreshDistributions();
                     } catch (Exception e) {
                         SwingUtilities.invokeLater(new Runnable() {

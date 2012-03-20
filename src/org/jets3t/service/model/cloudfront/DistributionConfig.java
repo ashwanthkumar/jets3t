@@ -34,12 +34,14 @@ public class DistributionConfig {
     private String[] trustedSignerAwsAccountNumbers = new String[0];
     private String[] requiredProtocols = new String[0];
     private String defaultRootObject = null;
+    private Long minTTL = null;
 
     public DistributionConfig(Origin origin, String callerReference,
         String[] cnames, String comment, boolean enabled,
         LoggingStatus loggingStatus, boolean trustedSignerSelf,
         String[] trustedSignerAwsAccountNumbers,
-        String[] requiredProtocols, String defaultRootObject)
+        String[] requiredProtocols, String defaultRootObject,
+        Long minTTL)
     {
         this.origin = origin;
         this.callerReference = callerReference;
@@ -51,6 +53,7 @@ public class DistributionConfig {
         this.trustedSignerAwsAccountNumbers = trustedSignerAwsAccountNumbers;
         this.requiredProtocols = requiredProtocols;
         this.defaultRootObject = defaultRootObject;
+        this.minTTL = minTTL;
     }
 
     public DistributionConfig(Origin origin, String callerReference,
@@ -58,7 +61,7 @@ public class DistributionConfig {
             LoggingStatus loggingStatus)
     {
         this(origin, callerReference, cnames, comment, enabled,
-                loggingStatus, false, null, null, null);
+                loggingStatus, false, null, null, null, null);
     }
 
     public Origin getOrigin() {
@@ -150,6 +153,18 @@ public class DistributionConfig {
         return defaultRootObject;
     }
 
+    public void setMinTTL(Long minTTL) {
+        this.minTTL = minTTL;
+    }
+
+    public Long getMinTTL() {
+        return this.minTTL;
+    }
+
+    public boolean hasMinTTL() {
+        return this.minTTL != null;
+    }
+
     @Override
     public String toString() {
         return
@@ -158,7 +173,11 @@ public class DistributionConfig {
                 : "DistributionConfig")
             + ": origin=" + origin
             + ", callerReference=" + callerReference + ", comment=" + comment
-            + ", enabled=" + enabled +
+            + ", enabled=" + enabled
+            + (this.hasMinTTL()
+                ? ", MinTTL=" + this.minTTL
+                : "")
+            + ", " +
             (isPrivate()
                 ? ", Private:originAccessIdentity=" + ((S3Origin)getOrigin()).getOriginAccessIdentity()
                 : ", Public") +
