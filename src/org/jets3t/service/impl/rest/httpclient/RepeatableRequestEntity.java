@@ -255,7 +255,16 @@ public class RepeatableRequestEntity implements HttpEntity {
             }
         }
 
-        byte[] tmp = new byte[DEFAULT_BUFFER_SIZE];
+        int readBufferSize = DEFAULT_BUFFER_SIZE;
+        // Use smaller buffer size if read-throttling is in effect, to more fairly share
+        // restricted bandwidth between potentially many uploads. A side-effect of the
+        // algorithm in throttle()  is that this read buffer size is the smallest possible
+        // throttling value.
+        if (MAX_BYTES_PER_SECOND > 0) {  // Read throttle is applied if this value is non-zero
+            readBufferSize = 4 * 1024; // 4KB
+        }
+
+        byte[] tmp = new byte[readBufferSize];
         int count = 0;
 
         while ((count = this.is.read(tmp)) >= 0) {
