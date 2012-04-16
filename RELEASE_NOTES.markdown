@@ -7,6 +7,12 @@ Version 0.9.1-dev
 
 ### TOOLKIT
 
+General:
+
+ * Fixed `httpclient.read-throttle` upload bandwidth throttling implementation 
+   which wasn't working for values under 128KB. It should now throttle correctly
+   down to single-digit KB/s values.
+
 CloudFrontService:
 
  * Added support for setting time-to-live (TTL) values as low as zero
@@ -16,6 +22,11 @@ CloudFrontService:
 
  * Distribution management dialog now supports viewing and setting the
    MinTTL value for non-streaming distributions.
+
+### KUDOS TO
+
+ * Chris Baker for catching the `httpclient.read-throttle` issue, identifying
+   the bug and testing the fix.
 
 
 -------------
