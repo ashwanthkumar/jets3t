@@ -330,21 +330,24 @@ public class RepeatableRequestEntity implements HttpEntity {
             // Check whether a new second has ticked over.
             boolean isCurrentSecond = currentSecond == currentSecondMonitored;
 
-            // If a new second hasn't ticked over, we must limit the number of extra bytes
-            // written this second.
-            willExceedThrottle = isCurrentSecond
-                && bytesWrittenThisSecond + bytesToWrite > MAX_BYTES_PER_SECOND;
+            if (isCurrentSecond) {
+                // If a new second hasn't ticked over, we must limit the number of extra bytes
+                // written this second. Check whether we can write the requested number of bytes.
+                willExceedThrottle = bytesWrittenThisSecond + bytesToWrite > MAX_BYTES_PER_SECOND;
 
-            if (!isCurrentSecond) {
-                // We are in a brand new second, it is safe to write some bytes.
+                if (!willExceedThrottle) {
+                    // We can write bytes without exceeding the limit; keep track of how many
+                    // bytes we are about to write.
+                    bytesWrittenThisSecond += bytesToWrite;
+                }
+            } else {
+                // We are in a brand new second, so write some bytes this round to ensure
+                // we keep the connection alive (S3 won't keep inactive connections open for long)
+                willExceedThrottle = false;
                 currentSecondMonitored = currentSecond;
                 bytesWrittenThisSecond = bytesToWrite;
             }
-            if (!willExceedThrottle) {
-                // We can write bytes without exceeding the limit.
-                bytesWrittenThisSecond += bytesToWrite;
-            }
-        }
+        } // End synchronized
 
         if (willExceedThrottle) {
             // Sleep for a random interval, then make a recursive call to see if we
