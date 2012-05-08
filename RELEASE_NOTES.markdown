@@ -12,6 +12,9 @@ General:
  * Fixed `httpclient.read-throttle` upload bandwidth throttling implementation 
    which wasn't working for values under 128KB. It should now throttle correctly
    down to single-digit KB/s values.
+ * Fixed bug in object/file comparison logic that prevented object metadata from 
+   being downloaded when a service-side target path was used (e.g. using a bucket
+   path like *target-bucket/some/path* in Synchronize)
 
 CloudFrontService:
 
@@ -25,8 +28,8 @@ CloudFrontService:
 
 ### KUDOS TO
 
- * Chris Baker for catching the `httpclient.read-throttle` issue, identifying
-   the bug and testing the fix.
+ * Chris Baker for catching the `httpclient.read-throttle` and object/file
+   comparison issues, investigating the bugs and testing the fixes.
 
 
 -------------

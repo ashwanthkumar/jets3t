@@ -789,17 +789,27 @@ public class FileComparer {
                 continue;
             }
 
-            String filepath = objectKeyToFilepathMap.get(objectKey);
+            // Determine relative object key, excluding any service-side-only target path prefix
+            String relativeObjectKey = objectKey;
+            if (targetPath != null && targetPath.length() > 0) {
+                // Trim targetPath from beginning of object key
+                int targetPathPrefixLengthToTrim = (targetPath.endsWith("/")
+                    ? targetPath.length()
+                    : targetPath.length() + 1);
+                relativeObjectKey = objectKey.substring(targetPathPrefixLengthToTrim);
+            }
+
+            String filepath = objectKeyToFilepathMap.get(relativeObjectKey);
 
             // Backwards-compatibility with JetS3t's old directory place-holders
             // key names that do not end with a slash (/).
             if (filepath == null && object.getContentLength() == 0
-                && !objectKey.endsWith("/")
+                && !relativeObjectKey.endsWith("/")
                 && "d41d8cd98f00b204e9800998ecf8427e".equals(object.getETag()))
             {
                 // Reasonable chance this is a directory place-holder, see if
                 // there's a matching local directory.
-                filepath = objectKeyToFilepathMap.get(objectKey + "/");
+                filepath = objectKeyToFilepathMap.get(relativeObjectKey + "/");
                 // If not, bail out.
                 if (filepath == null || !(new File(filepath).isDirectory())) {
                     continue;
