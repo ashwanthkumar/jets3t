@@ -1297,11 +1297,11 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
             String policyB64 = ServiceUtils.toBase64(
                 policyDocument.getBytes(Constants.DEFAULT_ENCODING));
             myInputFields.add("<input type=\"hidden\" name=\"policy\" value=\""
-                + policyB64 + "\">");
+                + policyB64 + "\"/>");
 
             // Add the AWS access key as the 'AWSAccessKeyId' field
             myInputFields.add("<input type=\"hidden\" name=\"AWSAccessKeyId\" " +
-                "value=\"" + credentials.getAccessKey() + "\">");
+                "value=\"" + credentials.getAccessKey() + "\"/>");
 
             // Add signature for encoded policy document as the 'AWSAccessKeyId' field
             String signature;
@@ -1312,7 +1312,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
                 throw new S3ServiceException(se);
             }
             myInputFields.add("<input type=\"hidden\" name=\"signature\" " +
-                "value=\"" + signature + "\">");
+                "value=\"" + signature + "\"/>");
         }
 
         // Include any additional user-specified form fields
@@ -1325,7 +1325,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
             // Use a caller-specified string as the input field.
             myInputFields.add(textInput);
         } else {
-            myInputFields.add("<input name=\"file\" type=\"file\">");
+            myInputFields.add("<input name=\"file\" type=\"file\"/>");
         }
 
         // Construct a URL to refer to the target bucket using either the
@@ -1345,10 +1345,10 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         String form =
           "<form action=\"" + url + "\" method=\"post\" " +
               "enctype=\"multipart/form-data\">\n" +
-            "<input type=\"hidden\" name=\"key\" value=\"" + key + "\">\n" +
+            "<input type=\"hidden\" name=\"key\" value=\"" + key + "\"/>\n" +
             ServiceUtils.join(myInputFields, "\n") +
-            "\n<br>\n" +
-            "<input type=\"submit\" value=\"" + submitButtonName + "\">\n" +
+            "\n" +
+            "<input type=\"submit\" value=\"" + submitButtonName + "\"/>\n" +
           "</form>";
 
         if (log.isDebugEnabled()) {
