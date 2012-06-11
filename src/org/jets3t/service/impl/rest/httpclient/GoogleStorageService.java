@@ -32,6 +32,7 @@ import org.jets3t.service.impl.rest.XmlResponsesSaxParser;
 import org.jets3t.service.model.GSBucket;
 import org.jets3t.service.model.GSBucketLoggingStatus;
 import org.jets3t.service.model.GSObject;
+import org.jets3t.service.model.GSWebsiteConfig;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.mx.MxDelegate;
@@ -461,6 +462,7 @@ public class GoogleStorageService extends RestStorageService {
             log.debug("Authorizing service request with OAuth2 access token: "
                     + tokens.getAccessToken());
             httpMethod.setHeader("Authorization", "OAuth " + tokens.getAccessToken());
+            httpMethod.setHeader("x-goog-api-version", "2");
         } else {
             super.authorizeHttpRequest(httpMethod, context);
         }
@@ -505,5 +507,44 @@ public class GoogleStorageService extends RestStorageService {
         }
         return super.createBucketImpl(bucketName, location, acl,
                 Collections.<String, Object>singletonMap("x-goog-project-id", projectId));
+    }
+
+
+    /**
+     * Apply a website configuration to a bucket.
+     *
+     * @param bucketName
+     * bucket to which the website configuration will be applied.
+     * @param config
+     * the website configuration details.
+     * @throws org.jets3t.service.ServiceException
+     */
+    public void setWebsiteConfig(String bucketName, GSWebsiteConfig config)
+        throws ServiceException
+    {
+        setWebsiteConfigImpl(bucketName, config);
+    }
+
+    /**
+     * @param bucketName
+     * a bucket with a website configuration.
+     * @return
+     * the website configuration details.
+     * @throws ServiceException
+     */
+    public GSWebsiteConfig getWebsiteConfig(String bucketName) throws ServiceException {
+        return (GSWebsiteConfig) getWebsiteConfigImpl(bucketName);
+    }
+
+    /**
+     * Delete a bucket's website configuration; removes the effect of any
+     * previously-applied configuration.
+     *
+     * @param bucketName
+     * a bucket with a website configuration.
+     * @throws ServiceException
+     */
+    public void deleteWebsiteConfig(String bucketName) throws ServiceException {
+        deleteWebsiteConfigImpl(bucketName);
     }
 }

@@ -46,6 +46,7 @@ import org.jets3t.service.model.GSBucket;
 import org.jets3t.service.model.GSBucketLoggingStatus;
 import org.jets3t.service.model.GSObject;
 import org.jets3t.service.model.GSOwner;
+import org.jets3t.service.model.GSWebsiteConfig;
 import org.jets3t.service.model.MultipartCompleted;
 import org.jets3t.service.model.MultipartPart;
 import org.jets3t.service.model.MultipartUpload;
@@ -58,6 +59,7 @@ import org.jets3t.service.model.S3DeleteMarker;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Owner;
 import org.jets3t.service.model.S3Version;
+import org.jets3t.service.model.S3WebsiteConfig;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageBucketLoggingStatus;
 import org.jets3t.service.model.StorageObject;
@@ -423,9 +425,16 @@ public class XmlResponsesSaxParser {
     public WebsiteConfig parseWebsiteConfigurationResponse(
         InputStream inputStream) throws ServiceException
     {
-        WebsiteConfigurationHandler handler = new WebsiteConfigurationHandler();
-        parseXmlInputStream(handler, inputStream);
-        return handler.getWebsiteConfig();
+        if(isGoogleStorageMode) {
+            GSWebsiteConfigurationHandler handler = new GSWebsiteConfigurationHandler();
+            parseXmlInputStream(handler, inputStream);
+            return handler.getWebsiteConfig();
+        }
+        else {
+            S3WebsiteConfigurationHandler handler = new S3WebsiteConfigurationHandler();
+            parseXmlInputStream(handler, inputStream);
+            return handler.getWebsiteConfig();
+        }
     }
 
     public NotificationConfig parseNotificationConfigurationResponse(
@@ -1595,12 +1604,12 @@ public class XmlResponsesSaxParser {
         }
     }
 
-    public class WebsiteConfigurationHandler extends DefaultXmlHandler {
-        private WebsiteConfig config = null;
+    public class S3WebsiteConfigurationHandler extends DefaultXmlHandler {
+        private S3WebsiteConfig config = null;
         private String indexDocumentSuffix = null;
         private String errorDocumentKey = null;
 
-        public WebsiteConfig getWebsiteConfig() {
+        public S3WebsiteConfig getWebsiteConfig() {
             return config;
         }
 
@@ -1611,7 +1620,29 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("Key")) {
                 this.errorDocumentKey = elementText;
             } else if (name.equals("WebsiteConfiguration")) {
-                this.config = new WebsiteConfig(
+                this.config = new S3WebsiteConfig(
+                    indexDocumentSuffix, errorDocumentKey);
+            }
+        }
+    }
+
+    public class GSWebsiteConfigurationHandler extends DefaultXmlHandler {
+        private GSWebsiteConfig config = null;
+        private String indexDocumentSuffix = null;
+        private String errorDocumentKey = null;
+
+        public GSWebsiteConfig getWebsiteConfig() {
+            return config;
+        }
+
+        @Override
+        public void endElement(String name, String elementText) {
+            if (name.equals("MainPageSuffix")) {
+                this.indexDocumentSuffix = elementText;
+            } else if (name.equals("NotFoundPage")) {
+                this.errorDocumentKey = elementText;
+            } else if (name.equals("WebsiteConfiguration")) {
+                this.config = new GSWebsiteConfig(
                     indexDocumentSuffix, errorDocumentKey);
             }
         }
