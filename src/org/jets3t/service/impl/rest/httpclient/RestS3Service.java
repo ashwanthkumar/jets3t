@@ -63,7 +63,6 @@ import org.jets3t.service.model.S3BucketVersioningStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
-import org.jets3t.service.model.WebsiteConfig;
 import org.jets3t.service.model.container.ObjectKeyAndVersion;
 import org.jets3t.service.security.AWSDevPayCredentials;
 import org.jets3t.service.security.AWSSessionCredentials;
@@ -1152,61 +1151,6 @@ public class RestS3Service extends S3Service {
                 }
             } while (incompleteListing);
             return parts;
-        } catch (ServiceException se) {
-            throw new S3ServiceException(se);
-        }
-    }
-
-    @Override
-    protected WebsiteConfig getWebsiteConfigImpl(String bucketName) throws S3ServiceException
-    {
-        try {
-            Map<String, String> requestParameters = new HashMap<String, String>();
-            requestParameters.put("website", "");
-
-            HttpResponse getMethod = performRestGet(bucketName, null, requestParameters, null);
-            return getXmlResponseSaxParser().parseWebsiteConfigurationResponse(
-                new HttpMethodReleaseInputStream(getMethod));
-        } catch (ServiceException se) {
-            throw new S3ServiceException(se);
-        }
-    }
-
-    @Override
-    protected void setWebsiteConfigImpl(String bucketName, WebsiteConfig config)
-        throws S3ServiceException
-    {
-        Map<String, String> requestParameters = new HashMap<String, String>();
-        requestParameters.put("website", "");
-
-        Map<String, Object> metadata = new HashMap<String, Object>();
-
-        String xml = null;
-        try {
-            xml = config.toXml();
-        } catch (Exception e) {
-            throw new S3ServiceException("Unable to build WebsiteConfig XML document", e);
-        }
-
-        try {
-            performRestPut(bucketName, null, metadata, requestParameters,
-                new StringEntity(xml, "text/plain", Constants.DEFAULT_ENCODING),
-                true);
-        } catch (ServiceException se) {
-            throw new S3ServiceException(se);
-        } catch (UnsupportedEncodingException e) {
-            throw new S3ServiceException("Unable to encode XML document", e);
-        }
-    }
-
-    @Override
-    protected void deleteWebsiteConfigImpl(String bucketName)
-        throws S3ServiceException
-    {
-        try {
-            Map<String, String> requestParameters = new HashMap<String, String>();
-            requestParameters.put("website", "");
-            performRestDelete(bucketName, null, requestParameters, null, null);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }
