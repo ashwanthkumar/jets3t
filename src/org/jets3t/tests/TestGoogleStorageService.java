@@ -19,6 +19,7 @@
 package org.jets3t.tests;
 
 import org.jets3t.service.ServiceException;
+import org.jets3t.service.StorageService;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.acl.gs.GSAccessControlList;
 import org.jets3t.service.impl.rest.httpclient.GoogleStorageService;
@@ -126,5 +127,12 @@ public class TestGoogleStorageService extends BaseStorageServiceTests {
         finally {
             cleanupBucketForTest("testListBucketsByProject");
         }
+    }
+
+    protected StorageBucket createBucketForTest(String testName, String location) throws Exception {
+        String bucketName = getBucketNameForTest(testName);
+        StorageService service = getStorageService(getCredentials());
+        String projectId = testProperties.getProperty("gsservice.project_id");
+        return ((GoogleStorageService)service).createBucket(bucketName, null, null, projectId);
     }
 }
