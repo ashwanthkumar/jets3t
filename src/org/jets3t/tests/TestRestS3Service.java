@@ -57,10 +57,10 @@ import org.jets3t.service.model.NotificationConfig;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3BucketLoggingStatus;
 import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.S3WebsiteConfig;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageBucketLoggingStatus;
 import org.jets3t.service.model.StorageObject;
-import org.jets3t.service.model.WebsiteConfig;
 import org.jets3t.service.model.NotificationConfig.TopicConfig;
 import org.jets3t.service.model.container.ObjectKeyAndVersion;
 import org.jets3t.service.multi.s3.MultipartUploadAndParts;
@@ -671,22 +671,24 @@ public class TestRestS3Service extends BaseStorageServiceTests {
 
         try {
             HttpClient httpClient = new DefaultHttpClient();
-            HttpGet getMethod = null;
+            HttpGet getMethod;
 
             // Check no existing website config
             try {
                 s3Service.getWebsiteConfig(bucketName);
                 fail("Unexpected website config for bucket " + bucketName);
-            } catch (S3ServiceException e) { }
+            } catch (S3ServiceException e) {
+                assertEquals(404, e.getResponseCode());
+            }
 
             // Set index document
             s3Service.setWebsiteConfig(bucketName,
-                new WebsiteConfig("index.html"));
+                new S3WebsiteConfig("index.html"));
 
             Thread.sleep(5000);
 
             // Confirm index document set
-            WebsiteConfig config = s3Service.getWebsiteConfig(bucketName);
+            S3WebsiteConfig config = s3Service.getWebsiteConfig(bucketName);
             assertTrue(config.isWebsiteConfigActive());
             assertEquals("index.html", config.getIndexDocumentSuffix());
             assertNull(config.getErrorDocumentKey());
@@ -711,7 +713,7 @@ public class TestRestS3Service extends BaseStorageServiceTests {
 
             // Set index document and error document
             s3Service.setWebsiteConfig(bucketName,
-                new WebsiteConfig("index.html", "error.html"));
+                new S3WebsiteConfig("index.html", "error.html"));
 
             Thread.sleep(10000);  // Config updates can take a long time... ugh!
 
