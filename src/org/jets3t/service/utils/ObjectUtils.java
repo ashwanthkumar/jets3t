@@ -250,7 +250,7 @@ public class ObjectUtils {
 
             // Write transformed data to temporary file.
             byte[] buffer = new byte[8192];
-            int c = -1;
+            int c;
             while ((c = inputStream.read(buffer)) >= 0) {
                 outputStream.write(buffer, 0, c);
             }
