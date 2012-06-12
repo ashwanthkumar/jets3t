@@ -851,7 +851,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
             }
 
             // Ensure each AMZ header is uniquely identified according to the lowercase name.
-            String duplicateValue = (String) headersAlreadySeenMap.get(key.toLowerCase(Locale.US));
+            String duplicateValue = (String) headersAlreadySeenMap.get(key.toLowerCase(Locale.ENGLISH));
             if (duplicateValue != null && !duplicateValue.equals(value)) {
                 throw new ServiceException(
                     "HTTP header name occurs multiple times in request with different values, " +
@@ -865,7 +865,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 || !S3Object.METADATA_HEADER_CONTENT_LENGTH.equalsIgnoreCase(key)){
                 httpMethod.setHeader(key, value);
             }
-            headersAlreadySeenMap.put(key.toLowerCase(Locale.US), value);
+            headersAlreadySeenMap.put(key.toLowerCase(Locale.ENGLISH), value);
         }
     }
 
