@@ -303,8 +303,7 @@ public class XmlResponsesSaxParser {
         } else {
             handler = new S3BucketLoggingStatusHandler();
         }
-        parseXmlInputStream(handler, inputStream);
-        return handler;
+        return parseLoggingStatusResponse(inputStream, handler);
     }
 
     /**
@@ -435,6 +434,13 @@ public class XmlResponsesSaxParser {
             parseXmlInputStream(handler, inputStream);
             return handler.getWebsiteConfig();
         }
+    }
+
+    public WebsiteConfig parseWebsiteConfigurationResponse(
+        InputStream inputStream, WebsiteConfigurationHandler handler) throws ServiceException
+    {
+        parseXmlInputStream(handler, inputStream);
+        return handler.getWebsiteConfig();
     }
 
     public NotificationConfig parseNotificationConfigurationResponse(
@@ -1604,14 +1610,9 @@ public class XmlResponsesSaxParser {
         }
     }
 
-    public class S3WebsiteConfigurationHandler extends DefaultXmlHandler {
-        private S3WebsiteConfig config = null;
+    public class S3WebsiteConfigurationHandler extends WebsiteConfigurationHandler {
         private String indexDocumentSuffix = null;
         private String errorDocumentKey = null;
-
-        public S3WebsiteConfig getWebsiteConfig() {
-            return config;
-        }
 
         @Override
         public void endElement(String name, String elementText) {
@@ -1620,20 +1621,15 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("Key")) {
                 this.errorDocumentKey = elementText;
             } else if (name.equals("WebsiteConfiguration")) {
-                this.config = new S3WebsiteConfig(
+                this.websiteConfig = new S3WebsiteConfig(
                     indexDocumentSuffix, errorDocumentKey);
             }
         }
     }
 
-    public class GSWebsiteConfigurationHandler extends DefaultXmlHandler {
-        private GSWebsiteConfig config = null;
+    public class GSWebsiteConfigurationHandler extends WebsiteConfigurationHandler {
         private String indexDocumentSuffix = null;
         private String errorDocumentKey = null;
-
-        public GSWebsiteConfig getWebsiteConfig() {
-            return config;
-        }
 
         @Override
         public void endElement(String name, String elementText) {
@@ -1642,9 +1638,17 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("NotFoundPage")) {
                 this.errorDocumentKey = elementText;
             } else if (name.equals("WebsiteConfiguration")) {
-                this.config = new GSWebsiteConfig(
+                this.websiteConfig = new GSWebsiteConfig(
                     indexDocumentSuffix, errorDocumentKey);
             }
+        }
+    }
+
+    public class WebsiteConfigurationHandler extends DefaultXmlHandler {
+        protected WebsiteConfig websiteConfig;
+
+        public WebsiteConfig getWebsiteConfig() {
+            return websiteConfig;
         }
     }
 
