@@ -189,7 +189,7 @@ public class RestUtils {
                 if (key == null) {
                     continue;
                 }
-                String lk = key.toString().toLowerCase(Locale.getDefault());
+                String lk = key.toString().toLowerCase(Locale.ENGLISH);
 
                 // Ignore any headers that are not particularly interesting.
                 if (lk.equals("content-type") || lk.equals("content-md5") || lk.equals("date") ||

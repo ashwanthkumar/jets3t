@@ -572,7 +572,7 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("MaxKeys")) {
                 requestMaxKeys = Long.parseLong(elementText);
             } else if (name.equals("IsTruncated")) {
-                String isTruncatedStr = elementText.toLowerCase(Locale.getDefault());
+                String isTruncatedStr = elementText.toLowerCase(Locale.ENGLISH);
                 if (isTruncatedStr.startsWith("false")) {
                     listingTruncated = false;
                 } else if (isTruncatedStr.startsWith("true")) {
@@ -1064,7 +1064,7 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("MaxKeys")) {
                 requestMaxKeys = Long.parseLong(elementText);
             } else if (name.equals("IsTruncated")) {
-                String isTruncatedStr = elementText.toLowerCase(Locale.getDefault());
+                String isTruncatedStr = elementText.toLowerCase(Locale.ENGLISH);
                 if (isTruncatedStr.startsWith("false")) {
                     listingTruncated = false;
                 } else if (isTruncatedStr.startsWith("true")) {
