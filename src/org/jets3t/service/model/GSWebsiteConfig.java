@@ -41,6 +41,10 @@ public class GSWebsiteConfig extends WebsiteConfig {
         this(indexDocumentSuffix, null);
     }
 
+    public GSWebsiteConfig() {
+        this(null, null);
+    }
+
     /**
      *
      * @return
