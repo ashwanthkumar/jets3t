@@ -554,6 +554,6 @@ public class GoogleStorageService extends RestStorageService {
     {
         // To remove the website configuration, you just send an empty website
         // configuration (with no MainPageSuffix and NotFoundPage elements)
-        this.setWebsiteConfigImpl(bucketName,  new GSWebsiteConfig(null));
+        this.setWebsiteConfigImpl(bucketName,  new GSWebsiteConfig());
     }
 }
