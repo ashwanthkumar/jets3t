@@ -547,4 +547,13 @@ public class GoogleStorageService extends RestStorageService {
     public void deleteWebsiteConfig(String bucketName) throws ServiceException {
         deleteWebsiteConfigImpl(bucketName);
     }
+
+    @Override
+    protected void deleteWebsiteConfigImpl(String bucketName)
+        throws ServiceException
+    {
+        // To remove the website configuration, you just send an empty website
+        // configuration (with no MainPageSuffix and NotFoundPage elements)
+        this.setWebsiteConfigImpl(bucketName,  new GSWebsiteConfig(null));
+    }
 }
