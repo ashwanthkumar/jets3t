@@ -438,8 +438,8 @@ public class RestS3Service extends S3Service {
     @Override
     protected boolean getEnableStorageClasses() {
         return this.jets3tProperties.getBoolProperty("s3service.enable-storage-classes",
-            // Enable non-standard storage classes by default for AWS, not for Google endpoints.
-            isTargettingGoogleStorageService() ? false : true);
+                // Enable non-standard storage classes by default for AWS, not for Google endpoints.
+                !isTargettingGoogleStorageService());
     }
 
     /**
@@ -547,13 +547,13 @@ public class RestS3Service extends S3Service {
                 parameters.remove("version-id-marker");
             }
 
-            HttpResponse httpResponse = null;
+            HttpResponse httpResponse;
             try {
                 httpResponse = performRestGet(bucketName, null, parameters, null);
             } catch (ServiceException se) {
                 throw new S3ServiceException(se);
             }
-            ListVersionsResultsHandler handler = null;
+            ListVersionsResultsHandler handler;
 
             try {
                 handler = getXmlResponseSaxParser()
@@ -771,8 +771,6 @@ public class RestS3Service extends S3Service {
         prepareStorageClass(metadata, storageClass, true, objectKey);
         prepareServerSideEncryption(metadata, serverSideEncryptionAlgorithm, objectKey);
 
-        boolean putNonStandardAcl = !prepareRESTHeaderAcl(metadata, acl);
-
         try {
             HttpResponse httpResponse = performRestPost(
                 bucketName, objectKey, metadata, requestParameters, null, false);
@@ -840,9 +838,8 @@ public class RestS3Service extends S3Service {
             this.putObjectWithRequestEntityImpl(bucketName, object, requestEntity, requestParameters);
 
             // Populate part with response data that is accessible via the object's metadata
-            MultipartPart part = new MultipartPart(partNumber, object.getLastModifiedDate(),
+            return new MultipartPart(partNumber, object.getLastModifiedDate(),
                 object.getETag(), object.getContentLength());
-            return part;
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }
@@ -1047,7 +1044,7 @@ public class RestS3Service extends S3Service {
                 }
 
                 HttpResponse httpResponse = performRestGet(bucketName, null, requestParameters, null);
-                ListMultipartUploadsResultHandler handler = null;
+                ListMultipartUploadsResultHandler handler;
                 try {
                     handler = getXmlResponseSaxParser().parseListMultipartUploadsResult(
                         new HttpMethodReleaseInputStream(httpResponse));
@@ -1126,7 +1123,7 @@ public class RestS3Service extends S3Service {
         try {
             List<MultipartPart> parts = new ArrayList<MultipartPart>();
             String nextPartNumberMarker = null;
-            boolean incompleteListing = true;
+            boolean incompleteListing;
             do {
                 if (nextPartNumberMarker != null) {
                     requestParameters.put("part-number-marker", nextPartNumberMarker);
@@ -1181,7 +1178,7 @@ public class RestS3Service extends S3Service {
 
         Map<String, Object> metadata = new HashMap<String, Object>();
 
-        String xml = null;
+        String xml;
         try {
             xml = config.toXml();
         } catch (Exception e) {
