@@ -230,7 +230,7 @@ public class GoogleStorageService extends RestStorageService {
      */
     @Override
     protected boolean getDisableDnsBuckets() {
-      return this.jets3tProperties.getBoolProperty("gsservice.disable-dns-buckets", false);
+      return this.jets3tProperties.getBoolProperty("gsservice.disable-dns-buckets", true);
     }
 
     /**
