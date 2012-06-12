@@ -55,8 +55,10 @@ public class GSWebsiteConfig extends WebsiteConfig {
     {
         XMLBuilder builder = XMLBuilder.create("WebsiteConfiguration")
             .attr("xmlns", Constants.XML_NAMESPACE)
-            .elem("MainPageSuffix").text(this.getIndexDocumentSuffix())
-            .up().up();
+            .up();
+        if (this.getIndexDocumentSuffix() != null && this.getIndexDocumentSuffix().length() > 0) {
+            builder.elem("MainPageSuffix").text(this.getIndexDocumentSuffix());
+        }
         if (this.getErrorDocumentKey() != null && this.getErrorDocumentKey().length() > 0) {
             builder.elem("NotFoundPage").text(this.getErrorDocumentKey());
         }
