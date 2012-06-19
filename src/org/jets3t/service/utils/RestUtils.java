@@ -189,7 +189,7 @@ public class RestUtils {
                 if (key == null) {
                     continue;
                 }
-                String lk = key.toString().toLowerCase(Locale.getDefault());
+                String lk = key.toString().toLowerCase(Locale.ENGLISH);
 
                 // Ignore any headers that are not particularly interesting.
                 if (lk.equals("content-type") || lk.equals("content-md5") || lk.equals("date") ||
@@ -577,16 +577,6 @@ public class RestUtils {
                 HTTP.DEFAULT_CONTENT_CHARSET);
         HttpConnectionParams.setTcpNoDelay(params, true);
         HttpConnectionParams.setSocketBufferSize(params, 8192);
-
-        // determine the release version from packaged version info
-        final VersionInfo vi = VersionInfo.loadVersionInfo("org.apache.http.client",
-                HttpClient.class.getClassLoader());
-        final String release = (vi != null)
-                ? vi.getRelease()
-                : VersionInfo.UNAVAILABLE;
-        HttpProtocolParams.setUserAgent(params, "Apache-HttpClient/" + release
-                + " (java 1.5)");
-
         return params;
     }
 

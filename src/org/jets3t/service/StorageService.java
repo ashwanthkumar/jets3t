@@ -1301,7 +1301,7 @@ public abstract class StorageService {
                 String key = entry.getKey();
                 Object value = entry.getValue();
 
-                if (!RestUtils.HTTP_HEADER_METADATA_NAMES.contains(key.toLowerCase(Locale.getDefault()))
+                if (!RestUtils.HTTP_HEADER_METADATA_NAMES.contains(key.toLowerCase(Locale.ENGLISH))
                     && !key.startsWith(this.getRestHeaderPrefix()))
                 {
                     key = this.getRestMetadataPrefix() + key;

@@ -63,7 +63,6 @@ import org.jets3t.service.model.S3BucketVersioningStatus;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
-import org.jets3t.service.model.WebsiteConfig;
 import org.jets3t.service.model.container.ObjectKeyAndVersion;
 import org.jets3t.service.security.AWSDevPayCredentials;
 import org.jets3t.service.security.AWSSessionCredentials;
@@ -439,8 +438,8 @@ public class RestS3Service extends S3Service {
     @Override
     protected boolean getEnableStorageClasses() {
         return this.jets3tProperties.getBoolProperty("s3service.enable-storage-classes",
-            // Enable non-standard storage classes by default for AWS, not for Google endpoints.
-            isTargettingGoogleStorageService() ? false : true);
+                // Enable non-standard storage classes by default for AWS, not for Google endpoints.
+                !isTargettingGoogleStorageService());
     }
 
     /**
@@ -548,13 +547,13 @@ public class RestS3Service extends S3Service {
                 parameters.remove("version-id-marker");
             }
 
-            HttpResponse httpResponse = null;
+            HttpResponse httpResponse;
             try {
                 httpResponse = performRestGet(bucketName, null, parameters, null);
             } catch (ServiceException se) {
                 throw new S3ServiceException(se);
             }
-            ListVersionsResultsHandler handler = null;
+            ListVersionsResultsHandler handler;
 
             try {
                 handler = getXmlResponseSaxParser()
@@ -772,8 +771,6 @@ public class RestS3Service extends S3Service {
         prepareStorageClass(metadata, storageClass, true, objectKey);
         prepareServerSideEncryption(metadata, serverSideEncryptionAlgorithm, objectKey);
 
-        boolean putNonStandardAcl = !prepareRESTHeaderAcl(metadata, acl);
-
         try {
             HttpResponse httpResponse = performRestPost(
                 bucketName, objectKey, metadata, requestParameters, null, false);
@@ -841,9 +838,8 @@ public class RestS3Service extends S3Service {
             this.putObjectWithRequestEntityImpl(bucketName, object, requestEntity, requestParameters);
 
             // Populate part with response data that is accessible via the object's metadata
-            MultipartPart part = new MultipartPart(partNumber, object.getLastModifiedDate(),
+            return new MultipartPart(partNumber, object.getLastModifiedDate(),
                 object.getETag(), object.getContentLength());
-            return part;
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }
@@ -1048,7 +1044,7 @@ public class RestS3Service extends S3Service {
                 }
 
                 HttpResponse httpResponse = performRestGet(bucketName, null, requestParameters, null);
-                ListMultipartUploadsResultHandler handler = null;
+                ListMultipartUploadsResultHandler handler;
                 try {
                     handler = getXmlResponseSaxParser().parseListMultipartUploadsResult(
                         new HttpMethodReleaseInputStream(httpResponse));
@@ -1127,7 +1123,7 @@ public class RestS3Service extends S3Service {
         try {
             List<MultipartPart> parts = new ArrayList<MultipartPart>();
             String nextPartNumberMarker = null;
-            boolean incompleteListing = true;
+            boolean incompleteListing;
             do {
                 if (nextPartNumberMarker != null) {
                     requestParameters.put("part-number-marker", nextPartNumberMarker);
@@ -1158,61 +1154,6 @@ public class RestS3Service extends S3Service {
     }
 
     @Override
-    protected WebsiteConfig getWebsiteConfigImpl(String bucketName) throws S3ServiceException
-    {
-        try {
-            Map<String, String> requestParameters = new HashMap<String, String>();
-            requestParameters.put("website", "");
-
-            HttpResponse getMethod = performRestGet(bucketName, null, requestParameters, null);
-            return getXmlResponseSaxParser().parseWebsiteConfigurationResponse(
-                new HttpMethodReleaseInputStream(getMethod));
-        } catch (ServiceException se) {
-            throw new S3ServiceException(se);
-        }
-    }
-
-    @Override
-    protected void setWebsiteConfigImpl(String bucketName, WebsiteConfig config)
-        throws S3ServiceException
-    {
-        Map<String, String> requestParameters = new HashMap<String, String>();
-        requestParameters.put("website", "");
-
-        Map<String, Object> metadata = new HashMap<String, Object>();
-
-        String xml = null;
-        try {
-            xml = config.toXml();
-        } catch (Exception e) {
-            throw new S3ServiceException("Unable to build WebsiteConfig XML document", e);
-        }
-
-        try {
-            performRestPut(bucketName, null, metadata, requestParameters,
-                new StringEntity(xml, "text/plain", Constants.DEFAULT_ENCODING),
-                true);
-        } catch (ServiceException se) {
-            throw new S3ServiceException(se);
-        } catch (UnsupportedEncodingException e) {
-            throw new S3ServiceException("Unable to encode XML document", e);
-        }
-    }
-
-    @Override
-    protected void deleteWebsiteConfigImpl(String bucketName)
-        throws S3ServiceException
-    {
-        try {
-            Map<String, String> requestParameters = new HashMap<String, String>();
-            requestParameters.put("website", "");
-            performRestDelete(bucketName, null, requestParameters, null, null);
-        } catch (ServiceException se) {
-            throw new S3ServiceException(se);
-        }
-    }
-
-    @Override
     protected NotificationConfig getNotificationConfigImpl(String bucketName)
         throws S3ServiceException
     {
@@ -1237,7 +1178,7 @@ public class RestS3Service extends S3Service {
 
         Map<String, Object> metadata = new HashMap<String, Object>();
 
-        String xml = null;
+        String xml;
         try {
             xml = config.toXml();
         } catch (Exception e) {

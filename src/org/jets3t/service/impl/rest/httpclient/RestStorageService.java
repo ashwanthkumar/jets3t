@@ -67,6 +67,7 @@ import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageBucketLoggingStatus;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.StorageOwner;
+import org.jets3t.service.model.WebsiteConfig;
 import org.jets3t.service.mx.MxDelegate;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.Mimetypes;
@@ -89,7 +90,7 @@ import com.jamesmurty.utils.XMLBuilder;
 public abstract class RestStorageService extends StorageService implements JetS3tRequestAuthorizer {
     private static final Log log = LogFactory.getLog(RestStorageService.class);
 
-    protected static enum HTTP_METHOD {PUT, POST, HEAD, GET, DELETE};
+    protected static enum HTTP_METHOD {PUT, POST, HEAD, GET, DELETE}
 
     protected HttpClient httpClient;
     protected CredentialsProvider credentialsProvider;
@@ -255,24 +256,19 @@ public abstract class RestStorageService extends StorageService implements JetS3
      * Changing the credentials provider with this method will have no effect until
      * the {@link #initHttpConnection()} method is called.
      *
-     * @param credentialsProvider
+     * @param credentialsProvider Credentials
      */
     public void setCredentialsProvider(CredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
     }
 
     /**
-     * @param contentType
+     * @param contentType HTTP Header
      * @return true if the given Content-Type string represents an XML document.
      */
     protected boolean isXmlContentType(String contentType) {
-        if (contentType != null
-            && contentType.toLowerCase().startsWith(Mimetypes.MIMETYPE_XML.toLowerCase()))
-        {
-            return true;
-        } else {
-            return false;
-        }
+        return contentType != null
+                && contentType.toLowerCase().startsWith(Mimetypes.MIMETYPE_XML.toLowerCase());
     }
 
     protected HttpResponse performRequest(HttpUriRequest httpMethod, int[] expectedResponseCodes)
@@ -313,7 +309,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
             }
 
             // Variables to manage S3 Internal Server 500 or 503 Service Unavailable errors.
-            boolean completedWithoutRecoverableError = true;
+            boolean completedWithoutRecoverableError;
             int internalErrorCount = 0;
             int requestTimeoutErrorCount = 0;
             int redirectCount = 0;
@@ -321,7 +317,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
             boolean wasRecentlyRedirected = false;
 
             // Perform the request, sleeping and retrying when errors are encountered.
-            int responseCode = -1;
+            int responseCode;
             do {
                 // Build the authorization string for the method (Unless we have just been redirected).
                 if (!wasRecentlyRedirected) {
@@ -411,7 +407,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                         try {
                             reader = new BufferedReader(new InputStreamReader(
                                 new HttpMethodReleaseInputStream(response)));
-                            String line = null;
+                            String line;
                             while ((line = reader.readLine()) != null) {
                                 sb.append(line).append("\n");
                             }
@@ -617,8 +613,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
      * for an item are unlikely to change, but if a service is using expiring authorization tokens
      * (e.g. OAuth) it may be worthwhile retrying after refreshing those tokens.
      *
-     * @param httpRequest
-     * @param exception
+     * @param httpRequest Request
+     * @param exception Server response
      * @return
      * true if the request should be retried, otherwise false.
      */
@@ -659,7 +655,6 @@ public abstract class RestStorageService extends StorageService implements JetS3
          */
         // Use raw-path, otherwise escaped characters are unescaped and a wrong
         // signature is produced
-        String xfullUrl = uri.getPath();
         String fullUrl = uri.getRawPath();
 
         // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
@@ -691,7 +686,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
         }
 
         // Generate a canonical string representing the operation.
-        String canonicalString = null;
+        String canonicalString;
         try {
             canonicalString = RestUtils.makeServiceCanonicalString(
                     httpMethod.getMethod(),
@@ -737,7 +732,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 String key = entry.getKey();
                 String value = entry.getValue();
 
-                urlPath += (urlPath.indexOf("?") < 0 ? "?" : "&")
+                urlPath += (!urlPath.contains("?") ? "?" : "&")
                     + RestUtils.encodeUrlString(key);
                 if (value != null && value.length() > 0) {
                     urlPath += "=" + RestUtils.encodeUrlString(value);
@@ -782,8 +777,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
     /**
      * Converts an array of Header objects to a map of name/value pairs.
      *
-     * @param headers
-     * @return
+     * @param headers Request or response HTTP headers
+     * @return Map by header name
      */
     private Map<String, Object> convertHeadersToMap(Header[] headers) {
         Map<String, Object> map = new HashMap<String, Object>();
@@ -801,8 +796,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
      * and that items are not accidentally duplicated due to use of different capitalization.
      * If either of these verification tests fails, an {@link org.jets3t.service.ServiceException} is thrown.
      *
-     * @param httpMethod
-     * @param metadata
+     * @param httpMethod Request
+     * @param metadata Metadata request headers
      * @throws org.jets3t.service.ServiceException
      */
     protected void addMetadataToHeaders(
@@ -856,7 +851,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
             }
 
             // Ensure each AMZ header is uniquely identified according to the lowercase name.
-            String duplicateValue = (String) headersAlreadySeenMap.get(key.toLowerCase(Locale.US));
+            String duplicateValue = (String) headersAlreadySeenMap.get(key.toLowerCase(Locale.ENGLISH));
             if (duplicateValue != null && !duplicateValue.equals(value)) {
                 throw new ServiceException(
                     "HTTP header name occurs multiple times in request with different values, " +
@@ -870,7 +865,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 || !S3Object.METADATA_HEADER_CONTENT_LENGTH.equalsIgnoreCase(key)){
                 httpMethod.setHeader(key, value);
             }
-            headersAlreadySeenMap.put(key.toLowerCase(Locale.US), value);
+            headersAlreadySeenMap.put(key.toLowerCase(Locale.ENGLISH), value);
         }
     }
 
@@ -878,8 +873,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
      * Compares the expected and actual ETag value for an uploaded object, and throws an
      * ServiceException if these values do not match.
      *
-     * @param expectedETag
-     * @param uploadedObject
+     * @param expectedETag Expected checksum
+     * @param uploadedObject Uploaded key
      * @throws org.jets3t.service.ServiceException
      */
     protected void verifyExpectedAndActualETagValues(String expectedETag, StorageObject uploadedObject)
@@ -1229,7 +1224,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
         resourceString += (objectKey != null? RestUtils.encodeUrlString(objectKey) : "");
 
         // Construct a URL representing a connection for the S3 resource.
-        String url = null;
+        String url;
         if (isHttpsOnly()) {
             int securePort = this.getHttpsPort();
             url = "https://" + hostname + ":" + securePort + virtualPath + resourceString;
@@ -1244,7 +1239,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
         // Add additional request parameters to the URL for special cases (eg ACL operations)
         url = addRequestParametersToUrlPath(url, requestParameters);
 
-        HttpUriRequest httpMethod = null;
+        HttpUriRequest httpMethod;
         if (HTTP_METHOD.PUT.equals(method)) {
             httpMethod = new HttpPut(url);
         } else if (HTTP_METHOD.POST.equals(method)) {
@@ -1378,10 +1373,9 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 contentType);
         }
 
-        StorageBucket[] buckets = getXmlResponseSaxParser()
+        return getXmlResponseSaxParser()
             .parseListMyBucketsResponse(
                 new HttpMethodReleaseInputStream(httpResponse)).getBuckets();
-        return buckets;
     }
 
     @Override
@@ -1400,10 +1394,9 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 contentType);
         }
 
-        StorageOwner owner = getXmlResponseSaxParser()
+        return getXmlResponseSaxParser()
             .parseListMyBucketsResponse(
                 new HttpMethodReleaseInputStream(httpResponse)).getOwner();
-        return owner;
     }
 
 
@@ -1412,7 +1405,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
         long maxListingLength) throws ServiceException
     {
         return listObjectsInternal(bucketName, prefix, delimiter,
-            maxListingLength, true, null, null).getObjects();
+            maxListingLength, true, null).getObjects();
     }
 
     @Override
@@ -1420,12 +1413,12 @@ public abstract class RestStorageService extends StorageService implements JetS3
         long maxListingLength, String priorLastKey, boolean completeListing) throws ServiceException
     {
         return listObjectsInternal(bucketName, prefix, delimiter,
-            maxListingLength, completeListing, priorLastKey, null);
+            maxListingLength, completeListing, priorLastKey);
     }
 
     protected StorageObjectsChunk listObjectsInternal(
-        String bucketName, String prefix, String delimiter, long maxListingLength,
-        boolean automaticallyMergeChunks, String priorLastKey, String priorLastVersion)
+            String bucketName, String prefix, String delimiter, long maxListingLength,
+            boolean automaticallyMergeChunks, String priorLastKey)
         throws ServiceException
     {
         Map<String, String> parameters = new HashMap<String, String>();
@@ -1453,7 +1446,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
             }
 
             HttpResponse httpResponse = performRestGet(bucketName, null, parameters, null);
-            ListBucketHandler listBucketHandler = null;
+            ListBucketHandler listBucketHandler;
 
             try {
                 listBucketHandler = getXmlResponseSaxParser()
@@ -1594,8 +1587,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
     protected void putBucketAclImpl(String bucketName, AccessControlList acl)
         throws ServiceException
     {
-        String fullKey = bucketName;
-        putAclImpl(fullKey, null, acl, null);
+        putAclImpl(bucketName, null, acl, null);
     }
 
     protected void putAclImpl(String bucketName, String objectKey, AccessControlList acl,
@@ -1722,7 +1714,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
         Map<String, Object> metadata = new HashMap<String, Object>();
         metadata.put("Content-Type", "text/plain");
 
-        String statusAsXml = null;
+        String statusAsXml;
         try {
             statusAsXml = status.toXml();
         } catch (Exception e) {
@@ -1886,8 +1878,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
      * Prepares the metadata with the given ACL
      * an ACL is provided and can be represented with a HTTP header.
      *
-     * @param metadata
-     * @param acl
+     * @param metadata Metadata request headers
+     * @param acl Access control list
      * @return true if no acl or standard, false otherwise
      * false if an ACL was provided but it could not be applied as a canned ACL.
      */
@@ -1924,7 +1916,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                     + "' to object '" + objectKey + "'");
             }
             if (storageClass != null
-                && storageClass != "")  // Hack to avoid applying empty storage class (Issue #121)
+                && !storageClass.equals(""))  // Hack to avoid applying empty storage class (Issue #121)
             {
                 metadata.put(this.getRestHeaderPrefix() + "storage-class", storageClass);
             }
@@ -2143,7 +2135,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
             requestParameters.put("versionId", versionId);
         }
 
-        HttpResponse httpResponse = null;
+        HttpResponse httpResponse;
         if (headOnly) {
             httpResponse = performRestHead(bucketName, objectKey, requestParameters, requestHeaders);
         } else {
@@ -2341,9 +2333,6 @@ public abstract class RestStorageService extends StorageService implements JetS3
     {
         HttpGet httpMethod = new HttpGet(signedAclUrl);
 
-        Map<String, Object> requestParameters = new HashMap<String, Object>();
-        requestParameters.put("acl","");
-
         HttpResponse httpResponse = performRequest(httpMethod, new int[] {200});
         return getXmlResponseSaxParser()
             .parseAccessControlListResponse(
@@ -2391,7 +2380,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
     {
         String s3Endpoint = this.getEndpoint();
 
-        HttpRequestBase httpMethod = null;
+        HttpRequestBase httpMethod;
         if (headOnly) {
             httpMethod = new HttpHead(signedGetOrHeadUrl);
         } else {
@@ -2403,7 +2392,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
         Map<String, Object> map = new HashMap<String, Object>();
         map.putAll(convertHeadersToMap(httpResponse.getAllHeaders()));
 
-        S3Object responseObject = null;
+        S3Object responseObject;
         try {
             responseObject = ServiceUtils.buildObjectFromUrl(
                 httpMethod.getURI().getHost(),
@@ -2428,5 +2417,47 @@ public abstract class RestStorageService extends StorageService implements JetS3
         }
 
         return responseObject;
+    }
+
+    protected WebsiteConfig getWebsiteConfigImpl(String bucketName) throws ServiceException
+    {
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put(this.isTargettingGoogleStorageService() ? "websiteConfig" : "website", "");
+
+        HttpResponse getMethod = performRestGet(bucketName, null, requestParameters, null);
+        return getXmlResponseSaxParser().parseWebsiteConfigurationResponse(
+                new HttpMethodReleaseInputStream(getMethod));
+    }
+
+    protected void setWebsiteConfigImpl(String bucketName, WebsiteConfig config)
+        throws ServiceException
+    {
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put(this.isTargettingGoogleStorageService() ? "websiteConfig" : "website", "");
+
+        Map<String, Object> metadata = new HashMap<String, Object>();
+
+        String xml;
+        try {
+            xml = config.toXml();
+        } catch (Exception e) {
+            throw new ServiceException("Unable to build WebsiteConfig XML document", e);
+        }
+
+        try {
+            performRestPut(bucketName, null, metadata, requestParameters,
+                new StringEntity(xml, "text/plain", Constants.DEFAULT_ENCODING),
+                true);
+        } catch (UnsupportedEncodingException e) {
+            throw new ServiceException("Unable to encode XML document", e);
+        }
+    }
+
+    protected void deleteWebsiteConfigImpl(String bucketName)
+        throws ServiceException
+    {
+        Map<String, String> requestParameters = new HashMap<String, String>();
+        requestParameters.put(this.isTargettingGoogleStorageService() ? "websiteConfig" : "website", "");
+        performRestDelete(bucketName, null, requestParameters, null, null);
     }
 }
