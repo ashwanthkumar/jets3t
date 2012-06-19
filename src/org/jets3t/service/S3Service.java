@@ -50,7 +50,7 @@ import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.S3Version;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
-import org.jets3t.service.model.WebsiteConfig;
+import org.jets3t.service.model.S3WebsiteConfig;
 import org.jets3t.service.model.container.ObjectKeyAndVersion;
 import org.jets3t.service.mx.MxDelegate;
 import org.jets3t.service.security.AWSDevPayCredentials;
@@ -226,7 +226,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     {
         try {
             String s3Endpoint = this.getEndpoint();
-            String uriPath = "";
+            String uriPath;
 
             String hostname = (isVirtualHost
                 ? bucketName
@@ -279,7 +279,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
 
             // Include Requester Pays header flag, if the flag is included as a request parameter.
             if (specialParamName != null
-                && specialParamName.toLowerCase().indexOf(Constants.REQUESTER_PAYS_BUCKET_FLAG) >= 0)
+                && specialParamName.toLowerCase().contains(Constants.REQUESTER_PAYS_BUCKET_FLAG))
             {
                 String[] requesterPaysHeaderAndValue = Constants.REQUESTER_PAYS_BUCKET_FLAG.split("=");
                 headersMap.put(requesterPaysHeaderAndValue[0], requesterPaysHeaderAndValue[1]);
@@ -3111,8 +3111,8 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     /**
      * Apply a JSON access control policy document to a bucket.
      *
-     * @param bucketName
-     * @param policyDocument
+     * @param bucketName Name of the bucket
+     * @param policyDocument JSON access control policy document
      * @throws S3ServiceException
      */
     public void setBucketPolicy(String bucketName, String policyDocument)
@@ -3125,7 +3125,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * Retrieve the JSON access control policy document for a bucket,
      * or null if the bucket does not have a policy.
      *
-     * @param bucketName
+     * @param bucketName Name of the bucket
      * @return
      * JSON policy document for bucket, or null if the bucket has no policy.
      * @throws S3ServiceException
@@ -3147,7 +3147,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     /**
      * Delete the acces control policy document for a bucket.
      *
-     * @param bucketName
+     * @param bucketName Name of the bucket
      * @throws S3ServiceException
      */
     public void deleteBucketPolicy(String bucketName)
@@ -3714,10 +3714,14 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * the website configuration details.
      * @throws S3ServiceException
      */
-    public void setWebsiteConfig(String bucketName, WebsiteConfig config)
+    public void setWebsiteConfig(String bucketName, S3WebsiteConfig config)
         throws S3ServiceException
     {
-        setWebsiteConfigImpl(bucketName, config);
+        try {
+            setWebsiteConfigImpl(bucketName, config);
+        } catch(ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -3727,8 +3731,12 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * the website configuration details.
      * @throws S3ServiceException
      */
-    public WebsiteConfig getWebsiteConfig(String bucketName) throws S3ServiceException {
-        return getWebsiteConfigImpl(bucketName);
+    public S3WebsiteConfig getWebsiteConfig(String bucketName) throws S3ServiceException {
+        try {
+            return (S3WebsiteConfig) getWebsiteConfigImpl(bucketName);
+        } catch(ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -3740,7 +3748,11 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * @throws S3ServiceException
      */
     public void deleteWebsiteConfig(String bucketName) throws S3ServiceException {
-        deleteWebsiteConfigImpl(bucketName);
+        try {
+            deleteWebsiteConfigImpl(bucketName);
+        } catch(ServiceException se) {
+            throw new S3ServiceException(se);
+        }
     }
 
     /**
@@ -3867,15 +3879,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         String[] ifMatchTags, String[] ifNoneMatchTags,
         Long byteRangeStart, Long byteRangeEnd,
         String versionId) throws S3ServiceException;
-
-    protected abstract void setWebsiteConfigImpl(String bucketName, WebsiteConfig config)
-        throws S3ServiceException;
-
-    protected abstract WebsiteConfig getWebsiteConfigImpl(String bucketName)
-        throws S3ServiceException;
-
-    protected abstract void deleteWebsiteConfigImpl(String bucketName)
-        throws S3ServiceException;
 
     protected abstract void setNotificationConfigImpl(String bucketName, NotificationConfig config)
         throws S3ServiceException;

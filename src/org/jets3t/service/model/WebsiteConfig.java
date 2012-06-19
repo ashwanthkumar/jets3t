@@ -22,26 +22,16 @@ import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 
-import org.jets3t.service.Constants;
-
-import com.jamesmurty.utils.XMLBuilder;
-
 /**
- * Represents the website configuraton of a bucket
- *
- * @author James Murty
+ * @version $Id:$
  */
-public class WebsiteConfig {
+public abstract class WebsiteConfig {
     private String indexDocumentSuffix = null;
     private String errorDocumentKey = null;
 
     public WebsiteConfig(String indexDocumentSuffix, String errorDocumentKey) {
         this.indexDocumentSuffix = indexDocumentSuffix;
         this.errorDocumentKey = errorDocumentKey;
-    }
-
-    public WebsiteConfig(String indexDocumentSuffix) {
-        this(indexDocumentSuffix, null);
     }
 
     public String getIndexDocumentSuffix() {
@@ -56,26 +46,6 @@ public class WebsiteConfig {
         return (indexDocumentSuffix != null);
     }
 
-    /**
-     *
-     * @return
-     * An XML representation of the object suitable for use as an input to the REST/HTTP interface.
-     *
-     * @throws FactoryConfigurationError
-     * @throws ParserConfigurationException
-     * @throws TransformerException
-     */
-    public String toXml() throws ParserConfigurationException,
-        FactoryConfigurationError, TransformerException
-    {
-        XMLBuilder builder = XMLBuilder.create("WebsiteConfiguration")
-            .attr("xmlns", Constants.XML_NAMESPACE)
-            .elem("IndexDocument").elem("Suffix").text(this.indexDocumentSuffix)
-            .up().up();
-        if (this.errorDocumentKey != null && this.errorDocumentKey.length() > 0) {
-            builder.elem("ErrorDocument").elem("Key").text(this.errorDocumentKey);
-        }
-        return builder.asString();
-    }
-
+    public abstract String toXml() throws ParserConfigurationException,
+            FactoryConfigurationError, TransformerException;
 }

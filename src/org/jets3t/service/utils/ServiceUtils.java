@@ -310,7 +310,7 @@ public class ServiceUtils {
                         log.debug("Removed header prefix "
                             + headerPrefix + " from key: " + keyStr + "=>" + key);
                     }
-                } else if (RestUtils.HTTP_HEADER_METADATA_NAMES.contains(keyStr.toLowerCase(Locale.getDefault()))) {
+                } else if (RestUtils.HTTP_HEADER_METADATA_NAMES.contains(keyStr.toLowerCase(Locale.ENGLISH))) {
                     key = keyStr;
                     if (log.isDebugEnabled()) {
                         log.debug("Leaving HTTP header item unchanged: " + key + "=" + value);
@@ -399,7 +399,7 @@ public class ServiceUtils {
             }
             sb.append(hex);
         }
-        return sb.toString().toLowerCase(Locale.getDefault());
+        return sb.toString().toLowerCase(Locale.ENGLISH);
     }
 
     /**

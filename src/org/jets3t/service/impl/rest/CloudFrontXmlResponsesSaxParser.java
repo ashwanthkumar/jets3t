@@ -85,12 +85,9 @@ public class CloudFrontXmlResponsesSaxParser {
 
     /**
      * Parses an XML document from an input stream using a document handler.
-     * @param handler
-     *        the handler for the XML document
-     * @param inputStream
-     *        an input stream containing the XML document to parse
-     * @throws S3ServiceException
-     *        any parsing, IO or other exceptions are wrapped in an S3ServiceException.
+     * @param handler The handler for the XML document
+     * @param inputStream An input stream containing the XML document to parse
+     * @throws CloudFrontServiceException Any parsing, IO or other exceptions are wrapped in an S3ServiceException.
      */
     protected void parseXmlInputStream(DefaultHandler handler, InputStream inputStream)
         throws CloudFrontServiceException
@@ -902,5 +899,4 @@ public class CloudFrontXmlResponsesSaxParser {
             this.requestId = text;
         }
     }
-
 }

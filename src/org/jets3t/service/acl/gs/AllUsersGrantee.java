@@ -52,7 +52,7 @@ public class AllUsersGrantee extends GroupGrantee {
     @Override
     public boolean equals(Object obj) {
         return (obj instanceof AllUsersGrantee
-                && ((AllUsersGrantee)obj).getIdentifier() == this.getIdentifier());
+                && ((AllUsersGrantee)obj).getIdentifier().equals(this.getIdentifier()));
     }
 
     @Override

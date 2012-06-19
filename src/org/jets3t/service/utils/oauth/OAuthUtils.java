@@ -27,6 +27,7 @@ import org.apache.http.NameValuePair;
 import org.apache.http.StatusLine;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
@@ -319,8 +320,7 @@ public class OAuthUtils {
                         return null;
                     }
                 }
-                throw new ClientProtocolException(String.format("%d %s",
-                        statusLine.getStatusCode(), statusLine.getReasonPhrase()));
+                throw new HttpResponseException(statusLine.getStatusCode(), statusLine.getReasonPhrase());
             }
         });
         return jsonMapper.readValue(responseDataString, Map.class);
