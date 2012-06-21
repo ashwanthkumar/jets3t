@@ -1835,8 +1835,10 @@ public abstract class RestStorageService extends StorageService implements JetS3
         }
 
         // Apply per-object or default options when uploading object
-        prepareStorageClass(metadata, storageClass, true, objectKey);
-        prepareServerSideEncryption(metadata, serverSideEncryptionAlgorithm, objectKey);
+        if (objectKey != null) {
+            prepareStorageClass(metadata, storageClass, true, objectKey);
+            prepareServerSideEncryption(metadata, serverSideEncryptionAlgorithm, objectKey);
+        }
 
         boolean isExtraAclPutRequired = !prepareRESTHeaderAcl(metadata, acl);
 
