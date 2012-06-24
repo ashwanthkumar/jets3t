@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2009 James Murty
+ * Copyright 2009-2012 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import org.jets3t.service.CloudFrontService;
  * @author James Murty
  */
 public class LoggingStatus {
+    private boolean enabled = true;
     private String bucket = null;
     private String prefix = null;
 
@@ -45,6 +46,20 @@ public class LoggingStatus {
      * be null.
      */
     public LoggingStatus(String bucket, String prefix) {
+        this(true, bucket, prefix);
+    }
+
+    /**
+     * @param enabled
+     * @param bucket
+     * the Amazon S3 bucket in which log files will be stored, specified as a full
+     * S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
+     * @param prefix
+     * a prefix to apply to log file names. May be an empty string, but cannot
+     * be null.
+     */
+    public LoggingStatus(boolean enabled, String bucket, String prefix) {
+        this.enabled = enabled;
         this.bucket = bucket;
         this.prefix = prefix;
     }
@@ -85,6 +100,14 @@ public class LoggingStatus {
      */
     public void setBucket(String bucket) {
         this.bucket = bucket;
+    }
+
+    public void setEnabled(boolean value) {
+        this.enabled = value;
+    }
+
+    public boolean isEnabled() {
+        return this.enabled;
     }
 
 }

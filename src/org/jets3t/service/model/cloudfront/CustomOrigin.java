@@ -49,15 +49,15 @@ public class CustomOrigin extends Origin {
     private int httpPort = 80;   // Not customizable in 2010-11-01 API
     private int httpsPort = 443; // Not customizable in 2010-11-01 API
 
-    public CustomOrigin(String dnsName, OriginProtocolPolicy originProtocolPolicy) {
-        super(dnsName);
+    public CustomOrigin(String id, String domainName, OriginProtocolPolicy originProtocolPolicy) {
+        super(id, domainName);
         this.originProtocolPolicy = originProtocolPolicy;
     }
 
-    public CustomOrigin(String dnsName, OriginProtocolPolicy originProtocolPolicy,
+    public CustomOrigin(String id, String domainName, OriginProtocolPolicy originProtocolPolicy,
         int httpPort, int httpsPort)
     {
-        super(dnsName);
+        super(id, domainName);
         this.originProtocolPolicy = originProtocolPolicy;
         this.httpPort = httpPort;
         this.httpsPort = httpsPort;
@@ -77,7 +77,7 @@ public class CustomOrigin extends Origin {
 
     @Override
     public String toString() {
-        return "CustomOrigin: dnsName=" + getDnsName() +
+        return "CustomOrigin: domainName=" + getDomainName() +
             ", originProtocolPolicy=" + getOriginProtocolPolicy() +
             ", httpPort=" + getHttpPort() +
             ", httpsPort=" + getHttpsPort();

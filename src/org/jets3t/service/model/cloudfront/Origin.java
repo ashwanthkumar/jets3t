@@ -20,15 +20,31 @@ package org.jets3t.service.model.cloudfront;
 
 
 public abstract class Origin {
-    private String dnsName = null;
+    private String id;
+    private String domainName = null;
 
-    public Origin(String dnsName)
+    public Origin(String id, String domainName)
     {
-        this.dnsName = dnsName;
+        this.id = id;
+        this.domainName = domainName;
     }
 
+    public String getId() {
+        return this.id;
+    }
+
+    /**
+     * @deprecated as of 2012-05-05 API version
+     * @return
+     * Origin's domain name.
+     */
+    @Deprecated
     public String getDnsName() {
-        return dnsName;
+        return getDomainName();
+    }
+
+    public String getDomainName() {
+        return domainName;
     }
 
 }

@@ -30,15 +30,16 @@ public class S3Origin extends Origin {
     /**
      * An S3 bucket origin.
      *
-     * @param dnsName
+     * @param id
+     * @param domainName
      * a full S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
      * @param originAccessIdentity
      * Identifier of the origin access identity that can authorize access to
      * S3 objects via a private distribution. If provided the distribution will be
      * private, if null the distribution will be be public.
      */
-    public S3Origin(String dnsName, String originAccessIdentity) {
-        super(dnsName);
+    public S3Origin(String id, String domainName, String originAccessIdentity) {
+        super(id, domainName);
         // Ensure origin access identity has required prefix
         if (originAccessIdentity != null
             && !originAccessIdentity.startsWith(ORIGIN_ACCESS_IDENTITY_PREFIX))
@@ -52,11 +53,12 @@ public class S3Origin extends Origin {
     /**
      * An S3 bucket origin.
      *
-     * @param dnsName
+     * @param id
+     * @param domainName
      * a full S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
      */
-    public S3Origin(String dnsName) {
-        this(dnsName, null);
+    public S3Origin(String id, String domainName) {
+        this(id, domainName, null);
     }
 
     public String getOriginAccessIdentity() {
@@ -68,7 +70,7 @@ public class S3Origin extends Origin {
      * the origin bucket's name, without the suffix ".s3.amazonaws.com"
      */
     public String getOriginAsBucketName() {
-        String bucketName = getDnsName();
+        String bucketName = getDomainName();
         if (bucketName.endsWith(CloudFrontService.DEFAULT_BUCKET_SUFFIX)) {
             return bucketName.substring(0, bucketName.length() - CloudFrontService.DEFAULT_BUCKET_SUFFIX.length());
         } else {
@@ -78,7 +80,7 @@ public class S3Origin extends Origin {
 
     @Override
     public String toString() {
-        return "S3Origin: dnsName=" + getDnsName() +
+        return "S3Origin: domainName=" + getDomainName() +
             (getOriginAccessIdentity() != null
                 ? ", originAccessIdentity=" + getOriginAccessIdentity()
                 : "");
