@@ -51,13 +51,13 @@ public class CacheBehavior {
 
     private String pathPattern;
     private String targetOriginId;
-    private Boolean isForwardQueryString;
+    private boolean isForwardQueryString = false;
     private String[] trustedSignerAwsAccountNumbers;
     private ViewerProtocolPolicy viewerProtocolPolicy = ViewerProtocolPolicy.ALLOW_ALL;
-    private Long minTTL;
+    private Long minTTL = 0l;
 
     public CacheBehavior(String pathPattern, String targetOriginId,
-        Boolean isForwardQueryString, String[] trustedSignerAwsAccountNumbers,
+        boolean isForwardQueryString, String[] trustedSignerAwsAccountNumbers,
         ViewerProtocolPolicy viewerProtocolPolicy, Long minTTL)
     {
         this.pathPattern = pathPattern;
@@ -69,7 +69,7 @@ public class CacheBehavior {
     }
 
     public CacheBehavior(String targetOriginId,
-        Boolean isForwardQueryString, String[] trustedSignerAwsAccountNumbers,
+        boolean isForwardQueryString, String[] trustedSignerAwsAccountNumbers,
         ViewerProtocolPolicy viewerProtocolPolicy, Long minTTL)
     {
         this(null, targetOriginId, isForwardQueryString, trustedSignerAwsAccountNumbers,
@@ -95,11 +95,11 @@ public class CacheBehavior {
         this.targetOriginId = targetOriginId;
     }
 
-    public Boolean isForwardQueryString() {
+    public boolean isForwardQueryString() {
         return isForwardQueryString;
     }
 
-    public void setIsForwardQueryString(Boolean isForwardQueryString) {
+    public void setIsForwardQueryString(boolean isForwardQueryString) {
         this.isForwardQueryString = isForwardQueryString;
     }
 

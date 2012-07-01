@@ -19,10 +19,39 @@
 package org.jets3t.service.model.cloudfront;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 
 public class StreamingDistribution extends Distribution {
 
+    /**
+     *
+     * @param id
+     * @param status
+     * @param lastModifiedDate
+     * @param domainName
+     * @param activeTrustedSigners
+     * @param config
+     */
+    public StreamingDistribution(String id, String status, Date lastModifiedDate,
+        String domainName, Map activeTrustedSigners, StreamingDistributionConfig config)
+    {
+        super(id, status, lastModifiedDate, null, domainName, activeTrustedSigners, config);
+    }
+
+    /**
+     * @deprecated as of 2012-05-05 API version.
+     *
+     * @param id
+     * @param status
+     * @param lastModifiedDate
+     * @param domainName
+     * @param origin
+     * @param cnames
+     * @param comment
+     * @param enabled
+     */
+    @Deprecated
     public StreamingDistribution(String id, String status, Date lastModifiedDate,
         String domainName, Origin origin, String[] cnames, String comment,
         boolean enabled)
@@ -30,6 +59,17 @@ public class StreamingDistribution extends Distribution {
         super(id, status, lastModifiedDate, domainName, origin, cnames, comment, enabled);
     }
 
+    /**
+     * @deprecated as of 2012-05-05 API version.
+     *
+     * @param id
+     * @param status
+     * @param lastModifiedDate
+     * @param domainName
+     * @param activeTrustedSigners
+     * @param config
+     */
+    @Deprecated
     public StreamingDistribution(String id, String status, Date lastModifiedDate,
         String domainName, Map activeTrustedSigners, DistributionConfig config)
     {

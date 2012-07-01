@@ -550,22 +550,29 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
     protected XMLBuilder buildOrigin(Origin origin) throws TransformerException,
         ParserConfigurationException, FactoryConfigurationError
     {
+        XMLBuilder builder = XMLBuilder.create("Origin");
+        if (origin.getId() != null) {
+            builder.e("Id").t(origin.getId());
+        } else {
+            builder.e("Id").t("default-origin-id");
+        }
         if (origin instanceof S3Origin) {
+            builder.e("DomainName").t(sanitizeS3BucketName(origin.getDomainName()));
             S3Origin o = (S3Origin) origin;
-            XMLBuilder builder = XMLBuilder.create("S3Origin")
-                .e("DNSName").t(sanitizeS3BucketName(origin.getDomainName())).up();
             if (o.getOriginAccessIdentity() != null) {
-                builder.e("OriginAccessIdentity").t(o.getOriginAccessIdentity());
+                builder
+                    .e("S3OriginConfig")
+                    .e("OriginAccessIdentity").t(o.getOriginAccessIdentity());
             }
-            return builder;
         } else {
             CustomOrigin o = (CustomOrigin) origin;
-            return XMLBuilder.create("CustomOrigin")
-                .e("DNSName").t(origin.getDomainName()).up()
+            builder.e("DomainName").t(origin.getDomainName());
+            builder.e("CustomOriginConfig")
                 .e("HTTPPort").t("" + o.getHttpPort()).up()
                 .e("HTTPSPort").t("" + o.getHttpsPort()).up()
                 .e("OriginProtocolPolicy").t(o.getOriginProtocolPolicy().toText());
         }
+        return builder;
     }
 
     protected XMLBuilder buildDefaultCacheBehavior(CacheBehavior cb)
@@ -601,7 +608,11 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
                 itemBuilder.e("PathPattern").t(cb.getPathPattern());
             }
 
-            itemBuilder.e("TargetOriginId").t(cb.getTargetOriginId());
+            if (cb.getTargetOriginId() != null) {
+                itemBuilder.e("TargetOriginId").t(cb.getTargetOriginId());
+            } else {
+                itemBuilder.e("TargetOriginId").t("default-origin-id");
+            }
             itemBuilder.e("ForwardedValues").e("QueryString").t("" + cb.isForwardQueryString());
 
             XMLBuilder trustedSignersBuilder = itemBuilder.e("TrustedSigners");
@@ -621,8 +632,12 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
                 }
             }
 
-            itemBuilder.e("ViewerProtocolPolicy").t(cb.getViewerProtocolPolicy().toString());
-            itemBuilder.e("MinTTL").t("" + cb.getMinTTL());
+            itemBuilder.e("ViewerProtocolPolicy").t(cb.getViewerProtocolPolicy().toText());
+            if (cb.getMinTTL() != null) {
+                itemBuilder.e("MinTTL").t("" + cb.getMinTTL());
+            } else {
+                itemBuilder.e("MinTTL").t("0");
+            }
         }
 
         return builder;
@@ -658,7 +673,11 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
             aliasesBuilder.e("Quantity").t("0");
         }
 
-        builder.e("DefaultRootObject").t(config.getDefaultRootObject());
+        if (config.getDefaultRootObject() != null) {
+            builder.e("DefaultRootObject").t(config.getDefaultRootObject());
+        } else {
+            builder.e("DefaultRootObject");
+        }
 
         XMLBuilder originsBuilder = builder.e("Origins");
         originsBuilder.e("Quantity").t("" + config.getOrigins().length);

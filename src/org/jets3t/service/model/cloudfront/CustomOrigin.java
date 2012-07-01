@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2010 James Murty
+ * Copyright 2010-2012 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,16 +49,25 @@ public class CustomOrigin extends Origin {
     private int httpPort = 80;   // Not customizable in 2010-11-01 API
     private int httpsPort = 443; // Not customizable in 2010-11-01 API
 
+    public CustomOrigin(String domainName, OriginProtocolPolicy originProtocolPolicy) {
+        this(null, domainName, originProtocolPolicy);
+    }
+
     public CustomOrigin(String id, String domainName, OriginProtocolPolicy originProtocolPolicy) {
         super(id, domainName);
         this.originProtocolPolicy = originProtocolPolicy;
     }
 
+    public CustomOrigin(String domainName, OriginProtocolPolicy originProtocolPolicy,
+        int httpPort, int httpsPort)
+    {
+        this(null, domainName, originProtocolPolicy, httpPort, httpsPort);
+    }
+
     public CustomOrigin(String id, String domainName, OriginProtocolPolicy originProtocolPolicy,
         int httpPort, int httpsPort)
     {
-        super(id, domainName);
-        this.originProtocolPolicy = originProtocolPolicy;
+        this(id, domainName, originProtocolPolicy);
         this.httpPort = httpPort;
         this.httpsPort = httpsPort;
     }

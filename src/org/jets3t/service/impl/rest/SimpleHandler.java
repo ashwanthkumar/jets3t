@@ -27,6 +27,7 @@ public class SimpleHandler extends DefaultHandler {
         toHandler.parentHandler = this;
         xr.setContentHandler(currentHandler);
         xr.setErrorHandler(currentHandler);
+        log.debug("Transferred control to handler " + toHandler.getClass().getSimpleName());
     }
 
     public void returnControlToParentHandler() {
@@ -36,9 +37,10 @@ public class SimpleHandler extends DefaultHandler {
             currentHandler = parentHandler;
             xr.setContentHandler(currentHandler);
             xr.setErrorHandler(currentHandler);
+            log.debug("Returned control from handler " + this.getClass().getSimpleName());
         } else {
             log.debug("Ignoring call to return control to parent handler, as this class has no parent: " +
-                this.getClass().getName());
+                this.getClass().getSimpleName());
         }
     }
 
@@ -53,10 +55,11 @@ public class SimpleHandler extends DefaultHandler {
         try {
             Method method = currentHandler.getClass().getMethod("start" + name, new Class[] {});
             method.invoke(currentHandler, new Object[] {});
+            log.debug("Processed " + this.getClass().getSimpleName() + " startElement method for '" + name + "'");
         } catch (NoSuchMethodException e) {
-            log.debug("Skipped non-existent SimpleHandler subclass's startElement method for '" + name + "' in " + this.getClass().getName());
+            log.debug("Skipped non-existent " + this.getClass().getSimpleName() + " startElement method for '" + name + "'");
         } catch (Throwable t) {
-            log.error("Unable to invoke SimpleHandler subclass's startElement method for '" + name + "' in " + this.getClass().getName(), t);
+            log.error("Unable to invoke " + this.getClass().getSimpleName() + " startElement method for '" + name + "'", t);
         }
     }
 
@@ -66,10 +69,11 @@ public class SimpleHandler extends DefaultHandler {
         try {
             Method method = currentHandler.getClass().getMethod("end" + name, new Class[] {String.class});
             method.invoke(currentHandler, new Object[] {elementText});
+            log.debug("Processed " + this.getClass().getSimpleName() + " endElement method for '" + name + "'");
         } catch (NoSuchMethodException e) {
-            log.debug("Skipped non-existent SimpleHandler subclass's endElement method for '" + name + "' in " + this.getClass().getName());
+            log.debug("Skipped non-existent " + this.getClass().getSimpleName() + " endElement method for '" + name + "'");
         } catch (Throwable t) {
-            log.error("Unable to invoke SimpleHandler subclass's endElement method for '" + name + "' in " + this.getClass().getName(), t);
+            log.error("Unable to invoke " + this.getClass().getSimpleName() + " endElement method for '" + name + "'", t);
         }
         this.textContent = new StringBuffer();
     }

@@ -18,25 +18,54 @@
  */
 package org.jets3t.service.model.cloudfront;
 
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.jets3t.service.CloudFrontService;
 
 public class Distribution {
     private String id = null;
     private String status = null;
     private Date lastModifiedTime = null;
+    private Long inProgressInvalidationBatches = 0l;
     private String domainName = null;
     private Map activeTrustedSigners = new HashMap();
-    private Origin origin = null;
-    private String cnames[] = new String[0];
-    private String comment = null;
-    private boolean enabled = false;
-    private DistributionConfig config = null;
+    private DistributionConfig config = new DistributionConfig();
 
+    /**
+     *
+     * @param id
+     * @param status
+     * @param lastModifiedDate
+     * @param inProgressInvalidationBatches
+     * @param domainName
+     * @param activeTrustedSigners
+     * @param config
+     */
+    public Distribution(String id, String status, Date lastModifiedDate,
+        Long inProgressInvalidationBatches, String domainName,
+        Map activeTrustedSigners, DistributionConfig config)
+    {
+        this.id = id;
+        this.status = status;
+        this.lastModifiedTime = lastModifiedDate;
+        this.inProgressInvalidationBatches = inProgressInvalidationBatches;
+        this.domainName = domainName;
+        this.config = config;
+    }
+
+    /**
+     * @deprecated as of 2012-05-05 API version.
+     *
+     * @param id
+     * @param status
+     * @param lastModifiedDate
+     * @param domainName
+     * @param origin
+     * @param cnames
+     * @param comment
+     * @param enabled
+     */
+    @Deprecated
     public Distribution(String id, String status, Date lastModifiedDate,
         String domainName, Origin origin, String[] cnames, String comment,
         boolean enabled)
@@ -45,12 +74,23 @@ public class Distribution {
         this.status = status;
         this.lastModifiedTime = lastModifiedDate;
         this.domainName = domainName;
-        this.origin = origin;
-        this.cnames = cnames;
-        this.comment = comment;
-        this.enabled = enabled;
+        this.config.setOrigins(new Origin[] {origin});
+        this.config.setCNAMEs(cnames);
+        this.config.setComment(comment);
+        this.config.setEnabled(enabled);
     }
 
+    /**
+     * @deprecated as of 2012-05-05 API version.
+     *
+     * @param id
+     * @param status
+     * @param lastModifiedDate
+     * @param domainName
+     * @param activeTrustedSigners
+     * @param config
+     */
+    @Deprecated
     public Distribution(String id, String status, Date lastModifiedDate,
         String domainName, Map activeTrustedSigners, DistributionConfig config)
     {
@@ -66,8 +106,16 @@ public class Distribution {
         return getConfig() == null;
     }
 
+    /**
+     * @deprecated as of 2012-05-05 API version, use {@link #getConfig()} instead.
+     */
+    @Deprecated
     public String getComment() {
-        return comment;
+        return this.config.getComment();
+    }
+
+    public Long getInProgressInvalidationBatches() {
+        return this.inProgressInvalidationBatches;
     }
 
     public String getDomainName() {
@@ -86,15 +134,28 @@ public class Distribution {
         return lastModifiedTime;
     }
 
+    /**
+     * @deprecated as of 2012-05-05 API version, use {@link #getConfig()} instead.
+     */
+    @Deprecated
     public Origin getOrigin() {
-        return origin;
+        return this.config.getOrigin();
     }
 
+    /**
+     * @deprecated as of 2012-05-05 API version, use {@link #getConfig()} instead.
+     */
+    @Deprecated
     public String[] getCNAMEs() {
-        return cnames;
+        return this.config.getCNAMEs();
     }
+
+    /**
+     * @deprecated as of 2012-05-05 API version, use {@link #getConfig()} instead.
+     */
+    @Deprecated
     public boolean isEnabled() {
-        return enabled;
+        return this.config.isEnabled();
     }
 
     public String getStatus() {
@@ -126,11 +187,8 @@ public class Distribution {
             + ": id=" + id + ", status=" + status
             + ", domainName=" + domainName
             + ", activeTrustedSigners=" + activeTrustedSigners
-            + ", lastModifiedTime=" + lastModifiedTime +
-            (isSummary()
-                ? ", origin=" + origin + ", comment=" + comment
-                    + ", enabled=" + enabled + ", CNAMEs=" + Arrays.asList(cnames)
-                : ", config=[" + config + "]");
+            + ", lastModifiedTime=" + lastModifiedTime
+            + ", config=" + this.getConfig().toString();
     }
 
 }
