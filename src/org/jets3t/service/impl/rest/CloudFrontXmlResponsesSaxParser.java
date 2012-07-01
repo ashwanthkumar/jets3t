@@ -325,6 +325,10 @@ public class CloudFrontXmlResponsesSaxParser {
         public void endPrefix(String text) {
             loggingStatus.setPrefix(text);
         }
+
+        public void endLogging(String text) {
+            returnControlToParentHandler();
+        }
     }
 
     public class TrustedSignersHandler extends SimpleHandler {
@@ -340,6 +344,10 @@ public class CloudFrontXmlResponsesSaxParser {
 
         public void endAwsAccountNumber(String text) {
             trustedSigners.add(text);
+        }
+
+        public void endTrustedSigners(String text) {
+            returnControlToParentHandler();
         }
     }
 
@@ -382,6 +390,14 @@ public class CloudFrontXmlResponsesSaxParser {
         public void controlReturned(SimpleHandler childHandler) {
             cacheBehavior.setTrustedSignerAwsAccountNumbers(
                 ((TrustedSignersHandler)childHandler).getTrustedSigners());
+        }
+
+        public void endDefaultCacheBehavior(String text) {
+            returnControlToParentHandler();
+        }
+
+        public void endCacheBehavior(String text) {
+            returnControlToParentHandler();
         }
     }
 
@@ -492,11 +508,16 @@ public class CloudFrontXmlResponsesSaxParser {
         private String id = null;
         private String status = null;
         private Date lastModifiedTime = null;
+        private Long inProgressInvalidationBatches = 0l;
         private String domainName = null;
         private List<Origin> origins = new ArrayList<Origin>();
         private final List<String> cnamesList = new ArrayList<String>();
         private String comment = null;
         private boolean enabled = false;
+        private CacheBehavior defaultCacheBehavior = null;
+        private List<CacheBehavior> cacheBehaviors = new ArrayList<CacheBehavior>();
+
+        private boolean inDefaultCacheBehavior = false;
 
         public DistributionSummaryHandler(XMLReader xr) {
             super(xr);
@@ -518,21 +539,43 @@ public class CloudFrontXmlResponsesSaxParser {
             this.lastModifiedTime = ServiceUtils.parseIso8601Date(text);
         }
 
+        public void endInProgressInvalidationBatches(String text) {
+            this.inProgressInvalidationBatches = Long.parseLong(text);
+        }
+
         public void endDomainName(String text) {
             this.domainName = text;
+        }
+
+        public void endCNAME(String text) {
+            this.cnamesList.add(text);
         }
 
         public void startOrigin() {
             transferControlToHandler(new OriginHandler(xr));
         }
 
-        @Override
-        public void controlReturned(SimpleHandler childHandler) {
-            this.origins.add( ((OriginHandler) childHandler).origin );
+        public void startDefaultCacheBehavior() {
+            inDefaultCacheBehavior = true;
+            transferControlToHandler(new CacheBehaviorHandler(xr));
         }
 
-        public void endCNAME(String text) {
-            this.cnamesList.add(text);
+        public void startCacheBehavior() {
+            inDefaultCacheBehavior = false;
+            transferControlToHandler(new CacheBehaviorHandler(xr));
+        }
+
+        @Override
+        public void controlReturned(SimpleHandler childHandler) {
+            if (childHandler instanceof OriginHandler) {
+                this.origins.add( ((OriginHandler) childHandler).origin );
+            } else if (childHandler instanceof CacheBehaviorHandler) {
+                if (inDefaultCacheBehavior) {
+                    this.defaultCacheBehavior = ((CacheBehaviorHandler) childHandler).cacheBehavior;
+                } else {
+                    this.cacheBehaviors.add( ((CacheBehaviorHandler) childHandler).cacheBehavior );
+                }
+            }
         }
 
         public void endComment(String text) {
@@ -544,25 +587,39 @@ public class CloudFrontXmlResponsesSaxParser {
         }
 
         public void endDistributionSummary(String text) {
+            DistributionConfig config = new DistributionConfig(
+                this.origins.toArray(new Origin[] {}),
+                null,  // callerReference
+                this.cnamesList.toArray(new String[] {}),
+                this.comment,
+                this.enabled,
+                null,  // loggingStatus
+                this.defaultCacheBehavior,
+                this.cacheBehaviors.toArray(new CacheBehavior[] {})
+                );
             this.distribution = new Distribution(id, status,
-                lastModifiedTime, domainName, origin,
-                cnamesList.toArray(new String[cnamesList.size()]),
-                comment, enabled);
+                lastModifiedTime, inProgressInvalidationBatches, domainName, null, config);
             returnControlToParentHandler();
         }
 
         public void endStreamingDistributionSummary(String text) {
+            StreamingDistributionConfig config = new StreamingDistributionConfig(
+                this.origins.toArray(new Origin[] {}),
+                null,  // callerReference
+                this.cnamesList.toArray(new String[] {}),
+                this.comment,
+                this.enabled,
+                null,  // loggingStatus
+                null  // trustedSignerAwsAccountNumbers
+                );
             this.distribution = new StreamingDistribution(id, status,
-                lastModifiedTime, domainName, origin,
-                cnamesList.toArray(new String[cnamesList.size()]),
-                comment, enabled);
+                lastModifiedTime, domainName, null, config);
             returnControlToParentHandler();
         }
     }
 
     public class DistributionListHandler extends SimpleHandler {
         private final List<Distribution> distributions = new ArrayList<Distribution>();
-        private final List<String> cnamesList = new ArrayList<String>();
         private String marker = null;
         private String nextMarker = null;
         private int maxItems = 100;
@@ -604,10 +661,6 @@ public class CloudFrontXmlResponsesSaxParser {
         public void controlReturned(SimpleHandler childHandler) {
             distributions.add(
                 ((DistributionSummaryHandler) childHandler).getDistribution());
-        }
-
-        public void endCNAME(String text) {
-            this.cnamesList.add(text);
         }
 
         public void endMarker(String text) {
@@ -664,12 +717,12 @@ public class CloudFrontXmlResponsesSaxParser {
             this.originProtocolPolicy = text;
         }
 
-        public void endS3Origin(String text) {
+        public void endS3OriginConfig(String text) {
             this.origin = new S3Origin(this.id, this.domainName, this.originAccessIdentity);
             returnControlToParentHandler();
         }
 
-        public void endCustomOrigin(String text) {
+        public void endCustomOriginConfig(String text) {
             this.origin = new CustomOrigin(this.id, this.domainName,
                 CustomOrigin.OriginProtocolPolicy.fromText(this.originProtocolPolicy),
                 Integer.valueOf(this.httpPort), Integer.valueOf(this.httpsPort));

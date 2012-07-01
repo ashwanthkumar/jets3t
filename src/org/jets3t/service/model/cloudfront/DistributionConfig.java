@@ -36,6 +36,9 @@ public class DistributionConfig {
     private CacheBehavior[] cacheBehaviors = new CacheBehavior[] {};
     private String defaultRootObject;
 
+    public DistributionConfig() {
+    }
+
     /**
      * Construct a distribution configuration compatible with CloudFront API versions
      * 2012-05-05 and later (i.e. including cache behaviors and multiple origins)
@@ -146,6 +149,10 @@ public class DistributionConfig {
         return origins;
     }
 
+    public void setOrigins(Origin[] value) {
+        this.origins = value;
+    }
+
     public String getCallerReference() {
         return callerReference;
     }
@@ -154,12 +161,24 @@ public class DistributionConfig {
         return this.cnames;
     }
 
+    public void setCNAMEs(String[] value) {
+        this.cnames = value;
+    }
+
     public String getComment() {
         return comment;
     }
 
+    public void setComment(String value) {
+        this.comment = value;
+    }
+
     public boolean isEnabled() {
         return enabled;
+    }
+
+    public void setEnabled(boolean value) {
+        this.enabled = value;
     }
 
     public String getEtag() {

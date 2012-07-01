@@ -226,6 +226,7 @@ public class ErrorDialog extends JDialog implements ActionListener {
     public static void showDialog(Frame ownerFrame, HyperlinkActivatedListener hyperlinkListener,
             Properties applicationProperties, String message, Throwable throwable)
     {
+        log.warn("Showing ErrorDialog: message=" + message, throwable);
         ErrorDialog dialog = new ErrorDialog(ownerFrame, hyperlinkListener, applicationProperties);
         dialog.initGui(message, dialog.buildDetailedText(throwable));
         dialog.setVisible(true);

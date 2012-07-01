@@ -30,6 +30,20 @@ public class S3Origin extends Origin {
     /**
      * An S3 bucket origin.
      *
+     * @param domainName
+     * a full S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
+     * @param originAccessIdentity
+     * Identifier of the origin access identity that can authorize access to
+     * S3 objects via a private distribution. If provided the distribution will be
+     * private, if null the distribution will be be public.
+     */
+    public S3Origin(String domainName, String originAccessIdentity) {
+        this(null, domainName, originAccessIdentity);
+    }
+
+    /**
+     * An S3 bucket origin.
+     *
      * @param id
      * @param domainName
      * a full S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
@@ -53,12 +67,11 @@ public class S3Origin extends Origin {
     /**
      * An S3 bucket origin.
      *
-     * @param id
      * @param domainName
      * a full S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
      */
-    public S3Origin(String id, String domainName) {
-        this(id, domainName, null);
+    public S3Origin(String domainName) {
+        this(null, domainName, null);
     }
 
     public String getOriginAccessIdentity() {
