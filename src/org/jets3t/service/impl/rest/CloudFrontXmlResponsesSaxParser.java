@@ -288,7 +288,7 @@ public class CloudFrontXmlResponsesSaxParser {
                     lastModifiedTime, domainName, activeTrustedSigners, config);
             } else {
                 this.distribution = new Distribution(id, status,
-                    lastModifiedTime, domainName, activeTrustedSigners, config);
+                    lastModifiedTime, 0L, domainName, activeTrustedSigners, config);
             }
         }
 
@@ -315,7 +315,7 @@ public class CloudFrontXmlResponsesSaxParser {
         }
 
         public void endEnabled(String text) {
-            loggingStatus.setEnabled("true".equals(text));
+            loggingStatus.setEnabled(String.valueOf(true).equals(text));
         }
 
         public void endBucket(String text) {
@@ -371,7 +371,7 @@ public class CloudFrontXmlResponsesSaxParser {
         }
 
         public void endQueryString(String text) {
-            cacheBehavior.setIsForwardQueryString("true".equals(text));
+            cacheBehavior.setIsForwardQueryString(String.valueOf(true).equals(text));
         }
 
         public void endViewerProtocolPolicy(String text) {
@@ -443,7 +443,7 @@ public class CloudFrontXmlResponsesSaxParser {
         }
 
         public void endEnabled(String text) {
-            this.enabled = "true".equalsIgnoreCase(text);
+            this.enabled = String.valueOf(true).equalsIgnoreCase(text);
         }
 
         public void startOrigin() {
@@ -583,19 +583,19 @@ public class CloudFrontXmlResponsesSaxParser {
         }
 
         public void endEnabled(String text) {
-            this.enabled = "true".equalsIgnoreCase(text);
+            this.enabled = String.valueOf(true).equalsIgnoreCase(text);
         }
 
         public void endDistributionSummary(String text) {
             DistributionConfig config = new DistributionConfig(
-                this.origins.toArray(new Origin[] {}),
+                this.origins.toArray(new Origin[origins.size()]),
                 null,  // callerReference
-                this.cnamesList.toArray(new String[] {}),
+                this.cnamesList.toArray(new String[cnamesList.size()]),
                 this.comment,
                 this.enabled,
                 null,  // loggingStatus
                 this.defaultCacheBehavior,
-                this.cacheBehaviors.toArray(new CacheBehavior[] {})
+                this.cacheBehaviors.toArray(new CacheBehavior[cacheBehaviors.size()])
                 );
             this.distribution = new Distribution(id, status,
                 lastModifiedTime, inProgressInvalidationBatches, domainName, null, config);
@@ -604,9 +604,9 @@ public class CloudFrontXmlResponsesSaxParser {
 
         public void endStreamingDistributionSummary(String text) {
             StreamingDistributionConfig config = new StreamingDistributionConfig(
-                this.origins.toArray(new Origin[] {}),
+                this.origins.toArray(new Origin[origins.size()]),
                 null,  // callerReference
-                this.cnamesList.toArray(new String[] {}),
+                this.cnamesList.toArray(new String[cnamesList.size()]),
                 this.comment,
                 this.enabled,
                 null,  // loggingStatus
@@ -676,7 +676,7 @@ public class CloudFrontXmlResponsesSaxParser {
         }
 
         public void endIsTruncated(String text) {
-            this.isTruncated = "true".equalsIgnoreCase(text);
+            this.isTruncated = String.valueOf(true).equalsIgnoreCase(text);
         }
     }
 
@@ -861,7 +861,7 @@ public class CloudFrontXmlResponsesSaxParser {
         }
 
         public void endIsTruncated(String text) {
-            this.isTruncated = "true".equalsIgnoreCase(text);
+            this.isTruncated = String.valueOf(true).equalsIgnoreCase(text);
         }
     }
 
@@ -913,7 +913,7 @@ public class CloudFrontXmlResponsesSaxParser {
         }
 
         public void endIsTruncated(String text) {
-            this.isTruncated = "true".equalsIgnoreCase(text);
+            this.isTruncated = String.valueOf(true).equalsIgnoreCase(text);
         }
 
         // Inside InvalidationSummary

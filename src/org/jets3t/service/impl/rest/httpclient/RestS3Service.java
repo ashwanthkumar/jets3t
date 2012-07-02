@@ -1206,7 +1206,7 @@ public class RestS3Service extends S3Service {
         try {
             XMLBuilder builder = XMLBuilder.create("Delete")
                 .attr("xmlns", Constants.XML_NAMESPACE)
-                .elem("Quiet").text( (isQuiet ? "true" : "false") ).up();
+                .elem("Quiet").text( (isQuiet ? String.valueOf(true) : String.valueOf(false)) ).up();
             for (ObjectKeyAndVersion nav: objectNameAndVersions) {
                 XMLBuilder objectBuilder =
                     builder.elem("Object")
