@@ -38,7 +38,7 @@ public class StreamingDistributionConfig extends DistributionConfig {
         String[] cnames, String comment, boolean enabled,
         LoggingStatus loggingStatus, String[] trustedSignerAwsAccountNumbers)
     {
-        super(origins, callerReference, cnames, comment, enabled, loggingStatus, null, null);
+        super(origins, callerReference, cnames, comment, enabled, loggingStatus, null, null, null);
         this.trustedSignerAwsAccountNumbers = trustedSignerAwsAccountNumbers;
     }
 

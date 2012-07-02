@@ -20,6 +20,7 @@ package org.jets3t.service.model.cloudfront;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 
 import org.jets3t.service.model.cloudfront.CacheBehavior.ViewerProtocolPolicy;
 
@@ -54,7 +55,8 @@ public class DistributionConfig {
      */
     public DistributionConfig(Origin[] origins, String callerReference,
         String[] cnames, String comment, boolean enabled,
-        LoggingStatus loggingStatus, CacheBehavior defaultCacheBehavior,
+        LoggingStatus loggingStatus, String defaultRootObject,
+        CacheBehavior defaultCacheBehavior,
         CacheBehavior[] cacheBehaviors)
     {
         this.origins = origins;
@@ -63,6 +65,7 @@ public class DistributionConfig {
         this.comment = comment;
         this.enabled = enabled;
         this.loggingStatus = loggingStatus;
+        this.defaultRootObject = defaultRootObject;
         this.defaultCacheBehavior = defaultCacheBehavior;
         this.cacheBehaviors = cacheBehaviors;
     }
@@ -105,9 +108,7 @@ public class DistributionConfig {
             myTrustedSignerAwsAccountNumber.add("self");
         }
         if (trustedSignerAwsAccountNumbers != null) {
-            for (String trustedSigner: trustedSignerAwsAccountNumbers) {
-                myTrustedSignerAwsAccountNumber.add(trustedSigner);
-            }
+            Collections.addAll(myTrustedSignerAwsAccountNumber, trustedSignerAwsAccountNumbers);
         }
         this.getDefaultCacheBehavior().setTrustedSignerAwsAccountNumbers(
             myTrustedSignerAwsAccountNumber.toArray(new String[] {}));
@@ -353,7 +354,7 @@ public class DistributionConfig {
             + ", defaultCacheBehavior=" + defaultCacheBehavior
             + (!this.hasCacheBehaviors()
                 ? ""
-                : ", cacheBehaviors=" + getCacheBehaviors())
+                : ", cacheBehaviors=" + cacheBehaviors)
             + (etag != null ? ", etag=" + etag : "")
             + (!isLoggingEnabled()
                 ? ""

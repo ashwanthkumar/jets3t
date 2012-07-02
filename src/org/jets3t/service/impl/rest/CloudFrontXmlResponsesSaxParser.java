@@ -411,7 +411,6 @@ public class CloudFrontXmlResponsesSaxParser {
         private boolean enabled = false;
         private LoggingStatus loggingStatus = null;
         private String defaultRootObject = null;
-        private Long minTTL = null;
         private CacheBehavior defaultCacheBehavior;
         private List<CacheBehavior> cacheBehaviors = new ArrayList<CacheBehavior>();
         List<String>trustedSignerAwsAccountNumberList = new ArrayList<String>();
@@ -484,7 +483,7 @@ public class CloudFrontXmlResponsesSaxParser {
                 origins.toArray(new Origin[origins.size()]),
                 callerReference,
                 cnamesList.toArray(new String[cnamesList.size()]),
-                comment, enabled, loggingStatus,
+                comment, enabled, loggingStatus, defaultRootObject,
                 defaultCacheBehavior,
                 cacheBehaviors.toArray(new CacheBehavior[cacheBehaviors.size()]));
             returnControlToParentHandler();
@@ -594,6 +593,7 @@ public class CloudFrontXmlResponsesSaxParser {
                 this.comment,
                 this.enabled,
                 null,  // loggingStatus
+                null,
                 this.defaultCacheBehavior,
                 this.cacheBehaviors.toArray(new CacheBehavior[cacheBehaviors.size()])
                 );
