@@ -181,7 +181,7 @@ public class XmlResponsesSaxParser {
                     new InputStreamReader(inputStream, Constants.DEFAULT_ENCODING));
 
                 char[] buf = new char[8192];
-                int read = -1;
+                int read;
                 while ((read = br.read(buf)) != -1) {
                     listingDocBuffer.append(buf, 0, read);
                 }
@@ -551,7 +551,7 @@ public class XmlResponsesSaxParser {
             if (name.equals("Contents")) {
                 currentObject = newObject();
                 if (currentObject instanceof S3Object) {
-                    ((S3Object)currentObject).setBucketName(bucketName);
+                    currentObject.setBucketName(bucketName);
                 }
             } else if (name.equals("Owner")) {
                 currentOwner = newOwner();
@@ -579,9 +579,9 @@ public class XmlResponsesSaxParser {
                 requestMaxKeys = Long.parseLong(elementText);
             } else if (name.equals("IsTruncated")) {
                 String isTruncatedStr = elementText.toLowerCase(Locale.ENGLISH);
-                if (isTruncatedStr.startsWith("false")) {
+                if (isTruncatedStr.startsWith(String.valueOf(false))) {
                     listingTruncated = false;
-                } else if (isTruncatedStr.startsWith("true")) {
+                } else if (isTruncatedStr.startsWith(String.valueOf(true))) {
                     listingTruncated = true;
                 } else {
                     throw new RuntimeException("Invalid value for IsTruncated field: "
@@ -1071,9 +1071,9 @@ public class XmlResponsesSaxParser {
                 requestMaxKeys = Long.parseLong(elementText);
             } else if (name.equals("IsTruncated")) {
                 String isTruncatedStr = elementText.toLowerCase(Locale.ENGLISH);
-                if (isTruncatedStr.startsWith("false")) {
+                if (isTruncatedStr.startsWith(String.valueOf(false))) {
                     listingTruncated = false;
-                } else if (isTruncatedStr.startsWith("true")) {
+                } else if (isTruncatedStr.startsWith(String.valueOf(true))) {
                     listingTruncated = true;
                 } else {
                     throw new RuntimeException("Invalid value for IsTruncated field: "
@@ -1096,7 +1096,7 @@ public class XmlResponsesSaxParser {
             } else if (name.equals("VersionId")) {
                 versionId = elementText;
             } else if (name.equals("IsLatest")) {
-                isLatest = "true".equals(elementText);
+                isLatest = String.valueOf(true).equals(elementText);
             } else if (name.equals("LastModified")) {
                 try {
                     lastModified = ServiceUtils.parseIso8601Date(elementText);
@@ -1323,7 +1323,7 @@ public class XmlResponsesSaxParser {
         }
 
         public void endIsTruncated(String text) {
-            this.isTruncated = "true".equalsIgnoreCase(text);
+            this.isTruncated = String.valueOf(true).equalsIgnoreCase(text);
         }
 
         public void endPrefix(String text) {
@@ -1494,7 +1494,7 @@ public class XmlResponsesSaxParser {
         }
 
         public void endIsTruncated(String text) {
-            this.isTruncated = "true".equalsIgnoreCase(text);
+            this.isTruncated = String.valueOf(true).equalsIgnoreCase(text);
         }
     }
 

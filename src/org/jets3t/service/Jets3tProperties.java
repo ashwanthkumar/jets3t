@@ -316,9 +316,9 @@ public class Jets3tProperties implements Serializable {
         if (log.isDebugEnabled()) {
             log.debug(propertyName + "=" + boolValue);
         }
-        if ("true".equalsIgnoreCase(boolValue)) {
+        if (String.valueOf(true).equalsIgnoreCase(boolValue)) {
             return true;
-        } else if ("false".equalsIgnoreCase(boolValue)) {
+        } else if (String.valueOf(false).equalsIgnoreCase(boolValue)) {
             return false;
         } else {
             throw new IllegalArgumentException("Boolean value '" + boolValue + "' for jets3t property '"
