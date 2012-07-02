@@ -43,7 +43,7 @@ public class CustomOrigin extends Origin {
             }
             throw new IllegalArgumentException("Invalid OriginProtocolPolicy: " + text);
         }
-    };
+    }
 
     private OriginProtocolPolicy originProtocolPolicy = null;
     private int httpPort = 80;   // Not customizable in 2010-11-01 API

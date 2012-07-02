@@ -47,7 +47,7 @@ public class CacheBehavior {
             }
             throw new IllegalArgumentException("Invalid ViewerProtocolPolicy: " + text);
         }
-    };
+    }
 
     private String pathPattern;
     private String targetOriginId;
