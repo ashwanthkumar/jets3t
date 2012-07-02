@@ -66,8 +66,8 @@ public abstract class BaseVersionOrDeleteMarker {
 
     public static String[] toVersionIds(BaseVersionOrDeleteMarker[] items) {
         List<String> versionsList = new ArrayList<String>();
-        for (int i = 0; i < items.length; i++) {
-            versionsList.add(items[i].getVersionId());
+        for(BaseVersionOrDeleteMarker item : items) {
+            versionsList.add(item.getVersionId());
         }
         return versionsList.toArray(new String[versionsList.size()]);
     }
