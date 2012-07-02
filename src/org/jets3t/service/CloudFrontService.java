@@ -39,6 +39,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.params.HttpProtocolParams;
 import org.apache.http.protocol.HttpContext;
@@ -346,7 +347,8 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
     /**
      * List streaming or non-streaming Distributions in a CloudFront account.
      * @param isStreaming
-     * @param pagingSize
+     * the maximum number of distributions the CloudFront service will
+     * return in each response message.
      * @return
      * A list of {@link Distribution}s.
      * @throws CloudFrontServiceException
@@ -462,7 +464,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
     /**
      * List streaming or non-stream distributions whose origin is the given S3 bucket name.
      *
-     * @param isStreaming
+     * @param isStreaming List streaming distributions
      * @param bucketName
      * the name of the S3 bucket whose distributions will be returned.
      * @return
@@ -485,16 +487,15 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         ArrayList<Distribution> bucketDistributions = new ArrayList<Distribution>();
         Distribution[] allDistributions =
             (isStreaming ? listStreamingDistributions() : listDistributions());
-        for (int i = 0; i < allDistributions.length; i++) {
-            Origin origin = allDistributions[i].getOrigin();
-            if (!(origin instanceof S3Origin)) {
+        for(Distribution distribution : allDistributions) {
+            Origin origin = distribution.getOrigin();
+            if(!(origin instanceof S3Origin)) {
                 continue;
             }
             S3Origin s3Origin = (S3Origin) origin;
-            if (s3Origin.getDomainName().equals(bucketName)
-                || bucketName.equals(ServiceUtils.findBucketNameInHostname(s3Origin.getDomainName(), s3Endpoint)))
-            {
-                bucketDistributions.add(allDistributions[i]);
+            if(s3Origin.getDomainName().equals(bucketName)
+                    || bucketName.equals(ServiceUtils.findBucketNameInHostname(s3Origin.getDomainName(), s3Endpoint))) {
+                bucketDistributions.add(distribution);
             }
         }
         return bucketDistributions;
@@ -539,7 +540,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
     /**
      * Generate XML representing an S3 or non-S3 (custom) origin.
      *
-     * @param origin
+     * @param origin S3 or non-S3 (custom) origin.
      * @return
      * XML document representing an origin
      *
@@ -590,7 +591,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
     protected XMLBuilder buildCacheBehaviorsElement(boolean isDefault, CacheBehavior[] cbs)
         throws TransformerException, ParserConfigurationException, FactoryConfigurationError
     {
-        XMLBuilder builder = null;
+        XMLBuilder builder;
         if (isDefault) {
             builder = XMLBuilder.create("DefaultCacheBehavior");
         } else {
@@ -600,7 +601,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         }
 
         for (CacheBehavior cb: cbs) {
-            XMLBuilder itemBuilder = null;
+            XMLBuilder itemBuilder;
             if (isDefault) {
                 itemBuilder = builder;
             } else {
@@ -660,7 +661,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
             : "DistributionConfig")
             .a("xmlns", XML_NAMESPACE);
 
-        builder.e("CallerReference").t(config.getCallerReference());
+        builder.e("CallerReference").t(config.getCallerReference() == null ? String.valueOf(System.currentTimeMillis()) : config.getCallerReference());
 
         XMLBuilder aliasesBuilder = builder.e("Aliases");
         if (config.getCNAMEs() != null && config.getCNAMEs().length > 0) {
@@ -680,7 +681,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         }
 
         XMLBuilder originsBuilder = builder.e("Origins");
-        originsBuilder.e("Quantity").t("" + config.getOrigins().length);
+        originsBuilder.e("Quantity").t(String.valueOf(config.getOrigins().length));
         XMLBuilder originsItems = originsBuilder.e("Items");
         for (Origin origin: config.getOrigins()) {
             originsItems.importXMLBuilder(buildOrigin(origin));
@@ -690,39 +691,28 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
 
         builder.importXMLBuilder(buildCacheBehaviors(config.getCacheBehaviors()));
 
-        builder.e("Comment").t(config.getComment());
+        builder.e("Comment").t(null == config.getComment() ? "" : config.getComment());
 
         if (config.getLoggingStatus() != null) {
             builder.e("Logging")
-                .e("Enabled").t("true").up()
+                .e("Enabled").t(String.valueOf(true)).up()
                 .e("Bucket").t(config.getLoggingStatus().getBucket()).up()
                 .e("Prefix").t(config.getLoggingStatus().getPrefix());
         } else {
             builder.e("Logging")
-                .e("Enabled").t("false").up()
+                .e("Enabled").t(String.valueOf(false)).up()
                 .e("Bucket").up()
                 .e("Prefix");
         }
 
-        builder.e("Enabled").t("" + config.isEnabled());
+        builder.e("Enabled").t(String.valueOf(config.isEnabled()));
 
         return builder.asString(null);
     }
 
     /**
      * Create a streaming or non-streaming distribution.
-     * @param isStreaming
-     * @param origin
-     * @param callerReference
-     * @param cnames
-     * @param comment
-     * @param enabled
-     * @param loggingStatus
-     * @param trustedSignerSelf
-     * @param trustedSignerAwsAccountNumbers
-     * @param requiredProtocols
-     * @param defaultRootObject
-     *
+     * @param config Configuration document
      * @return
      * Information about the newly-created distribution.
      * @throws CloudFrontServiceException
@@ -736,20 +726,6 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
                 + " distribution for origins: " + Arrays.asList(config.getOrigins()));
         }
 
-        // Sanitize parameters.
-        String callerReference = config.getCallerReference();
-        if (callerReference == null) {
-            callerReference = "" + System.currentTimeMillis();
-        }
-        String[] cnames = config.getCNAMEs();
-        if (cnames == null) {
-            cnames = new String[] {};
-        }
-        String comment = config.getComment();
-        if (comment == null) {
-            comment = "";
-        }
-
         HttpPost httpMethod = new HttpPost(ENDPOINT + VERSION
             + (config.isStreamingDistributionConfig()
                 ? "/streaming-distribution"
@@ -760,8 +736,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
 
             httpMethod.setEntity(new StringEntity(
                     distributionConfigXml,
-                    "text/xml",
-                    Constants.DEFAULT_ENCODING));
+                    ContentType.create("text/xml", Constants.DEFAULT_ENCODING)));
 
             HttpResponse response = performRestRequest(httpMethod, 201);
 
@@ -1265,8 +1240,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
 
             httpMethod.setEntity(new StringEntity(
                     distributionConfigXml,
-                    "text/xml",
-                    Constants.DEFAULT_ENCODING));
+                    ContentType.create("text/xml", Constants.DEFAULT_ENCODING)));
             httpMethod.setHeader("If-Match", oldConfig.getEtag());
             HttpResponse response = performRestRequest(httpMethod, 200);
 
@@ -1771,8 +1745,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
 
             httpMethod.setEntity(new StringEntity(
                     builder.asString(null),
-                    "text/xml",
-                    Constants.DEFAULT_ENCODING));
+                    ContentType.create("text/xml", Constants.DEFAULT_ENCODING)));
             HttpResponse response = performRestRequest(httpMethod, 201);
 
             OriginAccessIdentityHandler handler =
@@ -1935,8 +1908,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
                 .e("Comment").t(comment);
             httpMethod.setEntity(new StringEntity(
                     builder.asString(null),
-                    "text/xml",
-                    Constants.DEFAULT_ENCODING));
+                    ContentType.create("text/xml", Constants.DEFAULT_ENCODING)));
             httpMethod.setHeader("If-Match", oldConfig.getEtag());
             HttpResponse response = performRestRequest(httpMethod, 200);
 
@@ -2019,8 +1991,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
 
             httpMethod.setEntity(new StringEntity(
                     builder.asString(null),
-                    "text/xml",
-                    Constants.DEFAULT_ENCODING));
+                    ContentType.create("text/xml", Constants.DEFAULT_ENCODING)));
             HttpResponse response = performRestRequest(httpMethod, 201);
 
             InvalidationHandler handler =
