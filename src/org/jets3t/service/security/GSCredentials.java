@@ -74,7 +74,7 @@ public class GSCredentials extends ProviderCredentials {
     public static ProviderCredentials load(String password, File file) throws ServiceException {
         ProviderCredentials credentials = ProviderCredentials.load(password, file);
         return new GSCredentials(
-            credentials.accessKey, credentials.getSecretKey(), credentials.getFriendlyName());
+            credentials.getAccessKey(), credentials.getSecretKey(), credentials.getFriendlyName());
     }
 
     public static ProviderCredentials load(String password, BufferedInputStream inputStream)
@@ -82,7 +82,7 @@ public class GSCredentials extends ProviderCredentials {
     {
         ProviderCredentials credentials = ProviderCredentials.load(password, inputStream);
         return new GSCredentials(
-            credentials.accessKey, credentials.getSecretKey(), credentials.getFriendlyName());
+            credentials.getAccessKey(), credentials.getSecretKey(), credentials.getFriendlyName());
     }
 
 }
