@@ -273,7 +273,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         }
 
         HttpResponse response = null;
-        boolean completedWithoutRecoverableError = true;
+        boolean completedWithoutRecoverableError;
         int internalErrorCount = 0;
 
         try {
@@ -347,6 +347,8 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
     /**
      * List streaming or non-streaming Distributions in a CloudFront account.
      * @param isStreaming
+     * Only return streaming distributions
+     * @param pagingSize
      * the maximum number of distributions the CloudFront service will
      * return in each response message.
      * @return
@@ -364,7 +366,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         try {
             List<Distribution> distributions = new ArrayList<Distribution>();
             String nextMarker = null;
-            boolean incompleteListing = true;
+            boolean incompleteListing;
             do {
                 String uri = ENDPOINT + VERSION
                     + (isStreaming ? "/streaming-distribution" : "/distribution")
@@ -1049,22 +1051,24 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
 
     /**
      * @param isStreaming
-     * @param id
+     * Only return streaming distributions
+     * @param distributionId
+     * The distribution's unique identifier.
      * @return
      * Information about a streaming or non-streaming distribution.
      * @throws CloudFrontServiceException
      */
-    protected Distribution getDistributionInfoImpl(boolean isStreaming, String id)
+    protected Distribution getDistributionInfoImpl(boolean isStreaming, String distributionId)
         throws CloudFrontServiceException
     {
         if (log.isDebugEnabled()) {
             log.debug("Getting information for "
                 + (isStreaming ? "streaming" : "")
-                + " distribution with id: " + id);
+                + " distribution with id: " + distributionId);
         }
         HttpGet httpMethod = new HttpGet(ENDPOINT + VERSION
                 + (isStreaming ? "/streaming-distribution/" : "/distribution/")
-                + id);
+                + distributionId);
 
         try {
             HttpResponse response = performRestRequest(httpMethod, 200);
@@ -1101,7 +1105,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
     /**
      * Lookup information for a streaming distribution.
      *
-     * @param id
+     * @param distributionId
      * the distribution's unique identifier.
      *
      * @return
@@ -1110,30 +1114,32 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      *
      * @throws CloudFrontServiceException
      */
-    public StreamingDistribution getStreamingDistributionInfo(String id)
+    public StreamingDistribution getStreamingDistributionInfo(String distributionId)
         throws CloudFrontServiceException
     {
-        return (StreamingDistribution) getDistributionInfoImpl(true, id);
+        return (StreamingDistribution) getDistributionInfoImpl(true, distributionId);
     }
 
     /**
      * @param isStreaming
-     * @param id
+     * Only return streaming distributions
+     * @param distributionId
+     * The distribution's unique identifier.
      * @return
      * Information about a streaming or non-streaming distribution configuration.
      * @throws CloudFrontServiceException
      */
-    protected DistributionConfig getDistributionConfigImpl(boolean isStreaming, String id)
+    protected DistributionConfig getDistributionConfigImpl(boolean isStreaming, String distributionId)
         throws CloudFrontServiceException
     {
         if (log.isDebugEnabled()) {
             log.debug("Getting configuration for "
                 + (isStreaming ? "streaming" : "")
-                + " distribution with id: " + id);
+                + " distribution with id: " + distributionId);
         }
         HttpGet httpMethod = new HttpGet(ENDPOINT + VERSION
                 + (isStreaming ? "/streaming-distribution/" : "/distribution/")
-                + id + "/config");
+                + distributionId + "/config");
 
         try {
             HttpResponse response = performRestRequest(httpMethod, 200);
@@ -1158,7 +1164,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * information is a subset of the information available from the
      * {@link #getDistributionInfo(String)} method.
      *
-     * @param id
+     * @param distributionId
      * the distribution's unique identifier.
      *
      * @return
@@ -1167,10 +1173,10 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      *
      * @throws CloudFrontServiceException
      */
-    public DistributionConfig getDistributionConfig(String id)
+    public DistributionConfig getDistributionConfig(String distributionId)
         throws CloudFrontServiceException
     {
-        return getDistributionConfigImpl(false, id);
+        return getDistributionConfigImpl(false, distributionId);
     }
 
     /**
@@ -1197,6 +1203,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * Update a streaming or non-streaming distribution.
      *
      * @param config
+     * Configuration properties to apply to the distribution.
      * @return
      * Information about the updated distribution configuration.
      * @throws CloudFrontServiceException
@@ -1214,20 +1221,6 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         DistributionConfig oldConfig = (config.isStreamingDistributionConfig()
             ? getStreamingDistributionConfig(id)
             : getDistributionConfig(id));
-
-        // Sanitize parameters.
-        String[] cnames = config.getCNAMEs();
-        if (cnames == null) {
-            cnames = oldConfig.getCNAMEs();
-        }
-        String comment = config.getComment();
-        if (comment == null) {
-            comment = oldConfig.getComment();
-        }
-        Origin[] origins = config.getOrigins();
-        if (origins == null) {
-            origins = oldConfig.getOrigins();
-        }
 
         HttpPut httpMethod = new HttpPut(ENDPOINT + VERSION
                 + (config.isStreamingDistributionConfig()
@@ -1629,24 +1622,26 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
     /**
      * Delete a streaming or non-streaming distribution.
      * @param isStreaming
-     * @param id
+     * Only return streaming distributions
+     * @param distributionId
+     * The distribution's unique identifier.
      * @throws CloudFrontServiceException
      */
-    protected void deleteDistributionImpl(boolean isStreaming, String id)
+    protected void deleteDistributionImpl(boolean isStreaming, String distributionId)
         throws CloudFrontServiceException
     {
         if (log.isDebugEnabled()) {
             log.debug("Deleting "
                 + (isStreaming ? "streaming" : "")
-                + "distribution with id: " + id);
+                + "distribution with id: " + distributionId);
         }
 
         // Get the distribution's current config.
         DistributionConfig currentConfig =
-            (isStreaming ? getStreamingDistributionConfig(id) : getDistributionConfig(id));
+            (isStreaming ? getStreamingDistributionConfig(distributionId) : getDistributionConfig(distributionId));
         HttpDelete httpMethod = new HttpDelete(ENDPOINT + VERSION
                 + (isStreaming ? "/streaming-distribution/" : "/distribution/")
-                + id);
+                + distributionId);
 
         try {
             httpMethod.setHeader("If-Match", currentConfig.getEtag());
@@ -1969,9 +1964,11 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * a refresh of the object data from the S3 origin.
      *
      * @param distributionId
+     * The distribution's unique identifier.
      * @param objectKeys
      * S3 object key names of object(s) to invalidate.
      * @param callerReference
+     * Unique description for this distribution config
      * @return
      * invalidation object
      * @throws CloudFrontServiceException
@@ -2015,9 +2012,11 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * a refresh of the object data from the S3 origin.
      *
      * @param distributionId
+     * The distribution's unique identifier.
      * @param objects
      * S3 object(s) to invalidate.
      * @param callerReference
+     * Unique description for this distribution config
      * @return
      * invalidation object
      *
@@ -2035,7 +2034,9 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
 
     /**
      * @param distributionId
+     * The distribution's unique identifier.
      * @param invalidationId
+     * The identifier for the invalidation request
      * @return
      * Details of a prior invalidation operation.
      * @throws CloudFrontServiceException
@@ -2067,6 +2068,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * page you must perform follow-up calls to this method to obtain a complete listing.
      *
      * @param distributionId
+     * The distribution's unique identifier.
      * @param nextMarker
      * a marker string indicating where to begin the next page of listing results.
      * Start with null for an initial listing page, then set to the NextMarker value
@@ -2107,6 +2109,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * List all past invalidation summaries, ordered from most recent to oldest.
      *
      * @param distributionId
+     * The distribution's unique identifier.
      * @return
      * list of invalidation objects
      * @throws CloudFrontServiceException
@@ -2119,7 +2122,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
                 new ArrayList<InvalidationSummary>();
 
             String nextMarker = null;
-            boolean incompleteListing = true;
+            boolean incompleteListing;
             do {
                 InvalidationList invalidationList = listInvalidations(
                     distributionId, nextMarker, 100);
@@ -2251,18 +2254,16 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         String ipAddress = (limitToIpAddressCIDR == null
             ? "0.0.0.0/0"  // No IP restriction
             : limitToIpAddressCIDR);
-        String policy =
-            "{\"Statement\": [{" +
-             "\"Resource\":\"" + resourcePath + "\"" +
-             ",\"Condition\":{" +
-             "\"DateLessThan\":{\"AWS:EpochTime\":"
-                + epochDateLessThan.getTime() / 1000 + "}" +
-             ",\"IpAddress\":{\"AWS:SourceIp\":\"" + ipAddress + "\"}" +
-             (epochDateGreaterThan == null ? ""
-                 : ",\"DateGreaterThan\":{\"AWS:EpochTime\":"
-                     + epochDateGreaterThan.getTime() / 1000 + "}") +
-            "}}]}";
-        return policy;
+        return "{\"Statement\": [{" +
+         "\"Resource\":\"" + resourcePath + "\"" +
+         ",\"Condition\":{" +
+         "\"DateLessThan\":{\"AWS:EpochTime\":"
+            + epochDateLessThan.getTime() / 1000 + "}" +
+         ",\"IpAddress\":{\"AWS:SourceIp\":\"" + ipAddress + "\"}" +
+         (epochDateGreaterThan == null ? ""
+             : ",\"DateGreaterThan\":{\"AWS:EpochTime\":"
+                 + epochDateGreaterThan.getTime() / 1000 + "}") +
+        "}}]}";
     }
 
     /**
@@ -2305,12 +2306,11 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
             String urlSafePolicy = makeStringUrlSafe(policy);
             String urlSafeSignature = makeBytesUrlSafe(signatureBytes);
 
-            String signedUrl = resourceUrlOrPath
+            return resourceUrlOrPath
                 + (resourceUrlOrPath.indexOf('?') >= 0 ? "&" : "?")
                 + "Policy=" + urlSafePolicy
                 + "&Signature=" + urlSafeSignature
                 + "&Key-Pair-Id=" + keyPairId;
-            return signedUrl;
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
@@ -2360,12 +2360,11 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
 
             String urlSafeSignature = makeBytesUrlSafe(signatureBytes);
 
-            String signedUrl = resourceUrlOrPath
+            return resourceUrlOrPath
                 + (resourceUrlOrPath.indexOf('?') >= 0 ? "&" : "?")
                 + "Expires=" + epochDateLessThan.getTime() / 1000
                 + "&Signature=" + urlSafeSignature
                 + "&Key-Pair-Id=" + keyPairId;
-            return signedUrl;
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
