@@ -1392,10 +1392,11 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         String[] requiredProtocols, String defaultRootObject)
         throws CloudFrontServiceException
     {
-        return this.updateDistributionConfig(id, origin, cnames, comment, enabled, loggingStatus,
-            trustedSignerSelf, trustedSignerAwsAccountNumbers, requiredProtocols, defaultRootObject,
-            null // minTTL
-            );
+        DistributionConfig config = new DistributionConfig(
+            origin, null, cnames, comment, enabled, loggingStatus,
+            trustedSignerSelf, trustedSignerAwsAccountNumbers, requiredProtocols,
+            defaultRootObject, null);
+        return this.updateDistributionConfigImpl(id, config);
     }
 
     /**
@@ -1440,8 +1441,10 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         LoggingStatus loggingStatus)
         throws CloudFrontServiceException
     {
-        return updateStreamingDistributionConfig(
-            id, origin, cnames, comment, enabled, loggingStatus);
+        StreamingDistributionConfig config = new StreamingDistributionConfig(
+            origin, null, cnames, comment, enabled, loggingStatus,
+            false, null, null);
+        return (StreamingDistributionConfig) updateDistributionConfigImpl(id, config);
     }
 
     /**
