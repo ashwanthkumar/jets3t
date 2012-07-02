@@ -1569,7 +1569,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
     public DistributionConfig updateDistributionConfig(String id,
         DistributionConfig config) throws CloudFrontServiceException
     {
-        return updateDistributionConfig(id, config);
+        return updateDistributionConfigImpl(id, config);
     }
 
     /**
@@ -2371,5 +2371,4 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
             throw new CloudFrontServiceException(e);
         }
     }
-
 }
