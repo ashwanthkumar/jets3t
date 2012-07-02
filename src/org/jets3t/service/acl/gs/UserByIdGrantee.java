@@ -83,7 +83,7 @@ public class UserByIdGrantee extends CanonicalGrantee {
     @Override
     public boolean equals(Object obj) {
         return (obj instanceof UserByIdGrantee
-                && ((UserByIdGrantee)obj).getIdentifier() == this.getIdentifier());
+                && ((UserByIdGrantee) obj).getIdentifier().equals(this.getIdentifier()));
     }
 
     @Override
