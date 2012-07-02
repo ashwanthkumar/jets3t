@@ -54,7 +54,7 @@ public class SimpleHandler extends DefaultHandler {
     public void startElement(String uri, String name, String qName, Attributes attrs) {
         try {
             Method method = currentHandler.getClass().getMethod("start" + name, new Class[] {});
-            method.invoke(currentHandler, new Object[] {});
+            method.invoke(currentHandler);
             log.debug("Processed " + this.getClass().getSimpleName() + " startElement method for '" + name + "'");
         } catch (NoSuchMethodException e) {
             log.debug("Skipped non-existent " + this.getClass().getSimpleName() + " startElement method for '" + name + "'");
@@ -68,7 +68,7 @@ public class SimpleHandler extends DefaultHandler {
         String elementText = this.textContent.toString().trim();
         try {
             Method method = currentHandler.getClass().getMethod("end" + name, new Class[] {String.class});
-            method.invoke(currentHandler, new Object[] {elementText});
+            method.invoke(currentHandler, elementText);
             log.debug("Processed " + this.getClass().getSimpleName() + " endElement method for '" + name + "'");
         } catch (NoSuchMethodException e) {
             log.debug("Skipped non-existent " + this.getClass().getSimpleName() + " endElement method for '" + name + "'");
