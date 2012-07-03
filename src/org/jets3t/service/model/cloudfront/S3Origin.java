@@ -56,6 +56,7 @@ public class S3Origin extends Origin {
         super(id, domainName);
         // Ensure origin access identity has required prefix
         if (originAccessIdentity != null
+            && originAccessIdentity.length() > 0
             && !originAccessIdentity.startsWith(ORIGIN_ACCESS_IDENTITY_PREFIX))
         {
             this.originAccessIdentity = ORIGIN_ACCESS_IDENTITY_PREFIX + originAccessIdentity;
