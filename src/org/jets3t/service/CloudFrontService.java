@@ -598,10 +598,11 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
             builder = XMLBuilder.create("DefaultCacheBehavior");
         } else {
             builder = XMLBuilder.create("CacheBehaviors")
-                .e("Quantity").t("" + cbs.length).up()
-                .e("Items");
+                .e("Quantity").t(String.valueOf(cbs.length));
         }
-
+        if(!isDefault && cbs.length > 0) {
+            builder.e("Items");
+        }
         for (CacheBehavior cb: cbs) {
             XMLBuilder itemBuilder;
             if (isDefault) {
