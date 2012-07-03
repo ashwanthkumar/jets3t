@@ -718,6 +718,9 @@ public class CloudFrontXmlResponsesSaxParser {
         }
 
         public void endS3OriginConfig(String text) {
+            if (this.originAccessIdentity != null && this.originAccessIdentity.length() == 0) {
+                this.originAccessIdentity = null;
+            }
             this.origin = new S3Origin(this.id, this.domainName, this.originAccessIdentity);
             returnControlToParentHandler();
         }

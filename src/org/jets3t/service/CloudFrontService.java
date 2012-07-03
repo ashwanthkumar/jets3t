@@ -562,10 +562,11 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         if (origin instanceof S3Origin) {
             builder.e("DomainName").t(sanitizeS3BucketName(origin.getDomainName()));
             S3Origin o = (S3Origin) origin;
+            XMLBuilder oaiBuilder = builder
+                .e("S3OriginConfig")
+                    .e("OriginAccessIdentity");
             if (o.getOriginAccessIdentity() != null) {
-                builder
-                    .e("S3OriginConfig")
-                    .e("OriginAccessIdentity").t(o.getOriginAccessIdentity());
+                oaiBuilder.t(o.getOriginAccessIdentity());
             }
         } else {
             CustomOrigin o = (CustomOrigin) origin;
@@ -598,10 +599,10 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
             builder = XMLBuilder.create("DefaultCacheBehavior");
         } else {
             builder = XMLBuilder.create("CacheBehaviors")
-                .e("Quantity").t(String.valueOf(cbs.length));
+                .e("Quantity").t(String.valueOf(cbs.length)).up();
         }
-        if(!isDefault && cbs.length > 0) {
-            builder.e("Items");
+        if (!isDefault && cbs.length > 0) {
+            builder = builder.e("Items");
         }
         for (CacheBehavior cb: cbs) {
             XMLBuilder itemBuilder;
@@ -683,11 +684,12 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
             builder.e("DefaultRootObject");
         }
 
-        XMLBuilder originsBuilder = builder.e("Origins");
-        originsBuilder.e("Quantity").t(String.valueOf(config.getOrigins().length));
-        XMLBuilder originsItems = originsBuilder.e("Items");
+        XMLBuilder originsBuilder = builder
+            .e("Origins")
+                .e("Quantity").t(String.valueOf(config.getOrigins().length)).up()
+                .e("Items");
         for (Origin origin: config.getOrigins()) {
-            originsItems.importXMLBuilder(buildOrigin(origin));
+            originsBuilder.importXMLBuilder(buildOrigin(origin));
         }
 
         builder.importXMLBuilder(buildDefaultCacheBehavior(config.getDefaultCacheBehavior()));
