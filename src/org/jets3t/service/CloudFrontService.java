@@ -571,8 +571,8 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
             CustomOrigin o = (CustomOrigin) origin;
             builder.e("DomainName").t(origin.getDomainName());
             builder.e("CustomOriginConfig")
-                .e("HTTPPort").t("" + o.getHttpPort()).up()
-                .e("HTTPSPort").t("" + o.getHttpsPort()).up()
+                .e("HTTPPort").t(String.valueOf(o.getHttpPort())).up()
+                .e("HTTPSPort").t(String.valueOf(o.getHttpsPort())).up()
                 .e("OriginProtocolPolicy").t(o.getOriginProtocolPolicy().toText());
         }
         return builder;
@@ -616,19 +616,19 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
             } else {
                 itemBuilder.e("TargetOriginId").t("default-origin-id");
             }
-            itemBuilder.e("ForwardedValues").e("QueryString").t("" + cb.isForwardQueryString());
+            itemBuilder.e("ForwardedValues").e("QueryString").t(String.valueOf(cb.isForwardQueryString()));
 
             XMLBuilder trustedSignersBuilder = itemBuilder.e("TrustedSigners");
             if (cb.getTrustedSignerAwsAccountNumbers() == null
                 || cb.getTrustedSignerAwsAccountNumbers().length == 0)
             {
                 trustedSignersBuilder
-                    .e("Enabled").t("" + false).up()
-                    .e("Quantity").t("" + 0);
+                    .e("Enabled").t(String.valueOf(false)).up()
+                    .e("Quantity").t(String.valueOf(0));
             } else {
                 XMLBuilder itemsBuilder = trustedSignersBuilder
-                    .e("Enabled").t("" + true).up()
-                    .e("Quantity").t("" + cb.getTrustedSignerAwsAccountNumbers().length).up()
+                    .e("Enabled").t(String.valueOf(true)).up()
+                    .e("Quantity").t(String.valueOf(cb.getTrustedSignerAwsAccountNumbers().length)).up()
                     .e("Items");
                 for (String awsAccountNumber: cb.getTrustedSignerAwsAccountNumbers()) {
                     itemsBuilder.e("AwsAccountNumber").t(awsAccountNumber);
@@ -637,9 +637,9 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
 
             itemBuilder.e("ViewerProtocolPolicy").t(cb.getViewerProtocolPolicy().toText());
             if (cb.getMinTTL() != null) {
-                itemBuilder.e("MinTTL").t("" + cb.getMinTTL());
+                itemBuilder.e("MinTTL").t(String.valueOf(cb.getMinTTL()));
             } else {
-                itemBuilder.e("MinTTL").t("0");
+                itemBuilder.e("MinTTL").t(String.valueOf(0));
             }
         }
 
@@ -667,13 +667,13 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
 
         XMLBuilder aliasesBuilder = builder.e("Aliases");
         if (config.getCNAMEs() != null && config.getCNAMEs().length > 0) {
-            aliasesBuilder.e("Quantity").t("" + config.getCNAMEs().length);
+            aliasesBuilder.e("Quantity").t(String.valueOf(config.getCNAMEs().length));
             XMLBuilder items = aliasesBuilder.e("Items");
             for (String cname: config.getCNAMEs()) {
                 items.e("CNAME").t(cname);
             }
         } else {
-            aliasesBuilder.e("Quantity").t("0");
+            aliasesBuilder.e("Quantity").t(String.valueOf("0"));
         }
 
         if (config.getDefaultRootObject() != null) {
@@ -1731,7 +1731,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
                 ORIGIN_ACCESS_IDENTITY_URI_PATH);
 
         if (callerReference == null) {
-            callerReference = "" + System.currentTimeMillis();
+            callerReference = String.valueOf(System.currentTimeMillis());
         }
 
         try {

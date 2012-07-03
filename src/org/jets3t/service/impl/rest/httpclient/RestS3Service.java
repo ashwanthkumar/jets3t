@@ -790,7 +790,7 @@ public class RestS3Service extends S3Service {
     {
         Map<String, String> requestParameters = new HashMap<String, String>();
         requestParameters.put("uploadId", uploadId);
-        requestParameters.put("partNumber", "" + partNumber);
+        requestParameters.put("partNumber", String.valueOf(partNumber));
 
         // Remove all non-HTTP headers from object metadata for multipart part uploads
         synchronized(object) { // Thread-safe header handling.
@@ -958,7 +958,7 @@ public class RestS3Service extends S3Service {
                 .create("CompleteMultipartUpload").a("xmlns", Constants.XML_NAMESPACE);
             for (MultipartPart part: sortedParts) {
                 builder.e("Part")
-                    .e("PartNumber").t("" + part.getPartNumber()).up()
+                    .e("PartNumber").t(String.valueOf(part.getPartNumber())).up()
                     .e("ETag").t(part.getEtag());
             }
 
