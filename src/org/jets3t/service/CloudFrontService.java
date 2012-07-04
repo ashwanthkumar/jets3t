@@ -1220,10 +1220,14 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
                 + "distribution with id: " + id);
         }
 
-        // Retrieve the old configuration.
-        DistributionConfig oldConfig = (config.isStreamingDistributionConfig()
-            ? getStreamingDistributionConfig(id)
-            : getDistributionConfig(id));
+        String etag = config.getEtag();
+        if(null == etag) {
+            // Retrieve the old configuration.
+            DistributionConfig oldConfig = (config.isStreamingDistributionConfig()
+                    ? getStreamingDistributionConfig(id)
+                    : getDistributionConfig(id));
+            etag = oldConfig.getEtag();
+        }
 
         HttpPut httpMethod = new HttpPut(ENDPOINT + VERSION
                 + (config.isStreamingDistributionConfig()
@@ -1237,7 +1241,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
             httpMethod.setEntity(new StringEntity(
                     distributionConfigXml,
                     ContentType.create("text/xml", Constants.DEFAULT_ENCODING)));
-            httpMethod.setHeader("If-Match", oldConfig.getEtag());
+            httpMethod.setHeader("If-Match", etag);
             HttpResponse response = performRestRequest(httpMethod, 200);
 
             DistributionConfigHandler handler =
