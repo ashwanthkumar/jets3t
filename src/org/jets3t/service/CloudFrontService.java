@@ -490,14 +490,15 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         Distribution[] allDistributions =
             (isStreaming ? listStreamingDistributions() : listDistributions());
         for(Distribution distribution : allDistributions) {
-            Origin origin = distribution.getOrigin();
-            if(!(origin instanceof S3Origin)) {
-                continue;
-            }
-            S3Origin s3Origin = (S3Origin) origin;
-            if(s3Origin.getDomainName().equals(bucketName)
-                    || bucketName.equals(ServiceUtils.findBucketNameInHostname(s3Origin.getDomainName(), s3Endpoint))) {
-                bucketDistributions.add(distribution);
+            for(Origin origin: distribution.getConfig().getOrigins()) {
+                if(!(origin instanceof S3Origin)) {
+                    continue;
+                }
+                if(origin.getDomainName().equals(bucketName)
+                        || bucketName.equals(ServiceUtils.findBucketNameInHostname(origin.getDomainName(), s3Endpoint))) {
+                    bucketDistributions.add(distribution);
+                    break;
+                }
             }
         }
         return bucketDistributions;
