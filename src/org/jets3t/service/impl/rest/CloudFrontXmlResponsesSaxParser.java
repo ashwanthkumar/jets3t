@@ -404,10 +404,10 @@ public class CloudFrontXmlResponsesSaxParser {
     public class DistributionConfigHandler extends SimpleHandler {
         private DistributionConfig distributionConfig = null;
 
-        private String callerReference = "";
+        private String callerReference = null;
         private List<Origin> origins = new ArrayList<Origin>();
         private final List<String> cnamesList = new ArrayList<String>();
-        private String comment = "";
+        private String comment = null;
         private boolean enabled = false;
         private LoggingStatus loggingStatus = null;
         private String defaultRootObject = null;
@@ -683,7 +683,7 @@ public class CloudFrontXmlResponsesSaxParser {
     public class OriginHandler extends SimpleHandler {
         protected Origin origin = null;
         private String id;
-        private String domainName = "";
+        private String domainName = null;
         private String originAccessIdentity = null; // S3Origin
         private String httpPort = null; // CustomOrigin
         private String httpsPort = null; // CustomOrigin
