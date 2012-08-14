@@ -158,7 +158,6 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 "s3service.default-storage-class", null);
         this.defaultServerSideEncryptionAlgorithm = this.jets3tProperties.getStringProperty(
             "s3service.server-side-encryption", null);
-        initializeDefaults();
     }
 
     @Override
