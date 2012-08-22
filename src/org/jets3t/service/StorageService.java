@@ -131,8 +131,8 @@ public abstract class StorageService {
         {
             // Configure the InetAddress DNS caching times to work well with remote services. The cached
             // DNS will timeout after 5 minutes, while failed DNS lookups will be retried after 1 second.
-            System.setProperty("networkaddress.cache.ttl", "300");
-            System.setProperty("networkaddress.cache.negative.ttl", "1");
+            java.security.Security.setProperty("networkaddress.cache.ttl", "300");
+            java.security.Security.setProperty("networkaddress.cache.negative.ttl", "1");
             if (this.log.isDebugEnabled()) {
                 this.log.debug("Setting recommended DNS caching defaults");
             }
@@ -145,9 +145,9 @@ public abstract class StorageService {
         if (this.log.isDebugEnabled()) {
             log.debug("Using DNS caching system settings:"
                 + " networkaddress.cache.ttl="
-                + System.getProperty("networkaddress.cache.ttl")
+                + java.security.Security.getProperty("networkaddress.cache.ttl")
                 + ", networkaddress.cache.negative.ttl="
-                + System.getProperty("networkaddress.cache.negative.ttl"));
+                + java.security.Security.getProperty("networkaddress.cache.negative.ttl"));
         }
 
         // (Re)initialize the JetS3t JMX delegate, in case system properties have changed.
