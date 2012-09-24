@@ -31,20 +31,9 @@ public class Distribution {
     private Map activeTrustedSigners = new HashMap();
     private DistributionConfig config = new DistributionConfig();
 
-    /**
-     *
-     * @param id
-     * @param status
-     * @param lastModifiedDate
-     * @param inProgressInvalidationBatches
-     * @param domainName
-     * @param activeTrustedSigners
-     * @param config
-     */
     public Distribution(String id, String status, Date lastModifiedDate,
-        Long inProgressInvalidationBatches, String domainName,
-        Map activeTrustedSigners, DistributionConfig config)
-    {
+                        Long inProgressInvalidationBatches, String domainName,
+                        Map activeTrustedSigners, DistributionConfig config) {
         this.id = id;
         this.status = status;
         this.lastModifiedTime = lastModifiedDate;
@@ -55,26 +44,16 @@ public class Distribution {
 
     /**
      * @deprecated as of 2012-05-05 API version.
-     *
-     * @param id
-     * @param status
-     * @param lastModifiedDate
-     * @param domainName
-     * @param origin
-     * @param cnames
-     * @param comment
-     * @param enabled
      */
     @Deprecated
     public Distribution(String id, String status, Date lastModifiedDate,
-        String domainName, Origin origin, String[] cnames, String comment,
-        boolean enabled)
-    {
+                        String domainName, Origin origin, String[] cnames, String comment,
+                        boolean enabled) {
         this.id = id;
         this.status = status;
         this.lastModifiedTime = lastModifiedDate;
         this.domainName = domainName;
-        this.config.setOrigins(new Origin[] {origin});
+        this.config.setOrigins(new Origin[]{origin});
         this.config.setCNAMEs(cnames);
         this.config.setComment(comment);
         this.config.setEnabled(enabled);
@@ -82,18 +61,10 @@ public class Distribution {
 
     /**
      * @deprecated as of 2012-05-05 API version.
-     *
-     * @param id
-     * @param status
-     * @param lastModifiedDate
-     * @param domainName
-     * @param activeTrustedSigners
-     * @param config
      */
     @Deprecated
     public Distribution(String id, String status, Date lastModifiedDate,
-        String domainName, Map activeTrustedSigners, DistributionConfig config)
-    {
+                        String domainName, Map activeTrustedSigners, DistributionConfig config) {
         this.id = id;
         this.status = status;
         this.lastModifiedTime = lastModifiedDate;
@@ -163,8 +134,7 @@ public class Distribution {
     }
 
     /**
-     * @return
-     * true if this distribution's status is "Deployed".
+     * @return true if this distribution's status is "Deployed".
      */
     public boolean isDeployed() {
         return "Deployed".equals(getStatus());
@@ -181,14 +151,14 @@ public class Distribution {
     @Override
     public String toString() {
         return
-            (isStreamingDistribution()
-                ? "CloudFrontStreamingDistribution"
-                : "CloudFrontDistribution")
-            + ": id=" + id + ", status=" + status
-            + ", domainName=" + domainName
-            + ", activeTrustedSigners=" + activeTrustedSigners
-            + ", lastModifiedTime=" + lastModifiedTime
-            + ", config=" + this.getConfig().toString();
+                (isStreamingDistribution()
+                        ? "CloudFrontStreamingDistribution"
+                        : "CloudFrontDistribution")
+                        + ": id=" + id + ", status=" + status
+                        + ", domainName=" + domainName
+                        + ", activeTrustedSigners=" + activeTrustedSigners
+                        + ", lastModifiedTime=" + lastModifiedTime
+                        + ", config=" + this.getConfig().toString();
     }
 
 }
