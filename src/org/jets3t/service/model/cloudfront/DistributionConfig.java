@@ -72,7 +72,7 @@ public class DistributionConfig {
                               String[] trustedSignerAwsAccountNumbers,
                               String[] requiredProtocols, String defaultRootObject,
                               Long minTTL) {
-        this.origins = new Origin[]{origin};
+        this.origins = null == origin ? new Origin[]{} : new Origin[]{origin};
         this.callerReference = callerReference;
         this.cnames = cnames;
         this.comment = comment;
@@ -179,7 +179,7 @@ public class DistributionConfig {
     }
 
     public boolean isStreamingDistributionConfig() {
-        return (this instanceof StreamingDistributionConfig);
+        return false;
     }
 
     public String getDefaultRootObject() {

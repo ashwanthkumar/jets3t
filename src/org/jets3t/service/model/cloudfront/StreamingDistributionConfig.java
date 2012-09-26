@@ -20,19 +20,16 @@ package org.jets3t.service.model.cloudfront;
 
 
 public class StreamingDistributionConfig extends DistributionConfig {
-    private String[] trustedSignerAwsAccountNumbers;
 
     /**
-     * Construct a distribution configuration compatible with CloudFront API versions
-     * 2012-05-05 and later (i.e. including cache behaviors and multiple origins)
+     * Construct a distribution configuration compatible with CloudFront API versions 2012-05-05 and later
      */
     public StreamingDistributionConfig(Origin[] origins, String callerReference,
                                        String[] cnames, String comment, boolean enabled,
                                        LoggingStatus loggingStatus, String[] trustedSignerAwsAccountNumbers) {
-        super(origins, callerReference, cnames, comment, enabled, loggingStatus, null, null, null);
-        this.trustedSignerAwsAccountNumbers = trustedSignerAwsAccountNumbers;
+        super(origins, callerReference, cnames, comment, enabled, loggingStatus, null,
+                new CacheBehavior(null, false, trustedSignerAwsAccountNumbers, CacheBehavior.ViewerProtocolPolicy.ALLOW_ALL, 0L), null);
     }
-
 
     /**
      * @deprecated as of 2012-05-05 API version.
@@ -59,7 +56,7 @@ public class StreamingDistributionConfig extends DistributionConfig {
     }
 
     @Override
-    public String[] getTrustedSignerAwsAccountNumbers() {
-        return trustedSignerAwsAccountNumbers;
+    public boolean isStreamingDistributionConfig() {
+        return true;
     }
 }
