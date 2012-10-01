@@ -18,14 +18,13 @@
  */
 package org.jets3t.servlets.gatekeeper.impl;
 
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-
 import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
 import org.jets3t.servlets.gatekeeper.ClientInformation;
 import org.jets3t.servlets.gatekeeper.TransactionIdProvider;
-import org.safehaus.uuid.UUID;
-import org.safehaus.uuid.UUIDGenerator;
+
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import java.util.UUID;
 
 /**
  * Default TransactionIdProvider implementation that generated random-based UUIDs using the
@@ -48,11 +47,9 @@ public class DefaultTransactionIdProvider extends TransactionIdProvider {
     /**
      * Returns a random-based UUID.
      */
-    public String getTransactionId(GatekeeperMessage requestMessage, ClientInformation clientInformation)
-    {
+    public String getTransactionId(GatekeeperMessage requestMessage, ClientInformation clientInformation) {
         // Generate a UUID based on a random generation.
-        UUID uuid = UUIDGenerator.getInstance().generateRandomBasedUUID();
-        return uuid.toString();
+        return UUID.randomUUID().toString();
     }
 
 }
