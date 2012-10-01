@@ -115,11 +115,9 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * @param credentialsProvider            an implementation of the HttpClient CredentialsProvider interface, to provide a means for
      *                                       prompting for credentials when necessary. May be null.
      * @param jets3tProperties               JetS3t properties that will be applied within this service. May be null.
-     * @throws CloudFrontServiceException
      */
     public CloudFrontService(ProviderCredentials credentials, String invokingApplicationDescription,
-                             CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties)
-            throws CloudFrontServiceException {
+                             CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties) {
         this.credentials = credentials;
         this.invokingApplicationDescription = invokingApplicationDescription;
         this.credentialsProvider = credentialsProvider;
