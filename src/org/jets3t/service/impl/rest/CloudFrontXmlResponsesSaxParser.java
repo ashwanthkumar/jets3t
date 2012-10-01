@@ -18,6 +18,20 @@
  */
 package org.jets3t.service.impl.rest;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.jets3t.service.CloudFrontServiceException;
+import org.jets3t.service.Constants;
+import org.jets3t.service.Jets3tProperties;
+import org.jets3t.service.S3ServiceException;
+import org.jets3t.service.ServiceException;
+import org.jets3t.service.model.cloudfront.*;
+import org.jets3t.service.model.cloudfront.CacheBehavior.ViewerProtocolPolicy;
+import org.jets3t.service.utils.ServiceUtils;
+import org.xml.sax.InputSource;
+import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.DefaultHandler;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,33 +42,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.jets3t.service.CloudFrontServiceException;
-import org.jets3t.service.Constants;
-import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.S3ServiceException;
-import org.jets3t.service.ServiceException;
-import org.jets3t.service.model.cloudfront.CacheBehavior;
-import org.jets3t.service.model.cloudfront.CustomOrigin;
-import org.jets3t.service.model.cloudfront.Distribution;
-import org.jets3t.service.model.cloudfront.DistributionConfig;
-import org.jets3t.service.model.cloudfront.Invalidation;
-import org.jets3t.service.model.cloudfront.InvalidationList;
-import org.jets3t.service.model.cloudfront.InvalidationSummary;
-import org.jets3t.service.model.cloudfront.LoggingStatus;
-import org.jets3t.service.model.cloudfront.Origin;
-import org.jets3t.service.model.cloudfront.OriginAccessIdentity;
-import org.jets3t.service.model.cloudfront.OriginAccessIdentityConfig;
-import org.jets3t.service.model.cloudfront.S3Origin;
-import org.jets3t.service.model.cloudfront.StreamingDistribution;
-import org.jets3t.service.model.cloudfront.StreamingDistributionConfig;
-import org.jets3t.service.model.cloudfront.CacheBehavior.ViewerProtocolPolicy;
-import org.jets3t.service.utils.ServiceUtils;
-import org.xml.sax.InputSource;
-import org.xml.sax.XMLReader;
-import org.xml.sax.helpers.DefaultHandler;
 
 /**
  * XML Sax parser to read XML documents returned by the CloudFront service via
@@ -71,9 +58,7 @@ public class CloudFrontXmlResponsesSaxParser {
     /**
      * Constructs the XML SAX parser.
      *
-     * @param properties
-     * the JetS3t properties that will be applied when parsing XML documents.
-     *
+     * @param properties the JetS3t properties that will be applied when parsing XML documents.
      * @throws S3ServiceException
      */
     public CloudFrontXmlResponsesSaxParser(Jets3tProperties properties) throws ServiceException {
@@ -87,110 +72,102 @@ public class CloudFrontXmlResponsesSaxParser {
 
     /**
      * Parses an XML document from an input stream using a document handler.
-     * @param handler The handler for the XML document
+     *
+     * @param handler     The handler for the XML document
      * @param inputStream An input stream containing the XML document to parse
      * @throws CloudFrontServiceException Any parsing, IO or other exceptions are wrapped in an S3ServiceException.
      */
     protected void parseXmlInputStream(DefaultHandler handler, InputStream inputStream)
-        throws CloudFrontServiceException
-    {
+            throws CloudFrontServiceException {
         try {
-            if (log.isDebugEnabled()) {
+            if(log.isDebugEnabled()) {
                 log.debug("Parsing XML response document with handler: " + handler.getClass());
             }
             BufferedReader breader = new BufferedReader(new InputStreamReader(inputStream,
-                Constants.DEFAULT_ENCODING));
+                    Constants.DEFAULT_ENCODING));
             xr.setContentHandler(handler);
             xr.setErrorHandler(handler);
             xr.parse(new InputSource(breader));
-        } catch (Throwable t) {
+        }
+        catch(Throwable t) {
             try {
                 inputStream.close();
-            } catch (IOException e) {
-                if (log.isErrorEnabled()) {
+            }
+            catch(IOException e) {
+                if(log.isErrorEnabled()) {
                     log.error("Unable to close response InputStream up after XML parse failure", e);
                 }
             }
             throw new CloudFrontServiceException("Failed to parse XML document with handler "
-                + handler.getClass(), t);
+                    + handler.getClass(), t);
         }
     }
 
     /**
      * Parses a ListBucket response XML document from an input stream.
-     * @param inputStream
-     * XML data input stream.
-     * @return
-     * the XML handler object populated with data parsed from the XML stream.
+     *
+     * @param inputStream XML data input stream.
+     * @return the XML handler object populated with data parsed from the XML stream.
      * @throws CloudFrontServiceException
      */
     public DistributionListHandler parseDistributionListResponse(InputStream inputStream)
-        throws CloudFrontServiceException
-    {
+            throws CloudFrontServiceException {
         DistributionListHandler handler = new DistributionListHandler(xr);
         parseXmlInputStream(handler, inputStream);
         return handler;
     }
 
     public DistributionHandler parseDistributionResponse(InputStream inputStream)
-        throws CloudFrontServiceException
-    {
+            throws CloudFrontServiceException {
         DistributionHandler handler = new DistributionHandler(xr);
         parseXmlInputStream(handler, inputStream);
         return handler;
     }
 
     public DistributionConfigHandler parseDistributionConfigResponse(InputStream inputStream)
-        throws CloudFrontServiceException
-    {
+            throws CloudFrontServiceException {
         DistributionConfigHandler handler = new DistributionConfigHandler(xr);
         parseXmlInputStream(handler, inputStream);
         return handler;
     }
 
     public OriginAccessIdentityHandler parseOriginAccessIdentity(
-        InputStream inputStream) throws CloudFrontServiceException
-    {
+            InputStream inputStream) throws CloudFrontServiceException {
         OriginAccessIdentityHandler handler = new OriginAccessIdentityHandler(xr);
         parseXmlInputStream(handler, inputStream);
         return handler;
     }
 
     public OriginAccessIdentityConfigHandler parseOriginAccessIdentityConfig(
-        InputStream inputStream) throws CloudFrontServiceException
-    {
+            InputStream inputStream) throws CloudFrontServiceException {
         OriginAccessIdentityConfigHandler handler = new OriginAccessIdentityConfigHandler(xr);
         parseXmlInputStream(handler, inputStream);
         return handler;
     }
 
     public OriginAccessIdentityListHandler parseOriginAccessIdentityListResponse(
-        InputStream inputStream) throws CloudFrontServiceException
-    {
+            InputStream inputStream) throws CloudFrontServiceException {
         OriginAccessIdentityListHandler handler = new OriginAccessIdentityListHandler(xr);
         parseXmlInputStream(handler, inputStream);
         return handler;
     }
 
     public InvalidationHandler parseInvalidationResponse(
-        InputStream inputStream) throws CloudFrontServiceException
-    {
+            InputStream inputStream) throws CloudFrontServiceException {
         InvalidationHandler handler = new InvalidationHandler(xr);
         parseXmlInputStream(handler, inputStream);
         return handler;
     }
 
     public InvalidationListHandler parseInvalidationListResponse(
-        InputStream inputStream) throws CloudFrontServiceException
-    {
+            InputStream inputStream) throws CloudFrontServiceException {
         InvalidationListHandler handler = new InvalidationListHandler(xr);
         parseXmlInputStream(handler, inputStream);
         return handler;
     }
 
     public ErrorHandler parseErrorResponse(InputStream inputStream)
-        throws CloudFrontServiceException
-    {
+            throws CloudFrontServiceException {
         ErrorHandler handler = new ErrorHandler(xr);
         parseXmlInputStream(handler, inputStream);
         return handler;
@@ -208,7 +185,7 @@ public class CloudFrontXmlResponsesSaxParser {
         private Date lastModifiedTime = null;
         private String domainName = null;
         private final Map<String, List<String>> activeTrustedSigners =
-            new HashMap<String, List<String>>();
+                new HashMap<String, List<String>>();
 
         private boolean inSignerElement;
         private String lastSignerIdentifier = null;
@@ -248,21 +225,21 @@ public class CloudFrontXmlResponsesSaxParser {
         }
 
         public void endSelf(String text) {
-            if (inSignerElement) {
+            if(inSignerElement) {
                 lastSignerIdentifier = "Self";
             }
         }
 
         public void endAwsAccountNumber(String text) {
-            if (inSignerElement) {
+            if(inSignerElement) {
                 lastSignerIdentifier = text;
             }
         }
 
         public void endKeyPairId(String text) {
-            if (inSignerElement) {
+            if(inSignerElement) {
                 List<String> keypairIdList = activeTrustedSigners.get(lastSignerIdentifier);
-                if (keypairIdList == null) {
+                if(keypairIdList == null) {
                     keypairIdList = new ArrayList<String>();
                     activeTrustedSigners.put(lastSignerIdentifier, keypairIdList);
                 }
@@ -282,13 +259,14 @@ public class CloudFrontXmlResponsesSaxParser {
         @Override
         public void controlReturned(SimpleHandler childHandler) {
             DistributionConfig config =
-                ((DistributionConfigHandler) childHandler).getDistributionConfig();
-            if (config instanceof StreamingDistributionConfig) {
+                    ((DistributionConfigHandler) childHandler).getDistributionConfig();
+            if(config instanceof StreamingDistributionConfig) {
                 this.distribution = new StreamingDistribution(id, status,
-                    lastModifiedTime, domainName, activeTrustedSigners, config);
-            } else {
+                        lastModifiedTime, domainName, activeTrustedSigners, config);
+            }
+            else {
                 this.distribution = new Distribution(id, status,
-                    lastModifiedTime, 0L, domainName, activeTrustedSigners, config);
+                        lastModifiedTime, 0L, domainName, activeTrustedSigners, config);
             }
         }
 
@@ -389,7 +367,7 @@ public class CloudFrontXmlResponsesSaxParser {
         @Override
         public void controlReturned(SimpleHandler childHandler) {
             cacheBehavior.setTrustedSignerAwsAccountNumbers(
-                ((TrustedSignersHandler)childHandler).getTrustedSigners());
+                    ((TrustedSignersHandler) childHandler).getTrustedSigners());
         }
 
         public void endDefaultCacheBehavior(String text) {
@@ -413,7 +391,7 @@ public class CloudFrontXmlResponsesSaxParser {
         private String defaultRootObject = null;
         private CacheBehavior defaultCacheBehavior;
         private List<CacheBehavior> cacheBehaviors = new ArrayList<CacheBehavior>();
-        List<String>trustedSignerAwsAccountNumberList = new ArrayList<String>();
+        List<String> trustedSignerAwsAccountNumberList = new ArrayList<String>();
 
         private boolean inDefaultCacheBehavior = false;
 
@@ -446,6 +424,12 @@ public class CloudFrontXmlResponsesSaxParser {
         }
 
         public void startOrigin() {
+            // For DistributionConfig
+            transferControlToHandler(new OriginHandler(xr));
+        }
+
+        public void startS3Origin() {
+            // For StreamingDistributionConfig
             transferControlToHandler(new OriginHandler(xr));
         }
 
@@ -465,38 +449,41 @@ public class CloudFrontXmlResponsesSaxParser {
 
         @Override
         public void controlReturned(SimpleHandler childHandler) {
-            if (childHandler instanceof OriginHandler) {
-                this.origins.add( ((OriginHandler) childHandler).origin );
-            } else if (childHandler instanceof CacheBehaviorHandler) {
-                if (inDefaultCacheBehavior) {
+            if(childHandler instanceof OriginHandler) {
+                this.origins.add(((OriginHandler) childHandler).origin);
+            }
+            else if(childHandler instanceof CacheBehaviorHandler) {
+                if(inDefaultCacheBehavior) {
                     this.defaultCacheBehavior = ((CacheBehaviorHandler) childHandler).cacheBehavior;
-                } else {
-                    this.cacheBehaviors.add( ((CacheBehaviorHandler) childHandler).cacheBehavior );
                 }
-            } else if (childHandler instanceof LoggingStatusHandler) {
+                else {
+                    this.cacheBehaviors.add(((CacheBehaviorHandler) childHandler).cacheBehavior);
+                }
+            }
+            else if(childHandler instanceof LoggingStatusHandler) {
                 this.loggingStatus = ((LoggingStatusHandler) childHandler).loggingStatus;
             }
         }
 
         public void endDistributionConfig(String text) {
             this.distributionConfig = new DistributionConfig(
-                origins.toArray(new Origin[origins.size()]),
-                callerReference,
-                cnamesList.toArray(new String[cnamesList.size()]),
-                comment, enabled, loggingStatus, defaultRootObject,
-                defaultCacheBehavior,
-                cacheBehaviors.toArray(new CacheBehavior[cacheBehaviors.size()]));
+                    origins.toArray(new Origin[origins.size()]),
+                    callerReference,
+                    cnamesList.toArray(new String[cnamesList.size()]),
+                    comment, enabled, loggingStatus, defaultRootObject,
+                    defaultCacheBehavior,
+                    cacheBehaviors.toArray(new CacheBehavior[cacheBehaviors.size()]));
             returnControlToParentHandler();
         }
 
         public void endStreamingDistributionConfig(String text) {
             this.distributionConfig = new StreamingDistributionConfig(
-                origins.toArray(new Origin[origins.size()]),
-                callerReference,
-                cnamesList.toArray(new String[cnamesList.size()]), comment,
-                enabled, loggingStatus,
-                trustedSignerAwsAccountNumberList.toArray(
-                    new String[trustedSignerAwsAccountNumberList.size()]));
+                    origins.toArray(new Origin[origins.size()]),
+                    callerReference,
+                    cnamesList.toArray(new String[cnamesList.size()]), comment,
+                    enabled, loggingStatus,
+                    trustedSignerAwsAccountNumberList.toArray(
+                            new String[trustedSignerAwsAccountNumberList.size()]));
             returnControlToParentHandler();
         }
     }
@@ -551,6 +538,12 @@ public class CloudFrontXmlResponsesSaxParser {
         }
 
         public void startOrigin() {
+            // For download distribution origins
+            transferControlToHandler(new OriginHandler(xr));
+        }
+
+        public void startS3Origin() {
+            // For streaming distribution origins
             transferControlToHandler(new OriginHandler(xr));
         }
 
@@ -566,13 +559,15 @@ public class CloudFrontXmlResponsesSaxParser {
 
         @Override
         public void controlReturned(SimpleHandler childHandler) {
-            if (childHandler instanceof OriginHandler) {
-                this.origins.add( ((OriginHandler) childHandler).origin );
-            } else if (childHandler instanceof CacheBehaviorHandler) {
-                if (inDefaultCacheBehavior) {
+            if(childHandler instanceof OriginHandler) {
+                this.origins.add(((OriginHandler) childHandler).origin);
+            }
+            else if(childHandler instanceof CacheBehaviorHandler) {
+                if(inDefaultCacheBehavior) {
                     this.defaultCacheBehavior = ((CacheBehaviorHandler) childHandler).cacheBehavior;
-                } else {
-                    this.cacheBehaviors.add( ((CacheBehaviorHandler) childHandler).cacheBehavior );
+                }
+                else {
+                    this.cacheBehaviors.add(((CacheBehaviorHandler) childHandler).cacheBehavior);
                 }
             }
         }
@@ -587,33 +582,33 @@ public class CloudFrontXmlResponsesSaxParser {
 
         public void endDistributionSummary(String text) {
             DistributionConfig config = new DistributionConfig(
-                this.origins.toArray(new Origin[origins.size()]),
-                null,  // callerReference
-                this.cnamesList.toArray(new String[cnamesList.size()]),
-                this.comment,
-                this.enabled,
-                null,  // loggingStatus
-                null,
-                this.defaultCacheBehavior,
-                this.cacheBehaviors.toArray(new CacheBehavior[cacheBehaviors.size()])
-                );
+                    this.origins.toArray(new Origin[origins.size()]),
+                    null,  // callerReference
+                    this.cnamesList.toArray(new String[cnamesList.size()]),
+                    this.comment,
+                    this.enabled,
+                    null,  // loggingStatus
+                    null,
+                    this.defaultCacheBehavior,
+                    this.cacheBehaviors.toArray(new CacheBehavior[cacheBehaviors.size()])
+            );
             this.distribution = new Distribution(id, status,
-                lastModifiedTime, inProgressInvalidationBatches, domainName, null, config);
+                    lastModifiedTime, inProgressInvalidationBatches, domainName, null, config);
             returnControlToParentHandler();
         }
 
         public void endStreamingDistributionSummary(String text) {
             StreamingDistributionConfig config = new StreamingDistributionConfig(
-                this.origins.toArray(new Origin[origins.size()]),
-                null,  // callerReference
-                this.cnamesList.toArray(new String[cnamesList.size()]),
-                this.comment,
-                this.enabled,
-                null,  // loggingStatus
-                null  // trustedSignerAwsAccountNumbers
-                );
+                    this.origins.toArray(new Origin[origins.size()]),
+                    null,  // callerReference
+                    this.cnamesList.toArray(new String[cnamesList.size()]),
+                    this.comment,
+                    this.enabled,
+                    null,  // loggingStatus
+                    null  // trustedSignerAwsAccountNumbers
+            );
             this.distribution = new StreamingDistribution(id, status,
-                lastModifiedTime, domainName, null, config);
+                    lastModifiedTime, domainName, null, config);
             returnControlToParentHandler();
         }
     }
@@ -660,7 +655,7 @@ public class CloudFrontXmlResponsesSaxParser {
         @Override
         public void controlReturned(SimpleHandler childHandler) {
             distributions.add(
-                ((DistributionSummaryHandler) childHandler).getDistribution());
+                    ((DistributionSummaryHandler) childHandler).getDistribution());
         }
 
         public void endMarker(String text) {
@@ -718,7 +713,17 @@ public class CloudFrontXmlResponsesSaxParser {
         }
 
         public void endS3OriginConfig(String text) {
-            if (this.originAccessIdentity != null && this.originAccessIdentity.length() == 0) {
+            // For download distribution origins
+            if(this.originAccessIdentity != null && this.originAccessIdentity.length() == 0) {
+                this.originAccessIdentity = null;
+            }
+            this.origin = new S3Origin(this.id, this.domainName, this.originAccessIdentity);
+            returnControlToParentHandler();
+        }
+
+        public void endS3Origin(String text) {
+            // For streaming distribution origins
+            if(this.originAccessIdentity != null && this.originAccessIdentity.length() == 0) {
                 this.originAccessIdentity = null;
             }
             this.origin = new S3Origin(this.id, this.domainName, this.originAccessIdentity);
@@ -726,9 +731,10 @@ public class CloudFrontXmlResponsesSaxParser {
         }
 
         public void endCustomOriginConfig(String text) {
+            // For download distribution origins
             this.origin = new CustomOrigin(this.id, this.domainName,
-                CustomOrigin.OriginProtocolPolicy.fromText(this.originProtocolPolicy),
-                Integer.valueOf(this.httpPort), Integer.valueOf(this.httpsPort));
+                    CustomOrigin.OriginProtocolPolicy.fromText(this.originProtocolPolicy),
+                    Integer.valueOf(this.httpPort), Integer.valueOf(this.httpsPort));
             returnControlToParentHandler();
         }
     }
@@ -767,12 +773,12 @@ public class CloudFrontXmlResponsesSaxParser {
         @Override
         public void controlReturned(SimpleHandler childHandler) {
             this.originAccessIdentityConfig =
-                ((OriginAccessIdentityConfigHandler) childHandler).getOriginAccessIdentityConfig();
+                    ((OriginAccessIdentityConfigHandler) childHandler).getOriginAccessIdentityConfig();
         }
 
         public void endCloudFrontOriginAccessIdentity(String text) {
             this.originAccessIdentity = new OriginAccessIdentity(
-                this.id, this.s3CanonicalUserId, this.originAccessIdentityConfig);
+                    this.id, this.s3CanonicalUserId, this.originAccessIdentityConfig);
         }
 
         public void endCloudFrontOriginAccessIdentitySummary(String text) {
@@ -811,7 +817,7 @@ public class CloudFrontXmlResponsesSaxParser {
 
     public class OriginAccessIdentityListHandler extends SimpleHandler {
         private final List<OriginAccessIdentity> originAccessIdentityList =
-            new ArrayList<OriginAccessIdentity>();
+                new ArrayList<OriginAccessIdentity>();
         private String marker = null;
         private String nextMarker = null;
         private int maxItems = 100;
@@ -848,7 +854,7 @@ public class CloudFrontXmlResponsesSaxParser {
         @Override
         public void controlReturned(SimpleHandler childHandler) {
             originAccessIdentityList.add(
-                ((OriginAccessIdentityHandler) childHandler).getOriginAccessIdentity());
+                    ((OriginAccessIdentityHandler) childHandler).getOriginAccessIdentity());
         }
 
         public void endMarker(String text) {
@@ -876,7 +882,7 @@ public class CloudFrontXmlResponsesSaxParser {
         private String invalidationSummaryId = null;
         private String invalidationSummaryStatus = null;
         private List<InvalidationSummary> invalidationSummaries =
-            new ArrayList<InvalidationSummary>();
+                new ArrayList<InvalidationSummary>();
         private InvalidationList invalidationList = null;
 
         public InvalidationListHandler(XMLReader xr) {
@@ -928,13 +934,13 @@ public class CloudFrontXmlResponsesSaxParser {
         public void endStatus(String text) {
             this.invalidationSummaryStatus = text;
             this.invalidationSummaries.add(new InvalidationSummary(
-                this.invalidationSummaryId, this.invalidationSummaryStatus));
+                    this.invalidationSummaryId, this.invalidationSummaryStatus));
         }
 
         public void endInvalidationList(String ignore) {
             this.invalidationList = new InvalidationList(
-                this.marker, this.nextMarker, this.maxItems, this.isTruncated,
-                this.invalidationSummaries);
+                    this.marker, this.nextMarker, this.maxItems, this.isTruncated,
+                    this.invalidationSummaries);
         }
     }
 
@@ -959,7 +965,7 @@ public class CloudFrontXmlResponsesSaxParser {
 
         public void endCreateTime(String text) throws ParseException {
             this.invalidation.setCreateTime(
-                ServiceUtils.parseIso8601Date(text));
+                    ServiceUtils.parseIso8601Date(text));
         }
 
         public void endPath(String text) {
