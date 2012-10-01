@@ -16,42 +16,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jets3t.tests;
+package org.jets3t.service;
 
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
-
-import junit.framework.TestCase;
-
-import org.jets3t.samples.SamplesUtils;
 import org.jets3t.service.CloudFrontService;
 import org.jets3t.service.CloudFrontServiceException;
-import org.jets3t.service.Constants;
-import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.ServiceException;
-import org.jets3t.service.impl.rest.httpclient.RestS3Service;
-import org.jets3t.service.impl.rest.httpclient.RestStorageService;
 import org.jets3t.service.model.cloudfront.CacheBehavior;
-import org.jets3t.service.model.cloudfront.CustomOrigin;
-import org.jets3t.service.model.cloudfront.Invalidation;
-import org.jets3t.service.model.cloudfront.InvalidationSummary;
-import org.jets3t.service.model.cloudfront.Origin;
-import org.jets3t.service.model.cloudfront.OriginAccessIdentity;
+import org.jets3t.service.model.cloudfront.CacheBehavior.ViewerProtocolPolicy;
 import org.jets3t.service.model.cloudfront.Distribution;
 import org.jets3t.service.model.cloudfront.DistributionConfig;
 import org.jets3t.service.model.cloudfront.LoggingStatus;
-import org.jets3t.service.model.cloudfront.OriginAccessIdentityConfig;
 import org.jets3t.service.model.cloudfront.S3Origin;
-import org.jets3t.service.model.cloudfront.StreamingDistribution;
-import org.jets3t.service.model.cloudfront.StreamingDistributionConfig;
-import org.jets3t.service.model.cloudfront.CacheBehavior.ViewerProtocolPolicy;
 import org.jets3t.service.security.AWSCredentials;
-import org.jets3t.service.security.EncryptionUtil;
-import org.jets3t.service.security.ProviderCredentials;
-import org.jets3t.service.utils.ServiceUtils;
+
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Properties;
+
+import junit.framework.TestCase;
 
 public class TestAmazonCloudFront extends TestCase {
 
@@ -97,42 +78,42 @@ public class TestAmazonCloudFront extends TestCase {
             );
 
         // Check distribution info
-        this.assertNotNull(distribution.getId());
-        this.assertNotNull(distribution.getDomainName());
-        this.assertNotNull(distribution.getLastModifiedTime());
-        this.assertEquals("InProgress", distribution.getStatus());
-        this.assertEquals(0, distribution.getActiveTrustedSigners().size());
+        assertNotNull(distribution.getId());
+        assertNotNull(distribution.getDomainName());
+        assertNotNull(distribution.getLastModifiedTime());
+        assertEquals("InProgress", distribution.getStatus());
+        assertEquals(0, distribution.getActiveTrustedSigners().size());
         // Check distribution config info
         DistributionConfig config = distribution.getConfig();
-        this.assertEquals(callerId, config.getCallerReference());
-        this.assertEquals(comment, config.getComment());
-        this.assertEquals(false, config.isEnabled());
-        this.assertEquals(Arrays.asList(cnames), Arrays.asList(config.getCNAMEs()));
-        this.assertEquals(1, config.getOrigins().length);
-        this.assertEquals(S3Origin.class, config.getOrigins()[0].getClass());
+        assertEquals(callerId, config.getCallerReference());
+        assertEquals(comment, config.getComment());
+        assertEquals(false, config.isEnabled());
+        assertEquals(Arrays.asList(cnames), Arrays.asList(config.getCNAMEs()));
+        assertEquals(1, config.getOrigins().length);
+        assertEquals(S3Origin.class, config.getOrigins()[0].getClass());
         S3Origin origin = (S3Origin) config.getOrigins()[0];
-        this.assertEquals("default-origin-id", origin.getId());
-        this.assertEquals(this.originBucket, origin.getDomainName());
-        this.assertNull(origin.getOriginAccessIdentity());
-        this.assertEquals(this.originBucket.split("\\.")[0], origin.getOriginAsBucketName());
+        assertEquals("default-origin-id", origin.getId());
+        assertEquals(originBucket, origin.getDomainName());
+        assertNull(origin.getOriginAccessIdentity());
+        assertEquals(originBucket.split("\\.")[0], origin.getOriginAsBucketName());
         // Check cache behaviors
         CacheBehavior defaultCacheBehavior = config.getDefaultCacheBehavior();
-        this.assertNull(defaultCacheBehavior.getPathPattern());
-        this.assertEquals(origin.getId(), defaultCacheBehavior.getTargetOriginId());
-        this.assertEquals(false, defaultCacheBehavior.isForwardQueryString());
-        this.assertEquals(Long.valueOf(0), defaultCacheBehavior.getMinTTL());
-        this.assertEquals(0, defaultCacheBehavior.getTrustedSignerAwsAccountNumbers().length);
-        this.assertEquals(ViewerProtocolPolicy.ALLOW_ALL, defaultCacheBehavior.getViewerProtocolPolicy());
+        assertNull(defaultCacheBehavior.getPathPattern());
+        assertEquals(origin.getId(), defaultCacheBehavior.getTargetOriginId());
+        assertEquals(false, defaultCacheBehavior.isForwardQueryString());
+        assertEquals(Long.valueOf(0), defaultCacheBehavior.getMinTTL());
+        assertEquals(0, defaultCacheBehavior.getTrustedSignerAwsAccountNumbers().length);
+        assertEquals(ViewerProtocolPolicy.ALLOW_ALL, defaultCacheBehavior.getViewerProtocolPolicy());
         // Check legacy distribution info (pre 2012-05-05 API version)
-        this.assertEquals(comment, distribution.getComment());
-        this.assertEquals(Arrays.asList(cnames), Arrays.asList(distribution.getCNAMEs()));
-        this.assertEquals(false, distribution.isEnabled());
-        this.assertTrue(distribution.getOrigin() instanceof S3Origin);
+        assertEquals(comment, distribution.getComment());
+        assertEquals(Arrays.asList(cnames), Arrays.asList(distribution.getCNAMEs()));
+        assertEquals(false, distribution.isEnabled());
+        assertTrue(distribution.getOrigin() instanceof S3Origin);
         origin = (S3Origin) distribution.getOrigin();
 
         // Update distribution to enable it, add a CNAME, update comment, enable logging,
         // set default root object, set default cache behavior, add additional cache behavior
-        cnames = new String[] {callerId + this.originBucket, callerId + "2" + this.originBucket};
+        cnames = new String[] {callerId + originBucket, callerId + "2" + originBucket};
         comment = "Updated comment";
         LoggingStatus logging = new LoggingStatus("log-bucket.s3.amazonaws.com", "log-prefix/");
         DistributionConfig testDistributionConfig = new DistributionConfig(
@@ -166,34 +147,34 @@ public class TestAmazonCloudFront extends TestCase {
             distribution.getId(), testDistributionConfig);
 
         // Check distribution config info
-        this.assertEquals(testDistributionConfig.getCallerReference(), config.getCallerReference());
-        this.assertEquals(testDistributionConfig.getComment(), config.getComment());
-        this.assertEquals(testDistributionConfig.isEnabled(), config.isEnabled());
-        this.assertEquals(Arrays.asList(testDistributionConfig.getCNAMEs()), Arrays.asList(config.getCNAMEs()));
-        this.assertEquals(1, config.getOrigins().length);
-        this.assertEquals(S3Origin.class, config.getOrigins()[0].getClass());
+        assertEquals(testDistributionConfig.getCallerReference(), config.getCallerReference());
+        assertEquals(testDistributionConfig.getComment(), config.getComment());
+        assertEquals(testDistributionConfig.isEnabled(), config.isEnabled());
+        assertEquals(Arrays.asList(testDistributionConfig.getCNAMEs()), Arrays.asList(config.getCNAMEs()));
+        assertEquals(1, config.getOrigins().length);
+        assertEquals(S3Origin.class, config.getOrigins()[0].getClass());
         origin = (S3Origin) config.getOrigins()[0];
-        this.assertEquals("default-origin-id", origin.getId());
-        this.assertEquals(this.originBucket, origin.getDomainName());
-        this.assertNull(origin.getOriginAccessIdentity());
-        this.assertEquals(this.originBucket.split("\\.")[0], origin.getOriginAsBucketName());
+        assertEquals("default-origin-id", origin.getId());
+        assertEquals(this.originBucket, origin.getDomainName());
+        assertNull(origin.getOriginAccessIdentity());
+        assertEquals(this.originBucket.split("\\.")[0], origin.getOriginAsBucketName());
         // Check cache behaviors
         defaultCacheBehavior = config.getDefaultCacheBehavior();
-        this.assertNull(defaultCacheBehavior.getPathPattern());
-        this.assertEquals(origin.getId(), defaultCacheBehavior.getTargetOriginId());
-        this.assertEquals(false, defaultCacheBehavior.isForwardQueryString());
-        this.assertEquals(Long.valueOf(3600), defaultCacheBehavior.getMinTTL());
-        this.assertEquals(1, defaultCacheBehavior.getTrustedSignerAwsAccountNumbers().length);
-        this.assertEquals("self", defaultCacheBehavior.getTrustedSignerAwsAccountNumbers()[0]);
-        this.assertEquals(ViewerProtocolPolicy.HTTPS_ONLY, defaultCacheBehavior.getViewerProtocolPolicy());
-        this.assertEquals(1, config.getCacheBehaviors().length);
+        assertNull(defaultCacheBehavior.getPathPattern());
+        assertEquals(origin.getId(), defaultCacheBehavior.getTargetOriginId());
+        assertEquals(false, defaultCacheBehavior.isForwardQueryString());
+        assertEquals(Long.valueOf(3600), defaultCacheBehavior.getMinTTL());
+        assertEquals(1, defaultCacheBehavior.getTrustedSignerAwsAccountNumbers().length);
+        assertEquals("self", defaultCacheBehavior.getTrustedSignerAwsAccountNumbers()[0]);
+        assertEquals(ViewerProtocolPolicy.HTTPS_ONLY, defaultCacheBehavior.getViewerProtocolPolicy());
+        assertEquals(1, config.getCacheBehaviors().length);
         CacheBehavior cacheBehavior = config.getCacheBehaviors()[0];
-        this.assertEquals("/https-only-path", cacheBehavior.getPathPattern());
-        this.assertEquals(origin.getId(), cacheBehavior.getTargetOriginId());
-        this.assertTrue(cacheBehavior.isForwardQueryString());
-        this.assertEquals(Long.valueOf(1800), cacheBehavior.getMinTTL());
-        this.assertEquals(0, cacheBehavior.getTrustedSignerAwsAccountNumbers().length);
-        this.assertEquals(ViewerProtocolPolicy.ALLOW_ALL, cacheBehavior.getViewerProtocolPolicy());
+        assertEquals("/https-only-path", cacheBehavior.getPathPattern());
+        assertEquals(origin.getId(), cacheBehavior.getTargetOriginId());
+        assertTrue(cacheBehavior.isForwardQueryString());
+        assertEquals(Long.valueOf(1800), cacheBehavior.getMinTTL());
+        assertEquals(0, cacheBehavior.getTrustedSignerAwsAccountNumbers().length);
+        assertEquals(ViewerProtocolPolicy.ALLOW_ALL, cacheBehavior.getViewerProtocolPolicy());
 
         // TODO Get distribution details
 

@@ -1,4 +1,4 @@
-package org.jets3t.tests;
+package org.jets3t.service;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
