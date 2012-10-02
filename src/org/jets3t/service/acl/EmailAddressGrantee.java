@@ -45,7 +45,7 @@ public class EmailAddressGrantee implements GranteeInterface {
 
     /**
      * Constructs an email grantee with the given email address.
-     * @param emailAddress
+     * @param emailAddress Email address
      */
     public EmailAddressGrantee(String emailAddress) {
         this.setIdentifier(emailAddress);
@@ -93,5 +93,4 @@ public class EmailAddressGrantee implements GranteeInterface {
     public int hashCode() {
         return emailAddress.hashCode();
     }
-
 }

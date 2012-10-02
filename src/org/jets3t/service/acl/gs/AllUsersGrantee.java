@@ -33,7 +33,10 @@ import javax.xml.transform.TransformerException;
  *
  */
 public class AllUsersGrantee extends GroupGrantee {
-    private final String id = "AllUsers";
+
+    public AllUsersGrantee() {
+        super("AllUsers");
+    }
 
     @Override
     public String toXml() throws TransformerException,
@@ -54,15 +57,4 @@ public class AllUsersGrantee extends GroupGrantee {
         return (obj instanceof AllUsersGrantee
                 && ((AllUsersGrantee)obj).getIdentifier().equals(this.getIdentifier()));
     }
-
-    @Override
-    public String getIdentifier() {
-        return id;
-    }
-
-    @Override
-    public String toString() {
-        return id;
-    }
-
 }

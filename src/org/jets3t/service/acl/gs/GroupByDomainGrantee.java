@@ -40,7 +40,7 @@ public class GroupByDomainGrantee extends GroupGrantee {
     /**
      * Constructs a group grantee object using the given domain address as an identifier.
      *
-     * @param domain
+     * @param domain Domain address
      */
     public GroupByDomainGrantee(String domain) {
       super(domain);
@@ -52,18 +52,12 @@ public class GroupByDomainGrantee extends GroupGrantee {
     {
         return (XMLBuilder.create("Scope")
             .attr("type", "GroupByDomain")
-            .element("Domain").text(id)
+            .element("Domain").text(this.getIdentifier())
             );
     }
 
     @Override
-    public boolean equals(Object obj) {
-        return (obj instanceof GroupByDomainGrantee
-                && ((GroupByDomainGrantee)obj).getIdentifier().equals(this.getIdentifier()));
-    }
-
-    @Override
     public String toString() {
-        return "GroupByDomain [" + id + "]";
+        return "GroupByDomain [" + this.getIdentifier() + "]";
     }
 }
