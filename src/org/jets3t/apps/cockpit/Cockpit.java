@@ -1409,7 +1409,7 @@ public class Cockpit extends JApplet implements S3ServiceEventListener, ActionLi
                                 // Determine whether each bucket has one or more CloudFront distributions.
                                 boolean bucketHasDistribution = false;
                                 for(int j = 0; j < finalDistributions.length; j++) {
-                                    if(finalDistributions[j].getOrigin().equals(buckets[i].getName() + ".s3.amazonaws.com")) {
+                                    if(finalDistributions[j].getOrigin().getDomainName().equals(buckets[i].getName() + ".s3.amazonaws.com")) {
                                         bucketHasDistribution = true;
                                     }
                                 }
