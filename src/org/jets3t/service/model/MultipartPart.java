@@ -71,13 +71,13 @@ public class MultipartPart {
     }
 
     private boolean sameEtag(String pEtag){
-        if (etag==pEtag){
-            return true;
-        }
         if (etag == null){
             return false;
         }
-        return etag.equals(pEtag) || ("\""+etag+"\"").equals(pEtag);
+        if (etag.equals(pEtag)){
+            return true;
+        }
+        return ("\""+etag+"\"").equals(pEtag);
     }
 
     @Override
