@@ -211,10 +211,7 @@ public class S3ServiceMulti {
                 log.warn("S3ServiceMulti invoked without any S3ServiceEventListener objects, this is dangerous!");
             }
         }
-        Iterator<S3ServiceEventListener> listenerIter = serviceEventListeners.iterator();
-        while(listenerIter.hasNext()) {
-            S3ServiceEventListener listener = listenerIter.next();
-
+        for(final S3ServiceEventListener listener : serviceEventListeners) {
             if(event instanceof CreateObjectsEvent) {
                 listener.s3ServiceEventPerformed((CreateObjectsEvent) event);
             }
@@ -811,8 +808,8 @@ public class S3ServiceMulti {
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 S3Object[] completedObjects = (S3Object[]) completedResults
                         .toArray(new S3Object[completedResults.size()]);
-                for(int i = 0; i < completedObjects.length; i++) {
-                    pendingObjectKeysList.remove(completedObjects[i].getKey());
+                for(final S3Object completedObject : completedObjects) {
+                    pendingObjectKeysList.remove(completedObject.getKey());
                 }
                 fireServiceEvent(GetObjectsEvent.newInProgressEvent(threadWatcher, completedObjects, uniqueOperationId));
             }
@@ -820,9 +817,8 @@ public class S3ServiceMulti {
             @Override
             public void fireCancelEvent() {
                 List cancelledObjectsList = new ArrayList();
-                Iterator iter = pendingObjectKeysList.iterator();
-                while(iter.hasNext()) {
-                    String key = (String) iter.next();
+                for(final Object aPendingObjectKeysList : pendingObjectKeysList) {
+                    String key = (String) aPendingObjectKeysList;
                     cancelledObjectsList.add(new S3Object(key));
                 }
                 S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList
@@ -903,8 +899,8 @@ public class S3ServiceMulti {
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 S3Object[] completedObjects = (S3Object[]) completedResults
                         .toArray(new S3Object[completedResults.size()]);
-                for(int i = 0; i < completedObjects.length; i++) {
-                    pendingObjectKeysList.remove(completedObjects[i].getKey());
+                for(final S3Object completedObject : completedObjects) {
+                    pendingObjectKeysList.remove(completedObject.getKey());
                 }
                 fireServiceEvent(GetObjectHeadsEvent.newInProgressEvent(threadWatcher, completedObjects, uniqueOperationId));
             }
@@ -912,9 +908,8 @@ public class S3ServiceMulti {
             @Override
             public void fireCancelEvent() {
                 List cancelledObjectsList = new ArrayList();
-                Iterator iter = pendingObjectKeysList.iterator();
-                while(iter.hasNext()) {
-                    String key = (String) iter.next();
+                for(final Object aPendingObjectKeysList : pendingObjectKeysList) {
+                    String key = (String) aPendingObjectKeysList;
                     cancelledObjectsList.add(new S3Object(key));
                 }
                 S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList
@@ -1253,11 +1248,6 @@ public class S3ServiceMulti {
      * @throws IllegalStateException if the underlying S3Service does not implement {@link SignedUrlHandler}
      */
     public boolean getObjects(final String[] signedGetURLs) throws MalformedURLException, UnsupportedEncodingException {
-        if(!(s3Service instanceof SignedUrlHandler)) {
-            throw new IllegalStateException("S3ServiceMutli's underlying S3Service must implement the"
-                    + "SignedUrlHandler interface to make the method getObjects(String[] signedGetURLs) available");
-        }
-
         final List pendingObjectKeysList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
         final boolean[] success = new boolean[]{true};
@@ -1285,8 +1275,8 @@ public class S3ServiceMulti {
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 S3Object[] completedObjects = (S3Object[]) completedResults
                         .toArray(new S3Object[completedResults.size()]);
-                for(int i = 0; i < completedObjects.length; i++) {
-                    pendingObjectKeysList.remove(completedObjects[i].getKey());
+                for(final S3Object completedObject : completedObjects) {
+                    pendingObjectKeysList.remove(completedObject.getKey());
                 }
                 fireServiceEvent(GetObjectsEvent.newInProgressEvent(threadWatcher, completedObjects, uniqueOperationId));
             }
@@ -1294,9 +1284,8 @@ public class S3ServiceMulti {
             @Override
             public void fireCancelEvent() {
                 List cancelledObjectsList = new ArrayList();
-                Iterator iter = pendingObjectKeysList.iterator();
-                while(iter.hasNext()) {
-                    String key = (String) iter.next();
+                for(final Object aPendingObjectKeysList : pendingObjectKeysList) {
+                    String key = (String) aPendingObjectKeysList;
                     cancelledObjectsList.add(new S3Object(key));
                 }
                 S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList
@@ -1371,8 +1360,8 @@ public class S3ServiceMulti {
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 S3Object[] completedObjects = (S3Object[]) completedResults
                         .toArray(new S3Object[completedResults.size()]);
-                for(int i = 0; i < completedObjects.length; i++) {
-                    pendingObjectKeysList.remove(completedObjects[i].getKey());
+                for(final S3Object completedObject : completedObjects) {
+                    pendingObjectKeysList.remove(completedObject.getKey());
                 }
                 fireServiceEvent(GetObjectHeadsEvent.newInProgressEvent(threadWatcher, completedObjects, uniqueOperationId));
             }
@@ -1380,9 +1369,8 @@ public class S3ServiceMulti {
             @Override
             public void fireCancelEvent() {
                 List cancelledObjectsList = new ArrayList();
-                Iterator iter = pendingObjectKeysList.iterator();
-                while(iter.hasNext()) {
-                    String key = (String) iter.next();
+                for(final Object aPendingObjectKeysList : pendingObjectKeysList) {
+                    String key = (String) aPendingObjectKeysList;
                     cancelledObjectsList.add(new S3Object(key));
                 }
                 S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList
@@ -1503,11 +1491,6 @@ public class S3ServiceMulti {
      * @throws IllegalStateException if the underlying S3Service does not implement {@link SignedUrlHandler}
      */
     public boolean deleteObjects(final String[] signedDeleteUrls) throws MalformedURLException, UnsupportedEncodingException {
-        if(!(s3Service instanceof SignedUrlHandler)) {
-            throw new IllegalStateException("S3ServiceMutli's underlying S3Service must implement the"
-                    + "SignedUrlHandler interface to make the method deleteObjects(String[] signedDeleteURLs) available");
-        }
-
         final List objectsToDeleteList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
         final boolean[] success = new boolean[]{true};
@@ -1585,11 +1568,6 @@ public class S3ServiceMulti {
      * @throws IllegalStateException if the underlying S3Service does not implement {@link SignedUrlHandler}
      */
     public boolean putObjects(final SignedUrlAndObject[] signedPutUrlAndObjects) {
-        if(!(s3Service instanceof SignedUrlHandler)) {
-            throw new IllegalStateException("S3ServiceMutli's underlying S3Service must implement the"
-                    + "SignedUrlHandler interface to make the method putObjects(SignedUrlAndObject[] signedPutUrlAndObjects) available");
-        }
-
         final List progressWatchers = new ArrayList();
         final List incompletedObjectsList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
@@ -1676,11 +1654,6 @@ public class S3ServiceMulti {
      * @throws IllegalStateException if the underlying S3Service does not implement {@link SignedUrlHandler}
      */
     public boolean getObjectsACLs(final String[] signedAclURLs) throws MalformedURLException, UnsupportedEncodingException {
-        if(!(s3Service instanceof SignedUrlHandler)) {
-            throw new IllegalStateException("S3ServiceMutli's underlying S3Service must implement the"
-                    + "SignedUrlHandler interface to make the method getObjects(String[] signedGetURLs) available");
-        }
-
         final List pendingObjectKeysList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
         final boolean[] success = new boolean[]{true};
@@ -1708,8 +1681,8 @@ public class S3ServiceMulti {
             public void fireProgressEvent(ThreadWatcher threadWatcher, List completedResults) {
                 S3Object[] completedObjects = (S3Object[]) completedResults
                         .toArray(new S3Object[completedResults.size()]);
-                for(int i = 0; i < completedObjects.length; i++) {
-                    pendingObjectKeysList.remove(completedObjects[i].getKey());
+                for(final S3Object completedObject : completedObjects) {
+                    pendingObjectKeysList.remove(completedObject.getKey());
                 }
                 fireServiceEvent(LookupACLEvent.newInProgressEvent(threadWatcher, completedObjects, uniqueOperationId));
             }
@@ -1717,9 +1690,8 @@ public class S3ServiceMulti {
             @Override
             public void fireCancelEvent() {
                 List cancelledObjectsList = new ArrayList();
-                Iterator iter = pendingObjectKeysList.iterator();
-                while(iter.hasNext()) {
-                    cancelledObjectsList.add(iter.next());
+                for(final Object aPendingObjectKeysList : pendingObjectKeysList) {
+                    cancelledObjectsList.add(aPendingObjectKeysList);
                 }
                 S3Object[] cancelledObjects = (S3Object[]) cancelledObjectsList
                         .toArray(new S3Object[cancelledObjectsList.size()]);
