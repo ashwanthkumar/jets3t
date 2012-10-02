@@ -1344,11 +1344,6 @@ public class S3ServiceMulti {
      * @throws IllegalStateException if the underlying S3Service does not implement {@link SignedUrlHandler}
      */
     public boolean getObjectsHeads(final String[] signedHeadURLs) throws MalformedURLException, UnsupportedEncodingException {
-        if(!(s3Service instanceof SignedUrlHandler)) {
-            throw new IllegalStateException("S3ServiceMutli's underlying S3Service must implement the"
-                    + "SignedUrlHandler interface to make the method getObjectsHeads(String[] signedHeadURLs) available");
-        }
-
         final List pendingObjectKeysList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
         final boolean[] success = new boolean[]{true};
