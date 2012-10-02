@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jets3t.tests;
+package org.jets3t.service;
 
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.StorageService;

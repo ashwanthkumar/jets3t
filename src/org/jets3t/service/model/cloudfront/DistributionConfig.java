@@ -18,11 +18,11 @@
  */
 package org.jets3t.service.model.cloudfront;
 
+import org.jets3t.service.model.cloudfront.CacheBehavior.ViewerProtocolPolicy;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-
-import org.jets3t.service.model.cloudfront.CacheBehavior.ViewerProtocolPolicy;
 
 
 public class DistributionConfig {
@@ -34,7 +34,7 @@ public class DistributionConfig {
     private String etag = null;
     private LoggingStatus loggingStatus = null;
     private CacheBehavior defaultCacheBehavior = new CacheBehavior();
-    private CacheBehavior[] cacheBehaviors = new CacheBehavior[] {};
+    private CacheBehavior[] cacheBehaviors = new CacheBehavior[]{};
     private String defaultRootObject;
 
     public DistributionConfig() {
@@ -43,59 +43,36 @@ public class DistributionConfig {
     /**
      * Construct a distribution configuration compatible with CloudFront API versions
      * 2012-05-05 and later (i.e. including cache behaviors and multiple origins)
-     *
-     * @param origins
-     * @param callerReference
-     * @param cnames
-     * @param comment
-     * @param enabled
-     * @param loggingStatus
-     * @param defaultCacheBehavior
-     * @param cacheBehaviors
      */
     public DistributionConfig(Origin[] origins, String callerReference,
-        String[] cnames, String comment, boolean enabled,
-        LoggingStatus loggingStatus, String defaultRootObject,
-        CacheBehavior defaultCacheBehavior,
-        CacheBehavior[] cacheBehaviors)
-    {
+                              String[] cnames, String comment, boolean enabled,
+                              LoggingStatus loggingStatus, String defaultRootObject,
+                              CacheBehavior defaultCacheBehavior,
+                              CacheBehavior[] cacheBehaviors) {
         this.origins = origins;
         this.callerReference = callerReference;
-        this.cnames = cnames;
+        this.cnames = null == cnames ? new String[0] : cnames;
         this.comment = comment;
         this.enabled = enabled;
         this.loggingStatus = loggingStatus;
         this.defaultRootObject = defaultRootObject;
-        this.defaultCacheBehavior = defaultCacheBehavior;
-        this.cacheBehaviors = cacheBehaviors;
+        this.defaultCacheBehavior = null == defaultCacheBehavior ? new CacheBehavior() : defaultCacheBehavior;
+        this.cacheBehaviors = null == cacheBehaviors ? new CacheBehavior[]{} : cacheBehaviors;
     }
 
     /**
      * Construct a distribution configuration.
      *
      * @deprecated as of 2012-05-05 API version.
-     *
-     * @param origin
-     * @param callerReference
-     * @param cnames
-     * @param comment
-     * @param enabled
-     * @param loggingStatus
-     * @param trustedSignerSelf
-     * @param trustedSignerAwsAccountNumbers
-     * @param requiredProtocols
-     * @param defaultRootObject
-     * @param minTTL
      */
     @Deprecated
     public DistributionConfig(Origin origin, String callerReference,
-        String[] cnames, String comment, boolean enabled,
-        LoggingStatus loggingStatus, boolean trustedSignerSelf,
-        String[] trustedSignerAwsAccountNumbers,
-        String[] requiredProtocols, String defaultRootObject,
-        Long minTTL)
-    {
-        this.origins = new Origin[] {origin};
+                              String[] cnames, String comment, boolean enabled,
+                              LoggingStatus loggingStatus, boolean trustedSignerSelf,
+                              String[] trustedSignerAwsAccountNumbers,
+                              String[] requiredProtocols, String defaultRootObject,
+                              Long minTTL) {
+        this.origins = null == origin ? new Origin[]{} : new Origin[]{origin};
         this.callerReference = callerReference;
         this.cnames = cnames;
         this.comment = comment;
@@ -104,42 +81,33 @@ public class DistributionConfig {
         this.defaultRootObject = defaultRootObject;
         // Convert pre 2012-05-05 version trusted signer parameters into default cache behavior setting
         ArrayList<String> myTrustedSignerAwsAccountNumber = new ArrayList<String>();
-        if (trustedSignerSelf) {
+        if(trustedSignerSelf) {
             myTrustedSignerAwsAccountNumber.add("self");
         }
-        if (trustedSignerAwsAccountNumbers != null) {
+        if(trustedSignerAwsAccountNumbers != null) {
             Collections.addAll(myTrustedSignerAwsAccountNumber, trustedSignerAwsAccountNumbers);
         }
         this.getDefaultCacheBehavior().setTrustedSignerAwsAccountNumbers(
-            myTrustedSignerAwsAccountNumber.toArray(new String[] {}));
+                myTrustedSignerAwsAccountNumber.toArray(new String[myTrustedSignerAwsAccountNumber.size()]));
         this.setRequiredProtocols(requiredProtocols);
         this.getDefaultCacheBehavior().setMinTTL(minTTL);
     }
 
     /**
      * @deprecated as of 2012-05-05 API version.
-     *
-     * @param origin
-     * @param callerReference
-     * @param cnames
-     * @param comment
-     * @param enabled
-     * @param loggingStatus
      */
     @Deprecated
     public DistributionConfig(Origin origin, String callerReference,
-            String[] cnames, String comment, boolean enabled,
-            LoggingStatus loggingStatus)
-    {
+                              String[] cnames, String comment, boolean enabled,
+                              LoggingStatus loggingStatus) {
         this(origin, callerReference, cnames, comment, enabled,
                 loggingStatus, false, null, null, null, null);
     }
 
     /**
+     * @return The first of multiple possible origins
+     *         (retained for compatibility with applications written before 2012-05-05 API update)
      * @deprecated as of 2012-05-05 API update
-     * @return
-     * The first of multiple possible origins
-     * (retained for compatibility with applications written before 2012-05-05 API update)
      */
     @Deprecated
     public Origin getOrigin() {
@@ -211,7 +179,7 @@ public class DistributionConfig {
     }
 
     public boolean isStreamingDistributionConfig() {
-        return (this instanceof StreamingDistributionConfig);
+        return false;
     }
 
     public String getDefaultRootObject() {
@@ -219,15 +187,13 @@ public class DistributionConfig {
     }
 
     /**
+     * @return true if the distribution is private.
      * @deprecated as of 2012-05-05 API version.
-     *
-     * @return
-     * true if the distribution is private.
      */
     @Deprecated
     public boolean isPrivate() {
         return (this.getOrigin() instanceof S3Origin
-            && ((S3Origin)this.getOrigin()).getOriginAccessIdentity() != null);
+                && ((S3Origin) this.getOrigin()).getOriginAccessIdentity() != null);
     }
 
     /**
@@ -252,7 +218,7 @@ public class DistributionConfig {
     @Deprecated
     public boolean hasTrustedSignerAwsAccountNumbers() {
         return getTrustedSignerAwsAccountNumbers() != null
-            && getTrustedSignerAwsAccountNumbers().length > 0;
+                && getTrustedSignerAwsAccountNumbers().length > 0;
     }
 
     /**
@@ -269,15 +235,16 @@ public class DistributionConfig {
     @Deprecated
     public void setRequiredProtocols(String[] protocols) {
         // Convert pre 2012-05-05 version requiredProtocol into default cache behavior setting
-        if (protocols != null && protocols.length > 0) {
-            if (protocols.length > 1 || !"https".equals(protocols[0])) {
+        if(protocols != null && protocols.length > 0) {
+            if(protocols.length > 1 || !"https".equals(protocols[0])) {
                 throw new IllegalArgumentException(
-                    "if set, the requiredProtocols argument may contain only a single string"
-                    + " value \"https\"");
+                        "if set, the requiredProtocols argument may contain only a single string"
+                                + " value \"https\"");
             }
             // If a required protocol is set, and is set correctly, it must be HTTPS_ONLY
             this.getDefaultCacheBehavior().setViewerProtocolPolicy(ViewerProtocolPolicy.HTTPS_ONLY);
-        } else {
+        }
+        else {
             this.getDefaultCacheBehavior().setViewerProtocolPolicy(ViewerProtocolPolicy.ALLOW_ALL);
         }
     }
@@ -287,10 +254,10 @@ public class DistributionConfig {
      */
     @Deprecated
     public String[] getRequiredProtocols() {
-        if (this.getDefaultCacheBehavior().getViewerProtocolPolicy() == ViewerProtocolPolicy.HTTPS_ONLY)
-        {
-            return new String[] {"https"};
-        } else {
+        if(this.getDefaultCacheBehavior().getViewerProtocolPolicy() == ViewerProtocolPolicy.HTTPS_ONLY) {
+            return new String[]{"https"};
+        }
+        else {
             return null;
         }
     }
@@ -301,8 +268,8 @@ public class DistributionConfig {
     @Deprecated
     public boolean isHttpsProtocolRequired() {
         return this.getRequiredProtocols() != null
-            && this.getRequiredProtocols().length == 1
-            && "https".equals(this.getRequiredProtocols()[0]);
+                && this.getRequiredProtocols().length == 1
+                && "https".equals(this.getRequiredProtocols()[0]);
     }
 
     /**
@@ -310,9 +277,10 @@ public class DistributionConfig {
      */
     @Deprecated
     public void setHttpsProtocolRequired(boolean value) {
-        if (value) {
-            this.setRequiredProtocols(new String[] {"https"});
-        } else {
+        if(value) {
+            this.setRequiredProtocols(new String[]{"https"});
+        }
+        else {
             this.setRequiredProtocols(null);
         }
     }
@@ -344,24 +312,24 @@ public class DistributionConfig {
     @Override
     public String toString() {
         return
-            (isStreamingDistributionConfig()
-                ? "StreamingDistributionConfig: "
-                : "DistributionConfig: ")
-            + "callerReference=" + callerReference
-            + ", origins=" + Arrays.asList(origins)
-            + ", comment=" + comment
-            + ", enabled=" + enabled
-            + ", defaultCacheBehavior=" + defaultCacheBehavior
-            + (!this.hasCacheBehaviors()
-                ? ""
-                : ", cacheBehaviors=" + cacheBehaviors)
-            + (etag != null ? ", etag=" + etag : "")
-            + (!isLoggingEnabled()
-                ? ""
-                : ", LoggingStatus: bucket=" + loggingStatus.getBucket()
-                  + ", prefix=" + loggingStatus.getPrefix()) +
-            ", CNAMEs=" + Arrays.asList(cnames) +
-                ", defaultRootObject=" + defaultRootObject;
+                (isStreamingDistributionConfig()
+                        ? "StreamingDistributionConfig: "
+                        : "DistributionConfig: ")
+                        + "callerReference=" + callerReference
+                        + ", origins=" + Arrays.asList(origins)
+                        + ", comment=" + comment
+                        + ", enabled=" + enabled
+                        + ", defaultCacheBehavior=" + defaultCacheBehavior
+                        + (!this.hasCacheBehaviors()
+                        ? ""
+                        : ", cacheBehaviors=" + Arrays.toString(cacheBehaviors))
+                        + (etag != null ? ", etag=" + etag : "")
+                        + (!isLoggingEnabled()
+                        ? ""
+                        : ", LoggingStatus: bucket=" + loggingStatus.getBucket()
+                        + ", prefix=" + loggingStatus.getPrefix()) +
+                        ", CNAMEs=" + Arrays.asList(cnames) +
+                        ", defaultRootObject=" + defaultRootObject;
     }
 
 }

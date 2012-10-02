@@ -23,19 +23,17 @@ import org.jets3t.service.CloudFrontService;
 
 public class S3Origin extends Origin {
     public static final String ORIGIN_ACCESS_IDENTITY_PREFIX =
-        "origin-access-identity/cloudfront/";
+            "origin-access-identity/cloudfront/";
 
     private String originAccessIdentity = null;
 
     /**
      * An S3 bucket origin.
      *
-     * @param domainName
-     * a full S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
-     * @param originAccessIdentity
-     * Identifier of the origin access identity that can authorize access to
-     * S3 objects via a private distribution. If provided the distribution will be
-     * private, if null the distribution will be be public.
+     * @param domainName           a full S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
+     * @param originAccessIdentity Identifier of the origin access identity that can authorize access to
+     *                             S3 objects via a private distribution. If provided the distribution will be
+     *                             private, if null the distribution will be be public.
      */
     public S3Origin(String domainName, String originAccessIdentity) {
         this(null, domainName, originAccessIdentity);
@@ -44,23 +42,21 @@ public class S3Origin extends Origin {
     /**
      * An S3 bucket origin.
      *
-     * @param id
-     * @param domainName
-     * a full S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
-     * @param originAccessIdentity
-     * Identifier of the origin access identity that can authorize access to
-     * S3 objects via a private distribution. If provided the distribution will be
-     * private, if null the distribution will be be public.
+     * @param id                   Unique identifier for this origin<
+     * @param domainName           a full S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
+     * @param originAccessIdentity Identifier of the origin access identity that can authorize access to
+     *                             S3 objects via a private distribution. If provided the distribution will be
+     *                             private, if null the distribution will be be public.
      */
     public S3Origin(String id, String domainName, String originAccessIdentity) {
         super(id, domainName);
         // Ensure origin access identity has required prefix
-        if (originAccessIdentity != null
-            && originAccessIdentity.length() > 0
-            && !originAccessIdentity.startsWith(ORIGIN_ACCESS_IDENTITY_PREFIX))
-        {
+        if(originAccessIdentity != null
+                && originAccessIdentity.length() > 0
+                && !originAccessIdentity.startsWith(ORIGIN_ACCESS_IDENTITY_PREFIX)) {
             this.originAccessIdentity = ORIGIN_ACCESS_IDENTITY_PREFIX + originAccessIdentity;
-        } else {
+        }
+        else {
             this.originAccessIdentity = originAccessIdentity;
         }
     }
@@ -68,8 +64,7 @@ public class S3Origin extends Origin {
     /**
      * An S3 bucket origin.
      *
-     * @param domainName
-     * a full S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
+     * @param domainName a full S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
      */
     public S3Origin(String domainName) {
         this(null, domainName, null);
@@ -80,14 +75,14 @@ public class S3Origin extends Origin {
     }
 
     /**
-     * @return
-     * the origin bucket's name, without the suffix ".s3.amazonaws.com"
+     * @return the origin bucket's name, without the suffix ".s3.amazonaws.com"
      */
     public String getOriginAsBucketName() {
         String bucketName = getDomainName();
-        if (bucketName.endsWith(CloudFrontService.DEFAULT_BUCKET_SUFFIX)) {
+        if(bucketName.endsWith(CloudFrontService.DEFAULT_BUCKET_SUFFIX)) {
             return bucketName.substring(0, bucketName.length() - CloudFrontService.DEFAULT_BUCKET_SUFFIX.length());
-        } else {
+        }
+        else {
             return bucketName;
         }
     }
@@ -95,9 +90,9 @@ public class S3Origin extends Origin {
     @Override
     public String toString() {
         return "S3Origin: domainName=" + getDomainName() +
-            (getOriginAccessIdentity() != null
-                ? ", originAccessIdentity=" + getOriginAccessIdentity()
-                : "");
+                (getOriginAccessIdentity() != null
+                        ? ", originAccessIdentity=" + getOriginAccessIdentity()
+                        : "");
     }
 
 }
