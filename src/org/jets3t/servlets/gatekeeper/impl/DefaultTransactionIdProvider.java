@@ -28,7 +28,7 @@ import java.util.UUID;
 
 /**
  * Default TransactionIdProvider implementation that generated random-based UUIDs using the
- * <a href="http://jug.safehaus.org/Home">Java Uuid Generator</a>.
+ * java.util.UUID Generator.
  *
  * @author James Murty
  */
@@ -47,6 +47,7 @@ public class DefaultTransactionIdProvider extends TransactionIdProvider {
     /**
      * Returns a random-based UUID.
      */
+    @Override
     public String getTransactionId(GatekeeperMessage requestMessage, ClientInformation clientInformation) {
         // Generate a UUID based on a random generation.
         return UUID.randomUUID().toString();
