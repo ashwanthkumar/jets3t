@@ -51,7 +51,7 @@ public class UserByIdGrantee extends CanonicalGrantee {
 
     /**
      * Constructs a grantee with the given canonical ID.
-     * @param identifier
+     * @param identifier Canonical ID
      */
     public UserByIdGrantee(String identifier) {
         super(identifier);
@@ -76,20 +76,14 @@ public class UserByIdGrantee extends CanonicalGrantee {
     {
         return (XMLBuilder.create("Scope")
             .attr("type", "UserById")
-            .element("ID").text(id)
+            .element("ID").text(this.getIdentifier())
             );
     }
 
     @Override
-    public boolean equals(Object obj) {
-        return (obj instanceof UserByIdGrantee
-                && ((UserByIdGrantee) obj).getIdentifier().equals(this.getIdentifier()));
-    }
-
-    @Override
     public String toString() {
-        return "UserById [id=" + id
-            + (displayName != null ? ", Name=" + displayName : "")
+        return "UserById [id=" + this.getIdentifier()
+            + (this.getDisplayName() != null ? ", Name=" + this.getDisplayName() : "")
             + "]";
     }
 }

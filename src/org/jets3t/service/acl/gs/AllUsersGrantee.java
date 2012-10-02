@@ -51,10 +51,4 @@ public class AllUsersGrantee extends GroupGrantee {
     {
         return XMLBuilder.create("Scope").attr("type", "AllUsers");
     }
-
-    @Override
-    public boolean equals(Object obj) {
-        return (obj instanceof AllUsersGrantee
-                && ((AllUsersGrantee)obj).getIdentifier().equals(this.getIdentifier()));
-    }
 }
