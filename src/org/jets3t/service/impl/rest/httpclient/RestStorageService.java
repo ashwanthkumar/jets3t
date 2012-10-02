@@ -578,14 +578,10 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 serviceException.setResponseHeaders(RestUtils.convertHeadersToMap(
                         response.getAllHeaders()));
             }
-            if(response != null) {
-                try {
-                    serviceException.setResponseCode(response.getStatusLine().getStatusCode());
-                    serviceException.setResponseStatus(response.getStatusLine().getReasonPhrase());
-                }
-                catch(NullPointerException e) {
-                    // If no network connection is available, status info is not available
-                }
+            if(response != null && response.getStatusLine() != null) {
+                // If no network connection is available, status info is not available
+                serviceException.setResponseCode(response.getStatusLine().getStatusCode());
+                serviceException.setResponseStatus(response.getStatusLine().getReasonPhrase());
             }
             if(httpMethod.getFirstHeader("Host") != null) {
                 serviceException.setRequestHost(
