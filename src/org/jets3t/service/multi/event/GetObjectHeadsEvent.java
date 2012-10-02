@@ -36,7 +36,7 @@ import org.jets3t.service.multi.ThreadWatcher;
  *
  * @author James Murty
  */
-public class GetObjectHeadsEvent extends ServiceEvent {
+public final class GetObjectHeadsEvent extends ServiceEvent {
     private StorageObject[] objects = null;
 
     private GetObjectHeadsEvent(int eventCode, Object uniqueOperationId) {

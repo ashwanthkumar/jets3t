@@ -35,7 +35,7 @@ import org.jets3t.service.multi.ThreadWatcher;
  *
  * @author James Murty
  */
-public class CreateBucketsEvent extends ServiceEvent {
+public final class CreateBucketsEvent extends ServiceEvent {
     private StorageBucket[] buckets = null;
 
     private CreateBucketsEvent(int eventCode, Object uniqueOperationId) {

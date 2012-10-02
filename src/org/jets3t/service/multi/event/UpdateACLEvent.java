@@ -37,7 +37,7 @@ import org.jets3t.service.multi.ThreadWatcher;
  *
  * @author James Murty
  */
-public class UpdateACLEvent extends ServiceEvent {
+public final class UpdateACLEvent extends ServiceEvent {
     private StorageObject[] objects = null;
 
     private UpdateACLEvent(int eventCode, Object uniqueOperationId) {

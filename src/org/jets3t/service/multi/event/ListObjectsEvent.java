@@ -36,7 +36,7 @@ import org.jets3t.service.multi.ThreadWatcher;
  *
  * @author James Murty
  */
-public class ListObjectsEvent extends ServiceEvent {
+public final class ListObjectsEvent extends ServiceEvent {
     private List<StorageObjectsChunk> chunkList = null;
 
     private ListObjectsEvent(int eventCode, Object uniqueOperationId) {

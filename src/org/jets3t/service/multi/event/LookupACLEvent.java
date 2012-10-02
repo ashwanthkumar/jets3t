@@ -36,7 +36,7 @@ import org.jets3t.service.multi.ThreadedStorageService;
  *
  * @author James Murty
  */
-public class LookupACLEvent extends ServiceEvent {
+public final class LookupACLEvent extends ServiceEvent {
     private StorageObject[] objects = null;
 
     private LookupACLEvent(int eventCode, Object uniqueOperationId) {
