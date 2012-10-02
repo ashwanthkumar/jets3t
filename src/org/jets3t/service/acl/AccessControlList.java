@@ -20,6 +20,7 @@ package org.jets3t.service.acl;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
@@ -75,7 +76,7 @@ public class AccessControlList implements Serializable {
      */
     @Override
     public String toString() {
-        return "AccessControlList [owner=" + owner + ", grants=" + getGrantAndPermissions() + "]";
+        return "AccessControlList [owner=" + owner + ", grants=" + Arrays.toString(getGrantAndPermissions()) + "]";
     }
 
     public StorageOwner getOwner() {
@@ -88,6 +89,7 @@ public class AccessControlList implements Serializable {
 
     /**
      * @param grantee
+     *        the grantee to whom the permission will apply
      * @return list of permissions assigned to the given grantee in this ACL
      */
     public List<Permission> getPermissionsForGrantee(GranteeInterface grantee) {
@@ -101,7 +103,7 @@ public class AccessControlList implements Serializable {
     }
 
     /**
-     * @param permission
+     * @param permission Permission
      * @return list of grantees assigned the given permission in this ACL
      */
     public List<GranteeInterface> getGranteesWithPermission(Permission permission) {
@@ -116,7 +118,9 @@ public class AccessControlList implements Serializable {
 
     /**
      * @param grantee
+     *        the grantee to whom the permission will apply
      * @param permission
+     *        the permission to apply to the grantee.
      * @return true if the given grantee has the given permission in this ACL
      */
     public boolean hasGranteeAndPermission(GranteeInterface grantee, Permission permission) {
@@ -144,8 +148,7 @@ public class AccessControlList implements Serializable {
      * the grant and permission combinations to add.
      */
     public void grantAllPermissions(GrantAndPermission[] grantAndPermissions) {
-        for (int i = 0; i < grantAndPermissions.length; i++) {
-            GrantAndPermission gap = grantAndPermissions[i];
+        for(GrantAndPermission gap : grantAndPermissions) {
             grantPermission(gap.getGrantee(), gap.getPermission());
         }
     }
