@@ -3,7 +3,7 @@
 JetS3t : Java S3 Toolkit
 Project hosted at http://bitbucket.org/jmurty/jets3t/
 
-Copyright 2006-2010 James Murty
+Copyright 2006-2012 James Murty
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ limitations under the License.
     <groupId>org.jets3t</groupId>
     <artifactId>jets3t</artifactId>
     <packaging>jar</packaging>
-    <version>0.9.2</version>
+    <version>0.9.1</version>
     <description>Toolkit for Amazon S3, Amazon CloudFront, and Google Storage Service.</description>
     <name>JetS3t</name>
     <url>https://bitbucket.org/jmurty/jets3t/overview</url>
