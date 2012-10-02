@@ -76,14 +76,8 @@ public class GroupByEmailAddressGrantee extends GroupGrantee {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        return (obj instanceof GroupByEmailAddressGrantee
-                && ((GroupByEmailAddressGrantee)obj).getIdentifier().equals(this.getIdentifier()));
-    }
-
-    @Override
     public String toString() {
-        return "GroupByEmail [" + id
+        return "GroupByEmail [" + this.getIdentifier()
             + (name != null ? ", name=" + getName() : "")
             + "]";
     }
