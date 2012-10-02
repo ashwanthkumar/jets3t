@@ -18,68 +18,6 @@
  */
 package org.jets3t.apps.cockpitlite;
 
-import java.awt.CardLayout;
-import java.awt.Component;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.Frame;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.Rectangle;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.dnd.DnDConstants;
-import java.awt.dnd.DropTarget;
-import java.awt.dnd.DropTargetDragEvent;
-import java.awt.dnd.DropTargetDropEvent;
-import java.awt.dnd.DropTargetEvent;
-import java.awt.dnd.DropTargetListener;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
-import java.io.File;
-import java.io.IOException;
-import java.net.URL;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.StringTokenizer;
-
-import javax.swing.JApplet;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComponent;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
-import javax.swing.JScrollPane;
-import javax.swing.JSeparator;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.ListSelectionModel;
-import javax.swing.LookAndFeel;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-import javax.swing.table.DefaultTableCellRenderer;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.auth.AuthScope;
@@ -110,23 +48,7 @@ import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.io.BytesProgressWatcher;
 import org.jets3t.service.model.S3Bucket;
 import org.jets3t.service.model.S3Object;
-import org.jets3t.service.multithread.CancelEventTrigger;
-import org.jets3t.service.multithread.CopyObjectsEvent;
-import org.jets3t.service.multithread.CreateBucketsEvent;
-import org.jets3t.service.multithread.CreateObjectsEvent;
-import org.jets3t.service.multithread.DeleteObjectsEvent;
-import org.jets3t.service.multithread.DeleteVersionedObjectsEvent;
-import org.jets3t.service.multithread.DownloadObjectsEvent;
-import org.jets3t.service.multithread.DownloadPackage;
-import org.jets3t.service.multithread.GetObjectHeadsEvent;
-import org.jets3t.service.multithread.GetObjectsEvent;
-import org.jets3t.service.multithread.ListObjectsEvent;
-import org.jets3t.service.multithread.LookupACLEvent;
-import org.jets3t.service.multithread.S3ServiceEventListener;
-import org.jets3t.service.multithread.S3ServiceMulti;
-import org.jets3t.service.multithread.ServiceEvent;
-import org.jets3t.service.multithread.ThreadWatcher;
-import org.jets3t.service.multithread.UpdateACLEvent;
+import org.jets3t.service.multithread.*;
 import org.jets3t.service.utils.ByteFormatter;
 import org.jets3t.service.utils.FileComparer;
 import org.jets3t.service.utils.FileComparerResults;
@@ -138,6 +60,31 @@ import org.jets3t.service.utils.gatekeeper.SignatureRequest;
 import org.jets3t.service.utils.signedurl.GatekeeperClientUtils;
 import org.jets3t.service.utils.signedurl.SignedUrlAndObject;
 
+import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.table.DefaultTableCellRenderer;
+import java.awt.*;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.dnd.DnDConstants;
+import java.awt.dnd.DropTarget;
+import java.awt.dnd.DropTargetDragEvent;
+import java.awt.dnd.DropTargetDropEvent;
+import java.awt.dnd.DropTargetEvent;
+import java.awt.dnd.DropTargetListener;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.List;
+
 import com.centerkey.utils.BareBonesBrowserLaunch;
 
 /**
@@ -147,16 +94,16 @@ import com.centerkey.utils.BareBonesBrowserLaunch;
  * The service provider uses the Gatekeeper application to mediate the user's
  * access to the S3 account, authorizing each of the user's interactions before
  * it can be executed.
- * <p>
+ * <p/>
  * <a href="http://www.jets3t.org/applications/cockpitlite.html">CockpitLite Guide</a>.
- * <p>
+ * <p/>
  * This is the CockpitLite application class; it may be run as a stand-alone
  * application or as an Applet.
  *
  * @author jmurty
  */
 public class CockpitLite extends JApplet implements S3ServiceEventListener, ActionListener,
-    ListSelectionListener, HyperlinkActivatedListener, CredentialsProvider {
+        ListSelectionListener, HyperlinkActivatedListener, CredentialsProvider {
 
     private static final long serialVersionUID = 4969295009540293079L;
 
@@ -172,8 +119,8 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     private final Insets insetsDefault = new Insets(5, 7, 5, 7);
 
     private final ByteFormatter byteFormatter = new ByteFormatter();
-    private final ByteFormatter byteFormatterTerse = new ByteFormatter("G","M","K","B",1);
-    private final TimeFormatter timeFormatterTerse = new TimeFormatter("h","h","m","m","s","s");
+    private final ByteFormatter byteFormatterTerse = new ByteFormatter("G", "M", "K", "B", 1);
+    private final TimeFormatter timeFormatterTerse = new TimeFormatter("h", "h", "m", "m", "s", "s");
     private final SimpleDateFormat yearAndTimeSDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     private final SimpleDateFormat timeSDF = new SimpleDateFormat("HH:mm:ss");
 
@@ -250,7 +197,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     private JLabel objectsHeadingLabel = null;
     private JTable objectsTable = null;
     private JScrollPane objectsTableSP = null;
-    private CLObjectTableModel objectTableModel =  null;
+    private CLObjectTableModel objectTableModel = null;
     private TableSorter objectTableModelSorter = null;
 
     // Progress notification aea
@@ -326,14 +273,15 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         super.init();
 
         // Find or create a Frame to own modal dialog boxes.
-        if (this.ownerFrame == null) {
+        if(this.ownerFrame == null) {
             Component c = this;
-            while (!(c instanceof Frame) && c.getParent() != null) {
+            while(!(c instanceof Frame) && c.getParent() != null) {
                 c = c.getParent();
             }
-            if (!(c instanceof Frame)) {
+            if(!(c instanceof Frame)) {
                 this.ownerFrame = new JFrame();
-            } else {
+            }
+            else {
                 this.ownerFrame = (Frame) c;
             }
         }
@@ -342,19 +290,20 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
         boolean isMissingRequiredInitProperty = false;
 
-        if (isRunningAsApplet) {
+        if(isRunningAsApplet) {
             // Read parameters for Applet, based on names specified in the uploader properties.
             String appletParamNames = cockpitLiteProperties.getStringProperty("applet.params", "");
             StringTokenizer st = new StringTokenizer(appletParamNames, ",");
-            while (st.hasMoreTokens()) {
+            while(st.hasMoreTokens()) {
                 String paramName = st.nextToken();
                 String paramValue = this.getParameter(paramName);
 
                 // Fatal error if a parameter is missing.
-                if (null == paramValue) {
+                if(null == paramValue) {
                     log.error("Missing required applet parameter: " + paramName);
                     isMissingRequiredInitProperty = true;
-                } else {
+                }
+                else {
                     log.debug("Found applet parameter: " + paramName + "='" + paramValue + "'");
 
                     // Set params as properties in the central properties source for this application.
@@ -362,19 +311,21 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                     cockpitLiteProperties.setProperty(paramName, paramValue);
                 }
             }
-        } else {
+        }
+        else {
             // Add application parameters properties.
-            if (standAloneArgumentProperties != null) {
+            if(standAloneArgumentProperties != null) {
                 Enumeration e = standAloneArgumentProperties.keys();
-                while (e.hasMoreElements()) {
+                while(e.hasMoreElements()) {
                     String propName = (String) e.nextElement();
                     String propValue = standAloneArgumentProperties.getProperty(propName);
 
                     // Fatal error if a parameter is missing.
-                    if (null == propValue) {
+                    if(null == propValue) {
                         log.error("Missing required command-line property: " + propName);
                         isMissingRequiredInitProperty = true;
-                    } else {
+                    }
+                    else {
                         log.debug("Using command-line property: " + propName + "='" + propValue + "'");
 
                         // Set arguments as properties in the central properties source for this application.
@@ -388,7 +339,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         // Initialise the GUI.
         initGui();
 
-        if (isMissingRequiredInitProperty) {
+        if(isMissingRequiredInitProperty) {
             String message = "Missing one or more required application properties";
             log.error(message);
             ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(), message, null);
@@ -396,7 +347,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         }
 
         String gatekeeperUrl = cockpitLiteProperties.getStringProperty("gatekeeperUrl", null);
-        if (gatekeeperUrl == null) {
+        if(gatekeeperUrl == null) {
             String message = "Application properties file '" + PROPERTIES_FILENAME + "' is not available";
             log.error(message);
             ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(), message, null);
@@ -412,8 +363,9 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         try {
             // Revert to anonymous service.
             s3ServiceMulti = new S3ServiceMulti(
-                new RestS3Service(null, APPLICATION_DESCRIPTION, this), this);
-        } catch (S3ServiceException e) {
+                    new RestS3Service(null, APPLICATION_DESCRIPTION, this), this);
+        }
+        catch(S3ServiceException e) {
             String message = "Unable to start anonymous service";
             log.error(message, e);
             ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(), message, e);
@@ -431,7 +383,8 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         LookAndFeel lookAndFeel = skinsFactory.createSkinnedMetalTheme("SkinnedLookAndFeel");
         try {
             UIManager.setLookAndFeel(lookAndFeel);
-        } catch (UnsupportedLookAndFeelException e) {
+        }
+        catch(UnsupportedLookAndFeelException e) {
             log.error("Unable to set skinned LookAndFeel", e);
         }
 
@@ -445,14 +398,14 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         stackPanelCardLayout = new CardLayout();
         stackPanel.setLayout(stackPanelCardLayout);
         primaryPanel.add(stackPanel,
-            new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
+                new GridBagConstraints(0, 0, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, insetsZero, 0, 0));
 
         // Progress notification panel
         progressNotificationPanel = skinsFactory.createSkinnedJPanel("ProgressNotificationPanel");
         progressNotificationPanel.setLayout(new GridBagLayout());
         primaryPanel.add(progressNotificationPanel,
-            new GridBagConstraints(0, 1, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
-                new Insets(5, 0, 5, 0), 0, 0));
+                new GridBagConstraints(0, 1, 1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.BOTH,
+                        new Insets(5, 0, 5, 0), 0, 0));
 
         int row = 0;
 
@@ -468,7 +421,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         loginButton.setText("Log me in");
         loginButton.addActionListener(this);
         loginPanel.add(loginButton,
-            new GridBagConstraints(0, loginPanel.getComponentCount(), 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsDefault, 0, 0));
+                new GridBagConstraints(0, loginPanel.getComponentCount(), 1, 1, 0, 0, GridBagConstraints.CENTER, GridBagConstraints.NONE, insetsDefault, 0, 0));
 
         // Filter panel.
         filterObjectsPanel = skinsFactory.createSkinnedJPanel("FilterPanel");
@@ -480,9 +433,9 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         JLabel filterPrefixLabel = skinsFactory.createSkinnedJHtmlLabel("FilterPrefixLable", this);
         filterPrefixLabel.setText("File name starts with: ");
         filterObjectsPanel.add(filterPrefixLabel,
-            new GridBagConstraints(0, 0, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsZero, 0, 0));
+                new GridBagConstraints(0, 0, 1, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.NONE, insetsZero, 0, 0));
         filterObjectsPanel.add(filterObjectsPrefix,
-            new GridBagConstraints(1, 0, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
+                new GridBagConstraints(1, 0, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsDefault, 0, 0));
         filterObjectsPanel.setVisible(false);
 
         // Objects panel.
@@ -497,24 +450,24 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         objectsHeadingLabel = skinsFactory.createSkinnedJHtmlLabel("ObjectsHeadingLabel", this);
         objectsHeadingLabel.setText("Not logged in");
         objectsPanel.add(objectsHeadingLabel,
-            new GridBagConstraints(0, row, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
+                new GridBagConstraints(0, row, 1, 1, 1, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
         objectsPanel.add(filterObjectsCheckBox,
-            new GridBagConstraints(1, row, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
+                new GridBagConstraints(1, row, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
 
         JButton objectActionButton = skinsFactory.createSkinnedJButton("ObjectMenuButton");
         objectActionButton.setToolTipText("File actions menu");
         guiUtils.applyIcon(objectActionButton, "/images/nuvola/16x16/actions/misc.png");
         objectActionButton.addActionListener(new ActionListener() {
-           public void actionPerformed(ActionEvent e) {
+            public void actionPerformed(ActionEvent e) {
                 JButton sourceButton = (JButton) e.getSource();
                 objectActionMenu.show(sourceButton, 0, sourceButton.getHeight());
-           }
+            }
         });
         objectsPanel.add(objectActionButton,
-            new GridBagConstraints(2, row, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
+                new GridBagConstraints(2, row, 1, 1, 0, 0, GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
 
         objectsPanel.add(filterObjectsPanel,
-            new GridBagConstraints(0, ++row, 3, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
+                new GridBagConstraints(0, ++row, 3, 1, 0, 0, GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
 
         objectsTable = skinsFactory.createSkinnedJTable("ObjectsTable");
         objectTableModel = new CLObjectTableModel();
@@ -526,7 +479,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                String formattedSize = byteFormatter.formatByteSize(((Long)value).longValue());
+                String formattedSize = byteFormatter.formatByteSize(((Long) value).longValue());
                 return super.getTableCellRendererComponent(table, formattedSize, isSelected, hasFocus, row, column);
             }
         });
@@ -626,7 +579,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         this.setBounds(new Rectangle(new Dimension(preferredWidth, preferredHeight)));
 
         // Initialize drop target.
-        initDropTarget(new JComponent[] {objectsPanel} );
+        initDropTarget(new JComponent[]{objectsPanel});
         objectsPanel.getDropTarget().setActive(true);
     }
 
@@ -634,70 +587,80 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      * Initialise the application's File drop targets for drag and drop copying of local files
      * to S3.
      *
-     * @param dropTargetComponents
-     * the components files can be dropped on to transfer them to S3
+     * @param dropTargetComponents the components files can be dropped on to transfer them to S3
      */
     private void initDropTarget(JComponent[] dropTargetComponents) {
         DropTargetListener dropTargetListener = new DropTargetListener() {
 
             private boolean checkValidDrag(DropTargetDragEvent dtde) {
-                if (dtde.isDataFlavorSupported(DataFlavor.javaFileListFlavor)
-                    && (DnDConstants.ACTION_COPY == dtde.getDropAction()
-                        || DnDConstants.ACTION_MOVE == dtde.getDropAction()))
-                {
+                if(dtde.isDataFlavorSupported(DataFlavor.javaFileListFlavor)
+                        && (DnDConstants.ACTION_COPY == dtde.getDropAction()
+                        || DnDConstants.ACTION_MOVE == dtde.getDropAction())) {
                     dtde.acceptDrag(dtde.getDropAction());
                     return true;
-                } else {
+                }
+                else {
                     dtde.rejectDrag();
                     return false;
                 }
             }
 
             public void dragEnter(DropTargetDragEvent dtde) {
-                if (checkValidDrag(dtde)) {
+                if(checkValidDrag(dtde)) {
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
                             objectsTable.requestFocusInWindow();
-                        };
+                        }
+
+                        ;
                     });
                 }
             }
+
             public void dragOver(DropTargetDragEvent dtde) {
                 checkValidDrag(dtde);
             }
+
             public void dropActionChanged(DropTargetDragEvent dtde) {
-                if (checkValidDrag(dtde)) {
+                if(checkValidDrag(dtde)) {
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
                             objectsTable.requestFocusInWindow();
-                        };
+                        }
+
+                        ;
                     });
-                } else {
+                }
+                else {
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
                             ownerFrame.requestFocusInWindow();
-                        };
+                        }
+
+                        ;
                     });
                 }
             }
+
             public void dragExit(DropTargetEvent dte) {
                 SwingUtilities.invokeLater(new Runnable() {
                     public void run() {
                         ownerFrame.requestFocusInWindow();
-                    };
+                    }
+
+                    ;
                 });
             }
 
             public void drop(DropTargetDropEvent dtde) {
-                if (dtde.isDataFlavorSupported(DataFlavor.javaFileListFlavor)
-                    && (DnDConstants.ACTION_COPY == dtde.getDropAction()
-                        || DnDConstants.ACTION_MOVE == dtde.getDropAction()))
-                {
+                if(dtde.isDataFlavorSupported(DataFlavor.javaFileListFlavor)
+                        && (DnDConstants.ACTION_COPY == dtde.getDropAction()
+                        || DnDConstants.ACTION_MOVE == dtde.getDropAction())) {
                     dtde.acceptDrop(dtde.getDropAction());
                     try {
                         final List fileList = (List) dtde.getTransferable().getTransferData(
-                            DataFlavor.javaFileListFlavor);
-                        if (fileList != null && fileList.size() > 0) {
+                                DataFlavor.javaFileListFlavor);
+                        if(fileList != null && fileList.size() > 0) {
                             new Thread() {
                                 @Override
                                 public void run() {
@@ -705,19 +668,21 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                                 }
                             }.start();
                         }
-                    } catch (Exception e) {
+                    }
+                    catch(Exception e) {
                         String message = "Unable to start accept dropped item(s)";
                         log.error(message, e);
                         ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(), message, e);
                     }
-                } else {
+                }
+                else {
                     dtde.rejectDrop();
                 }
             }
         };
 
         // Attach drop target listener to each target component.
-        for (int i = 0; i < dropTargetComponents.length; i++) {
+        for(int i = 0; i < dropTargetComponents.length; i++) {
             new DropTarget(dropTargetComponents[i], DnDConstants.ACTION_COPY, dropTargetListener, true);
         }
     }
@@ -726,28 +691,22 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      * Starts a progress display dialog. While the dialog is running the user cannot interact
      * with the application, except to cancel the task.
      *
-     * @param statusMessage
-     *        describes the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
-     * @param detailsText
-     *        describes the status of a task in more detail, such as the current transfer rate and Time remaining.
-     * @param minTaskValue  the minimum progress value for a task, generally 0
-     * @param maxTaskValue
-     *        the maximum progress value for a task, such as the total number of threads or 100 if
-     *        using percentage-complete as a metric.
-     * @param cancelEventListener
-     *        listener that is responsible for cancelling a long-lived task when the user clicks
-     *        the cancel button. If a task cannot be cancelled this must be null.
-     * @param cancelButtonText
-     *        text displayed in the cancel button if a task can be cancelled. This is only used if
-     *        a cancel event listener is provided.
+     * @param statusMessage       describes the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
+     * @param detailsText         describes the status of a task in more detail, such as the current transfer rate and Time remaining.
+     * @param minTaskValue        the minimum progress value for a task, generally 0
+     * @param maxTaskValue        the maximum progress value for a task, such as the total number of threads or 100 if
+     *                            using percentage-complete as a metric.
+     * @param cancelEventListener listener that is responsible for cancelling a long-lived task when the user clicks
+     *                            the cancel button. If a task cannot be cancelled this must be null.
+     * @param cancelButtonText    text displayed in the cancel button if a task can be cancelled. This is only used if
+     *                            a cancel event listener is provided.
      */
     private void startProgressDialog(final String statusMessage, final String detailsText,
-        final int minTaskValue, final int maxTaskValue, final String cancelButtonText,
-        final CancelEventTrigger cancelEventListener)
-    {
-        if (this.progressDialog == null) {
+                                     final int minTaskValue, final int maxTaskValue, final String cancelButtonText,
+                                     final CancelEventTrigger cancelEventListener) {
+        if(this.progressDialog == null) {
             this.progressDialog = new ProgressDialog(
-                this.ownerFrame, "Please wait...", cockpitLiteProperties.getProperties());
+                    this.ownerFrame, "Please wait...", cockpitLiteProperties.getProperties());
         }
 
         this.getContentPane().setCursor(new Cursor(Cursor.WAIT_CURSOR));
@@ -755,26 +714,24 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 progressDialog.startDialog(statusMessage, detailsText, minTaskValue, maxTaskValue,
-                    cancelEventListener, cancelButtonText);
+                        cancelEventListener, cancelButtonText);
             }
-         });
+        });
     }
 
     /**
      * Updates the status text and value of the progress display dialog.
-     * @param statusMessage
-     *        describes the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
-     * @param detailsText
-     *        describes the status of a task in more detail, such as the current transfer rate and time remaining.
-     * @param progressValue
-     *        value representing how far through the task we are (relative to min and max values)
+     *
+     * @param statusMessage describes the status of a task text meaningful to the user, such as "3 files of 7 uploaded"
+     * @param detailsText   describes the status of a task in more detail, such as the current transfer rate and time remaining.
+     * @param progressValue value representing how far through the task we are (relative to min and max values)
      */
     private void updateProgressDialog(final String statusMessage, final String detailsText, final int progressValue) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 progressDialog.updateDialog(statusMessage, detailsText, progressValue);
             }
-         });
+        });
     }
 
     /**
@@ -787,16 +744,15 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             public void run() {
                 progressDialog.stopDialog();
             }
-         });
+        });
     }
 
 
     protected void startProgressPanel(Object operationId, String statusMessage,
-        int maxCount, CancelEventTrigger cancelEventTrigger)
-    {
+                                      int maxCount, CancelEventTrigger cancelEventTrigger) {
         // Create new progress panel.
         final ProgressPanel progressPanel = new ProgressPanel(
-            cockpitLiteProperties.getProperties(), cancelEventTrigger);
+                cockpitLiteProperties.getProperties(), cancelEventTrigger);
         progressPanel.startProgress(statusMessage, 0, maxCount);
 
         // Store this panel against the operation ID it tracks.
@@ -806,25 +762,24 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 progressNotificationPanel.add(progressPanel,
-                    new GridBagConstraints(0, progressNotificationPanel.getComponents().length,
-                        1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
+                        new GridBagConstraints(0, progressNotificationPanel.getComponents().length,
+                                1, 1, 1, 0, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, insetsZero, 0, 0));
                 progressNotificationPanel.revalidate();
             }
-         });
+        });
     }
 
     protected void updateProgressPanel(Object operationId, final String statusMessage,
-        final int currentCount)
-    {
+                                       final int currentCount) {
         // Retrieve progress panel.
         final ProgressPanel progressPanel = (ProgressPanel) progressPanelMap.get(operationId);
 
-        if (progressPanel != null) {
+        if(progressPanel != null) {
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
                     progressPanel.updateProgress(statusMessage, currentCount);
                 }
-             });
+            });
         }
     }
 
@@ -832,7 +787,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         // Retrieve progress panel.
         final ProgressPanel progressPanel = (ProgressPanel) progressPanelMap.get(operationId);
 
-        if (progressPanel != null) {
+        if(progressPanel != null) {
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
                     progressNotificationPanel.remove(progressPanel);
@@ -841,7 +796,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                     progressPanelMap.remove(progressPanel);
                     progressPanel.dispose();
                 }
-             });
+            });
         }
     }
 
@@ -850,7 +805,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      * Event handler for this application, handles all menu items.
      */
     public void actionPerformed(ActionEvent event) {
-        if (event.getSource().equals(loginButton)) {
+        if(event.getSource().equals(loginButton)) {
             new Thread() {
                 @Override
                 public void run() {
@@ -860,16 +815,18 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         }
 
         // Object Events
-        else if ("ViewObjectProperties".equals(event.getActionCommand())) {
+        else if("ViewObjectProperties".equals(event.getActionCommand())) {
             listObjectProperties();
-        } else if ("RefreshObjects".equals(event.getActionCommand())) {
+        }
+        else if("RefreshObjects".equals(event.getActionCommand())) {
             new Thread() {
                 @Override
                 public void run() {
                     listObjects();
                 }
             }.start();
-        } else if ("TogglePublicPrivate".equals(event.getActionCommand())) {
+        }
+        else if("TogglePublicPrivate".equals(event.getActionCommand())) {
             new Thread() {
                 @Override
                 public void run() {
@@ -878,43 +835,49 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                     boolean originalAclWasPublic = ACL_PUBLIC_DESCRIPTION.equals(aclStatus);
 
                     ToggleAclDialog dialog = new ToggleAclDialog(ownerFrame,
-                        originalAclWasPublic, null, cockpitLiteProperties.getProperties());
+                            originalAclWasPublic, null, cockpitLiteProperties.getProperties());
                     dialog.setVisible(true);
 
                     // Update ACL setting.
                     S3Object minimalObject = new S3Object(object.getKey());
 
                     AccessControlList newAcl = (dialog.isPublicAclSet()
-                        ? AccessControlList.REST_CANNED_PUBLIC_READ
-                        : AccessControlList.REST_CANNED_PRIVATE);
+                            ? AccessControlList.REST_CANNED_PUBLIC_READ
+                            : AccessControlList.REST_CANNED_PRIVATE);
 
-                    if (newAcl != null) {
-                        if (AccessControlList.REST_CANNED_PRIVATE.equals(newAcl)) {
+                    if(newAcl != null) {
+                        if(AccessControlList.REST_CANNED_PRIVATE.equals(newAcl)) {
                             minimalObject.addMetadata(Constants.REST_HEADER_PREFIX + "acl", "private");
-                        } else if (AccessControlList.REST_CANNED_PUBLIC_READ.equals(newAcl)) {
+                        }
+                        else if(AccessControlList.REST_CANNED_PUBLIC_READ.equals(newAcl)) {
                             minimalObject.addMetadata(Constants.REST_HEADER_PREFIX + "acl", "public-read");
                         }
                     }
 
                     updateObjectsAccessControlLists(
-                        new S3Object[] {minimalObject}, newAcl);
+                            new S3Object[]{minimalObject}, newAcl);
 
                     dialog.dispose();
                 }
             }.start();
-        } else if ("GeneratePublicGetURL".equals(event.getActionCommand())) {
+        }
+        else if("GeneratePublicGetURL".equals(event.getActionCommand())) {
             generatePublicGetUrl();
-        } else if ("DeleteObjects".equals(event.getActionCommand())) {
+        }
+        else if("DeleteObjects".equals(event.getActionCommand())) {
             deleteSelectedObjects();
-        } else if ("DownloadObjects".equals(event.getActionCommand())) {
+        }
+        else if("DownloadObjects".equals(event.getActionCommand())) {
             try {
                 downloadSelectedObjects();
-            } catch (Exception ex) {
+            }
+            catch(Exception ex) {
                 String message = "Unable to download objects from S3";
                 log.error(message, ex);
                 ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(), message, ex);
             }
-        } else if ("UploadFiles".equals(event.getActionCommand())) {
+        }
+        else if("UploadFiles".equals(event.getActionCommand())) {
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setMultiSelectionEnabled(true);
             fileChooser.setDialogTitle("Choose file(s) to upload");
@@ -923,12 +886,12 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             fileChooser.setCurrentDirectory(fileChoosersLastUploadDirectory);
 
             int returnVal = fileChooser.showOpenDialog(ownerFrame);
-            if (returnVal != JFileChooser.APPROVE_OPTION) {
-                    return;
+            if(returnVal != JFileChooser.APPROVE_OPTION) {
+                return;
             }
 
             final File[] uploadFiles = fileChooser.getSelectedFiles();
-            if (uploadFiles.length == 0) {
+            if(uploadFiles.length == 0) {
                 return;
             }
 
@@ -941,10 +904,12 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                     prepareForFilesUpload(uploadFiles);
                 }
             }.start();
-        } else if (event.getSource().equals(filterObjectsCheckBox)) {
-            if (filterObjectsCheckBox.isSelected()) {
+        }
+        else if(event.getSource().equals(filterObjectsCheckBox)) {
+            if(filterObjectsCheckBox.isSelected()) {
                 filterObjectsPanel.setVisible(true);
-            } else {
+            }
+            else {
                 filterObjectsPanel.setVisible(false);
                 filterObjectsPrefix.setText("");
             }
@@ -960,11 +925,11 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      * Handles list selection events for this application.
      */
     public void valueChanged(ListSelectionEvent e) {
-        if (e.getValueIsAdjusting()) {
+        if(e.getValueIsAdjusting()) {
             return;
         }
 
-        if (e.getSource().equals(objectsTable.getSelectionModel())) {
+        if(e.getSource().equals(objectsTable.getSelectionModel())) {
             objectSelectedAction();
         }
     }
@@ -976,7 +941,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             // with each request.
             Properties loginProperties = userInputFields.getUserInputsAsProperties(true);
             Iterator iter = loginProperties.keySet().iterator();
-            while (iter.hasNext()) {
+            while(iter.hasNext()) {
                 String propertyName = (String) iter.next();
                 String propertyValue = loginProperties.getProperty(propertyName);
                 cockpitLiteProperties.setProperty(propertyName, propertyValue);
@@ -988,37 +953,37 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             Map requestProperties = new HashMap();
             requestProperties.put(GatekeeperMessage.LIST_OBJECTS_IN_BUCKET_FLAG, "");
             requestProperties.putAll(cockpitLiteProperties.getProperties());
-            if (filterObjectsCheckBox.isSelected() && filterObjectsPrefix.getText().length() > 0) {
+            if(filterObjectsCheckBox.isSelected() && filterObjectsPrefix.getText().length() > 0) {
                 requestProperties.put("Prefix", filterObjectsPrefix.getText());
             }
 
             GatekeeperMessage responseMessage =
-                gkClient.requestActionThroughGatekeeper(
-                        null, null, new S3Object[] {}, requestProperties);
+                    gkClient.requestActionThroughGatekeeper(
+                            null, null, new S3Object[]{}, requestProperties);
 
             stopProgressPanel(this);
 
             String gatekeeperErrorCode = responseMessage.getApplicationProperties()
-                .getProperty(GatekeeperMessage.APP_PROPERTY_GATEKEEPER_ERROR_CODE);
+                    .getProperty(GatekeeperMessage.APP_PROPERTY_GATEKEEPER_ERROR_CODE);
 
-            if (gatekeeperErrorCode == null) {
+            if(gatekeeperErrorCode == null) {
                 // Listing succeeded
                 final S3Object[] objects = gkClient.buildS3ObjectsFromSignatureRequests(
-                    responseMessage.getSignatureRequests());
+                        responseMessage.getSignatureRequests());
 
                 // User account description provided by Gatekeeper
                 final String accountDescription =
-                    responseMessage.getApplicationProperties().getProperty("AccountDescription");
+                        responseMessage.getApplicationProperties().getProperty("AccountDescription");
 
                 // User's settings
                 userCanUpload = "true".equalsIgnoreCase(
-                    responseMessage.getApplicationProperties().getProperty("UserCanUpload"));
+                        responseMessage.getApplicationProperties().getProperty("UserCanUpload"));
                 userCanDownload = "true".equalsIgnoreCase(
-                    responseMessage.getApplicationProperties().getProperty("UserCanDownload"));
+                        responseMessage.getApplicationProperties().getProperty("UserCanDownload"));
                 userCanDelete = "true".equalsIgnoreCase(
-                    responseMessage.getApplicationProperties().getProperty("UserCanDelete"));
+                        responseMessage.getApplicationProperties().getProperty("UserCanDelete"));
                 userCanACL = "true".equalsIgnoreCase(
-                    responseMessage.getApplicationProperties().getProperty("UserCanACL"));
+                        responseMessage.getApplicationProperties().getProperty("UserCanACL"));
 
                 userBucketName = responseMessage.getApplicationProperties().getProperty("S3BucketName");
                 userPath = responseMessage.getApplicationProperties().getProperty("UserPath", "");
@@ -1030,7 +995,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                 SwingUtilities.invokeLater(new Runnable() {
                     public void run() {
                         objectsHeadingLabel.setText(
-                            (accountDescription != null ? accountDescription : "Logged in"));
+                                (accountDescription != null ? accountDescription : "Logged in"));
 
                         objectTableModel.removeAllObjects();
                         objectTableModel.addObjects(objects);
@@ -1042,12 +1007,14 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                 });
 
                 stackPanelCardLayout.show(stackPanel, "ObjectsPanel");
-            } else {
+            }
+            else {
                 // Listing failed
                 ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(),
-                    "Your log-in information was not correct, please try again", null);
+                        "Your log-in information was not correct, please try again", null);
             }
-        } catch (Exception e) {
+        }
+        catch(Exception e) {
             stopProgressPanel(this);
             log.error("Gatekeeper login failed for URL: " + gkClient.getGatekeeperUrl(), e);
             ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(),
@@ -1057,7 +1024,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
     /**
      * Displays the currently selected object's properties in the dialog {@link ItemPropertiesDialog}.
-     * <p>
+     * <p/>
      * As detailed information about the object may not yet be available, this method works
      * indirectly via the {@link #retrieveObjectsDetails} method. The <code>retrieveObjectsDetails</code>
      * method retrieves all the details for the currently selected objects, and once they are available
@@ -1072,7 +1039,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     /**
      * This method is an {@link S3ServiceEventListener} action method that is invoked when this
      * application's <code>S3ServiceMulti</code> triggers a <code>GetObjectsEvent</code>.
-     * <p>
+     * <p/>
      * This never happens in this application as downloads are performed by
      * {@link S3ServiceMulti#downloadObjects(S3Bucket, DownloadPackage[])} instead.
      *
@@ -1085,7 +1052,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     /**
      * This method is an {@link S3ServiceEventListener} action method that is invoked when this
      * application's <code>S3ServiceMulti</code> triggers a <code>ListObjectsEvent</code>.
-     * <p>
+     * <p/>
      * This never happens in this application as it does not perform multi-threaded object
      * listings.
      *
@@ -1107,22 +1074,21 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         int count = selectedObjects.length;
 
         togglePublicMenuItem.setEnabled(
-            userCanACL && count == 1);
+                userCanACL && count == 1);
         downloadObjectMenuItem.setEnabled(
-            userCanDownload && count > 0);
+                userCanDownload && count > 0);
         deleteObjectMenuItem.setEnabled(
-            userCanDelete && count > 0);
+                userCanDelete && count > 0);
         viewObjectPropertiesMenuItem.setEnabled(count > 0);
         generatePublicGetUrl.setEnabled(
-            count == 1
-            && ACL_PUBLIC_DESCRIPTION.equals(
-                objectTableModel.getObjectAclStatus(selectedObjects[0])));
+                count == 1
+                        && ACL_PUBLIC_DESCRIPTION.equals(
+                        objectTableModel.getObjectAclStatus(selectedObjects[0])));
     }
 
     /**
      * Updates the summary text shown below the listing of objects, which details the
      * number and total size of the objects.
-     *
      */
     private void updateObjectsSummary() {
         S3Object[] objects = objectTableModel.getObjects();
@@ -1130,25 +1096,26 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         try {
             String summary = "Please select a bucket";
             long totalBytes = 0;
-            if (objects != null) {
-                summary = "<html>" + objects.length + " item" + (objects.length != 1? "s" : "");
+            if(objects != null) {
+                summary = "<html>" + objects.length + " item" + (objects.length != 1 ? "s" : "");
 
-                for (int i = 0; i < objects.length; i++) {
+                for(int i = 0; i < objects.length; i++) {
                     totalBytes += objects[i].getContentLength();
                 }
-                if (totalBytes > 0) {
+                if(totalBytes > 0) {
                     summary += ", " + byteFormatter.formatByteSize(totalBytes);
                 }
                 summary += " @ " + timeSDF.format(new Date());
 
-                if (isObjectFilteringActive()) {
+                if(isObjectFilteringActive()) {
                     summary += " - <i>Search results</i>";
                 }
                 summary += "</html>";
             }
 
             objectsSummaryLabel.setText(summary);
-        } catch (Throwable t) {
+        }
+        catch(Exception t) {
             String message = "Unable to update object list summary";
             log.error(message, t);
             ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(), message, t);
@@ -1157,12 +1124,13 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
     /**
      * Displays object-specific actions in a popup menu.
+     *
      * @param invoker the component near which the popup menu will be displayed
-     * @param xPos the mouse's horizontal co-ordinate when the popup menu was invoked
-     * @param yPos the mouse's vertical co-ordinate when the popup menu was invoked
+     * @param xPos    the mouse's horizontal co-ordinate when the popup menu was invoked
+     * @param yPos    the mouse's vertical co-ordinate when the popup menu was invoked
      */
     private void showObjectPopupMenu(JComponent invoker, int xPos, int yPos) {
-        if (getSelectedObjects().length == 0) {
+        if(getSelectedObjects().length == 0) {
             return;
         }
         objectActionMenu.show(invoker, xPos, yPos);
@@ -1173,11 +1141,12 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      */
     private S3Object[] getSelectedObjects() {
         int viewRows[] = objectsTable.getSelectedRows();
-        if (viewRows.length == 0) {
-            return new S3Object[] {};
-        } else {
+        if(viewRows.length == 0) {
+            return new S3Object[]{};
+        }
+        else {
             S3Object objects[] = new S3Object[viewRows.length];
-            for (int i = 0; i < viewRows.length; i++) {
+            for(int i = 0; i < viewRows.length; i++) {
                 int modelRow = objectTableModelSorter.modelIndex(viewRows[i]);
                 objects[i] = objectTableModel.getObject(modelRow);
             }
@@ -1188,7 +1157,6 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     /**
      * Retrieves ACL settings for the currently selected objects. The actual action is performed
      * in the <code>s3ServiceEventPerformed</code> method specific to <code>LookupACLEvent</code>s.
-     *
      */
     private void lookupObjectsAccessControlLists(final S3Object[] objects) {
         (new Thread() {
@@ -1198,19 +1166,21 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                     SignatureRequest[] signatureRequests = requestSignedRequests(
                             SignatureRequest.SIGNATURE_TYPE_ACL_LOOKUP, objects);
 
-                    if (signatureRequests != null) {
+                    if(signatureRequests != null) {
                         String[] signedRequests = new String[signatureRequests.length];
-                        for (int i = 0; i < signedRequests.length; i++) {
+                        for(int i = 0; i < signedRequests.length; i++) {
                             signedRequests[i] = signatureRequests[i].getSignedUrl();
                         }
 
                         s3ServiceMulti.getObjectsACLs(signedRequests);
-                    } else {
+                    }
+                    else {
                         // Signature request failed
                         ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(),
-                            "Sorry, you do not have the permission to view object privacy settings", null);
+                                "Sorry, you do not have the permission to view object privacy settings", null);
                     }
-                } catch (Exception e) {
+                }
+                catch(Exception e) {
                     log.error("Gatekeeper permissions check failed", e);
                     ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(),
                             "Permissions check failed, please try again", e);
@@ -1227,21 +1197,21 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      * @param event
      */
     public void s3ServiceEventPerformed(final LookupACLEvent event) {
-        if (ServiceEvent.EVENT_STARTED == event.getEventCode()) {
+        if(ServiceEvent.EVENT_STARTED == event.getEventCode()) {
             int threadCount = (int) event.getThreadWatcher().getThreadCount();
             startProgressPanel(event.getUniqueOperationId(), "Privacy lookup 0/" + threadCount,
-                threadCount, event.getThreadWatcher().getCancelEventListener());
+                    threadCount, event.getThreadWatcher().getCancelEventListener());
         }
-        else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
             int threadCount = (int) event.getThreadWatcher().getThreadCount();
             int threadsCompleted = (int) event.getThreadWatcher().getCompletedThreads();
             updateProgressPanel(event.getUniqueOperationId(),
-                "Privacy lookup " + threadsCompleted + "/" + threadCount, threadsCompleted);
+                    "Privacy lookup " + threadsCompleted + "/" + threadCount, threadsCompleted);
 
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
                     S3Object[] objectsWithAcl = event.getObjectsWithACL();
-                    for (int i = 0; i < objectsWithAcl.length; i++) {
+                    for(int i = 0; i < objectsWithAcl.length; i++) {
                         String aclStatus = getAclDescription(objectsWithAcl[i].getAcl());
                         objectTableModel.updateObjectAclStatus(objectsWithAcl[i], aclStatus);
                     }
@@ -1249,13 +1219,13 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             });
 
         }
-        else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
             stopProgressPanel(event.getUniqueOperationId());
         }
-        else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
             stopProgressPanel(event.getUniqueOperationId());
         }
-        else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_ERROR == event.getEventCode()) {
             stopProgressPanel(event.getUniqueOperationId());
 
             String message = "Unable to lookup Access Control list for object(s)";
@@ -1266,7 +1236,6 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     /**
      * Updates ACL settings for the currently selected objects. The actual action is performed
      * in the <code>s3ServiceEventPerformed</code> method specific to <code>UpdateACLEvent</code>s.
-     *
      */
     private void updateObjectsAccessControlLists(final S3Object[] objectsToUpdate, final AccessControlList acl) {
         (new Thread() {
@@ -1275,19 +1244,21 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                 try {
                     SignatureRequest[] signatureRequests = requestSignedRequests(
                             SignatureRequest.SIGNATURE_TYPE_ACL_UPDATE, objectsToUpdate);
-                    if (signatureRequests != null) {
+                    if(signatureRequests != null) {
                         String[] signedRequests = new String[signatureRequests.length];
-                        for (int i = 0; i < signedRequests.length; i++) {
+                        for(int i = 0; i < signedRequests.length; i++) {
                             signedRequests[i] = signatureRequests[i].getSignedUrl();
                         }
 
                         s3ServiceMulti.putObjectsACLs(signedRequests, acl);
-                    } else {
+                    }
+                    else {
                         // Listing failed
                         ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(),
-                            "Sorry, you do not have the permission to change object privacy settings", null);
+                                "Sorry, you do not have the permission to change object privacy settings", null);
                     }
-                } catch (Exception e) {
+                }
+                catch(Exception e) {
                     log.error("Gatekeeper permissions check failed", e);
                     ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(),
                             "Permissions check failed, please try again", e);
@@ -1299,29 +1270,29 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     /**
      * This method is an {@link S3ServiceEventListener} action method that is invoked when this
      * application's <code>S3ServiceMulti</code> triggers a <code>UpdateACLEvent</code>.
-     * <p>
+     * <p/>
      * This method merely updates the progress dialog as ACLs are updated.
      *
      * @param event
      */
     public void s3ServiceEventPerformed(final UpdateACLEvent event) {
-        if (ServiceEvent.EVENT_STARTED == event.getEventCode()) {
+        if(ServiceEvent.EVENT_STARTED == event.getEventCode()) {
             startProgressPanel(event.getUniqueOperationId(),
-                "Privacy update 0/" + event.getThreadWatcher().getThreadCount(),
-                (int) event.getThreadWatcher().getThreadCount(),
-                event.getThreadWatcher().getCancelEventListener());
+                    "Privacy update 0/" + event.getThreadWatcher().getThreadCount(),
+                    (int) event.getThreadWatcher().getThreadCount(),
+                    event.getThreadWatcher().getCancelEventListener());
         }
-        else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
             ThreadWatcher progressStatus = event.getThreadWatcher();
             String statusText = "Privacy update " + progressStatus.getCompletedThreads()
-                + "/" + progressStatus.getThreadCount();
+                    + "/" + progressStatus.getThreadCount();
             updateProgressPanel(event.getUniqueOperationId(), statusText,
-                (int) progressStatus.getCompletedThreads());
+                    (int) progressStatus.getCompletedThreads());
 
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
                     S3Object[] objects = event.getObjectsWithUpdatedACL();
-                    for (int i = 0; i < objects.length; i++) {
+                    for(int i = 0; i < objects.length; i++) {
                         String aclStatus = getAclDescription(objects[i].getAcl());
                         objectTableModel.updateObjectAclStatus(objects[i], aclStatus);
                         objectSelectedAction();
@@ -1330,13 +1301,13 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             });
 
         }
-        else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
             stopProgressPanel(event.getUniqueOperationId());
         }
-        else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
             stopProgressPanel(event.getUniqueOperationId());
         }
-        else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_ERROR == event.getEventCode()) {
             stopProgressPanel(event.getUniqueOperationId());
 
             String message = "Unable to update Access Control List(s)";
@@ -1360,7 +1331,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         fileChooser.setSelectedFile(downloadDirectory);
 
         int returnVal = fileChooser.showDialog(ownerFrame, "Choose Directory");
-        if (returnVal != JFileChooser.APPROVE_OPTION) {
+        if(returnVal != JFileChooser.APPROVE_OPTION) {
             return;
         }
 
@@ -1374,10 +1345,11 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         Map<String, String> objectKeyToFilepathMap = null;
         try {
             boolean storeEmptyDirectories = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-                .getBoolProperty("uploads.storeEmptyDirectories", true);
+                    .getBoolProperty("uploads.storeEmptyDirectories", true);
             objectKeyToFilepathMap = FileComparer.getInstance()
-                .buildObjectKeyToFilepathMap(downloadDirectory.listFiles(), "", storeEmptyDirectories);
-        } catch (Exception e) {
+                    .buildObjectKeyToFilepathMap(downloadDirectory.listFiles(), "", storeEmptyDirectories);
+        }
+        catch(Exception e) {
             String message = "Unable to review files in targetted download directory";
             log.error(message, e);
             ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(), message, e);
@@ -1389,31 +1361,31 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
         // Build map of S3 Objects being downloaded.
         s3DownloadObjectsMap = FileComparer.getInstance()
-            .populateObjectMap("", getSelectedObjects());
+                .populateObjectMap("", getSelectedObjects());
 
         // Identify objects that may clash with existing files, or may be directories,
         // and retrieve details for these.
         ArrayList potentialClashingObjects = new ArrayList();
         Set existingFilesObjectKeys = objectKeyToFilepathMap.keySet();
         Iterator objectsIter = s3DownloadObjectsMap.entrySet().iterator();
-        while (objectsIter.hasNext()) {
+        while(objectsIter.hasNext()) {
             Map.Entry entry = (Map.Entry) objectsIter.next();
             String objectKey = (String) entry.getKey();
             S3Object object = (S3Object) entry.getValue();
 
-            if (object.getContentLength() == 0 || existingFilesObjectKeys.contains(objectKey)) {
+            if(object.getContentLength() == 0 || existingFilesObjectKeys.contains(objectKey)) {
                 potentialClashingObjects.add(object);
             }
-            if (existingFilesObjectKeys.contains(objectKey)) {
+            if(existingFilesObjectKeys.contains(objectKey)) {
                 filesAlreadyInDownloadDirectoryMap.put(
-                    objectKey, objectKeyToFilepathMap.get(objectKey));
+                        objectKey, objectKeyToFilepathMap.get(objectKey));
             }
         }
 
-        if (potentialClashingObjects.size() > 0) {
+        if(potentialClashingObjects.size() > 0) {
             // Retrieve details of potential clashes.
             final S3Object[] clashingObjects = (S3Object[])
-                potentialClashingObjects.toArray(new S3Object[potentialClashingObjects.size()]);
+                    potentialClashingObjects.toArray(new S3Object[potentialClashingObjects.size()]);
             (new Thread() {
                 @Override
                 public void run() {
@@ -1421,7 +1393,8 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                     retrieveObjectsDetails(clashingObjects);
                 }
             }).start();
-        } else {
+        }
+        else {
             compareRemoteAndLocalFiles(filesAlreadyInDownloadDirectoryMap, s3DownloadObjectsMap, false);
         }
     }
@@ -1430,27 +1403,26 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         try {
             // Build map of files proposed for upload.
             boolean storeEmptyDirectories = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-                .getBoolProperty("uploads.storeEmptyDirectories", true);
+                    .getBoolProperty("uploads.storeEmptyDirectories", true);
             objectKeyToFilepathMap = FileComparer.getInstance()
-                .buildObjectKeyToFilepathMap(uploadFiles, "", storeEmptyDirectories);
+                    .buildObjectKeyToFilepathMap(uploadFiles, "", storeEmptyDirectories);
 
             // Build map of objects already existing in target S3 bucket with keys
             // matching the proposed upload keys.
             List objectsWithExistingKeys = new ArrayList();
             S3Object[] existingObjects = objectTableModel.getObjects();
-            for (int i = 0; i < existingObjects.length; i++) {
-                if (objectKeyToFilepathMap.containsKey(existingObjects[i].getKey()))
-                {
+            for(int i = 0; i < existingObjects.length; i++) {
+                if(objectKeyToFilepathMap.containsKey(existingObjects[i].getKey())) {
                     objectsWithExistingKeys.add(existingObjects[i]);
                 }
             }
             existingObjects = (S3Object[]) objectsWithExistingKeys
-                .toArray(new S3Object[objectsWithExistingKeys.size()]);
+                    .toArray(new S3Object[objectsWithExistingKeys.size()]);
 
             s3ExistingObjectsMap = FileComparer.getInstance()
-                .populateObjectMap("", existingObjects);
+                    .populateObjectMap("", existingObjects);
 
-            if (existingObjects.length > 0) {
+            if(existingObjects.length > 0) {
                 // Retrieve details of potential clashes.
                 final S3Object[] clashingObjects = existingObjects;
                 (new Thread() {
@@ -1460,10 +1432,12 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                         retrieveObjectsDetails(clashingObjects);
                     }
                 }).start();
-            } else {
+            }
+            else {
                 compareRemoteAndLocalFiles(objectKeyToFilepathMap, s3ExistingObjectsMap, true);
             }
-        } catch (Exception e) {
+        }
+        catch(Exception e) {
             String message = "Unable to upload objects";
             log.error(message, e);
             ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(), message, e);
@@ -1471,23 +1445,22 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     }
 
     private void compareRemoteAndLocalFiles(
-        final Map<String, String> objectKeyToFilepathMap, final Map s3ObjectsMap, final boolean upload)
-    {
+            final Map<String, String> objectKeyToFilepathMap, final Map s3ObjectsMap, final boolean upload) {
         final HyperlinkActivatedListener hyperlinkListener = this;
         (new Thread(new Runnable() {
             public void run() {
                 try {
                     // Compare objects being downloaded and existing local files.
                     final String statusText =
-                        "Comparing " + s3ObjectsMap.size() + " object" + (s3ObjectsMap.size() > 1 ? "s" : "") +
-                        " in S3 with " + objectKeyToFilepathMap.size()
-                        + " local file" + (objectKeyToFilepathMap.size() > 1 ? "s" : "");
+                            "Comparing " + s3ObjectsMap.size() + " object" + (s3ObjectsMap.size() > 1 ? "s" : "") +
+                                    " in S3 with " + objectKeyToFilepathMap.size()
+                                    + " local file" + (objectKeyToFilepathMap.size() > 1 ? "s" : "");
                     startProgressDialog(statusText, "", 0, 100, null, null);
 
                     // Calculate total files size.
                     File[] files = objectKeyToFilepathMap.values().toArray(new File[objectKeyToFilepathMap.size()]);
                     final long filesSizeTotal[] = new long[1];
-                    for (int i = 0; i < files.length; i++) {
+                    for(int i = 0; i < files.length; i++) {
                         filesSizeTotal[0] += files[i].length();
                     }
 
@@ -1498,27 +1471,30 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                             super.updateBytesTransferred(byteCount);
 
                             String detailsText = formatBytesProgressWatcherDetails(this, true);
-                            int progressValue = (int)((double)getBytesTransferred() * 100 / getBytesToTransfer());
+                            int progressValue = (int) ((double) getBytesTransferred() * 100 / getBytesToTransfer());
                             updateProgressDialog(statusText, detailsText, progressValue);
                         }
                     };
 
                     FileComparerResults comparisonResults = FileComparer.getInstance()
-                        .buildDiscrepancyLists(objectKeyToFilepathMap, s3ObjectsMap, progressWatcher);
+                            .buildDiscrepancyLists(objectKeyToFilepathMap, s3ObjectsMap, progressWatcher);
 
                     stopProgressDialog();
 
-                    if (upload) {
+                    if(upload) {
                         performFilesUpload(comparisonResults, objectKeyToFilepathMap);
-                    } else {
+                    }
+                    else {
                         performObjectsDownload(comparisonResults, s3ObjectsMap);
                     }
-                } catch (RuntimeException e) {
+                }
+                catch(RuntimeException e) {
                     stopProgressDialog();
                     throw e;
-                } catch (Exception e) {
+                }
+                catch(Exception e) {
                     stopProgressDialog();
-                    String message = "Unable to " + (upload? "upload" : "download") + " objects";
+                    String message = "Unable to " + (upload ? "upload" : "download") + " objects";
                     log.error(message, e);
                     ErrorDialog.showDialog(ownerFrame, hyperlinkListener, cockpitLiteProperties.getProperties(), message, e);
                 }
@@ -1529,27 +1505,28 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     /**
      * Retrieves details about objects including metadata etc by invoking the method
      * {@link S3ServiceMulti#getObjectsHeads}.
-     *
+     * <p/>
      * This is generally done as a prelude
      * to some further action, such as displaying the objects' details or downloading the objects.
      * The real action occurs in the method <code>s3ServiceEventPerformed</code> for handling
      * <code>GetObjectHeadsEvent</code> events.
+     *
      * @param candidateObjects
      */
     private void retrieveObjectsDetails(final S3Object[] candidateObjects) {
         // Identify which of the candidate objects have incomplete metadata.
         ArrayList s3ObjectsIncompleteList = new ArrayList();
-        for (int i = 0; i < candidateObjects.length; i++) {
-            if (!candidateObjects[i].isMetadataComplete()) {
+        for(int i = 0; i < candidateObjects.length; i++) {
+            if(!candidateObjects[i].isMetadataComplete()) {
                 s3ObjectsIncompleteList.add(candidateObjects[i]);
             }
         }
 
         log.debug("Of " + candidateObjects.length + " object candidates for HEAD requests "
-            + s3ObjectsIncompleteList.size() + " are incomplete, performing requests for these only");
+                + s3ObjectsIncompleteList.size() + " are incomplete, performing requests for these only");
 
         final S3Object[] incompleteObjects = (S3Object[]) s3ObjectsIncompleteList
-            .toArray(new S3Object[s3ObjectsIncompleteList.size()]);
+                .toArray(new S3Object[s3ObjectsIncompleteList.size()]);
         (new Thread() {
             @Override
             public void run() {
@@ -1557,25 +1534,29 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                     SignatureRequest[] signatureRequests = requestSignedRequests(
                             SignatureRequest.SIGNATURE_TYPE_HEAD, incompleteObjects);
 
-                    if (signatureRequests != null) {
+                    if(signatureRequests != null) {
                         String[] signedRequests = new String[signatureRequests.length];
-                        for (int i = 0; i < signedRequests.length; i++) {
+                        for(int i = 0; i < signedRequests.length; i++) {
                             signedRequests[i] = signatureRequests[i].getSignedUrl();
                         }
 
                         s3ServiceMulti.getObjectsHeads(signedRequests);
-                    } else {
+                    }
+                    else {
                         // Listing failed
                         ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(),
-                            "Sorry, you do not have the permission to view object details", null);
+                                "Sorry, you do not have the permission to view object details", null);
                     }
-                } catch (Exception e) {
+                }
+                catch(Exception e) {
                     stopProgressDialog();
                     log.error("Gatekeeper permissions check failed", e);
                     ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(),
                             "Permissions check failed, please try again", e);
                 }
-            };
+            }
+
+            ;
         }).start();
     }
 
@@ -1583,7 +1564,6 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      * Performs the real work of downloading files by comparing the download candidates against
      * existing files, prompting the user whether to overwrite any pre-existing file versions,
      * and starting {@link S3ServiceMulti#downloadObjects} where the real work is done.
-     *
      */
     private void performObjectsDownload(FileComparerResults comparisonResults, Map s3DownloadObjectsMap) {
         try {
@@ -1595,61 +1575,64 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             int newFiles = comparisonResults.onlyOnServerKeys.size();
             int unchangedFiles = comparisonResults.alreadySynchronisedKeys.size();
             int changedFiles = comparisonResults.updatedOnClientKeys.size()
-                + comparisonResults.updatedOnServerKeys.size();
+                    + comparisonResults.updatedOnServerKeys.size();
 
-            if (unchangedFiles > 0 || changedFiles > 0) {
+            if(unchangedFiles > 0 || changedFiles > 0) {
                 // Ask user whether to replace existing unchanged and/or existing changed files.
                 log.debug("Files for download clash with existing local files, prompting user to choose which files to replace");
                 List options = new ArrayList();
                 String message = "Of the " + (newFiles + unchangedFiles + changedFiles)
-                    + " object(s) being downloaded:\n\n";
+                        + " object(s) being downloaded:\n\n";
 
-                if (newFiles > 0) {
+                if(newFiles > 0) {
                     message += newFiles + " file(s) are new.\n\n";
                     options.add(DOWNLOAD_NEW_FILES_ONLY);
                 }
-                if (changedFiles > 0) {
+                if(changedFiles > 0) {
                     message += changedFiles + " file(s) have changed.\n\n";
                     options.add(DOWNLOAD_NEW_AND_CHANGED_FILES);
                 }
-                if (unchangedFiles > 0) {
+                if(unchangedFiles > 0) {
                     message += unchangedFiles + " file(s) already exist and are unchanged.\n\n";
                     options.add(DOWNLOAD_ALL_FILES);
                 }
                 message += "Please choose which file(s) you wish to download:";
 
                 Object response = JOptionPane.showInputDialog(
-                    ownerFrame, message, "Replace file(s)?", JOptionPane.QUESTION_MESSAGE,
-                    null, options.toArray(), DOWNLOAD_NEW_AND_CHANGED_FILES);
+                        ownerFrame, message, "Replace file(s)?", JOptionPane.QUESTION_MESSAGE,
+                        null, options.toArray(), DOWNLOAD_NEW_AND_CHANGED_FILES);
 
-                if (response == null) {
+                if(response == null) {
                     return;
                 }
 
-                if (DOWNLOAD_NEW_FILES_ONLY.equals(response)) {
+                if(DOWNLOAD_NEW_FILES_ONLY.equals(response)) {
                     // No change required to default objectKeysForDownload list.
-                } else if (DOWNLOAD_ALL_FILES.equals(response)) {
+                }
+                else if(DOWNLOAD_ALL_FILES.equals(response)) {
                     objectKeysForDownload.addAll(comparisonResults.updatedOnClientKeys);
                     objectKeysForDownload.addAll(comparisonResults.updatedOnServerKeys);
                     objectKeysForDownload.addAll(comparisonResults.alreadySynchronisedKeys);
-                } else if (DOWNLOAD_NEW_AND_CHANGED_FILES.equals(response)) {
+                }
+                else if(DOWNLOAD_NEW_AND_CHANGED_FILES.equals(response)) {
                     objectKeysForDownload.addAll(comparisonResults.updatedOnClientKeys);
                     objectKeysForDownload.addAll(comparisonResults.updatedOnServerKeys);
-                } else {
+                }
+                else {
                     // Download cancelled.
                     return;
                 }
             }
 
             log.debug("Downloading " + objectKeysForDownload.size() + " objects");
-            if (objectKeysForDownload.size() == 0) {
+            if(objectKeysForDownload.size() == 0) {
                 return;
             }
 
             // Create array of objects for download.
             final S3Object[] objects = new S3Object[objectKeysForDownload.size()];
             int objectIndex = 0;
-            for (Iterator iter = objectKeysForDownload.iterator(); iter.hasNext();) {
+            for(Iterator iter = objectKeysForDownload.iterator(); iter.hasNext(); ) {
                 objects[objectIndex++] = (S3Object) s3DownloadObjectsMap.get(iter.next());
             }
 
@@ -1658,28 +1641,28 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                 public void run() {
                     try {
                         SignatureRequest[] signedRequests = requestSignedRequests(
-                            SignatureRequest.SIGNATURE_TYPE_GET, objects);
+                                SignatureRequest.SIGNATURE_TYPE_GET, objects);
 
-                        if (signedRequests != null) {
+                        if(signedRequests != null) {
                             // Setup files to write to, creating parent directories when necessary.
                             downloadObjectsToFileMap = new HashMap();
                             ArrayList downloadPackageList = new ArrayList();
-                            for (int i = 0; i < signedRequests.length; i++) {
+                            for(int i = 0; i < signedRequests.length; i++) {
                                 S3Object object = signedRequests[i].buildObject();
 
                                 File file = new File(downloadDirectory, object.getKey());
 
                                 // Create local directories corresponding to objects flagged as dirs.
-                                if (object.isDirectoryPlaceholder()) {
+                                if(object.isDirectoryPlaceholder()) {
                                     file = new File(downloadDirectory,
-                                        ObjectUtils.convertDirPlaceholderKeyNameToDirName(
-                                            objects[i].getKey()));
+                                            ObjectUtils.convertDirPlaceholderKeyNameToDirName(
+                                                    objects[i].getKey()));
                                     file.mkdirs();
                                 }
 
                                 DownloadPackage downloadPackage = ObjectUtils.createPackageForDownload(
                                         object, file, true, false, null);
-                                if (downloadPackage == null) {
+                                if(downloadPackage == null) {
                                     continue;
                                 }
                                 downloadPackage.setSignedUrl(signedRequests[i].getSignedUrl());
@@ -1688,21 +1671,24 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                                 downloadPackageList.add(downloadPackage);
                             }
                             DownloadPackage[] downloadPackagesArray = (DownloadPackage[])
-                                downloadPackageList.toArray(new DownloadPackage[downloadPackageList.size()]);
+                                    downloadPackageList.toArray(new DownloadPackage[downloadPackageList.size()]);
 
                             // Perform downloads.
                             s3ServiceMulti.downloadObjects(downloadPackagesArray);
                         }
-                    } catch (Exception e) {
+                    }
+                    catch(Exception e) {
                         log.error("Download failed", e);
                         ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(),
                                 "Download failed, please try again", e);
                     }
                 }
             }).start();
-        } catch (RuntimeException e) {
+        }
+        catch(RuntimeException e) {
             throw e;
-        } catch (Exception e) {
+        }
+        catch(Exception e) {
             String message = "Unable to download objects";
             log.error(message, e);
             ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(), message, e);
@@ -1714,30 +1700,32 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             startProgressPanel(this, "Checking permissions", 0, null);
 
             GatekeeperMessage responseMessage = gkClient.requestActionThroughGatekeeper(
-                operationType, userBucketName, objects, cockpitLiteProperties.getProperties());
+                    operationType, userBucketName, objects, cockpitLiteProperties.getProperties());
 
             stopProgressPanel(this);
 
             String gatekeeperErrorCode = responseMessage.getApplicationProperties()
-                .getProperty(GatekeeperMessage.APP_PROPERTY_GATEKEEPER_ERROR_CODE);
+                    .getProperty(GatekeeperMessage.APP_PROPERTY_GATEKEEPER_ERROR_CODE);
 
-            if (gatekeeperErrorCode == null) {
+            if(gatekeeperErrorCode == null) {
                 // Confirm that all the signatures requested were approved
-                for (int i = 0; i < responseMessage.getSignatureRequests().length; i++) {
-                    if (responseMessage.getSignatureRequests()[i].getSignedUrl() == null) {
+                for(int i = 0; i < responseMessage.getSignatureRequests().length; i++) {
+                    if(responseMessage.getSignatureRequests()[i].getSignedUrl() == null) {
                         // Some permissions missing.
                         return null;
                     }
                 }
 
                 return responseMessage.getSignatureRequests();
-            } else {
+            }
+            else {
                 // No permissions
                 return null;
 //                ErrorDialog.showDialog(ownerFrame, null, appProperties.getProperties(),
 //                    "Sorry, you do not have the necessary permissions", null);
             }
-        } catch (Exception e) {
+        }
+        catch(Exception e) {
             stopProgressPanel(this);
             log.error("Gatekeeper permissions check failed", e);
             ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(),
@@ -1749,62 +1737,64 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     /**
      * This method is an {@link S3ServiceEventListener} action method that is invoked when this
      * application's <code>S3ServiceMulti</code> triggers a <code>DownloadObjectsEvent</code>.
-     * <p>
+     * <p/>
      * This method merely updates the progress dialog as objects  are downloaded.
      *
      * @param event
      */
     public void s3ServiceEventPerformed(DownloadObjectsEvent event) {
-        if (ServiceEvent.EVENT_STARTED == event.getEventCode()) {
+        if(ServiceEvent.EVENT_STARTED == event.getEventCode()) {
             ThreadWatcher watcher = event.getThreadWatcher();
 
             // Show percentage of bytes transferred, if this info is available.
-            if (watcher.isBytesTransferredInfoAvailable()) {
+            if(watcher.isBytesTransferredInfoAvailable()) {
                 startProgressPanel(event.getUniqueOperationId(),
-                    "Download " +
-                    byteFormatterTerse.formatByteSize(watcher.getBytesTransferred())
-                    + "/" + byteFormatterTerse.formatByteSize(watcher.getBytesTotal()),
-                    100, event.getThreadWatcher().getCancelEventListener());
-            // ... otherwise just show the number of completed threads.
-            } else {
+                        "Download " +
+                                byteFormatterTerse.formatByteSize(watcher.getBytesTransferred())
+                                + "/" + byteFormatterTerse.formatByteSize(watcher.getBytesTotal()),
+                        100, event.getThreadWatcher().getCancelEventListener());
+                // ... otherwise just show the number of completed threads.
+            }
+            else {
                 startProgressPanel(event.getUniqueOperationId(),
-                    "Download " + event.getThreadWatcher().getCompletedThreads()
-                    + "/" + event.getThreadWatcher().getThreadCount(),
-                    (int) event.getThreadWatcher().getThreadCount(),
-                    event.getThreadWatcher().getCancelEventListener());
+                        "Download " + event.getThreadWatcher().getCompletedThreads()
+                                + "/" + event.getThreadWatcher().getThreadCount(),
+                        (int) event.getThreadWatcher().getThreadCount(),
+                        event.getThreadWatcher().getCancelEventListener());
             }
         }
-        else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
             ThreadWatcher watcher = event.getThreadWatcher();
 
             // Show percentage of bytes transferred, if this info is available.
-            if (watcher.isBytesTransferredInfoAvailable()) {
+            if(watcher.isBytesTransferredInfoAvailable()) {
                 int percentage = (int)
-                    (((double)watcher.getBytesTransferred() / watcher.getBytesTotal()) * 100);
+                        (((double) watcher.getBytesTransferred() / watcher.getBytesTotal()) * 100);
                 updateProgressPanel(event.getUniqueOperationId(),
-                    "Download " +
-                    byteFormatterTerse.formatByteSize(watcher.getBytesTransferred())
-                    + "/" + byteFormatterTerse.formatByteSize(watcher.getBytesTotal())
-                    + " (" +
-                    byteFormatterTerse.formatByteSize(watcher.getBytesPerSecond()) + "/s, "
-                    + timeFormatterTerse.formatTime(watcher.getTimeRemaining())
-                    + ")",
-                    percentage);
+                        "Download " +
+                                byteFormatterTerse.formatByteSize(watcher.getBytesTransferred())
+                                + "/" + byteFormatterTerse.formatByteSize(watcher.getBytesTotal())
+                                + " (" +
+                                byteFormatterTerse.formatByteSize(watcher.getBytesPerSecond()) + "/s, "
+                                + timeFormatterTerse.formatTime(watcher.getTimeRemaining())
+                                + ")",
+                        percentage);
             }
             // ... otherwise just show the number of completed threads.
             else {
                 ThreadWatcher progressStatus = event.getThreadWatcher();
                 String statusText = "Download " + progressStatus.getCompletedThreads()
-                    + " of " + progressStatus.getThreadCount() + " objects";
+                        + " of " + progressStatus.getThreadCount() + " objects";
                 updateProgressPanel(event.getUniqueOperationId(), statusText, (int) progressStatus.getCompletedThreads());
             }
-        } else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
+        }
+        else if(ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
             stopProgressPanel(event.getUniqueOperationId());
         }
-        else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
             stopProgressPanel(event.getUniqueOperationId());
         }
-        else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_ERROR == event.getEventCode()) {
             stopProgressPanel(event.getUniqueOperationId());
 
             String message = "Unable to download object(s)";
@@ -1815,8 +1805,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
 
     private void performFilesUpload(FileComparerResults comparisonResults,
-        Map<String, String> objectKeyToFilepathMap)
-    {
+                                    Map<String, String> objectKeyToFilepathMap) {
         try {
             // Determine which files to upload, prompting user whether to over-write existing files
             List fileKeysForUpload = new ArrayList();
@@ -1825,54 +1814,57 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             int newFiles = comparisonResults.onlyOnClientKeys.size();
             int unchangedFiles = comparisonResults.alreadySynchronisedKeys.size();
             int changedFiles = comparisonResults.updatedOnClientKeys.size()
-                + comparisonResults.updatedOnServerKeys.size();
+                    + comparisonResults.updatedOnServerKeys.size();
 
-            if (unchangedFiles > 0 || changedFiles > 0) {
+            if(unchangedFiles > 0 || changedFiles > 0) {
                 // Ask user whether to replace existing unchanged and/or existing changed files.
                 log.debug("Files for upload clash with existing S3 objects, prompting user to choose which files to replace");
                 List options = new ArrayList();
                 String message = "Of the " + objectKeyToFilepathMap.size()
-                    + " file(s) being uploaded:\n\n";
+                        + " file(s) being uploaded:\n\n";
 
-                if (newFiles > 0) {
+                if(newFiles > 0) {
                     message += newFiles + " file(s) are new.\n\n";
                     options.add(UPLOAD_NEW_FILES_ONLY);
                 }
-                if (changedFiles > 0) {
+                if(changedFiles > 0) {
                     message += changedFiles + " file(s) have changed.\n\n";
                     options.add(UPLOAD_NEW_AND_CHANGED_FILES);
                 }
-                if (unchangedFiles > 0) {
+                if(unchangedFiles > 0) {
                     message += unchangedFiles + " file(s) already exist and are unchanged.\n\n";
                     options.add(UPLOAD_ALL_FILES);
                 }
                 message += "Please choose which file(s) you wish to upload:";
 
                 Object response = JOptionPane.showInputDialog(
-                    ownerFrame, message, "Replace file(s)?", JOptionPane.QUESTION_MESSAGE,
-                    null, options.toArray(), UPLOAD_NEW_AND_CHANGED_FILES);
+                        ownerFrame, message, "Replace file(s)?", JOptionPane.QUESTION_MESSAGE,
+                        null, options.toArray(), UPLOAD_NEW_AND_CHANGED_FILES);
 
-                if (response == null) {
+                if(response == null) {
                     return;
                 }
 
-                if (UPLOAD_NEW_FILES_ONLY.equals(response)) {
+                if(UPLOAD_NEW_FILES_ONLY.equals(response)) {
                     // No change required to default fileKeysForUpload list.
-                } else if (UPLOAD_ALL_FILES.equals(response)) {
+                }
+                else if(UPLOAD_ALL_FILES.equals(response)) {
                     fileKeysForUpload.addAll(comparisonResults.updatedOnClientKeys);
                     fileKeysForUpload.addAll(comparisonResults.updatedOnServerKeys);
                     fileKeysForUpload.addAll(comparisonResults.alreadySynchronisedKeys);
-                } else if (UPLOAD_NEW_AND_CHANGED_FILES.equals(response)) {
+                }
+                else if(UPLOAD_NEW_AND_CHANGED_FILES.equals(response)) {
                     fileKeysForUpload.addAll(comparisonResults.updatedOnClientKeys);
                     fileKeysForUpload.addAll(comparisonResults.updatedOnServerKeys);
-                } else {
+                }
+                else {
                     // Upload cancelled.
                     stopProgressDialog();
                     return;
                 }
             }
 
-            if (fileKeysForUpload.size() == 0) {
+            if(fileKeysForUpload.size() == 0) {
                 return;
             }
 
@@ -1881,7 +1873,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             startProgressDialog(statusText[0], "", 0, 100, null, null);
 
             long bytesToProcess = 0;
-            for (Iterator iter = fileKeysForUpload.iterator(); iter.hasNext();) {
+            for(Iterator iter = fileKeysForUpload.iterator(); iter.hasNext(); ) {
                 File file = new File(objectKeyToFilepathMap.get(iter.next().toString()));
                 bytesToProcess += file.length();
             }
@@ -1892,7 +1884,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                     super.updateBytesTransferred(byteCount);
 
                     String detailsText = formatBytesProgressWatcherDetails(this, false);
-                    int progressValue = (int)((double)getBytesTransferred() * 100 / getBytesToTransfer());
+                    int progressValue = (int) ((double) getBytesTransferred() * 100 / getBytesToTransfer());
                     updateProgressDialog(statusText[0], detailsText, progressValue);
                 }
             };
@@ -1900,15 +1892,15 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             // Populate S3Objects representing upload files with metadata etc.
             final S3Object[] objects = new S3Object[fileKeysForUpload.size()];
             int objectIndex = 0;
-            for (Iterator iter = fileKeysForUpload.iterator(); iter.hasNext();) {
+            for(Iterator iter = fileKeysForUpload.iterator(); iter.hasNext(); ) {
                 String fileKey = iter.next().toString();
                 File file = new File(objectKeyToFilepathMap.get(fileKey));
 
                 S3Object newObject = ObjectUtils
-                    .createObjectForUpload(fileKey, file, null, false, progressWatcher);
+                        .createObjectForUpload(fileKey, file, null, false, progressWatcher);
 
                 statusText[0] = "Prepared " + (objectIndex + 1)
-                    + " of " + fileKeysForUpload.size() + " file(s) for upload";
+                        + " of " + fileKeysForUpload.size() + " file(s) for upload";
 
                 objects[objectIndex++] = newObject;
             }
@@ -1919,20 +1911,22 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             SignatureRequest[] signedRequests = requestSignedRequests(
                     SignatureRequest.SIGNATURE_TYPE_PUT, objects);
 
-            if (signedRequests != null) {
+            if(signedRequests != null) {
                 // Upload the files.
                 SignedUrlAndObject[] urlAndObjs = new SignedUrlAndObject[signedRequests.length];
-                for (int i = 0; i < signedRequests.length; i++) {
+                for(int i = 0; i < signedRequests.length; i++) {
                     urlAndObjs[i] = new SignedUrlAndObject(
-                        signedRequests[i].getSignedUrl(), objects[i]);
+                            signedRequests[i].getSignedUrl(), objects[i]);
                 }
 
                 s3ServiceMulti.putObjects(urlAndObjs);
             }
 
-        } catch (RuntimeException e) {
+        }
+        catch(RuntimeException e) {
             throw e;
-        } catch (Exception e) {
+        }
+        catch(Exception e) {
             stopProgressDialog();
             String message = "Unable to upload object(s)";
             log.error(message, e);
@@ -1943,35 +1937,35 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     /**
      * This method is an {@link S3ServiceEventListener} action method that is invoked when this
      * application's <code>S3ServiceMulti</code> triggers a <code>CreateObjectsEvent</code>.
-     * <p>
+     * <p/>
      * This method merely updates the progress dialog as files are uploaded.
      *
      * @param event
      */
     public void s3ServiceEventPerformed(final CreateObjectsEvent event) {
-        if (ServiceEvent.EVENT_STARTED == event.getEventCode()) {
+        if(ServiceEvent.EVENT_STARTED == event.getEventCode()) {
             ThreadWatcher watcher = event.getThreadWatcher();
 
             // Show percentage of bytes transferred, if this info is available.
-            if (watcher.isBytesTransferredInfoAvailable()) {
+            if(watcher.isBytesTransferredInfoAvailable()) {
                 startProgressPanel(event.getUniqueOperationId(),
-                    "Upload " +
-                    byteFormatterTerse.formatByteSize(watcher.getBytesTransferred())
-                    + "/" + byteFormatterTerse.formatByteSize(watcher.getBytesTotal()),
-                    100, event.getThreadWatcher().getCancelEventListener());
+                        "Upload " +
+                                byteFormatterTerse.formatByteSize(watcher.getBytesTransferred())
+                                + "/" + byteFormatterTerse.formatByteSize(watcher.getBytesTotal()),
+                        100, event.getThreadWatcher().getCancelEventListener());
             }
             // ... otherwise show the number of completed threads.
             else {
                 startProgressPanel(event.getUniqueOperationId(),
-                    "Upload 0/" + watcher.getThreadCount(),
-                    (int) watcher.getThreadCount(),
-                    event.getThreadWatcher().getCancelEventListener());
+                        "Upload 0/" + watcher.getThreadCount(),
+                        (int) watcher.getThreadCount(),
+                        event.getThreadWatcher().getCancelEventListener());
             }
         }
-        else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
-                    for (int i = 0; i < event.getCreatedObjects().length; i++) {
+                    for(int i = 0; i < event.getCreatedObjects().length; i++) {
                         objectTableModel.addObject(event.getCreatedObjects()[i]);
                     }
                 }
@@ -1980,34 +1974,35 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             ThreadWatcher watcher = event.getThreadWatcher();
 
             // Show percentage of bytes transferred, if this info is available.
-            if (watcher.isBytesTransferredInfoAvailable()) {
-                if (watcher.getBytesTransferred() >= watcher.getBytesTotal()) {
+            if(watcher.isBytesTransferredInfoAvailable()) {
+                if(watcher.getBytesTransferred() >= watcher.getBytesTotal()) {
                     // Upload is completed, just waiting on resonse from S3.
                     updateProgressPanel(event.getUniqueOperationId(), "Confirming", 100);
-                } else {
+                }
+                else {
                     int percentage = (int)
-                        (((double)watcher.getBytesTransferred() / watcher.getBytesTotal()) * 100);
+                            (((double) watcher.getBytesTransferred() / watcher.getBytesTotal()) * 100);
 
                     updateProgressPanel(event.getUniqueOperationId(),
-                        "Upload " +
-                        byteFormatterTerse.formatByteSize(watcher.getBytesTransferred())
-                        + "/" + byteFormatterTerse.formatByteSize(watcher.getBytesTotal())
-                        + " (" +
-                        byteFormatterTerse.formatByteSize(watcher.getBytesPerSecond()) + "/s, "
-                        + timeFormatterTerse.formatTime(watcher.getTimeRemaining())
-                        + ")", percentage);
+                            "Upload " +
+                                    byteFormatterTerse.formatByteSize(watcher.getBytesTransferred())
+                                    + "/" + byteFormatterTerse.formatByteSize(watcher.getBytesTotal())
+                                    + " (" +
+                                    byteFormatterTerse.formatByteSize(watcher.getBytesPerSecond()) + "/s, "
+                                    + timeFormatterTerse.formatTime(watcher.getTimeRemaining())
+                                    + ")", percentage);
                 }
             }
             // ... otherwise show the number of completed threads.
             else {
                 ThreadWatcher progressStatus = event.getThreadWatcher();
                 updateProgressPanel(event.getUniqueOperationId(),
-                    "Upload " + progressStatus.getCompletedThreads()
-                    + "/" + progressStatus.getThreadCount(),
-                    (int) progressStatus.getCompletedThreads());
+                        "Upload " + progressStatus.getCompletedThreads()
+                                + "/" + progressStatus.getThreadCount(),
+                        (int) progressStatus.getCompletedThreads());
             }
         }
-        else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
                     updateObjectsSummary();
@@ -2016,7 +2011,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
             stopProgressPanel(event.getUniqueOperationId());
         }
-        else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
                     updateObjectsSummary();
@@ -2025,7 +2020,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
             stopProgressPanel(event.getUniqueOperationId());
         }
-        else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_ERROR == event.getEventCode()) {
             stopProgressPanel(event.getUniqueOperationId());
 
             String message = "Unable to upload object(s)";
@@ -2037,7 +2032,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     private void generatePublicGetUrl() {
         final S3Object[] objects = getSelectedObjects();
 
-        if (objects.length != 1) {
+        if(objects.length != 1) {
             log.warn("Ignoring Generate Public URL object command, can only operate on a single object");
             return;
         }
@@ -2045,17 +2040,18 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
         try {
             String hostAndBucket = null;
-            if (userVanityHost != null) {
+            if(userVanityHost != null) {
                 hostAndBucket = userVanityHost;
-            } else {
+            }
+            else {
                 boolean disableDnsBuckets = false;
 
                 String s3Endpoint = Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME)
-                    .getStringProperty("s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
+                        .getStringProperty("s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
                 hostAndBucket = ServiceUtils.generateS3HostnameForBucket(
-                    userBucketName, disableDnsBuckets, s3Endpoint);
+                        userBucketName, disableDnsBuckets, s3Endpoint);
 
-                if (!ServiceUtils.isBucketNameValidDNSName(userBucketName)) {
+                if(!ServiceUtils.isBucketNameValidDNSName(userBucketName)) {
                     // If bucket name isn't DNS compatible, we must include the bucket
                     // name as a URL path item.
                     hostAndBucket += "/" + userBucketName;
@@ -2067,23 +2063,25 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
             // Display signed URL
             String dialogText = "Public URL for '" + currentObject.getKey() + "'.";
             // Ensure dialog text is at least 150 characters (to force dialog to be wider)
-            if (dialogText.length() < 150) {
+            if(dialogText.length() < 150) {
                 int charsShort = 150 - dialogText.length();
                 StringBuffer padding = new StringBuffer();
-                for (int i = 0; i < charsShort / 2; i++) {
+                for(int i = 0; i < charsShort / 2; i++) {
                     padding.append(" ");
                 }
                 dialogText = padding.toString() + dialogText + padding.toString();
             }
 
             JOptionPane.showInputDialog(ownerFrame, dialogText,
-                "URL", JOptionPane.INFORMATION_MESSAGE, null, null, url);
+                    "URL", JOptionPane.INFORMATION_MESSAGE, null, null, url);
 
-        } catch (NumberFormatException e) {
+        }
+        catch(NumberFormatException e) {
             String message = "Hours must be a valid decimal value; eg 3, 0.1";
             log.error(message, e);
             ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(), message, e);
-        } catch (Exception e) {
+        }
+        catch(Exception e) {
             String message = "Unable to generate public GET URL";
             log.error(message, e);
             ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(), message, e);
@@ -2093,19 +2091,19 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     private void deleteSelectedObjects() {
         final S3Object[] objects = getSelectedObjects();
 
-        if (objects.length == 0) {
+        if(objects.length == 0) {
             log.warn("Ignoring delete object(s) command, no currently selected objects");
             return;
         }
 
         int response = JOptionPane.showConfirmDialog(ownerFrame,
-            (objects.length == 1 ?
-                "Are you sure you want to delete '" + objects[0].getKey() + "'?" :
-                "Are you sure you want to delete " + objects.length + " object(s)"
-            ),
-            "Delete Object(s)?", JOptionPane.YES_NO_OPTION);
+                (objects.length == 1 ?
+                        "Are you sure you want to delete '" + objects[0].getKey() + "'?" :
+                        "Are you sure you want to delete " + objects.length + " object(s)"
+                ),
+                "Delete Object(s)?", JOptionPane.YES_NO_OPTION);
 
-        if (response == JOptionPane.NO_OPTION) {
+        if(response == JOptionPane.NO_OPTION) {
             return;
         }
 
@@ -2116,18 +2114,20 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                     SignatureRequest[] signatureRequests = requestSignedRequests(
                             SignatureRequest.SIGNATURE_TYPE_DELETE, objects);
 
-                    if (signatureRequests != null) {
+                    if(signatureRequests != null) {
                         String[] signedRequests = new String[signatureRequests.length];
-                        for (int i = 0; i < signedRequests.length; i++) {
+                        for(int i = 0; i < signedRequests.length; i++) {
                             signedRequests[i] = signatureRequests[i].getSignedUrl();
                         }
 
                         s3ServiceMulti.deleteObjects(signedRequests);
-                    } else {
-                        ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(),
-                            "Sorry, you do not have the permission to delete files", null);
                     }
-                } catch (Exception e) {
+                    else {
+                        ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(),
+                                "Sorry, you do not have the permission to delete files", null);
+                    }
+                }
+                catch(Exception e) {
                     stopProgressDialog();
                     log.error("Gatekeeper permissions check failed", e);
                     ErrorDialog.showDialog(ownerFrame, null, cockpitLiteProperties.getProperties(),
@@ -2140,34 +2140,34 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     /**
      * This method is an {@link S3ServiceEventListener} action method that is invoked when this
      * application's <code>S3ServiceMulti</code> triggers a <code>DeleteObjectsEvent</code>.
-     * <p>
+     * <p/>
      * This method merely updates the progress dialog as objects are deleted.
      *
      * @param event
      */
     public void s3ServiceEventPerformed(final DeleteObjectsEvent event) {
-        if (ServiceEvent.EVENT_STARTED == event.getEventCode()) {
+        if(ServiceEvent.EVENT_STARTED == event.getEventCode()) {
             startProgressDialog(
-                "Deleted 0 of " + event.getThreadWatcher().getThreadCount() + " object(s)",
-                "", 0, (int) event.getThreadWatcher().getThreadCount(), "Cancel Delete Objects",
-                event.getThreadWatcher().getCancelEventListener());
+                    "Deleted 0 of " + event.getThreadWatcher().getThreadCount() + " object(s)",
+                    "", 0, (int) event.getThreadWatcher().getThreadCount(), "Cancel Delete Objects",
+                    event.getThreadWatcher().getCancelEventListener());
         }
-        else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
-                    for (int i = 0; i < event.getDeletedObjects().length; i++) {
+                    for(int i = 0; i < event.getDeletedObjects().length; i++) {
                         objectTableModel.removeObject(
-                            event.getDeletedObjects()[i]);
+                                event.getDeletedObjects()[i]);
                     }
                 }
             });
 
             ThreadWatcher progressStatus = event.getThreadWatcher();
             String statusText = "Deleted " + progressStatus.getCompletedThreads()
-                + " of " + progressStatus.getThreadCount() + " object(s)";
+                    + " of " + progressStatus.getThreadCount() + " object(s)";
             updateProgressDialog(statusText, "", (int) progressStatus.getCompletedThreads());
         }
-        else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
                     updateObjectsSummary();
@@ -2176,10 +2176,10 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
             stopProgressDialog();
         }
-        else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
             stopProgressDialog();
         }
-        else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_ERROR == event.getEventCode()) {
             stopProgressDialog();
 
             String message = "Unable to delete object(s)";
@@ -2191,45 +2191,46 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
     /**
      * This method is an {@link S3ServiceEventListener} action method that is invoked when this
      * application's <code>S3ServiceMulti</code> triggers a <code>GetObjectHeadsEvent</code>.
-     * <p>
+     * <p/>
      * This method merely updates the progress dialog as object details (heads) are retrieved.
      *
      * @param event
      */
     public void s3ServiceEventPerformed(final GetObjectHeadsEvent event) {
-        if (ServiceEvent.EVENT_STARTED == event.getEventCode()) {
-            if (event.getThreadWatcher().getThreadCount() > 0) {
+        if(ServiceEvent.EVENT_STARTED == event.getEventCode()) {
+            if(event.getThreadWatcher().getThreadCount() > 0) {
                 startProgressDialog("Retrieved details for 0 of "
-                    + event.getThreadWatcher().getThreadCount() + " object(s)",
-                    "", 0, (int) event.getThreadWatcher().getThreadCount(), "Cancel Retrieval",
-                    event.getThreadWatcher().getCancelEventListener());
+                        + event.getThreadWatcher().getThreadCount() + " object(s)",
+                        "", 0, (int) event.getThreadWatcher().getThreadCount(), "Cancel Retrieval",
+                        event.getThreadWatcher().getCancelEventListener());
             }
         }
-        else if (ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_IN_PROGRESS == event.getEventCode()) {
             final ThreadWatcher progressStatus = event.getThreadWatcher();
 
             // Store detail-complete objects in table.
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
-                    synchronized (lock) {
+                    synchronized(lock) {
                         // Retain selected status of objects for downloads or properties
-                        for (int i = 0; i < event.getCompletedObjects().length; i++) {
+                        for(int i = 0; i < event.getCompletedObjects().length; i++) {
                             S3Object object = event.getCompletedObjects()[i];
                             int modelIndex = objectTableModel.addObject(object);
                             log.debug("Updated table with " + object.getKey() + ", content-type=" + object.getContentType());
 
-                            if (isDownloadingObjects) {
+                            if(isDownloadingObjects) {
                                 s3DownloadObjectsMap.put(object.getKey(), object);
                                 log.debug("Updated object download list with " + object.getKey()
-                                    + ", content-type=" + object.getContentType());
-                            } else if (isUploadingFiles) {
+                                        + ", content-type=" + object.getContentType());
+                            }
+                            else if(isUploadingFiles) {
                                 s3ExistingObjectsMap.put(object.getKey(), object);
                                 log.debug("Updated object upload list with " + object.getKey()
-                                    + ", content-type=" + object.getContentType());
+                                        + ", content-type=" + object.getContentType());
                             }
 
                             int viewIndex = objectTableModelSorter.viewIndex(modelIndex);
-                            if (isDownloadingObjects || isViewingObjectProperties) {
+                            if(isDownloadingObjects || isViewingObjectProperties) {
                                 objectsTable.addRowSelectionInterval(viewIndex, viewIndex);
                             }
                         }
@@ -2239,37 +2240,39 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
             // Update progress of GetObject requests.
             String statusText = "Retrieved details for " + progressStatus.getCompletedThreads()
-                + " of " + progressStatus.getThreadCount() + " object(s)";
+                    + " of " + progressStatus.getThreadCount() + " object(s)";
             updateProgressDialog(statusText, "", (int) progressStatus.getCompletedThreads());
         }
-        else if (ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_COMPLETED == event.getEventCode()) {
             // Stop GetObjectHead progress display.
             stopProgressDialog();
 
-            synchronized (lock) {
-                if (isDownloadingObjects) {
+            synchronized(lock) {
+                if(isDownloadingObjects) {
                     compareRemoteAndLocalFiles(filesAlreadyInDownloadDirectoryMap, s3DownloadObjectsMap, false);
                     isDownloadingObjects = false;
-                } else if (isUploadingFiles) {
+                }
+                else if(isUploadingFiles) {
                     compareRemoteAndLocalFiles(objectKeyToFilepathMap, s3ExistingObjectsMap, true);
                     isUploadingFiles = false;
-                } else if (isViewingObjectProperties) {
+                }
+                else if(isViewingObjectProperties) {
                     SwingUtilities.invokeLater(new Runnable() {
                         public void run() {
                             ItemPropertiesDialog.showDialog(ownerFrame, getSelectedObjects(),
-                                cockpitLiteProperties.getProperties(),
-                                // Only admin users with all rights can view metadata
-                                (userCanUpload && userCanDownload && userCanACL && userCanDelete));
+                                    cockpitLiteProperties.getProperties(),
+                                    // Only admin users with all rights can view metadata
+                                    (userCanUpload && userCanDownload && userCanACL && userCanDelete));
                             isViewingObjectProperties = false;
                         }
                     });
                 }
             }
         }
-        else if (ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_CANCELLED == event.getEventCode()) {
             stopProgressDialog();
         }
-        else if (ServiceEvent.EVENT_ERROR == event.getEventCode()) {
+        else if(ServiceEvent.EVENT_ERROR == event.getEventCode()) {
             stopProgressDialog();
 
             String message = "Unable to retrieve object(s) details";
@@ -2282,7 +2285,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         long bytesPerSecond = watcher.getBytesPerSecond();
         String detailsText = byteFormatter.formatByteSize(bytesPerSecond) + "/s";
 
-        if (watcher.isTimeRemainingAvailable()) {
+        if(watcher.isTimeRemainingAvailable()) {
             long secondsRemaining = watcher.getTimeRemaining();
             detailsText += " - Time remaining: " + timeFormatterTerse.formatTime(secondsRemaining);
         }
@@ -2293,13 +2296,13 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         long secondsRemaining = watcher.getRemainingTime();
 
         String detailsText =
-            (includeBytes
-                ? byteFormatter.formatByteSize(watcher.getBytesTransferred())
-                  + " of " + byteFormatter.formatByteSize(watcher.getBytesToTransfer())
-                  + " - "
-                : "")
-            + "Time remaining: " +
-            timeFormatterTerse.formatTime(secondsRemaining);
+                (includeBytes
+                        ? byteFormatter.formatByteSize(watcher.getBytesTransferred())
+                        + " of " + byteFormatter.formatByteSize(watcher.getBytesToTransfer())
+                        + " - "
+                        : "")
+                        + "Time remaining: " +
+                        timeFormatterTerse.formatTime(secondsRemaining);
         return detailsText;
     }
 
@@ -2312,19 +2315,19 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
      * <li>Applet: Opens the link in the current browser using the applet's context</li>
      * </ul>
      *
-     * @param url
-     * the url to open
-     * @param target
-     * the target pane to open the url in, eg "_blank". This may be null.
+     * @param url    the url to open
+     * @param target the target pane to open the url in, eg "_blank". This may be null.
      */
     public void followHyperlink(URL url, String target) {
-        if (!isStandAloneApplication) {
-            if (target == null) {
+        if(!isStandAloneApplication) {
+            if(target == null) {
                 getAppletContext().showDocument(url);
-            } else {
+            }
+            else {
                 getAppletContext().showDocument(url, target);
             }
-        } else {
+        }
+        else {
             BareBonesBrowserLaunch.openURL(url.toString());
         }
     }
@@ -2342,27 +2345,26 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
     /**
      * Implementation method for the CredentialsProvider interface.
-     * <p>
+     * <p/>
      * Based on sample code:
      * <a href="http://svn.apache.org/viewvc/jakarta/commons/proper/httpclient/trunk/src/examples/InteractiveAuthenticationExample.java?view=markup">InteractiveAuthenticationExample</a>
-     *
      */
     public Credentials getCredentials(AuthScope scope) {
-        if (scope == null || scope.getScheme() == null) {
+        if(scope == null || scope.getScheme() == null) {
             return null;
         }
         Credentials credentials = mCredentialProvider.getCredentials(scope);
-        if (credentials!=null){
+        if(credentials != null) {
             return credentials;
         }
         try {
-            if (scope.getScheme().equals("ntlm")) {
+            if(scope.getScheme().equals("ntlm")) {
                 AuthenticationDialog pwDialog = new AuthenticationDialog(
-                    ownerFrame, "Authentication Required",
-                    "<html>Host <b>" + scope.getHost() + ":" + scope.getPort()
-                    + "</b> requires Windows authentication</html>", true);
+                        ownerFrame, "Authentication Required",
+                        "<html>Host <b>" + scope.getHost() + ":" + scope.getPort()
+                                + "</b> requires Windows authentication</html>", true);
                 pwDialog.setVisible(true);
-                if (pwDialog.getUser().length() > 0) {
+                if(pwDialog.getUser().length() > 0) {
                     credentials = new NTCredentials(
                             pwDialog.getUser(),
                             pwDialog.getPassword(),
@@ -2370,39 +2372,44 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                             pwDialog.getDomain());
                 }
                 pwDialog.dispose();
-            } else if (scope.getScheme().equals("basic")
+            }
+            else if(scope.getScheme().equals("basic")
                     || scope.getScheme().equals("digest")) {
                 //authscheme instanceof RFC2617Scheme
                 AuthenticationDialog pwDialog = new AuthenticationDialog(
-                    ownerFrame, "Authentication Required",
-                    "<html><center>Host <b>" + scope.getHost() + ":" + scope.getPort() + "</b>"
-                    + " requires authentication for the realm:<br><b>" + scope.getRealm()
-                    + "</b></center></html>", false);
+                        ownerFrame, "Authentication Required",
+                        "<html><center>Host <b>" + scope.getHost() + ":" + scope.getPort() + "</b>"
+                                + " requires authentication for the realm:<br><b>" + scope.getRealm()
+                                + "</b></center></html>", false);
                 pwDialog.setVisible(true);
-                if (pwDialog.getUser().length() > 0) {
+                if(pwDialog.getUser().length() > 0) {
                     credentials = new UsernamePasswordCredentials(pwDialog.getUser(), pwDialog.getPassword());
                 }
                 pwDialog.dispose();
-            } else {
+            }
+            else {
                 throw new InvalidCredentialsException(
                         "Unsupported authentication scheme: " + scope.getScheme());
             }
-            if (credentials != null){
+            if(credentials != null) {
                 mCredentialProvider.setCredentials(scope, credentials);
             }
             return credentials;
-        } catch (Exception e) {
+        }
+        catch(Exception e) {
             throw new IllegalArgumentException(e.getMessage(), e);
         }
     }
 
     private boolean isObjectFilteringActive() {
-        if (!filterObjectsCheckBox.isSelected()) {
+        if(!filterObjectsCheckBox.isSelected()) {
             return false;
-        } else {
-            if (filterObjectsPrefix.getText().length() > 0) {
+        }
+        else {
+            if(filterObjectsPrefix.getText().length() > 0) {
                 return true;
-            } else {
+            }
+            else {
                 return false;
             }
         }
@@ -2418,18 +2425,17 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
 
     public static String getAclDescription(AccessControlList acl) {
-        if (acl == null) {
+        if(acl == null) {
             return ACL_UNKNOWN_DESCRIPTION;
         }
 
-        for (GrantAndPermission gap: acl.getGrantAndPermissions()) {
-            if (GroupGrantee.ALL_USERS.equals(gap.getGrantee())
-                && Permission.PERMISSION_READ.equals(gap.getPermission()))
-            {
+        for(GrantAndPermission gap : acl.getGrantAndPermissions()) {
+            if(GroupGrantee.ALL_USERS.equals(gap.getGrantee())
+                    && Permission.PERMISSION_READ.equals(gap.getPermission())) {
                 return ACL_PUBLIC_DESCRIPTION;
             }
         }
-        if (AccessControlList.REST_CANNED_PUBLIC_READ.equals(acl)) {
+        if(AccessControlList.REST_CANNED_PUBLIC_READ.equals(acl)) {
             return ACL_PUBLIC_DESCRIPTION;
         }
         return ACL_PRIVATE_DESCRIPTION;
@@ -2447,25 +2453,26 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         }
 
         private void showContextMenu(MouseEvent e) {
-            if (e.isPopupTrigger()) {
+            if(e.isPopupTrigger()) {
                 // Select item under context-click.
-                if (e.getSource() instanceof JList) {
+                if(e.getSource() instanceof JList) {
                     JList jList = (JList) e.getSource();
                     int locIndex = jList.locationToIndex(e.getPoint());
-                    if (locIndex >= 0) {
+                    if(locIndex >= 0) {
                         jList.setSelectedIndex(locIndex);
                     }
-                } else if (e.getSource() instanceof JTable) {
+                }
+                else if(e.getSource() instanceof JTable) {
                     JTable jTable = (JTable) e.getSource();
                     int rowIndex = jTable.rowAtPoint(e.getPoint());
-                    if (rowIndex >= 0) {
+                    if(rowIndex >= 0) {
                         jTable.addRowSelectionInterval(rowIndex, rowIndex);
                     }
                 }
 
                 // Show context popup menu.
-                if (e.getSource().equals(objectsTable)) {
-                    showObjectPopupMenu((JComponent)e.getSource(), e.getX(), e.getY());
+                if(e.getSource().equals(objectsTable)) {
+                    showObjectPopupMenu((JComponent) e.getSource(), e.getX(), e.getY());
                 }
             }
         }
@@ -2473,6 +2480,7 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
 
     /**
      * Runs Cockpit as a stand-alone application.
+     *
      * @param args
      * @throws Exception
      */
@@ -2481,32 +2489,39 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
         ownerFrame.addWindowListener(new WindowListener() {
             public void windowOpened(WindowEvent e) {
             }
+
             public void windowClosing(WindowEvent e) {
                 e.getWindow().dispose();
             }
+
             public void windowClosed(WindowEvent e) {
             }
+
             public void windowIconified(WindowEvent e) {
             }
+
             public void windowDeiconified(WindowEvent e) {
             }
+
             public void windowActivated(WindowEvent e) {
             }
+
             public void windowDeactivated(WindowEvent e) {
             }
         });
 
         // Read arguments as properties of the form: <propertyName>'='<propertyValue>
         Properties argumentProperties = new Properties();
-        if (args.length > 0) {
-            for (int i = 0; i < args.length; i++) {
+        if(args.length > 0) {
+            for(int i = 0; i < args.length; i++) {
                 String arg = args[i];
                 int delimIndex = arg.indexOf("=");
-                if (delimIndex >= 0) {
+                if(delimIndex >= 0) {
                     String name = arg.substring(0, delimIndex);
                     String value = arg.substring(delimIndex + 1);
                     argumentProperties.put(name, value);
-                } else {
+                }
+                else {
                     System.out.println("Ignoring property argument with incorrect format: " + arg);
                 }
             }

@@ -302,7 +302,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
             releaseConnection(response);
             throw e;
         }
-        catch(Throwable t) {
+        catch(Exception t) {
             releaseConnection(response);
             throw new CloudFrontServiceException("CloudFront Request failed", t);
         }

@@ -18,6 +18,15 @@
  */
 package org.jets3t.service.security;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.jets3t.service.Constants;
+import org.jets3t.service.ServiceException;
+import org.jets3t.service.utils.ServiceUtils;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -29,16 +38,6 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.jets3t.service.Constants;
-import org.jets3t.service.ServiceException;
-import org.jets3t.service.utils.ServiceUtils;
 
 /**
  * Abstract class to contain the credentials of a user.
@@ -61,10 +60,8 @@ public abstract class ProviderCredentials {
     /**
      * Construct credentials.
      *
-     * @param accessKey
-     * Access key for a storage account.
-     * @param secretKey
-     * Secret key for a storage account.
+     * @param accessKey Access key for a storage account.
+     * @param secretKey Secret key for a storage account.
      */
     public ProviderCredentials(String accessKey, String secretKey) {
         this.accessKey = accessKey;
@@ -74,12 +71,9 @@ public abstract class ProviderCredentials {
     /**
      * Construct credentials, and associate them with a human-friendly name.
      *
-     * @param accessKey
-     * Access key for a storage account.
-     * @param secretKey
-     * Secret key for a storage account.
-     * @param friendlyName
-     * a name identifying the owner of the credentials, such as 'James'.
+     * @param accessKey    Access key for a storage account.
+     * @param secretKey    Secret key for a storage account.
+     * @param friendlyName a name identifying the owner of the credentials, such as 'James'.
      */
     public ProviderCredentials(String accessKey, String secretKey, String friendlyName) {
         this(accessKey, secretKey);
@@ -87,57 +81,50 @@ public abstract class ProviderCredentials {
     }
 
     /**
-     * @return
-     * the Access Key.
+     * @return the Access Key.
      */
     public String getAccessKey() {
         return accessKey;
     }
 
     /**
-     * @return
-     * the Secret Key.
+     * @return the Secret Key.
      */
     public String getSecretKey() {
         return secretKey;
     }
 
     /**
-     * @return
-     * the friendly name associated with a storage account, if available.
+     * @return the friendly name associated with a storage account, if available.
      */
     public String getFriendlyName() {
         return friendlyName;
     }
 
     /**
-     * @return
-     * true if there is a non-null and non-empty friendly name associated
-     * with this account.
+     * @return true if there is a non-null and non-empty friendly name associated
+     *         with this account.
      */
     public boolean hasFriendlyName() {
         return (friendlyName != null && friendlyName.trim().length() > 0);
     }
 
     /**
-     * @return
-     * a string summarizing these credentials
+     * @return a string summarizing these credentials
      */
     public String getLogString() {
         return getAccessKey() + " : " + getSecretKey();
     }
 
     /**
-     * @return
-     * the string of data that needs to be encrypted (for serialization)
+     * @return the string of data that needs to be encrypted (for serialization)
      */
     protected String getDataToEncrypt() {
         return getAccessKey() + V3_KEYS_DELIMITER + getSecretKey();
     }
 
     /**
-     * @return
-     * string representing this credential type's name (for serialization)
+     * @return string representing this credential type's name (for serialization)
      */
     protected abstract String getTypeName();
 
@@ -146,13 +133,9 @@ public abstract class ProviderCredentials {
     /**
      * Encrypts ProviderCredentials with the given password and saves the encrypted data to a file.
      *
-     * @param password
-     * the password used to encrypt the credentials.
-     * @param file
-     * the file to write the encrypted credentials data to.
-     * @param algorithm
-     * the algorithm used to encrypt the output stream.
-     *
+     * @param password  the password used to encrypt the credentials.
+     * @param file      the file to write the encrypted credentials data to.
+     * @param algorithm the algorithm used to encrypt the output stream.
      * @throws InvalidKeyException
      * @throws NoSuchAlgorithmException
      * @throws NoSuchPaddingException
@@ -161,19 +144,20 @@ public abstract class ProviderCredentials {
      * @throws IllegalBlockSizeException
      * @throws BadPaddingException
      * @throws InvalidAlgorithmParameterException
+     *
      * @throws IOException
      */
     public void save(String password, File file, String algorithm) throws InvalidKeyException,
-        NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException,
-        IllegalStateException, IllegalBlockSizeException, BadPaddingException,
-        InvalidAlgorithmParameterException, IOException
-    {
+            NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException,
+            IllegalStateException, IllegalBlockSizeException, BadPaddingException,
+            InvalidAlgorithmParameterException, IOException {
         FileOutputStream fos = null;
         try {
             fos = new FileOutputStream(file);
             save(password, fos, algorithm);
-        } finally {
-            if (fos != null) {
+        }
+        finally {
+            if(fos != null) {
                 fos.close();
             }
         }
@@ -183,11 +167,8 @@ public abstract class ProviderCredentials {
      * Encrypts ProviderCredentials with the given password and saves the encrypted data to a file
      * using the default algorithm {@link EncryptionUtil#DEFAULT_ALGORITHM}.
      *
-     * @param password
-     * the password used to encrypt the credentials.
-     * @param file
-     * the file to write the encrypted credentials data to.
-     *
+     * @param password the password used to encrypt the credentials.
+     * @param file     the file to write the encrypted credentials data to.
      * @throws InvalidKeyException
      * @throws NoSuchAlgorithmException
      * @throws NoSuchPaddingException
@@ -196,13 +177,13 @@ public abstract class ProviderCredentials {
      * @throws IllegalBlockSizeException
      * @throws BadPaddingException
      * @throws InvalidAlgorithmParameterException
+     *
      * @throws IOException
      */
     public void save(String password, File file) throws InvalidKeyException,
-        NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException,
-        IllegalStateException, IllegalBlockSizeException, BadPaddingException,
-        InvalidAlgorithmParameterException, IOException
-    {
+            NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException,
+            IllegalStateException, IllegalBlockSizeException, BadPaddingException,
+            InvalidAlgorithmParameterException, IOException {
         save(password, file, EncryptionUtil.DEFAULT_ALGORITHM);
     }
 
@@ -210,14 +191,10 @@ public abstract class ProviderCredentials {
      * Encrypts ProviderCredentials with the given password and writes the encrypted data to an
      * output stream.
      *
-     * @param password
-     * the password used to encrypt the credentials.
-     * @param outputStream
-     * the output stream to write the encrypted credentials data to, this stream must be closed by
-     * the caller.
-     * @param algorithm
-     * the algorithm used to encrypt the output stream.
-     *
+     * @param password     the password used to encrypt the credentials.
+     * @param outputStream the output stream to write the encrypted credentials data to, this stream must be closed by
+     *                     the caller.
+     * @param algorithm    the algorithm used to encrypt the output stream.
      * @throws InvalidKeyException
      * @throws NoSuchAlgorithmException
      * @throws NoSuchPaddingException
@@ -226,13 +203,13 @@ public abstract class ProviderCredentials {
      * @throws IllegalBlockSizeException
      * @throws BadPaddingException
      * @throws InvalidAlgorithmParameterException
+     *
      * @throws IOException
      */
     public void save(String password, OutputStream outputStream, String algorithm) throws InvalidKeyException,
-        NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException,
-        IllegalStateException, IllegalBlockSizeException, BadPaddingException,
-        InvalidAlgorithmParameterException, IOException
-    {
+            NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException,
+            IllegalStateException, IllegalBlockSizeException, BadPaddingException,
+            InvalidAlgorithmParameterException, IOException {
         BufferedOutputStream bufferedOS = null;
         EncryptionUtil encryptionUtil = new EncryptionUtil(password, algorithm, EncryptionUtil.DEFAULT_VERSION);
         bufferedOS = new BufferedOutputStream(outputStream);
@@ -243,7 +220,7 @@ public abstract class ProviderCredentials {
         // Write plain-text header information to file.
         bufferedOS.write((getVersionPrefix() + CREDENTIALS_STORAGE_VERSION + "\n").getBytes(Constants.DEFAULT_ENCODING));
         bufferedOS.write((encryptionUtil.getAlgorithm() + "\n").getBytes(Constants.DEFAULT_ENCODING));
-        bufferedOS.write(((friendlyName == null? "" : friendlyName) + "\n").getBytes(Constants.DEFAULT_ENCODING));
+        bufferedOS.write(((friendlyName == null ? "" : friendlyName) + "\n").getBytes(Constants.DEFAULT_ENCODING));
         bufferedOS.write((getTypeName() + "\n").getBytes(Constants.DEFAULT_ENCODING));
 
         bufferedOS.write(encryptedData);
@@ -254,12 +231,9 @@ public abstract class ProviderCredentials {
      * Encrypts ProviderCredentials with the given password and writes the encrypted data to an
      * output stream using the default algorithm {@link EncryptionUtil#DEFAULT_ALGORITHM}.
      *
-     * @param password
-     * the password used to encrypt the credentials.
-     * @param outputStream
-     * the output stream to write the encrypted credentials data to, this stream must be closed by
-     * the caller.
-     *
+     * @param password     the password used to encrypt the credentials.
+     * @param outputStream the output stream to write the encrypted credentials data to, this stream must be closed by
+     *                     the caller.
      * @throws InvalidKeyException
      * @throws NoSuchAlgorithmException
      * @throws NoSuchPaddingException
@@ -268,44 +242,43 @@ public abstract class ProviderCredentials {
      * @throws IllegalBlockSizeException
      * @throws BadPaddingException
      * @throws InvalidAlgorithmParameterException
+     *
      * @throws IOException
      */
     public void save(String password, OutputStream outputStream) throws InvalidKeyException,
-        NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException,
-        IllegalStateException, IllegalBlockSizeException, BadPaddingException,
-        InvalidAlgorithmParameterException, IOException
-    {
+            NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException,
+            IllegalStateException, IllegalBlockSizeException, BadPaddingException,
+            InvalidAlgorithmParameterException, IOException {
         save(password, outputStream, EncryptionUtil.DEFAULT_ALGORITHM);
     }
 
     /**
      * Loads encrypted credentials from a file.
      *
-     * @param password
-     * the password used to decrypt the credentials. If null, the credentials are not decrypted
-     * and only the version and friendly-name information is loaded.
-     * @param file
-     * a file containing an encrypted data encoding of an ProviderCredentials object.
-     * @return
-     * the decrypted credentials in an object.
-     *
+     * @param password the password used to decrypt the credentials. If null, the credentials are not decrypted
+     *                 and only the version and friendly-name information is loaded.
+     * @param file     a file containing an encrypted data encoding of an ProviderCredentials object.
+     * @return the decrypted credentials in an object.
      * @throws ServiceException
      */
     public static ProviderCredentials load(String password, File file) throws ServiceException {
-        if (log.isDebugEnabled()) {
+        if(log.isDebugEnabled()) {
             log.debug("Loading credentials from file: " + file.getAbsolutePath());
         }
         BufferedInputStream fileIS = null;
         try {
             fileIS = new BufferedInputStream(new FileInputStream(file));
             return load(password, fileIS);
-        } catch (Throwable t) {
+        }
+        catch(Exception t) {
             throw new ServiceException("Failed to load credentials", t);
-        } finally {
-            if (fileIS != null) {
+        }
+        finally {
+            if(fileIS != null) {
                 try {
                     fileIS.close();
-                } catch (IOException e) {
+                }
+                catch(IOException e) {
                 }
             }
         }
@@ -314,26 +287,22 @@ public abstract class ProviderCredentials {
     /**
      * Loads encrypted credentials from a data input stream.
      *
-     * @param password
-     * the password used to decrypt the credentials. If null, the credentials are not decrypted
-     * and only the version and friendly-name information is loaded.
-     * @param inputStream
-     * an input stream containing an encrypted  data encoding of an ProviderCredentials object.
-     * @return
-     * the decrypted credentials in an object.
-     *
+     * @param password    the password used to decrypt the credentials. If null, the credentials are not decrypted
+     *                    and only the version and friendly-name information is loaded.
+     * @param inputStream an input stream containing an encrypted  data encoding of an ProviderCredentials object.
+     * @return the decrypted credentials in an object.
      * @throws ServiceException
      */
     public static ProviderCredentials load(String password, BufferedInputStream inputStream)
-        throws ServiceException
-    {
+            throws ServiceException {
         boolean partialReadOnly = (password == null);
-        if (partialReadOnly) {
-            if (log.isDebugEnabled()) {
+        if(partialReadOnly) {
+            if(log.isDebugEnabled()) {
                 log.debug("Loading partial information about credentials from input stream");
             }
-        } else {
-            if (log.isDebugEnabled()) {
+        }
+        else {
+            if(log.isDebugEnabled()) {
                 log.debug("Loading credentials from input stream");
             }
         }
@@ -360,20 +329,21 @@ public abstract class ProviderCredentials {
             algorithm = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);
             friendlyName = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);
 
-            if (!partialReadOnly) {
+            if(!partialReadOnly) {
                 encryptionUtil = new EncryptionUtil(password, algorithm, EncryptionUtil.DEFAULT_VERSION);
             }
 
-            if (3 <= versionNum) {
+            if(3 <= versionNum) {
                 String credentialsType = ServiceUtils.readInputStreamLineToString(inputStream, Constants.DEFAULT_ENCODING);
                 usingDevPay = ("devpay".equals(credentialsType));
             }
 
             // Use AWS credentials classes as default non-abstract implementation
-            if (partialReadOnly) {
-                if (usingDevPay) {
+            if(partialReadOnly) {
+                if(usingDevPay) {
                     return new AWSDevPayCredentials(null, null, friendlyName);
-                } else {
+                }
+                else {
                     return new AWSCredentials(null, null, friendlyName);
                 }
             }
@@ -384,29 +354,34 @@ public abstract class ProviderCredentials {
             // Decrypt data.
             String keys = encryptionUtil.decryptString(encryptedKeys, 0, encryptedDataIndex);
 
-            String[] parts = keys.split((3 <= versionNum)? V3_KEYS_DELIMITER : V2_KEYS_DELIMITER);
-            int expectedParts = (usingDevPay? 4 : 2);
-            if (parts.length != expectedParts) {
+            String[] parts = keys.split((3 <= versionNum) ? V3_KEYS_DELIMITER : V2_KEYS_DELIMITER);
+            int expectedParts = (usingDevPay ? 4 : 2);
+            if(parts.length != expectedParts) {
                 throw new Exception("Number of parts (" + parts.length
-                    + ") did not match the expected number of parts (" + expectedParts
-                    + ") for this version (" + versionNum + ")");
+                        + ") did not match the expected number of parts (" + expectedParts
+                        + ") for this version (" + versionNum + ")");
             }
 
             // Use AWS credentials classes as default non-abstract implementation
-            if (usingDevPay) {
+            if(usingDevPay) {
                 return new AWSDevPayCredentials(parts[0], parts[1], parts[2], parts[3], friendlyName);
-            } else {
+            }
+            else {
                 return new AWSCredentials(parts[0], parts[1], friendlyName);
             }
-        } catch (BadPaddingException bpe) {
+        }
+        catch(BadPaddingException bpe) {
             throw new ServiceException("Unable to decrypt credentials. Is your password correct?", bpe);
-        } catch (Throwable t) {
+        }
+        catch(Exception t) {
             throw new ServiceException("Failed to load credentials", t);
-        } finally {
-            if (inputStream != null) {
+        }
+        finally {
+            if(inputStream != null) {
                 try {
                     inputStream.close();
-                } catch (IOException e) {
+                }
+                catch(IOException e) {
                 }
             }
         }
