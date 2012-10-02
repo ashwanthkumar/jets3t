@@ -1,12 +1,12 @@
 package org.jets3t.service.impl.rest;
 
-import java.lang.reflect.Method;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.xml.sax.Attributes;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
+
+import java.lang.reflect.Method;
 
 public class SimpleHandler extends DefaultHandler {
     private static final Log log = LogFactory.getLog(SimpleHandler.class);
@@ -31,16 +31,17 @@ public class SimpleHandler extends DefaultHandler {
     }
 
     public void returnControlToParentHandler() {
-        if (isChildHandler()) {
+        if(isChildHandler()) {
             parentHandler.currentHandler = parentHandler;
             parentHandler.controlReturned(this);
             currentHandler = parentHandler;
             xr.setContentHandler(currentHandler);
             xr.setErrorHandler(currentHandler);
             log.debug("Returned control from handler " + this.getClass().getSimpleName());
-        } else {
+        }
+        else {
             log.debug("Ignoring call to return control to parent handler, as this class has no parent: " +
-                this.getClass().getSimpleName());
+                    this.getClass().getSimpleName());
         }
     }
 
@@ -48,17 +49,20 @@ public class SimpleHandler extends DefaultHandler {
         return parentHandler != null;
     }
 
-    public void controlReturned(SimpleHandler childHandler) {}
+    public void controlReturned(SimpleHandler childHandler) {
+    }
 
     @Override
     public void startElement(String uri, String name, String qName, Attributes attrs) {
         try {
-            Method method = currentHandler.getClass().getMethod("start" + name, new Class[] {});
+            Method method = currentHandler.getClass().getMethod("start" + name, new Class[]{});
             method.invoke(currentHandler);
             log.debug("Processed " + this.getClass().getSimpleName() + " startElement method for '" + name + "'");
-        } catch (NoSuchMethodException e) {
+        }
+        catch(NoSuchMethodException e) {
             log.debug("Skipped non-existent " + this.getClass().getSimpleName() + " startElement method for '" + name + "'");
-        } catch (Throwable t) {
+        }
+        catch(Exception t) {
             log.error("Unable to invoke " + this.getClass().getSimpleName() + " startElement method for '" + name + "'", t);
         }
     }
@@ -67,12 +71,14 @@ public class SimpleHandler extends DefaultHandler {
     public void endElement(String uri, String name, String qName) {
         String elementText = this.textContent.toString().trim();
         try {
-            Method method = currentHandler.getClass().getMethod("end" + name, new Class[] {String.class});
+            Method method = currentHandler.getClass().getMethod("end" + name, new Class[]{String.class});
             method.invoke(currentHandler, elementText);
             log.debug("Processed " + this.getClass().getSimpleName() + " endElement method for '" + name + "'");
-        } catch (NoSuchMethodException e) {
+        }
+        catch(NoSuchMethodException e) {
             log.debug("Skipped non-existent " + this.getClass().getSimpleName() + " endElement method for '" + name + "'");
-        } catch (Throwable t) {
+        }
+        catch(Exception t) {
             log.error("Unable to invoke " + this.getClass().getSimpleName() + " endElement method for '" + name + "'", t);
         }
         this.textContent = new StringBuffer();

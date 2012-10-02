@@ -89,7 +89,7 @@ public class CloudFrontXmlResponsesSaxParser {
             xr.setErrorHandler(handler);
             xr.parse(new InputSource(breader));
         }
-        catch(Throwable t) {
+        catch(Exception t) {
             try {
                 inputStream.close();
             }
