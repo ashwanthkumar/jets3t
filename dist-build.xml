@@ -189,7 +189,6 @@ zip-source-code   : Zips the JetS3t source code to an archive file with a
 			<lib dir="${dir.libs}/commons-logging" includes="*.jar"/>
 			<lib dir="${dir.libs}/commons-codec" includes="*.jar"/>
 			<lib dir="${dir.libs}/logging-log4j" includes="*.jar"/>
-			<lib dir="${dir.libs}/safehaus_jug" includes="*.jar"/>
 			
 			<classes dir="${dir.configs}">
                 <include name="commons-logging.properties"/>
