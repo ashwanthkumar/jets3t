@@ -82,17 +82,9 @@ public class UserByEmailAddressGrantee extends EmailAddressGrantee {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        return (obj instanceof UserByEmailAddressGrantee
-                && ((UserByEmailAddressGrantee)obj).getIdentifier()
-                    .equals(getIdentifier()));
-    }
-
-    @Override
     public String toString() {
         return "UserByEmail [email=" + getIdentifier()
             + (name != null ? ", name=" + getName() : "")
             + "]";
     }
-
 }

@@ -36,8 +36,8 @@ import javax.xml.transform.TransformerException;
  *
  */
 public class CanonicalGrantee implements GranteeInterface {
-    protected String id = null;
-    protected String displayName = null;
+    private String id = null;
+    private String displayName = null;
 
     /**
      * Default constructor.
@@ -50,7 +50,7 @@ public class CanonicalGrantee implements GranteeInterface {
 
     /**
      * Constructs a grantee with the given canonical ID.
-     * @param identifier
+     * @param identifier Canonical ID
      */
     public CanonicalGrantee(String identifier) {
         this.setIdentifier(identifier);
@@ -105,5 +105,4 @@ public class CanonicalGrantee implements GranteeInterface {
             + (displayName != null ? ", displayName=" + displayName : "")
             + "]";
     }
-
 }
