@@ -73,15 +73,6 @@ Description : Utility to load the default web browser on multiple platforms.
 Files       : misc/BareBonesBrowserLaunch.jar
 
 
-Name        : Safehaus Java UUID Generator
-Version     : 2.0.0
-Location    : http://jug.safehaus.org/
-Required?   : NO. Only used by the Gatekeeper servlet application to provide
-            : a default mechanism to generate unique message IDs.
-Description : Utility to generate Universally Unique IDentifiers (UUIDs)
-Files       : safehaus_jug/jug-asl-2.0.0.jar
-
-
 Name        : Jackson JSON Processor
 Version     : 1.8.1
 Location    : http://wiki.fasterxml.com/JacksonHome

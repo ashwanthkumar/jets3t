@@ -143,7 +143,6 @@
             <lib dir="${dir.libs}/commons-logging" includes="*.jar"/>
             <lib dir="${dir.libs}/commons-codec" includes="*.jar"/>
             <lib dir="${dir.libs}/logging-log4j" includes="*.jar"/>
-            <lib dir="${dir.libs}/safehaus_jug" includes="*.jar"/>
 
             <classes dir="${dir.servlet}">
                 <include name="commons-logging.properties"/>
