@@ -22,7 +22,7 @@ import org.jets3t.service.CloudFrontService;
 
 /**
  * Represents the logging status of a CloudFront distribution.
- * <p>
+ * <p/>
  * For logging to be enabled, both the <code>bucket</code> and <code>prefix</code>
  * properties must be non-null and the named bucket must exist.
  *
@@ -38,25 +38,21 @@ public class LoggingStatus {
     }
 
     /**
-     * @param bucket
-     * the Amazon S3 bucket in which log files will be stored, specified as a full
-     * S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
-     * @param prefix
-     * a prefix to apply to log file names. May be an empty string, but cannot
-     * be null.
+     * @param bucket the Amazon S3 bucket in which log files will be stored, specified as a full
+     *               S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
+     * @param prefix a prefix to apply to log file names. May be an empty string, but cannot
+     *               be null.
      */
     public LoggingStatus(String bucket, String prefix) {
         this(true, bucket, prefix);
     }
 
     /**
-     * @param enabled
-     * @param bucket
-     * the Amazon S3 bucket in which log files will be stored, specified as a full
-     * S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
-     * @param prefix
-     * a prefix to apply to log file names. May be an empty string, but cannot
-     * be null.
+     * @param enabled Logging status is active
+     * @param bucket  the Amazon S3 bucket in which log files will be stored, specified as a full
+     *                S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
+     * @param prefix  a prefix to apply to log file names. May be an empty string, but cannot
+     *                be null.
      */
     public LoggingStatus(boolean enabled, String bucket, String prefix) {
         this.enabled = enabled;
@@ -69,9 +65,8 @@ public class LoggingStatus {
     }
 
     /**
-     * @param prefix
-     * a prefix to apply to log file names. May be an empty string, but cannot
-     * be null.
+     * @param prefix a prefix to apply to log file names. May be an empty string, but cannot
+     *               be null.
      */
     public void setPrefix(String prefix) {
         this.prefix = prefix;
@@ -82,21 +77,20 @@ public class LoggingStatus {
     }
 
     /**
-     * @return
-     * the logging bucket name, without the suffix ".s3.amazonaws.com".
+     * @return the logging bucket name, without the suffix ".s3.amazonaws.com".
      */
     public String getShortBucketName() {
-        if (bucket.endsWith(CloudFrontService.DEFAULT_BUCKET_SUFFIX)) {
+        if(bucket.endsWith(CloudFrontService.DEFAULT_BUCKET_SUFFIX)) {
             return bucket.substring(0, bucket.length() - CloudFrontService.DEFAULT_BUCKET_SUFFIX.length());
-        } else {
+        }
+        else {
             return bucket;
         }
     }
 
     /**
-     * @param bucket
-     * the Amazon S3 bucket in which log files will be stored, specified as a full
-     * S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
+     * @param bucket the Amazon S3 bucket in which log files will be stored, specified as a full
+     *               S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
      */
     public void setBucket(String bucket) {
         this.bucket = bucket;
