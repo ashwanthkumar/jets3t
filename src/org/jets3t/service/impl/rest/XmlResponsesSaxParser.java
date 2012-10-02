@@ -1682,22 +1682,11 @@ public class XmlResponsesSaxParser {
         private List<MultipleDeleteResult.ErrorResult> errorResults =
                 new ArrayList<MultipleDeleteResult.ErrorResult>();
 
-        private boolean inDeleted, inError;
         private String key, version, deleteMarkerVersion, errorCode, message;
         private Boolean withDeleteMarker;
 
         public MultipleDeleteResult getMultipleDeleteResult() {
             return result;
-        }
-
-        @Override
-        public void startElement(String name) {
-            if("Deleted".equals(name)) {
-                inDeleted = true;
-            }
-            else if("Error".equals(name)) {
-                inError = true;
-            }
         }
 
         @Override
@@ -1724,14 +1713,12 @@ public class XmlResponsesSaxParser {
             else if("Deleted".equals(name)) {
                 deletedObjectResults.add(result.new DeletedObjectResult(
                         key, version, withDeleteMarker, deleteMarkerVersion));
-                inDeleted = false;
                 key = version = deleteMarkerVersion = errorCode = message = null;
                 withDeleteMarker = null;
             }
             else if("Error".equals(name)) {
                 errorResults.add(result.new ErrorResult(
                         key, version, errorCode, message));
-                inError = false;
                 key = version = deleteMarkerVersion = errorCode = message = null;
                 withDeleteMarker = null;
             }
@@ -1742,5 +1729,4 @@ public class XmlResponsesSaxParser {
             }
         }
     }
-
 }
