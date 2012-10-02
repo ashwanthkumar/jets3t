@@ -25,7 +25,7 @@ package org.jets3t.service.acl;
  *
  * @author James Murty
  */
-public class Permission {
+public final class Permission {
     public static final Permission PERMISSION_FULL_CONTROL = new Permission("FULL_CONTROL");
     public static final Permission PERMISSION_READ = new Permission("READ");
     public static final Permission PERMISSION_WRITE = new Permission("WRITE");

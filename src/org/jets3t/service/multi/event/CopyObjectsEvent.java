@@ -40,7 +40,7 @@ import org.jets3t.service.multi.ThreadedStorageService;
  *
  * @author James Murty
  */
-public class CopyObjectsEvent extends ServiceEvent {
+public final class CopyObjectsEvent extends ServiceEvent {
     private Map[] results = null;
     private StorageObject[] copyCancelledObjects = null;
     private StorageObject[] destinationObjects = null;
