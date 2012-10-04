@@ -18,6 +18,17 @@
  */
 package org.jets3t.service.impl.rest;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Constants;
@@ -30,22 +41,34 @@ import org.jets3t.service.acl.GranteeInterface;
 import org.jets3t.service.acl.GroupGrantee;
 import org.jets3t.service.acl.Permission;
 import org.jets3t.service.acl.gs.GSAccessControlList;
-import org.jets3t.service.model.*;
+import org.jets3t.service.model.BaseVersionOrDeleteMarker;
+import org.jets3t.service.model.GSBucket;
+import org.jets3t.service.model.GSBucketLoggingStatus;
+import org.jets3t.service.model.GSObject;
+import org.jets3t.service.model.GSOwner;
+import org.jets3t.service.model.GSWebsiteConfig;
+import org.jets3t.service.model.MultipartCompleted;
+import org.jets3t.service.model.MultipartPart;
+import org.jets3t.service.model.MultipartUpload;
+import org.jets3t.service.model.MultipleDeleteResult;
+import org.jets3t.service.model.NotificationConfig;
+import org.jets3t.service.model.S3Bucket;
+import org.jets3t.service.model.S3BucketLoggingStatus;
+import org.jets3t.service.model.S3BucketVersioningStatus;
+import org.jets3t.service.model.S3DeleteMarker;
+import org.jets3t.service.model.S3Object;
+import org.jets3t.service.model.S3Owner;
+import org.jets3t.service.model.S3Version;
+import org.jets3t.service.model.S3WebsiteConfig;
+import org.jets3t.service.model.StorageBucket;
+import org.jets3t.service.model.StorageBucketLoggingStatus;
+import org.jets3t.service.model.StorageObject;
+import org.jets3t.service.model.StorageOwner;
+import org.jets3t.service.model.WebsiteConfig;
 import org.jets3t.service.utils.ServiceUtils;
 import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
-
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
 
 /**
  * XML Sax parser to read XML documents returned by S3 via the REST interface, converting these
@@ -63,85 +86,86 @@ public class XmlResponsesSaxParser {
     /**
      * Constructs the XML SAX parser.
      *
-     * @param properties the JetS3t properties that will be applied when parsing XML documents.
+     * @param properties
+     * the JetS3t properties that will be applied when parsing XML documents.
+     *
      * @throws ServiceException
      */
     public XmlResponsesSaxParser(Jets3tProperties properties, boolean returnGoogleStorageObjects)
-            throws ServiceException {
+        throws ServiceException
+    {
         this.properties = properties;
         this.isGoogleStorageMode = returnGoogleStorageObjects;
         this.xr = ServiceUtils.loadXMLReader();
     }
 
     protected StorageBucket newBucket() {
-        if(isGoogleStorageMode) {
+        if (isGoogleStorageMode) {
             return new GSBucket();
-        }
-        else {
+        } else {
             return new S3Bucket();
         }
     }
 
     protected StorageObject newObject() {
-        if(isGoogleStorageMode) {
+        if (isGoogleStorageMode) {
             return new GSObject();
-        }
-        else {
+        } else {
             return new S3Object();
         }
     }
 
     protected StorageOwner newOwner() {
-        if(isGoogleStorageMode) {
+        if (isGoogleStorageMode) {
             return new GSOwner();
-        }
-        else {
+        } else {
             return new S3Owner();
         }
     }
 
     /**
      * Parses an XML document from an input stream using a document handler.
-     *
-     * @param handler     the handler for the XML document
-     * @param inputStream an input stream containing the XML document to parse
-     * @throws ServiceException any parsing, IO or other exceptions are wrapped in an ServiceException.
+     * @param handler
+     *        the handler for the XML document
+     * @param inputStream
+     *        an input stream containing the XML document to parse
+     * @throws ServiceException
+     *        any parsing, IO or other exceptions are wrapped in an ServiceException.
      */
     protected void parseXmlInputStream(DefaultHandler handler, InputStream inputStream)
-            throws ServiceException {
+        throws ServiceException
+    {
         try {
-            if(log.isDebugEnabled()) {
+            if (log.isDebugEnabled()) {
                 log.debug("Parsing XML response document with handler: " + handler.getClass());
             }
             BufferedReader breader = new BufferedReader(
-                    new InputStreamReader(inputStream, Constants.DEFAULT_ENCODING));
+                new InputStreamReader(inputStream, Constants.DEFAULT_ENCODING));
             xr.setContentHandler(handler);
             xr.setErrorHandler(handler);
             xr.parse(new InputSource(breader));
             inputStream.close();
-        }
-        catch(Exception t) {
+        } catch (Throwable t) {
             try {
                 inputStream.close();
-            }
-            catch(IOException e) {
-                if(log.isErrorEnabled()) {
+            } catch (IOException e) {
+                if (log.isErrorEnabled()) {
                     log.error("Unable to close response InputStream up after XML parse failure", e);
                 }
             }
             throw new ServiceException("Failed to parse XML document with handler "
-                    + handler.getClass(), t);
+                + handler.getClass(), t);
         }
     }
 
     protected InputStream sanitizeXmlDocument(DefaultHandler handler, InputStream inputStream)
-            throws ServiceException {
-        if(!properties.getBoolProperty("xmlparser.sanitize-listings", true)) {
+        throws ServiceException
+    {
+        if (!properties.getBoolProperty("xmlparser.sanitize-listings", true)) {
             // No sanitizing will be performed, return the original input stream unchanged.
             return inputStream;
-        }
-        else {
-            if(log.isDebugEnabled()) {
+        } else {
+            if (log.isDebugEnabled()) {
                 log.debug("Sanitizing XML document destined for handler " + handler.getClass());
             }
 
@@ -154,11 +178,11 @@ public class XmlResponsesSaxParser {
                  */
                 StringBuilder listingDocBuffer = new StringBuilder();
                 BufferedReader br = new BufferedReader(
-                        new InputStreamReader(inputStream, Constants.DEFAULT_ENCODING));
+                    new InputStreamReader(inputStream, Constants.DEFAULT_ENCODING));
 
                 char[] buf = new char[8192];
                 int read;
-                while((read = br.read(buf)) != -1) {
+                while ((read = br.read(buf)) != -1) {
                     listingDocBuffer.append(buf, 0, read);
                 }
                 br.close();
@@ -169,19 +193,17 @@ public class XmlResponsesSaxParser {
                 String listingDoc = listingDocBuffer.toString().replaceAll("\r", "&#013;");
 
                 sanitizedInputStream = new ByteArrayInputStream(
-                        listingDoc.getBytes(Constants.DEFAULT_ENCODING));
-            }
-            catch(Exception t) {
+                    listingDoc.getBytes(Constants.DEFAULT_ENCODING));
+            } catch (Throwable t) {
                 try {
                     inputStream.close();
-                }
-                catch(IOException e) {
-                    if(log.isErrorEnabled()) {
+                } catch (IOException e) {
+                    if (log.isErrorEnabled()) {
                         log.error("Unable to close response InputStream after failure sanitizing XML document", e);
                     }
                 }
                 throw new ServiceException("Failed to sanitize XML document destined for handler "
-                        + handler.getClass(), t);
+                    + handler.getClass(), t);
             }
             return sanitizedInputStream;
         }
@@ -189,13 +211,15 @@ public class XmlResponsesSaxParser {
 
     /**
      * Parses a ListBucket response XML document from an input stream.
-     *
-     * @param inputStream XML data input stream.
-     * @return the XML handler object populated with data parsed from the XML stream.
+     * @param inputStream
+     * XML data input stream.
+     * @return
+     * the XML handler object populated with data parsed from the XML stream.
      * @throws ServiceException
      */
     public ListBucketHandler parseListBucketResponse(InputStream inputStream)
-            throws ServiceException {
+        throws ServiceException
+    {
         ListBucketHandler handler = new ListBucketHandler();
         parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
         return handler;
@@ -203,13 +227,15 @@ public class XmlResponsesSaxParser {
 
     /**
      * Parses a ListAllMyBuckets response XML document from an input stream.
-     *
-     * @param inputStream XML data input stream.
-     * @return the XML handler object populated with data parsed from the XML stream.
+     * @param inputStream
+     * XML data input stream.
+     * @return
+     * the XML handler object populated with data parsed from the XML stream.
      * @throws ServiceException
      */
     public ListAllMyBucketsHandler parseListMyBucketsResponse(InputStream inputStream)
-            throws ServiceException {
+        throws ServiceException
+    {
         ListAllMyBucketsHandler handler = new ListAllMyBucketsHandler();
         parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
         return handler;
@@ -218,17 +244,20 @@ public class XmlResponsesSaxParser {
     /**
      * Parses an AccessControlListHandler response XML document from an input stream.
      *
-     * @param inputStream XML data input stream.
-     * @return the XML handler object populated with data parsed from the XML stream.
+     * @param inputStream
+     * XML data input stream.
+     * @return
+     * the XML handler object populated with data parsed from the XML stream.
+     *
      * @throws ServiceException
      */
     public AccessControlListHandler parseAccessControlListResponse(InputStream inputStream)
-            throws ServiceException {
+        throws ServiceException
+    {
         AccessControlListHandler handler;
-        if(this.isGoogleStorageMode) {
+        if (this.isGoogleStorageMode) {
             handler = new GSAccessControlListHandler();
-        }
-        else {
+        } else {
             handler = new AccessControlListHandler();
         }
 
@@ -238,14 +267,19 @@ public class XmlResponsesSaxParser {
     /**
      * Parses an AccessControlListHandler response XML document from an input stream.
      *
-     * @param inputStream XML data input stream.
-     * @param handler     the instance of AccessControlListHandler to be used.
-     * @return the XML handler object populated with data parsed from the XML stream.
+     * @param inputStream
+     * XML data input stream.
+     * @param handler
+     * the instance of AccessControlListHandler to be used.
+     * @return
+     * the XML handler object populated with data parsed from the XML stream.
+     *
      * @throws ServiceException
      */
     public AccessControlListHandler parseAccessControlListResponse(InputStream inputStream,
-                                                                   AccessControlListHandler handler)
-            throws ServiceException {
+        AccessControlListHandler handler)
+        throws ServiceException
+    {
         parseXmlInputStream(handler, inputStream);
         return handler;
     }
@@ -253,17 +287,20 @@ public class XmlResponsesSaxParser {
     /**
      * Parses a LoggingStatus response XML document for a bucket from an input stream.
      *
-     * @param inputStream XML data input stream.
-     * @return the XML handler object populated with data parsed from the XML stream.
+     * @param inputStream
+     * XML data input stream.
+     * @return
+     * the XML handler object populated with data parsed from the XML stream.
+     *
      * @throws ServiceException
      */
     public BucketLoggingStatusHandler parseLoggingStatusResponse(InputStream inputStream)
-            throws ServiceException {
+        throws ServiceException
+    {
         BucketLoggingStatusHandler handler;
-        if(this.isGoogleStorageMode) {
+        if (this.isGoogleStorageMode) {
             handler = new GSBucketLoggingStatusHandler();
-        }
-        else {
+        } else {
             handler = new S3BucketLoggingStatusHandler();
         }
         return parseLoggingStatusResponse(inputStream, handler);
@@ -272,26 +309,32 @@ public class XmlResponsesSaxParser {
     /**
      * Parses a LoggingStatus response XML document for a bucket from an input stream.
      *
-     * @param inputStream XML data input stream.
-     * @return the XML handler object populated with data parsed from the XML stream.
+     * @param inputStream
+     * XML data input stream.
+     * @return
+     * the XML handler object populated with data parsed from the XML stream.
+     *
      * @throws ServiceException
      */
     public BucketLoggingStatusHandler parseLoggingStatusResponse(InputStream inputStream,
                                                                  BucketLoggingStatusHandler handler)
-            throws ServiceException {
+        throws ServiceException
+    {
         parseXmlInputStream(handler, inputStream);
         return handler;
     }
 
     public String parseBucketLocationResponse(InputStream inputStream)
-            throws ServiceException {
+        throws ServiceException
+    {
         BucketLocationHandler handler = new BucketLocationHandler();
         parseXmlInputStream(handler, inputStream);
         return handler.getLocation();
     }
 
     public CopyObjectResultHandler parseCopyObjectResponse(InputStream inputStream)
-            throws ServiceException {
+        throws ServiceException
+    {
         CopyObjectResultHandler handler = new CopyObjectResultHandler();
         parseXmlInputStream(handler, inputStream);
         return handler;
@@ -299,12 +342,16 @@ public class XmlResponsesSaxParser {
 
     /**
      * @param inputStream
-     * @return true if the bucket is configured as Requester Pays, false if it is
-     *         configured as Owner pays.
+     *
+     * @return
+     * true if the bucket is configured as Requester Pays, false if it is
+     * configured as Owner pays.
+     *
      * @throws ServiceException
      */
     public boolean parseRequestPaymentConfigurationResponse(InputStream inputStream)
-            throws ServiceException {
+        throws ServiceException
+    {
         RequestPaymentConfigurationHandler handler = new RequestPaymentConfigurationHandler();
         parseXmlInputStream(handler, inputStream);
         return handler.isRequesterPays();
@@ -312,60 +359,71 @@ public class XmlResponsesSaxParser {
 
     /**
      * @param inputStream
-     * @return true if the bucket has versioning enabled, false otherwise.
+     *
+     * @return
+     * true if the bucket has versioning enabled, false otherwise.
+     *
      * @throws ServiceException
      */
     public S3BucketVersioningStatus parseVersioningConfigurationResponse(
-            InputStream inputStream) throws ServiceException {
+        InputStream inputStream) throws ServiceException
+    {
         VersioningConfigurationHandler handler = new VersioningConfigurationHandler();
         parseXmlInputStream(handler, inputStream);
         return handler.getVersioningStatus();
     }
 
     public ListVersionsResultsHandler parseListVersionsResponse(InputStream inputStream)
-            throws ServiceException {
+        throws ServiceException
+    {
         ListVersionsResultsHandler handler = new ListVersionsResultsHandler();
         parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
         return handler;
     }
 
     public MultipartUpload parseInitiateMultipartUploadResult(InputStream inputStream)
-            throws ServiceException {
+        throws ServiceException
+    {
         MultipartUploadResultHandler handler = new MultipartUploadResultHandler(xr);
         parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
         return handler.getMultipartUpload();
     }
 
     public MultipartPart parseMultipartUploadPartCopyResult(InputStream inputStream)
-            throws ServiceException {
+        throws ServiceException
+    {
         MultipartPartResultHandler handler = new MultipartPartResultHandler(xr);
         parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
         return handler.getMultipartPart();
     }
 
     public ListMultipartUploadsResultHandler parseListMultipartUploadsResult(
-            InputStream inputStream) throws ServiceException {
+        InputStream inputStream) throws ServiceException
+    {
         ListMultipartUploadsResultHandler handler = new ListMultipartUploadsResultHandler(xr);
         parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
         return handler;
     }
 
     public ListMultipartPartsResultHandler parseListMultipartPartsResult(
-            InputStream inputStream) throws ServiceException {
+        InputStream inputStream) throws ServiceException
+    {
         ListMultipartPartsResultHandler handler = new ListMultipartPartsResultHandler(xr);
         parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
         return handler;
     }
 
     public CompleteMultipartUploadResultHandler parseCompleteMultipartUploadResult(
-            InputStream inputStream) throws ServiceException {
+        InputStream inputStream) throws ServiceException
+    {
         CompleteMultipartUploadResultHandler handler = new CompleteMultipartUploadResultHandler(xr);
         parseXmlInputStream(handler, sanitizeXmlDocument(handler, inputStream));
         return handler;
     }
 
     public WebsiteConfig parseWebsiteConfigurationResponse(
-            InputStream inputStream) throws ServiceException {
+        InputStream inputStream) throws ServiceException
+    {
         if(isGoogleStorageMode) {
             GSWebsiteConfigurationHandler handler = new GSWebsiteConfigurationHandler();
             parseXmlInputStream(handler, inputStream);
@@ -379,20 +437,23 @@ public class XmlResponsesSaxParser {
     }
 
     public WebsiteConfig parseWebsiteConfigurationResponse(
-            InputStream inputStream, WebsiteConfigurationHandler handler) throws ServiceException {
+        InputStream inputStream, WebsiteConfigurationHandler handler) throws ServiceException
+    {
         parseXmlInputStream(handler, inputStream);
         return handler.getWebsiteConfig();
     }
 
     public NotificationConfig parseNotificationConfigurationResponse(
-            InputStream inputStream) throws ServiceException {
+        InputStream inputStream) throws ServiceException
+    {
         NotificationConfigurationHandler handler = new NotificationConfigurationHandler();
         parseXmlInputStream(handler, inputStream);
         return handler.getNotificationConfig();
     }
 
     public MultipleDeleteResult parseMultipleDeleteResponse(
-            InputStream inputStream) throws ServiceException {
+        InputStream inputStream) throws ServiceException
+    {
         MultipleDeleteResultHandler handler = new MultipleDeleteResultHandler();
         parseXmlInputStream(handler, inputStream);
         return handler.getMultipleDeleteResult();
@@ -427,39 +488,39 @@ public class XmlResponsesSaxParser {
          * If the listing is truncated this method will return the marker that should be used
          * in subsequent bucket list calls to complete the listing.
          *
-         * @return null if the listing is not truncated, otherwise the next marker if it's available or
-         *         the last object key seen if the next marker isn't available.
+         * @return
+         * null if the listing is not truncated, otherwise the next marker if it's available or
+         * the last object key seen if the next marker isn't available.
          */
         public String getMarkerForNextListing() {
-            if(listingTruncated) {
-                if(nextMarker != null) {
+            if (listingTruncated) {
+                if (nextMarker != null) {
                     return nextMarker;
-                }
-                else if(lastKey != null) {
+                } else if (lastKey != null) {
                     return lastKey;
-                }
-                else {
-                    if(log.isWarnEnabled()) {
+                } else {
+                    if (log.isWarnEnabled()) {
                         log.warn("Unable to find Next Marker or Last Key for truncated listing");
                     }
                     return null;
                 }
-            }
-            else {
+            } else {
                 return null;
             }
         }
 
         /**
-         * @return true if the listing document was truncated, and therefore only contained a subset of the
-         *         available S3 objects.
+         * @return
+         * true if the listing document was truncated, and therefore only contained a subset of the
+         * available S3 objects.
          */
         public boolean isListingTruncated() {
             return listingTruncated;
         }
 
         /**
-         * @return the S3 objects contained in the listing.
+         * @return
+         * the S3 objects contained in the listing.
          */
         public StorageObject[] getObjects() {
             return objects.toArray(new StorageObject[objects.size()]);
@@ -487,17 +548,15 @@ public class XmlResponsesSaxParser {
 
         @Override
         public void startElement(String name) {
-            if(name.equals("Contents")) {
+            if (name.equals("Contents")) {
                 currentObject = newObject();
-                if(currentObject instanceof S3Object) {
+                if (currentObject instanceof S3Object) {
                     currentObject.setBucketName(bucketName);
                 }
-            }
-            else if(name.equals("Owner")) {
+            } else if (name.equals("Owner")) {
                 currentOwner = newOwner();
                 currentObject.setOwner(currentOwner);
-            }
-            else if(name.equals("CommonPrefixes")) {
+            } else if (name.equals("CommonPrefixes")) {
                 insideCommonPrefixes = true;
             }
         }
@@ -505,86 +564,71 @@ public class XmlResponsesSaxParser {
         @Override
         public void endElement(String name, String elementText) {
             // Listing details
-            if(name.equals("Name")) {
+            if (name.equals("Name")) {
                 bucketName = elementText;
-                if(log.isDebugEnabled()) {
+                if (log.isDebugEnabled()) {
                     log.debug("Examining listing for bucket: " + bucketName);
                 }
-            }
-            else if(!insideCommonPrefixes && name.equals("Prefix")) {
+            } else if (!insideCommonPrefixes && name.equals("Prefix")) {
                 requestPrefix = elementText;
-            }
-            else if(name.equals("Marker")) {
+            } else if (name.equals("Marker")) {
                 requestMarker = elementText;
-            }
-            else if(name.equals("NextMarker")) {
+            } else if (name.equals("NextMarker")) {
                 nextMarker = elementText;
-            }
-            else if(name.equals("MaxKeys")) {
+            } else if (name.equals("MaxKeys")) {
                 requestMaxKeys = Long.parseLong(elementText);
-            }
-            else if(name.equals("IsTruncated")) {
+            } else if (name.equals("IsTruncated")) {
                 String isTruncatedStr = elementText.toLowerCase(Locale.ENGLISH);
-                if(isTruncatedStr.startsWith(String.valueOf(false))) {
+                if (isTruncatedStr.startsWith(String.valueOf(false))) {
                     listingTruncated = false;
-                }
-                else if(isTruncatedStr.startsWith(String.valueOf(true))) {
+                } else if (isTruncatedStr.startsWith(String.valueOf(true))) {
                     listingTruncated = true;
-                }
-                else {
+                } else {
                     throw new RuntimeException("Invalid value for IsTruncated field: "
-                            + isTruncatedStr);
+                        + isTruncatedStr);
                 }
             }
             // Object details.
-            else if(name.equals("Contents")) {
+            else if (name.equals("Contents")) {
                 objects.add(currentObject);
-                if(log.isDebugEnabled()) {
+                if (log.isDebugEnabled()) {
                     log.debug("Created new object from listing: " + currentObject);
                 }
-            }
-            else if(name.equals("Key")) {
+            } else if (name.equals("Key")) {
                 currentObject.setKey(elementText);
                 lastKey = elementText;
-            }
-            else if(name.equals("LastModified")) {
+            } else if (name.equals("LastModified")) {
                 try {
                     currentObject.setLastModifiedDate(ServiceUtils.parseIso8601Date(elementText));
-                }
-                catch(ParseException e) {
+                } catch (ParseException e) {
                     throw new RuntimeException(
-                            "Non-ISO8601 date for LastModified in bucket's object listing output: "
-                                    + elementText, e);
+                        "Non-ISO8601 date for LastModified in bucket's object listing output: "
+                        + elementText, e);
                 }
-            }
-            else if(name.equals("ETag")) {
+            } else if (name.equals("ETag")) {
                 currentObject.setETag(elementText);
-            }
-            else if(name.equals("Size")) {
+            } else if (name.equals("Size")) {
                 currentObject.setContentLength(Long.parseLong(elementText));
-            }
-            else if(name.equals("StorageClass")) {
+            } else if (name.equals("StorageClass")) {
                 currentObject.setStorageClass(elementText);
             }
             // Owner details.
-            else if(name.equals("ID")) {
+            else if (name.equals("ID")) {
                 // Work-around to support Eucalyptus responses, which do not
                 // contain Owner elements.
-                if(currentOwner == null) {
+                if (currentOwner == null) {
                     currentOwner = newOwner();
                     currentObject.setOwner(currentOwner);
                 }
 
                 currentOwner.setId(elementText);
-            }
-            else if(name.equals("DisplayName")) {
+            } else if (name.equals("DisplayName")) {
                 currentOwner.setDisplayName(elementText);
             }
             // Common prefixes.
-            else if(insideCommonPrefixes && name.equals("Prefix")) {
+            else if (insideCommonPrefixes && name.equals("Prefix")) {
                 commonPrefixes.add(elementText);
-            }
-            else if(name.equals("CommonPrefixes")) {
+            } else if (name.equals("CommonPrefixes")) {
                 insideCommonPrefixes = false;
             }
         }
@@ -595,6 +639,7 @@ public class XmlResponsesSaxParser {
      * {@link StorageBucket}s available via the {@link #getBuckets()} method.
      *
      * @author James Murty
+     *
      */
     public class ListAllMyBucketsHandler extends DefaultXmlHandler {
         private StorageOwner bucketsOwner = null;
@@ -603,14 +648,16 @@ public class XmlResponsesSaxParser {
         private final List<StorageBucket> buckets = new ArrayList<StorageBucket>();
 
         /**
-         * @return the buckets listed in the document.
+         * @return
+         * the buckets listed in the document.
          */
         public StorageBucket[] getBuckets() {
             return buckets.toArray(new StorageBucket[buckets.size()]);
         }
 
         /**
-         * @return the owner of the buckets.
+         * @return
+         * the owner of the buckets.
          */
         public StorageOwner getOwner() {
             return bucketsOwner;
@@ -618,10 +665,9 @@ public class XmlResponsesSaxParser {
 
         @Override
         public void startElement(String name) {
-            if(name.equals("Bucket")) {
+            if (name.equals("Bucket")) {
                 currentBucket = newBucket();
-            }
-            else if(name.equals("Owner")) {
+            } else if (name.equals("Owner")) {
                 bucketsOwner = newOwner();
             }
         }
@@ -629,32 +675,28 @@ public class XmlResponsesSaxParser {
         @Override
         public void endElement(String name, String elementText) {
             // Listing details.
-            if(name.equals("ID")) {
+            if (name.equals("ID")) {
                 bucketsOwner.setId(elementText);
-            }
-            else if(name.equals("DisplayName")) {
+            } else if (name.equals("DisplayName")) {
                 bucketsOwner.setDisplayName(elementText);
             }
             // Bucket item details.
-            else if(name.equals("Bucket")) {
-                if(log.isDebugEnabled()) {
+            else if (name.equals("Bucket")) {
+                if (log.isDebugEnabled()) {
                     log.debug("Created new bucket from listing: " + currentBucket);
                 }
                 currentBucket.setOwner(bucketsOwner);
                 buckets.add(currentBucket);
-            }
-            else if(name.equals("Name")) {
+            } else if (name.equals("Name")) {
                 currentBucket.setName(elementText);
-            }
-            else if(name.equals("CreationDate")) {
+            } else if (name.equals("CreationDate")) {
                 elementText += ".000Z";
                 try {
                     currentBucket.setCreationDate(ServiceUtils.parseIso8601Date(elementText));
-                }
-                catch(ParseException e) {
+                } catch (ParseException e) {
                     throw new RuntimeException(
-                            "Non-ISO8601 date for CreationDate in list buckets output: "
-                                    + elementText, e);
+                        "Non-ISO8601 date for CreationDate in list buckets output: "
+                        + elementText, e);
                 }
             }
         }
@@ -664,7 +706,8 @@ public class XmlResponsesSaxParser {
         protected StorageBucketLoggingStatus bucketLoggingStatus;
 
         /**
-         * @return an object representing the bucket's LoggingStatus document.
+         * @return
+         * an object representing the bucket's LoggingStatus document.
          */
         public StorageBucketLoggingStatus getBucketLoggingStatus() {
             return bucketLoggingStatus;
@@ -677,6 +720,7 @@ public class XmlResponsesSaxParser {
      * {@link #getBucketLoggingStatus()} method.
      *
      * @author James Murty
+     *
      */
     public class S3BucketLoggingStatusHandler extends BucketLoggingStatusHandler {
         private String targetBucket = null;
@@ -686,46 +730,39 @@ public class XmlResponsesSaxParser {
 
         @Override
         public void startElement(String name) {
-            if(name.equals("BucketLoggingStatus")) {
+            if (name.equals("BucketLoggingStatus")) {
                 bucketLoggingStatus = new S3BucketLoggingStatus();
             }
         }
 
         @Override
         public void endElement(String name, String elementText) {
-            if(name.equals("TargetBucket")) {
+            if (name.equals("TargetBucket")) {
                 targetBucket = elementText;
-            }
-            else if(name.equals("TargetPrefix")) {
+            } else if (name.equals("TargetPrefix")) {
                 targetPrefix = elementText;
-            }
-            else if(name.equals("LoggingEnabled")) {
+            } else if (name.equals("LoggingEnabled")) {
                 bucketLoggingStatus.setTargetBucketName(targetBucket);
                 bucketLoggingStatus.setLogfilePrefix(targetPrefix);
             }
             // Handle TargetGrants ACLs
-            else if(name.equals("ID")) {
+            else if (name.equals("ID")) {
                 currentGrantee = new CanonicalGrantee();
                 currentGrantee.setIdentifier(elementText);
-            }
-            else if(name.equals("EmailAddress")) {
+            } else if (name.equals("EmailAddress")) {
                 currentGrantee = new EmailAddressGrantee();
                 currentGrantee.setIdentifier(elementText);
-            }
-            else if(name.equals("URI")) {
+            } else if (name.equals("URI")) {
                 currentGrantee = new GroupGrantee();
                 currentGrantee.setIdentifier(elementText);
-            }
-            else if(name.equals("DisplayName")) {
+            } else if (name.equals("DisplayName")) {
                 ((CanonicalGrantee) currentGrantee).setDisplayName(elementText);
-            }
-            else if(name.equals("Permission")) {
+            } else if (name.equals("Permission")) {
                 currentPermission = Permission.parsePermission(elementText);
-            }
-            else if(name.equals("Grant")) {
+            } else if (name.equals("Grant")) {
                 GrantAndPermission grantAndPermission = new GrantAndPermission(
-                        currentGrantee, currentPermission);
-                ((S3BucketLoggingStatus) bucketLoggingStatus).addTargetGrant(grantAndPermission);
+                    currentGrantee, currentPermission);
+                ((S3BucketLoggingStatus)bucketLoggingStatus).addTargetGrant(grantAndPermission);
             }
         }
     }
@@ -736,41 +773,40 @@ public class XmlResponsesSaxParser {
      * {@link #getBucketLoggingStatus()} method.
      *
      * @author David Kocher
+     *
      */
     public class GSBucketLoggingStatusHandler extends BucketLoggingStatusHandler {
         @Override
         public void startElement(String name) {
-            if(name.equals("Logging")) {
+            if (name.equals("Logging")) {
                 bucketLoggingStatus = new GSBucketLoggingStatus();
             }
         }
 
         @Override
         public void endElement(String name, String elementText) {
-            if(name.equals("LogBucket")) {
+            if (name.equals("LogBucket")) {
                 bucketLoggingStatus.setTargetBucketName(elementText);
-            }
-            else if(name.equals("LogObjectPrefix")) {
+            } else if (name.equals("LogObjectPrefix")) {
                 bucketLoggingStatus.setLogfilePrefix(elementText);
-            }
-            else if(name.equals("PredefinedAcl")) {
+            } else if (name.equals("PredefinedAcl")) {
                 if(elementText.equals(GSAccessControlList.REST_CANNED_PRIVATE.getValueForRESTHeaderACL())) {
-                    ((GSBucketLoggingStatus) bucketLoggingStatus).setPredefinedAcl(GSAccessControlList.REST_CANNED_PRIVATE);
+                    ((GSBucketLoggingStatus)bucketLoggingStatus).setPredefinedAcl(GSAccessControlList.REST_CANNED_PRIVATE);
                 }
                 else if(elementText.equals(GSAccessControlList.REST_CANNED_PUBLIC_READ.getValueForRESTHeaderACL())) {
-                    ((GSBucketLoggingStatus) bucketLoggingStatus).setPredefinedAcl(GSAccessControlList.REST_CANNED_PUBLIC_READ);
+                    ((GSBucketLoggingStatus)bucketLoggingStatus).setPredefinedAcl(GSAccessControlList.REST_CANNED_PUBLIC_READ);
                 }
                 else if(elementText.equals(GSAccessControlList.REST_CANNED_PUBLIC_READ_WRITE.getValueForRESTHeaderACL())) {
-                    ((GSBucketLoggingStatus) bucketLoggingStatus).setPredefinedAcl(GSAccessControlList.REST_CANNED_PUBLIC_READ_WRITE);
+                    ((GSBucketLoggingStatus)bucketLoggingStatus).setPredefinedAcl(GSAccessControlList.REST_CANNED_PUBLIC_READ_WRITE);
                 }
                 else if(elementText.equals(GSAccessControlList.REST_CANNED_AUTHENTICATED_READ.getValueForRESTHeaderACL())) {
-                    ((GSBucketLoggingStatus) bucketLoggingStatus).setPredefinedAcl(GSAccessControlList.REST_CANNED_AUTHENTICATED_READ);
+                    ((GSBucketLoggingStatus)bucketLoggingStatus).setPredefinedAcl(GSAccessControlList.REST_CANNED_AUTHENTICATED_READ);
                 }
                 else if(elementText.equals(GSAccessControlList.REST_CANNED_BUCKET_OWNER_READ.getValueForRESTHeaderACL())) {
-                    ((GSBucketLoggingStatus) bucketLoggingStatus).setPredefinedAcl(GSAccessControlList.REST_CANNED_BUCKET_OWNER_READ);
+                    ((GSBucketLoggingStatus)bucketLoggingStatus).setPredefinedAcl(GSAccessControlList.REST_CANNED_BUCKET_OWNER_READ);
                 }
                 else if(elementText.equals(GSAccessControlList.REST_CANNED_BUCKET_OWNER_FULL_CONTROL.getValueForRESTHeaderACL())) {
-                    ((GSBucketLoggingStatus) bucketLoggingStatus).setPredefinedAcl(GSAccessControlList.REST_CANNED_BUCKET_OWNER_FULL_CONTROL);
+                    ((GSBucketLoggingStatus)bucketLoggingStatus).setPredefinedAcl(GSAccessControlList.REST_CANNED_BUCKET_OWNER_FULL_CONTROL);
                 }
             }
         }
@@ -782,12 +818,14 @@ public class XmlResponsesSaxParser {
      * available via the {@link #getLocation()} method.
      *
      * @author James Murty
+     *
      */
     public class BucketLocationHandler extends DefaultXmlHandler {
         private String location = null;
 
         /**
-         * @return the bucket's location.
+         * @return
+         * the bucket's location.
          */
         public String getLocation() {
             return location;
@@ -795,11 +833,10 @@ public class XmlResponsesSaxParser {
 
         @Override
         public void endElement(String name, String elementText) {
-            if(name.equals("LocationConstraint")) {
-                if(elementText.length() == 0) {
+            if (name.equals("LocationConstraint")) {
+                if (elementText.length() == 0) {
                     location = null;
-                }
-                else {
+                } else {
                     location = elementText;
                 }
             }
@@ -849,39 +886,32 @@ public class XmlResponsesSaxParser {
 
         @Override
         public void startElement(String name) {
-            if(name.equals("CopyObjectResult")) {
+            if (name.equals("CopyObjectResult")) {
                 receivedErrorResponse = false;
-            }
-            else if(name.equals("Error")) {
+            } else if (name.equals("Error")) {
                 receivedErrorResponse = true;
             }
         }
 
         @Override
         public void endElement(String name, String elementText) {
-            if(name.equals("LastModified")) {
+            if (name.equals("LastModified")) {
                 try {
                     lastModified = ServiceUtils.parseIso8601Date(elementText);
-                }
-                catch(ParseException e) {
+                } catch (ParseException e) {
                     throw new RuntimeException(
-                            "Non-ISO8601 date for LastModified in copy object output: "
-                                    + elementText, e);
+                        "Non-ISO8601 date for LastModified in copy object output: "
+                        + elementText, e);
                 }
-            }
-            else if(name.equals("ETag")) {
+            } else if (name.equals("ETag")) {
                 etag = elementText;
-            }
-            else if(name.equals("Code")) {
+            } else if (name.equals("Code")) {
                 errorCode = elementText;
-            }
-            else if(name.equals("Message")) {
+            } else if (name.equals("Message")) {
                 errorMessage = elementText;
-            }
-            else if(name.equals("RequestId")) {
+            } else if (name.equals("RequestId")) {
                 errorRequestId = elementText;
-            }
-            else if(name.equals("HostId")) {
+            } else if (name.equals("HostId")) {
                 errorHostId = elementText;
             }
         }
@@ -899,8 +929,9 @@ public class XmlResponsesSaxParser {
         private String payer = null;
 
         /**
-         * @return true if the bucket is configured as Requester Pays, false if it is
-         *         configured as Owner pays.
+         * @return
+         * true if the bucket is configured as Requester Pays, false if it is
+         * configured as Owner pays.
          */
         public boolean isRequesterPays() {
             return "Requester".equals(payer);
@@ -908,7 +939,7 @@ public class XmlResponsesSaxParser {
 
         @Override
         public void endElement(String name, String elementText) {
-            if(name.equals("Payer")) {
+            if (name.equals("Payer")) {
                 payer = elementText;
             }
         }
@@ -925,23 +956,21 @@ public class XmlResponsesSaxParser {
 
         @Override
         public void endElement(String name, String elementText) {
-            if(name.equals("Status")) {
+            if (name.equals("Status")) {
                 this.status = elementText;
-            }
-            else if(name.equals("MfaDelete")) {
+            } else if (name.equals("MfaDelete")) {
                 this.mfaStatus = elementText;
-            }
-            else if(name.equals("VersioningConfiguration")) {
+            } else if (name.equals("VersioningConfiguration")) {
                 this.versioningStatus = new S3BucketVersioningStatus(
-                        "Enabled".equals(status),
-                        "Enabled".equals(mfaStatus));
+                    "Enabled".equals(status),
+                    "Enabled".equals(mfaStatus));
             }
         }
     }
 
     public class ListVersionsResultsHandler extends DefaultXmlHandler {
         private final List<BaseVersionOrDeleteMarker> items =
-                new ArrayList<BaseVersionOrDeleteMarker>();
+            new ArrayList<BaseVersionOrDeleteMarker>();
         private final List<String> commonPrefixes = new ArrayList<String>();
 
         private String key = null;
@@ -967,15 +996,17 @@ public class XmlResponsesSaxParser {
         private String nextVersionIdMarker = null;
 
         /**
-         * @return true if the listing document was truncated, and therefore only contained a subset of the
-         *         available S3 objects.
+         * @return
+         * true if the listing document was truncated, and therefore only contained a subset of the
+         * available S3 objects.
          */
         public boolean isListingTruncated() {
             return listingTruncated;
         }
 
         /**
-         * @return the S3 objects contained in the listing.
+         * @return
+         * the S3 objects contained in the listing.
          */
         public BaseVersionOrDeleteMarker[] getItems() {
             return items.toArray(new BaseVersionOrDeleteMarker[items.size()]);
@@ -1011,10 +1042,9 @@ public class XmlResponsesSaxParser {
 
         @Override
         public void startElement(String name) {
-            if(name.equals("Owner")) {
+            if (name.equals("Owner")) {
                 owner = null;
-            }
-            else if(name.equals("CommonPrefixes")) {
+            } else if (name.equals("CommonPrefixes")) {
                 insideCommonPrefixes = true;
             }
         }
@@ -1022,97 +1052,77 @@ public class XmlResponsesSaxParser {
         @Override
         public void endElement(String name, String elementText) {
             // Listing details
-            if(name.equals("Name")) {
+            if (name.equals("Name")) {
                 bucketName = elementText;
-                if(log.isDebugEnabled()) {
+                if (log.isDebugEnabled()) {
                     log.debug("Examining listing for bucket: " + bucketName);
                 }
-            }
-            else if(!insideCommonPrefixes && name.equals("Prefix")) {
+            } else if (!insideCommonPrefixes && name.equals("Prefix")) {
                 requestPrefix = elementText;
-            }
-            else if(name.equals("KeyMarker")) {
+            } else if (name.equals("KeyMarker")) {
                 keyMarker = elementText;
-            }
-            else if(name.equals("NextKeyMarker")) {
+            } else if (name.equals("NextKeyMarker")) {
                 nextMarker = elementText;
-            }
-            else if(name.equals("VersionIdMarker")) {
+            } else if (name.equals("VersionIdMarker")) {
                 versionIdMarker = elementText;
-            }
-            else if(name.equals("NextVersionIdMarker")) {
+            } else if (name.equals("NextVersionIdMarker")) {
                 nextVersionIdMarker = elementText;
-            }
-            else if(name.equals("MaxKeys")) {
+            } else if (name.equals("MaxKeys")) {
                 requestMaxKeys = Long.parseLong(elementText);
-            }
-            else if(name.equals("IsTruncated")) {
+            } else if (name.equals("IsTruncated")) {
                 String isTruncatedStr = elementText.toLowerCase(Locale.ENGLISH);
-                if(isTruncatedStr.startsWith(String.valueOf(false))) {
+                if (isTruncatedStr.startsWith(String.valueOf(false))) {
                     listingTruncated = false;
-                }
-                else if(isTruncatedStr.startsWith(String.valueOf(true))) {
+                } else if (isTruncatedStr.startsWith(String.valueOf(true))) {
                     listingTruncated = true;
-                }
-                else {
+                } else {
                     throw new RuntimeException("Invalid value for IsTruncated field: "
-                            + isTruncatedStr);
+                        + isTruncatedStr);
                 }
             }
             // Version/DeleteMarker finished.
-            else if(name.equals("Version")) {
+            else if (name.equals("Version")) {
                 BaseVersionOrDeleteMarker item = new S3Version(key, versionId,
-                        isLatest, lastModified, (S3Owner) owner, etag, size, storageClass);
+                    isLatest, lastModified, (S3Owner)owner, etag, size, storageClass);
                 items.add(item);
-            }
-            else if(name.equals("DeleteMarker")) {
+            } else if (name.equals("DeleteMarker")) {
                 BaseVersionOrDeleteMarker item = new S3DeleteMarker(key, versionId,
-                        isLatest, lastModified, (S3Owner) owner);
+                        isLatest, lastModified, (S3Owner)owner);
                 items.add(item);
 
-                // Version/DeleteMarker details
-            }
-            else if(name.equals("Key")) {
+            // Version/DeleteMarker details
+            } else if (name.equals("Key")) {
                 key = elementText;
-            }
-            else if(name.equals("VersionId")) {
+            } else if (name.equals("VersionId")) {
                 versionId = elementText;
-            }
-            else if(name.equals("IsLatest")) {
+            } else if (name.equals("IsLatest")) {
                 isLatest = String.valueOf(true).equals(elementText);
-            }
-            else if(name.equals("LastModified")) {
+            } else if (name.equals("LastModified")) {
                 try {
                     lastModified = ServiceUtils.parseIso8601Date(elementText);
-                }
-                catch(ParseException e) {
+                } catch (ParseException e) {
                     throw new RuntimeException(
-                            "Non-ISO8601 date for LastModified in bucket's versions listing output: "
-                                    + elementText, e);
+                        "Non-ISO8601 date for LastModified in bucket's versions listing output: "
+                        + elementText, e);
                 }
-            }
-            else if(name.equals("ETag")) {
+            } else if (name.equals("ETag")) {
                 etag = elementText;
-            }
-            else if(name.equals("Size")) {
+            } else if (name.equals("Size")) {
                 size = Long.parseLong(elementText);
-            }
-            else if(name.equals("StorageClass")) {
+            } else if (name.equals("StorageClass")) {
                 storageClass = elementText;
             }
             // Owner details.
-            else if(name.equals("ID")) {
+            else if (name.equals("ID")) {
                 owner = newOwner();
                 owner.setId(elementText);
-            }
-            else if(name.equals("DisplayName")) {
+            } else if (name.equals("DisplayName")) {
                 owner.setDisplayName(elementText);
             }
             // Common prefixes.
-            else if(insideCommonPrefixes && name.equals("Prefix")) {
+            else if (insideCommonPrefixes && name.equals("Prefix")) {
                 commonPrefixes.add(elementText);
-            }
-            else if(name.equals("CommonPrefixes")) {
+            } else if (name.equals("CommonPrefixes")) {
                 insideCommonPrefixes = false;
             }
         }
@@ -1167,12 +1177,11 @@ public class XmlResponsesSaxParser {
         }
 
         public MultipartUpload getMultipartUpload() {
-            if(initiatedDate != null) {
+            if (initiatedDate != null) {
                 // Return the contents from a ListMultipartUploadsResult response
                 return new MultipartUpload(uploadId, objectKey, storageClass,
-                        initiator, owner, initiatedDate);
-            }
-            else {
+                    initiator, owner, initiatedDate);
+            } else {
                 // Return the contents from an InitiateMultipartUploadsResult response
                 return new MultipartUpload(uploadId, bucketName, objectKey);
             }
@@ -1210,10 +1219,9 @@ public class XmlResponsesSaxParser {
 
         @Override
         public void controlReturned(SimpleHandler childHandler) {
-            if(inInitiator) {
+            if (inInitiator) {
                 this.owner = (S3Owner) ((OwnerHandler) childHandler).getOwner();
-            }
-            else {
+            } else {
                 this.initiator = (S3Owner) ((OwnerHandler) childHandler).getOwner();
             }
         }
@@ -1242,7 +1250,7 @@ public class XmlResponsesSaxParser {
 
         public List<MultipartUpload> getMultipartUploadList() {
             // Update multipart upload objects with overall bucket name
-            for(MultipartUpload upload : uploads) {
+            for (MultipartUpload upload: uploads) {
                 upload.setBucketName(bucketName);
             }
             return uploads;
@@ -1280,14 +1288,14 @@ public class XmlResponsesSaxParser {
             transferControlToHandler(new MultipartUploadResultHandler(xr));
         }
 
-        public void startCommonPrefixes() {
+        public void startCommonPrefixes(){
             insideCommonPrefixes = true;
         }
 
         @Override
         public void controlReturned(SimpleHandler childHandler) {
             uploads.add(
-                    ((MultipartUploadResultHandler) childHandler).getMultipartUpload());
+                ((MultipartUploadResultHandler) childHandler).getMultipartUpload());
         }
 
         public void endBucket(String text) {
@@ -1319,12 +1327,12 @@ public class XmlResponsesSaxParser {
         }
 
         public void endPrefix(String text) {
-            if(insideCommonPrefixes) {
+            if (insideCommonPrefixes){
                 commonPrefixes.add(text);
             }
         }
 
-        public void endCommonPrefixes() {
+        public void endCommonPrefixes(){
             insideCommonPrefixes = false;
         }
 
@@ -1435,16 +1443,14 @@ public class XmlResponsesSaxParser {
 
         @Override
         public void controlReturned(SimpleHandler childHandler) {
-            if(childHandler instanceof MultipartPartResultHandler) {
+            if (childHandler instanceof MultipartPartResultHandler) {
                 parts.add(
-                        ((MultipartPartResultHandler) childHandler).getMultipartPart());
-            }
-            else {
-                if(inInitiator) {
-                    initiator = (S3Owner) ((OwnerHandler) childHandler).getOwner();
-                }
-                else {
-                    owner = (S3Owner) ((OwnerHandler) childHandler).getOwner();
+                    ((MultipartPartResultHandler) childHandler).getMultipartPart());
+            } else {
+                if (inInitiator) {
+                    initiator = (S3Owner)((OwnerHandler)childHandler).getOwner();
+                } else {
+                    owner = (S3Owner)((OwnerHandler)childHandler).getOwner();
                 }
             }
         }
@@ -1534,8 +1540,8 @@ public class XmlResponsesSaxParser {
 
         @Override
         public void controlReturned(SimpleHandler childHandler) {
-            this.serviceException = ((CompleteMultipartUploadErrorHandler) childHandler)
-                    .getServiceException();
+            this.serviceException = ((CompleteMultipartUploadErrorHandler)childHandler)
+                .getServiceException();
         }
     }
 
@@ -1555,10 +1561,10 @@ public class XmlResponsesSaxParser {
 
         public ServiceException getServiceException() {
             String fullMessage = message
-                    + ": PartNumber=" + partNumber
-                    + ", MinSizeAllowed=" + minSizeAllowed
-                    + ", ProposedSize=" + proposedSize
-                    + ", ETag=" + etag;
+                + ": PartNumber=" + partNumber
+                + ", MinSizeAllowed=" + minSizeAllowed
+                + ", ProposedSize=" + proposedSize
+                + ", ETag=" + etag;
             ServiceException e = new ServiceException(fullMessage);
             e.setErrorCode(code);
             e.setErrorMessage(message);
@@ -1610,15 +1616,13 @@ public class XmlResponsesSaxParser {
 
         @Override
         public void endElement(String name, String elementText) {
-            if(name.equals("Suffix")) {
+            if (name.equals("Suffix")) {
                 this.indexDocumentSuffix = elementText;
-            }
-            else if(name.equals("Key")) {
+            } else if (name.equals("Key")) {
                 this.errorDocumentKey = elementText;
-            }
-            else if(name.equals("WebsiteConfiguration")) {
+            } else if (name.equals("WebsiteConfiguration")) {
                 this.websiteConfig = new S3WebsiteConfig(
-                        indexDocumentSuffix, errorDocumentKey);
+                    indexDocumentSuffix, errorDocumentKey);
             }
         }
     }
@@ -1629,15 +1633,13 @@ public class XmlResponsesSaxParser {
 
         @Override
         public void endElement(String name, String elementText) {
-            if(name.equals("MainPageSuffix")) {
+            if (name.equals("MainPageSuffix")) {
                 this.indexDocumentSuffix = elementText;
-            }
-            else if(name.equals("NotFoundPage")) {
+            } else if (name.equals("NotFoundPage")) {
                 this.errorDocumentKey = elementText;
-            }
-            else if(name.equals("WebsiteConfiguration")) {
+            } else if (name.equals("WebsiteConfiguration")) {
                 this.websiteConfig = new GSWebsiteConfig(
-                        indexDocumentSuffix, errorDocumentKey);
+                    indexDocumentSuffix, errorDocumentKey);
             }
         }
     }
@@ -1661,15 +1663,13 @@ public class XmlResponsesSaxParser {
 
         @Override
         public void endElement(String name, String elementText) {
-            if(name.equals("Topic")) {
+            if (name.equals("Topic")) {
                 this.lastTopic = elementText;
-            }
-            else if(name.equals("Event")) {
+            } else if (name.equals("Event")) {
                 this.lastEvent = elementText;
                 config.addTopicConfig(config.new TopicConfig(
-                        this.lastTopic, this.lastEvent));
-            }
-            else if(name.equals("NotificationConfiguration")) {
+                    this.lastTopic, this.lastEvent));
+            } else if (name.equals("NotificationConfiguration")) {
             }
         }
     }
@@ -1678,10 +1678,11 @@ public class XmlResponsesSaxParser {
         private MultipleDeleteResult result = new MultipleDeleteResult();
 
         private List<MultipleDeleteResult.DeletedObjectResult> deletedObjectResults =
-                new ArrayList<MultipleDeleteResult.DeletedObjectResult>();
+            new ArrayList<MultipleDeleteResult.DeletedObjectResult>();
         private List<MultipleDeleteResult.ErrorResult> errorResults =
-                new ArrayList<MultipleDeleteResult.ErrorResult>();
+            new ArrayList<MultipleDeleteResult.ErrorResult>();
 
+        private boolean inDeleted, inError;
         private String key, version, deleteMarkerVersion, errorCode, message;
         private Boolean withDeleteMarker;
 
@@ -1690,43 +1691,49 @@ public class XmlResponsesSaxParser {
         }
 
         @Override
+        public void startElement(String name) {
+            if ("Deleted".equals(name)) {
+                inDeleted = true;
+            } else if ("Error".equals(name)) {
+                inError = true;
+            }
+        }
+
+        @Override
         public void endElement(String name, String elementText) {
-            if("Key".equals(name)) {
+            if ("Key".equals(name)) {
                 key = elementText;
-            }
-            else if("VersionId".equals(name)) {
+            } else if ("VersionId".equals(name)) {
                 version = elementText;
-            }
-            else if("DeleteMarker".equals(name)) {
+            } else if ("DeleteMarker".equals(name)) {
                 withDeleteMarker = Boolean.valueOf(elementText);
-            }
-            else if("DeleteMarkerVersionId".equals(name)) {
+            } else if ("DeleteMarkerVersionId".equals(name)) {
                 deleteMarkerVersion = elementText;
-            }
-            else if("Code".equals(name)) {
+            } else if ("Code".equals(name)) {
                 errorCode = elementText;
-            }
-            else if("Message".equals(name)) {
+            } else if ("Message".equals(name)) {
                 message = elementText;
             }
 
-            else if("Deleted".equals(name)) {
+            else if ("Deleted".equals(name)) {
                 deletedObjectResults.add(result.new DeletedObjectResult(
-                        key, version, withDeleteMarker, deleteMarkerVersion));
+                    key, version, withDeleteMarker, deleteMarkerVersion));
+                inDeleted = false;
                 key = version = deleteMarkerVersion = errorCode = message = null;
                 withDeleteMarker = null;
-            }
-            else if("Error".equals(name)) {
+            } else if ("Error".equals(name)) {
                 errorResults.add(result.new ErrorResult(
-                        key, version, errorCode, message));
+                    key, version, errorCode, message));
+                inError = false;
                 key = version = deleteMarkerVersion = errorCode = message = null;
                 withDeleteMarker = null;
             }
 
-            else if(name.equals("DeleteResult")) {
+            else if (name.equals("DeleteResult")) {
                 result.setDeletedObjectResults(deletedObjectResults);
                 result.setErrorResults(errorResults);
             }
         }
     }
+
 }
