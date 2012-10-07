@@ -36,7 +36,7 @@ import org.jets3t.service.multi.ThreadWatcher;
  *
  * @author James Murty
  */
-public class DownloadObjectsEvent extends ServiceEvent {
+public final class DownloadObjectsEvent extends ServiceEvent {
     private StorageObject[] objects = null;
 
     private DownloadObjectsEvent(int eventCode, Object uniqueOperationId) {

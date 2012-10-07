@@ -37,7 +37,7 @@ import org.jets3t.service.multi.event.ServiceEvent;
  *
  * @author James Murty
  */
-public class MultipartUploadsEvent extends ServiceEvent {
+public final class MultipartUploadsEvent extends ServiceEvent {
     private StorageObject[] objects = null;
 
     private MultipartUploadsEvent(int eventCode, Object uniqueOperationId) {

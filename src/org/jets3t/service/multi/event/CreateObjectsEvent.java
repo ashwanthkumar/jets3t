@@ -36,7 +36,7 @@ import org.jets3t.service.multi.ThreadedStorageService;
  *
  * @author James Murty
  */
-public class CreateObjectsEvent extends ServiceEvent {
+public final class CreateObjectsEvent extends ServiceEvent {
     private StorageObject[] objects = null;
 
     private CreateObjectsEvent(int eventCode, Object uniqueOperationId) {
