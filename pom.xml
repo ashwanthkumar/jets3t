@@ -37,10 +37,17 @@ limitations under the License.
         <maven.compile.target>1.5</maven.compile.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
         <keystore.file>${basedir}/applet/dev.keystore</keystore.file>
         <keystore.storepass>devpass</keystore.storepass>
         <keystore.keypass>devpass</keystore.keypass>
         <keystore.alias>dev</keystore.alias>
+
+        <sonar.host.url>http://${sonar.host}:9000/</sonar.host.url>
+        <sonar.jdbc.url>
+            jdbc:mysql://${sonar.host}:3306/sonar?useUnicode=true&amp;characterEncoding=utf8
+        </sonar.jdbc.url>
+        <sonar.jdbc.driver>com.mysql.jdbc.Driver</sonar.jdbc.driver>
     </properties>
     <build>
         <sourceDirectory>src</sourceDirectory>
@@ -200,6 +207,11 @@ limitations under the License.
                     </programs>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>2.0</version>
+            </plugin>
         </plugins>
     </build>
     <dependencies>
@@ -316,25 +328,6 @@ limitations under the License.
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>2.8</version>
-                <configuration>
-                    <excludes/>
-                    <enableRulesSummary>false</enableRulesSummary>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-pmd-plugin</artifactId>
-                <version>2.5</version>
-                <configuration>
-                    <excludes/>
-                    <minimumTokens>100</minimumTokens>
-                    <targetJdk>1.5</targetJdk>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>2.8</version>
                 <configuration>
@@ -348,29 +341,6 @@ limitations under the License.
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-report-plugin</artifactId>
                 <version>2.10</version>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>cobertura-maven-plugin</artifactId>
-                <version>2.5</version>
-                <configuration>
-                    <formats>
-                        <format>xml</format>
-                        <format>html</format>
-                    </formats>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>findbugs-maven-plugin</artifactId>
-                <version>2.3.2</version>
-                <configuration>
-                    <xmlOutput>true</xmlOutput>
-                    <threshold>Low</threshold>
-                    <effort>Max</effort>
-                    <debug>false</debug>
-                    <relaxed>false</relaxed>
-                </configuration>
             </plugin>
         </plugins>
     </reporting>

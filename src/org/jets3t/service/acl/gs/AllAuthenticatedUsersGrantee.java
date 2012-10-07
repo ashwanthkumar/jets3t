@@ -33,7 +33,10 @@ import javax.xml.transform.TransformerException;
  *
  */
 public class AllAuthenticatedUsersGrantee extends GroupGrantee {
-    private final String id = "AllAuthenticatedUsers";
+
+    public AllAuthenticatedUsersGrantee() {
+        super("AllAuthenticatedUsers");
+    }
 
     @Override
     public String toXml() throws TransformerException,
@@ -47,15 +50,5 @@ public class AllAuthenticatedUsersGrantee extends GroupGrantee {
         ParserConfigurationException, FactoryConfigurationError
     {
         return XMLBuilder.create("Scope").attr("type", "AllAuthenticatedUsers");
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return (obj instanceof AllAuthenticatedUsersGrantee);
-    }
-
-    @Override
-    public String toString() {
-        return id;
     }
 }

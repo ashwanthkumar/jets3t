@@ -54,7 +54,7 @@ public class GroupGrantee implements GranteeInterface {
      */
     public static final GroupGrantee LOG_DELIVERY = new GroupGrantee("http://acs.amazonaws.com/groups/s3/LogDelivery");
 
-    protected String id = null;
+    private String id = null;
 
     public GroupGrantee() {
     }
@@ -115,5 +115,4 @@ public class GroupGrantee implements GranteeInterface {
     public int hashCode() {
         return id.hashCode();
     }
-
 }

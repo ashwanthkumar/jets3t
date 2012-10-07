@@ -42,7 +42,7 @@ public class GroupByIdGrantee extends GroupGrantee {
     /**
      * Constructs a group grantee object using the given group id as an identifier.
      *
-     * @param id
+     * @param id Identifier
      */
     public GroupByIdGrantee(String id) {
         super(id);
@@ -76,14 +76,8 @@ public class GroupByIdGrantee extends GroupGrantee {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        return (obj instanceof GroupByIdGrantee
-                && ((GroupByIdGrantee)obj).getIdentifier().equals(this.getIdentifier()));
-    }
-
-    @Override
     public String toString() {
-        return "GroupById [" + id
+        return "GroupById [" + this.getIdentifier()
             + (name != null ? ", name=" + getName() : "")
             + "]";
     }

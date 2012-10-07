@@ -54,7 +54,6 @@ public class CredentialsDialog extends JDialog implements ActionListener {
     private LoginCredentialsPanel loginCredentialsPanel = null;
     private JButton okButton = null;
     private boolean isConfirmed = false;
-    private Jets3tProperties jets3tProperties = null;
 
     private final Insets insetsZero = new Insets(0, 0, 0, 0);
     private final Insets insetsDefault = new Insets(3, 5, 3, 5);
@@ -74,7 +73,6 @@ public class CredentialsDialog extends JDialog implements ActionListener {
         Jets3tProperties jets3tProperties, HyperlinkActivatedListener hyperlinkListener)
     {
         super(ownerFrame, "Service Credentials", true);
-        this.jets3tProperties = jets3tProperties;
 
         this.loginCredentialsPanel = new LoginCredentialsPanel(askForFriendlyName, hyperlinkListener);
 

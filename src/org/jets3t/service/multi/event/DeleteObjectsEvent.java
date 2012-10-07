@@ -36,7 +36,7 @@ import org.jets3t.service.multi.ThreadedStorageService;
  *
  * @author James Murty
  */
-public class DeleteObjectsEvent extends ServiceEvent {
+public final class DeleteObjectsEvent extends ServiceEvent {
     private StorageObject[] objects = null;
 
     private DeleteObjectsEvent(int eventCode, Object uniqueOperationId) {

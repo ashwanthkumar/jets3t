@@ -38,7 +38,7 @@ import org.jets3t.service.multi.event.ServiceEvent;
  *
  * @author James Murty
  */
-public class MultipartCompletesEvent extends ServiceEvent {
+public final class MultipartCompletesEvent extends ServiceEvent {
     private MultipartUpload[] incompleteUploads = null;
     private MultipartCompleted[] completedUploads = null;
 
