@@ -30,6 +30,8 @@ import org.jets3t.service.security.AWSCredentials;
 
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 
 import junit.framework.TestCase;
@@ -150,7 +152,12 @@ public class TestAmazonCloudFront extends TestCase {
         assertEquals(testDistributionConfig.getCallerReference(), config.getCallerReference());
         assertEquals(testDistributionConfig.getComment(), config.getComment());
         assertEquals(testDistributionConfig.isEnabled(), config.isEnabled());
-        assertEquals(Arrays.asList(testDistributionConfig.getCNAMEs()), Arrays.asList(config.getCNAMEs()));
+        List testConfigCNAMEs = Arrays.asList(testDistributionConfig.getCNAMEs());
+        List configCNAMEs = Arrays.asList(config.getCNAMEs());
+        // Collections.sort() returns null, bah!
+        Collections.sort(testConfigCNAMEs);
+        Collections.sort(configCNAMEs);
+        assertEquals(testConfigCNAMEs, configCNAMEs);
         assertEquals(1, config.getOrigins().length);
         assertEquals(S3Origin.class, config.getOrigins()[0].getClass());
         origin = (S3Origin) config.getOrigins()[0];
