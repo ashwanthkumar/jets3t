@@ -1212,7 +1212,7 @@ public class RestS3Service extends S3Service {
                     builder.elem("Object")
                         .elem("Key").text(nav.getKey()).up();
                 if (nav.getVersion() != null) {
-                    objectBuilder.elem("Version").text(nav.getVersion());
+                    objectBuilder.elem("VersionId").text(nav.getVersion());
                 }
             }
             xml = builder.asString();
