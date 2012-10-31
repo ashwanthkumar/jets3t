@@ -163,7 +163,7 @@ public class DistributionConfig {
     }
 
     public boolean isLoggingEnabled() {
-        return this.loggingStatus != null;
+        return loggingStatus.isEnabled();
     }
 
     public CacheBehavior getDefaultCacheBehavior() {
