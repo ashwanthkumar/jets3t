@@ -765,7 +765,7 @@ public class FileComparer {
 
         // If we are forcing an upload there's no point comparing local files with service
         // objects, since any service objects will be replaced no matter the comparison.
-        if (isForceUpload) {
+        if (isForceUpload && !forceMetadataDownload) {
             return objectMap;
         }
 
