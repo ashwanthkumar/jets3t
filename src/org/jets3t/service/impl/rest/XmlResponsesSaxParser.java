@@ -47,6 +47,7 @@ import org.jets3t.service.model.GSBucketLoggingStatus;
 import org.jets3t.service.model.GSObject;
 import org.jets3t.service.model.GSOwner;
 import org.jets3t.service.model.GSWebsiteConfig;
+import org.jets3t.service.model.LifecycleConfig;
 import org.jets3t.service.model.MultipartCompleted;
 import org.jets3t.service.model.MultipartPart;
 import org.jets3t.service.model.MultipartUpload;
@@ -65,6 +66,10 @@ import org.jets3t.service.model.StorageBucketLoggingStatus;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.StorageOwner;
 import org.jets3t.service.model.WebsiteConfig;
+import org.jets3t.service.model.LifecycleConfig.Expiration;
+import org.jets3t.service.model.LifecycleConfig.Rule;
+import org.jets3t.service.model.LifecycleConfig.TimeEvent;
+import org.jets3t.service.model.LifecycleConfig.Transition;
 import org.jets3t.service.utils.ServiceUtils;
 import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
@@ -457,6 +462,14 @@ public class XmlResponsesSaxParser {
         MultipleDeleteResultHandler handler = new MultipleDeleteResultHandler();
         parseXmlInputStream(handler, inputStream);
         return handler.getMultipleDeleteResult();
+    }
+
+    public LifecycleConfig parseLifecycleConfigurationResponse(
+        InputStream inputStream) throws ServiceException
+    {
+        LifecycleConfigurationHandler handler = new LifecycleConfigurationHandler(xr);
+        parseXmlInputStream(handler, inputStream);
+        return handler.getLifecycleConfig();
     }
 
     //////////////
@@ -1733,6 +1746,67 @@ public class XmlResponsesSaxParser {
                 result.setDeletedObjectResults(deletedObjectResults);
                 result.setErrorResults(errorResults);
             }
+        }
+    }
+
+    public class LifecycleConfigurationHandler extends SimpleHandler {
+        private LifecycleConfig config = new LifecycleConfig();
+
+        private Rule latestRule = null;
+        private TimeEvent latestTimeEvent = null;
+
+        public LifecycleConfigurationHandler(XMLReader xr) {
+            super(xr);
+        }
+
+        public LifecycleConfig getLifecycleConfig() {
+            return config;
+        }
+
+        // Transition/Expiration section
+
+        public void startTransition() {
+            latestTimeEvent = config.new Transition();
+            latestRule.setTransition(((Transition)latestTimeEvent));
+        }
+
+        public void startExpiration() {
+            latestTimeEvent = config.new Expiration();
+            latestRule.setExpiration(((Expiration)latestTimeEvent));
+        }
+
+        public void endDate(String text) throws ParseException {
+            this.latestTimeEvent.setDate(ServiceUtils.parseIso8601Date(text));
+        }
+
+        public void endDays(String text) {
+            this.latestTimeEvent.setDays(Integer.parseInt(text));
+        }
+
+        public void endStorageClass(String text) {
+            ((Transition)this.latestTimeEvent).setStorageClass(text);
+        }
+
+        // Rule section
+
+        public void startRule() {
+            latestRule = config.new Rule();
+        }
+
+        public void endID(String text) {
+            latestRule.setId(text);
+        }
+
+        public void endPrefix(String text) {
+            latestRule.setPrefix(text);
+        }
+
+        public void endStatus(String text) {
+            latestRule.setEnabled(text.equals("Enabled"));
+        }
+
+        public void endRule(String text) {
+            config.addRule(latestRule);
         }
     }
 
