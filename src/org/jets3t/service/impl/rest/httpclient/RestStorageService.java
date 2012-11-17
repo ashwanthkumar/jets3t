@@ -933,24 +933,43 @@ public abstract class RestStorageService extends StorageService implements JetS3
      *
      */
     protected HttpResponse performRestGet(String bucketName, String objectKey,
-                                          Map<String, String> requestParameters, Map<String, Object> requestHeaders)
-            throws ServiceException {
+        Map<String, String> requestParameters, Map<String, Object> requestHeaders)
+        throws ServiceException
+    {
+        int[] expectedStatusCodes = {200}; // 200 is normally the expected response code
+        if (requestHeaders != null && requestHeaders.containsKey("Range")) {
+            // Partial data responses have a status code of 206, or sometimes 200
+            // for complete responses (issue #80)
+            expectedStatusCodes = new int[]{206, 200};
+        }
+        return performRestGet(bucketName, objectKey, requestParameters, requestHeaders, expectedStatusCodes);
+    }
+
+    /**
+     * Performs an HTTP GET request using the {@link #performRequest} method.
+     *
+     * @param bucketName        the bucket's name
+     * @param objectKey         the object's key name, may be null if the operation is on a bucket only.
+     * @param requestParameters parameters to add to the request URL as GET params
+     * @param requestHeaders    headers to add to the request
+     * @param expectedStatusCodes HTTP status response codes expected, anything else causes an exception.
+     * @return The HTTP method object used to perform the request.
+     * @throws org.jets3t.service.ServiceException
+     *
+     */
+    protected HttpResponse performRestGet(String bucketName, String objectKey,
+        Map<String, String> requestParameters, Map<String, Object> requestHeaders,
+        int[] expectedStatusCodes)
+        throws ServiceException
+    {
 
         HttpUriRequest httpMethod = setupConnection(
                 HTTP_METHOD.GET,
                 bucketName,
                 objectKey,
                 requestParameters);
-
         // Add all request headers.
         addRequestHeadersToConnection(httpMethod, requestHeaders);
-
-        int[] expectedStatusCodes = {200}; // 200 is normally the expected response code
-        if(requestHeaders != null && requestHeaders.containsKey("Range")) {
-            // Partial data responses have a status code of 206, or sometimes 200
-            // for complete responses (issue #80)
-            expectedStatusCodes = new int[]{206, 200};
-        }
         return performRequest(httpMethod, expectedStatusCodes);
     }
 

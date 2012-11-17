@@ -24,8 +24,11 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -33,6 +36,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.http.HttpResponse;
@@ -47,8 +51,11 @@ import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.acl.AccessControlList;
+import org.jets3t.service.impl.rest.XmlResponsesSaxParser;
+import org.jets3t.service.impl.rest.httpclient.HttpMethodReleaseInputStream;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
+import org.jets3t.service.model.LifecycleConfig;
 import org.jets3t.service.model.MultipartCompleted;
 import org.jets3t.service.model.MultipartPart;
 import org.jets3t.service.model.MultipartUpload;
@@ -61,6 +68,9 @@ import org.jets3t.service.model.S3WebsiteConfig;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageBucketLoggingStatus;
 import org.jets3t.service.model.StorageObject;
+import org.jets3t.service.model.LifecycleConfig.Expiration;
+import org.jets3t.service.model.LifecycleConfig.Rule;
+import org.jets3t.service.model.LifecycleConfig.Transition;
 import org.jets3t.service.model.NotificationConfig.TopicConfig;
 import org.jets3t.service.model.container.ObjectKeyAndVersion;
 import org.jets3t.service.multi.s3.MultipartUploadAndParts;
@@ -905,6 +915,87 @@ public class TestRestS3Service extends BaseStorageServiceTests {
 
         } finally {
             cleanupBucketForTest("testMultipleObjectDelete");
+        }
+    }
+
+    public void testLifecycleConfiguration() throws Exception {
+        S3Service s3Service = (S3Service) getStorageService(getCredentials());
+        StorageBucket bucket = createBucketForTest("testBucketLifecycleConfiguration");
+        String bucketName = bucket.getName();
+
+        try {
+            // No config rules initially for bucket
+            LifecycleConfig config = s3Service.getLifecycleConfig(bucketName);
+            assertNull(config);
+
+            // Create Rule with Expiration by Days
+            LifecycleConfig newConfig = new LifecycleConfig();
+            Rule newRule = newConfig.newRule("rule-1", "/nothing", Boolean.TRUE);
+            Expiration expiration = newRule.newExpiration();
+            expiration.setDays(7);
+
+            // Apply initial Rule
+            s3Service.setLifecycleConfig(bucketName, newConfig);
+            config = s3Service.getLifecycleConfig(bucketName);
+            assertNotNull(config);
+            assertEquals(1, config.getRules().size());
+            Rule rule = config.getRules().get(0);
+            assertEquals("rule-1", rule.getId());
+            assertEquals("/nothing", rule.getPrefix());
+            assertTrue(rule.getEnabled());
+            assertEquals(new Integer(7), rule.getExpiration().getDays());
+            assertNull(rule.getExpiration().getDate());
+            assertNull(rule.getTransition());
+
+            // Change Expiration to be by Date
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-ddZ");
+            rule.getExpiration().setDate(sdf.parse("2020-01-01+0000"));
+            s3Service.setLifecycleConfig(bucketName, config);
+            config = s3Service.getLifecycleConfig(bucketName);
+            rule = config.getRules().get(0);
+            assertNull(rule.getExpiration().getDays());
+            assertEquals(sdf.parse("2020-01-01+0000"), rule.getExpiration().getDate());
+
+            // Add Transition by Date
+            Transition transition = rule.newTransition();  // Default's to GLACIER storage class
+            transition.setDate(sdf.parse("2016-01-01+0000"));
+            s3Service.setLifecycleConfig(bucketName, config);
+            config = s3Service.getLifecycleConfig(bucketName);
+            rule = config.getRules().get(0);
+            assertEquals(sdf.parse("2016-01-01+0000"), rule.getTransition().getDate());
+            assertNull(rule.getTransition().getDays());
+            assertEquals(LifecycleConfig.STORAGE_CLASS_GLACIER,
+                rule.getTransition().getStorageClass());
+
+            // Change Transition to be by Days (Expiration must use same time-keeping mechanism)
+            rule.getTransition().setDays(3);
+            rule.getExpiration().setDays(7);
+            s3Service.setLifecycleConfig(bucketName, config);
+            config = s3Service.getLifecycleConfig(bucketName);
+            rule = config.getRules().get(0);
+            assertEquals(new Integer(3), rule.getTransition().getDays());
+            assertEquals(new Integer(7), rule.getExpiration().getDays());
+
+            // Add additional Rule
+            Rule secondRule = config.newRule("second-rule", "/second", Boolean.FALSE);
+            secondRule.newExpiration().setDays(100);
+            s3Service.setLifecycleConfig(bucketName, config);
+            config = s3Service.getLifecycleConfig(bucketName);
+            assertEquals(2, config.getRules().size());
+            rule = config.getRules().get(1);
+            assertEquals("second-rule", rule.getId());
+            assertEquals("/second", rule.getPrefix());
+            assertFalse(rule.getEnabled());
+            rule = config.getRules().get(1);
+            assertEquals(new Integer(100), rule.getExpiration().getDays());
+            assertNull(rule.getTransition());
+
+            // Delete config
+            s3Service.deleteLifecycleConfig(bucketName);
+            config = s3Service.getLifecycleConfig(bucketName);
+            assertNull(config);
+        } finally {
+            cleanupBucketForTest("testBucketLifecycleConfiguration");
         }
     }
 
