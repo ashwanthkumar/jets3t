@@ -37,6 +37,7 @@ import org.jets3t.service.acl.Permission;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.impl.rest.httpclient.RestStorageService;
 import org.jets3t.service.model.BaseVersionOrDeleteMarker;
+import org.jets3t.service.model.LifecycleConfig;
 import org.jets3t.service.model.MultipartCompleted;
 import org.jets3t.service.model.MultipartPart;
 import org.jets3t.service.model.MultipartUpload;
@@ -3793,6 +3794,44 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         setNotificationConfigImpl(bucketName, new NotificationConfig());
     }
 
+    /**
+     * @param bucketName
+     * a bucket with a lifecycle configuration.
+     * @return
+     * the lifecycle configuration details, or null if the bucket has no lifecycle config.
+     * @throws S3ServiceException
+     */
+    public LifecycleConfig getLifecycleConfig(String bucketName) throws S3ServiceException {
+        return getLifecycleConfigImpl(bucketName);
+    }
+
+    /**
+     * Apply a lifecycle configuration to a bucket
+     *
+     * @param bucketName
+     * the bucket to which the lifecycle configuration will be applied.
+     * @param config
+     * the lifecycle configuration to apply.
+     * @throws S3ServiceException
+     */
+    public void setLifecycleConfig(String bucketName, LifecycleConfig config)
+        throws S3ServiceException
+    {
+        setLifecycleConfigImpl(bucketName, config);
+    }
+
+    /**
+     * Delete a bucket's lifecycle configuration; removes the effect of any previously-applied
+     * configuration.
+     *
+     * @param bucketName
+     * a bucket with a lifecycle configuration.
+     * @throws S3ServiceException
+     */
+    public void deleteLifecycleConfig(String bucketName) throws S3ServiceException {
+        deleteLifecycleConfigImpl(bucketName);
+    }
+
     ///////////////////////////////////////////////////////////
     // Abstract methods that must be implemented by S3 services
     ///////////////////////////////////////////////////////////
@@ -3890,5 +3929,14 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         String bucketName, ObjectKeyAndVersion[] objectNameAndVersions,
         String multiFactorSerialNumber, String multiFactorAuthCode,
         boolean isQuiet) throws S3ServiceException;
+
+    public abstract LifecycleConfig getLifecycleConfigImpl(String bucketName)
+        throws S3ServiceException;
+
+    public abstract void setLifecycleConfigImpl(String bucketName, LifecycleConfig config)
+        throws S3ServiceException;
+
+    public abstract void deleteLifecycleConfigImpl(String bucketName)
+        throws S3ServiceException;
 
 }
