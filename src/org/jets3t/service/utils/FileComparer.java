@@ -954,7 +954,7 @@ public class FileComparer {
                 br = new BufferedReader(new FileReader(preComputedHashFile));
                 preComputedHash = ServiceUtils.fromHex(br.readLine().split("\\s")[0]);
                 if (log.isDebugEnabled()) {
-                    log.debug("Read computed MD5 hash from file: "
+                    log.debug("Read computed MD5 hash for '" + file + "': "
                         + preComputedHashFile.getAbsolutePath());
                 }
             } catch (Exception e) {
@@ -1005,8 +1005,7 @@ public class FileComparer {
             }
             computedHash = ServiceUtils.computeMD5Hash(hashInputStream);
             if (log.isDebugEnabled()) {
-                log.debug("Created new MD5 hash for '" + file + "': "
-                    + computedHashFile.getAbsolutePath());
+                log.debug("Calculated MD5 hash for: " + file);
             }
         }
 
@@ -1025,6 +1024,10 @@ public class FileComparer {
             try {
                 fw = new FileWriter(computedHashFile);
                 fw.write(ServiceUtils.toHex(computedHash));
+                if (log.isDebugEnabled()) {
+                    log.debug("Created new computed MD5 hash file for '" + file + "': "
+                        + computedHashFile.getAbsolutePath());
+                }
             } catch (Exception e) {
                 boolean wasDeleted = computedHashFile.delete();
                 if (log.isDebugEnabled() && wasDeleted) {
