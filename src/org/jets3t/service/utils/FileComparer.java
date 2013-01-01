@@ -923,6 +923,58 @@ public class FileComparer {
         return map;
     }
 
+    protected File getPreComputedHashFile(File file, String relativeFilePath) throws IOException {
+        return (getMd5FilesRootDirectoryFile() != null
+            ? new File(getMd5FilesRootDirectoryFile(), relativeFilePath + ".md5")
+            : new File(file.getPath() + ".md5"));
+    }
+
+    /**
+     * Return the pre-generated MD5 hash value of a file, as previously stored by JetS3t
+     * (or another program) in an .md5 file corresponding to the given file.
+     *
+     * @param file
+     * @param relativeFilePath
+     *
+     * @return
+     * md5 hash value, or null if no pre-generated .md5 file exists or is readable.
+     */
+    public byte[] lookupFileMD5Hash(File file, String relativeFilePath) throws IOException {
+        File preComputedHashFile = getPreComputedHashFile(file, relativeFilePath);
+        byte[] preComputedHash = null;
+
+        // Check whether a pre-computed MD5 hash file is available
+        if (isUseMd5Files()
+            && preComputedHashFile.canRead()
+            && preComputedHashFile.lastModified() > file.lastModified())
+        {
+            BufferedReader br = null;
+            try {
+                // A pre-computed MD5 hash file is available, try to read this hash value
+                br = new BufferedReader(new FileReader(preComputedHashFile));
+                preComputedHash = ServiceUtils.fromHex(br.readLine().split("\\s")[0]);
+                if (log.isDebugEnabled()) {
+                    log.debug("Read computed MD5 hash from file: "
+                        + preComputedHashFile.getAbsolutePath());
+                }
+            } catch (Exception e) {
+                boolean wasDeleted = preComputedHashFile.delete();
+                if (log.isDebugEnabled() && wasDeleted) {
+                    log.debug("Unable to read hash from computed MD5 file; file has been deleted: "
+                        + preComputedHashFile.getAbsolutePath());
+                }
+                if (log.isWarnEnabled() && !wasDeleted) {
+                    log.warn("Unable to read hash from computed MD5 file and failed to delete it", e);
+                }
+            } finally {
+                if (br != null) {
+                    br.close();
+                }
+            }
+        }
+        return preComputedHash;
+    }
+
     /**
      *
      * @param file
@@ -938,36 +990,8 @@ public class FileComparer {
         BytesProgressWatcher progressWatcher)
         throws IOException, NoSuchAlgorithmException
     {
-        byte[] computedHash = null;
-
-        // Check whether a pre-computed MD5 hash file is available
-        File computedHashFile = (getMd5FilesRootDirectoryFile() != null
-            ? new File(getMd5FilesRootDirectoryFile(), relativeFilePath + ".md5")
-            : new File(file.getPath() + ".md5"));
-        if (isUseMd5Files()
-            && computedHashFile.canRead()
-            && computedHashFile.lastModified() > file.lastModified())
-        {
-            BufferedReader br = null;
-            try {
-                // A pre-computed MD5 hash file is available, try to read this hash value
-                br = new BufferedReader(new FileReader(computedHashFile));
-                computedHash = ServiceUtils.fromHex(br.readLine().split("\\s")[0]);
-            } catch (Exception e) {
-                boolean wasDeleted = computedHashFile.delete();
-                if (log.isDebugEnabled() && wasDeleted) {
-                    log.debug("Unable to read hash from computed MD5 file; file has been deleted: "
-                        + computedHashFile.getAbsolutePath());
-                }
-                if (log.isWarnEnabled() && !wasDeleted) {
-                    log.warn("Unable to read hash from computed MD5 file and failed to delete it", e);
-                }
-            } finally {
-                if (br != null) {
-                    br.close();
-                }
-            }
-        }
+        File computedHashFile = getPreComputedHashFile(file, relativeFilePath);
+        byte[] computedHash = lookupFileMD5Hash(file, relativeFilePath);
 
         if (computedHash == null) {
             // A pre-computed hash file was not available, or could not be read.
@@ -980,6 +1004,10 @@ public class FileComparer {
                 hashInputStream = new FileInputStream(file);
             }
             computedHash = ServiceUtils.computeMD5Hash(hashInputStream);
+            if (log.isDebugEnabled()) {
+                log.debug("Created new MD5 hash for '" + file + "': "
+                    + computedHashFile.getAbsolutePath());
+            }
         }
 
         if (isGenerateMd5Files() && !file.getName().endsWith(".md5") &&
@@ -1155,7 +1183,7 @@ public class FileComparer {
                     // Compare file hashes.
                     else {
                         String fileHashAsBase64 = ServiceUtils.toBase64(
-                            generateFileMD5Hash(file, localPath, progressWatcher));
+                            generateFileMD5Hash(file, storageObject.getKey(), progressWatcher));
 
                         // Get the service object's Base64 hash.
                         String objectHash = null;
