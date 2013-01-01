@@ -196,6 +196,7 @@ public class Synchronize {
     class LazyPreparedUploadObject {
         private final String targetKey;
         private final File file;
+        private byte[] md5HashOfFile;
         private final String aclString;
         private final EncryptionUtil encryptionUtil;
 
@@ -204,21 +205,26 @@ public class Synchronize {
          * the key name for the object
          * @param file
          * the file to upload
+         * @param md5HashOfFile
+         * MD5 hash value of file to upload, may be null in which case this will be auto-generated.
          * @param aclString
          * the ACL to apply to the uploaded object
          * @param encryptionUtil
          * the object to apply encryption, or null if no encryption is required
          */
-        public LazyPreparedUploadObject(String targetKey, File file, String aclString, EncryptionUtil encryptionUtil) {
+        public LazyPreparedUploadObject(String targetKey, File file, byte[] md5HashOfFile,
+                String aclString, EncryptionUtil encryptionUtil)
+        {
             this.targetKey = targetKey;
             this.file = file;
+            this.md5HashOfFile = md5HashOfFile;
             this.aclString = aclString;
             this.encryptionUtil = encryptionUtil;
         }
 
         public StorageObject prepareUploadObject() throws Exception {
-            StorageObject newObject = ObjectUtils
-                .createObjectForUpload(targetKey, file, encryptionUtil, isGzipEnabled, null);
+            StorageObject newObject = ObjectUtils.createObjectForUpload(
+                targetKey, file, md5HashOfFile, encryptionUtil, isGzipEnabled, null);
 
             if ("PUBLIC_READ".equalsIgnoreCase(aclString)) {
                 newObject.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ);
@@ -441,18 +447,29 @@ public class Synchronize {
 
                     File file = new File(objectKeyToFilepathMap.get(relativeKeyPath));
 
+                    // Lookup and/or generate cached MD5 hash file for data file, if enabled
+                    byte[] md5HashOfFile = null;
+                    if (fileComparer.isGenerateMd5Files()) {
+                        md5HashOfFile = fileComparer.generateFileMD5Hash(file, targetKey, null);
+                    } else if (fileComparer.isUseMd5Files()) {
+                        md5HashOfFile = fileComparer.lookupFileMD5Hash(file, targetKey);
+                    }
+
                     if (discrepancyResults.onlyOnClientKeys.contains(relativeKeyPath)) {
                         printOutputLine("N " + targetKey, REPORT_LEVEL_ACTIONS);
-                        objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
+                        objectsToUpload.add(new LazyPreparedUploadObject(
+                            targetKey, file, md5HashOfFile, aclString, encryptionUtil));
                     } else if (discrepancyResults.updatedOnClientKeys.contains(relativeKeyPath)) {
                         printOutputLine("U " + targetKey, REPORT_LEVEL_ACTIONS);
-                        objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
+                        objectsToUpload.add(new LazyPreparedUploadObject(
+                            targetKey, file, md5HashOfFile, aclString, encryptionUtil));
                     } else if (discrepancyResults.alreadySynchronisedKeys.contains(relativeKeyPath)
                                || discrepancyResults.alreadySynchronisedLocalPaths.contains(relativeKeyPath))
                     {
                         if (isForce) {
                             printOutputLine("F " + targetKey, REPORT_LEVEL_ACTIONS);
-                            objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
+                            objectsToUpload.add(new LazyPreparedUploadObject(
+                                targetKey, file, md5HashOfFile, aclString, encryptionUtil));
                         } else {
                             printOutputLine("- " + targetKey, REPORT_LEVEL_ALL);
                         }
@@ -462,7 +479,8 @@ public class Synchronize {
                             printOutputLine("r " + targetKey, REPORT_LEVEL_DIFFERENCES);
                         } else {
                             printOutputLine("R " + targetKey, REPORT_LEVEL_ACTIONS);
-                            objectsToUpload.add(new LazyPreparedUploadObject(targetKey, file, aclString, encryptionUtil));
+                            objectsToUpload.add(new LazyPreparedUploadObject(
+                                targetKey, file, md5HashOfFile, aclString, encryptionUtil));
                         }
                     } else {
                         // Uh oh, program error here. The safest thing to do is abort!

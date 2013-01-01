@@ -71,6 +71,9 @@ public class ObjectUtils {
      * the object key name to use in S3
      * @param dataFile
      * the file to prepare for upload.
+     * @param md5HashOfDataFile
+     * calculated MD5 hash value of the given dataFile; if null this value will be calculated
+     * automatically.
      * @param encryptionUtil
      * if this variable is null no encryption will be applied, otherwise the provided
      * encryption utility object will be used to encrypt the file's data.
@@ -87,7 +90,8 @@ public class ObjectUtils {
      * exceptions could include IO failures, gzipping and encryption failures.
      */
     public static S3Object createObjectForUpload(String objectKey, File dataFile,
-        EncryptionUtil encryptionUtil, boolean gzipFile, BytesProgressWatcher progressWatcher)
+        byte[] md5HashOfDataFile, EncryptionUtil encryptionUtil, boolean gzipFile,
+        BytesProgressWatcher progressWatcher)
         throws Exception
     {
         S3Object s3Object = new S3Object(objectKey);
@@ -108,27 +112,81 @@ public class ObjectUtils {
             s3Object.setContentLength(uploadFile.length());
             s3Object.setDataInputFile(uploadFile);
 
-            // Compute the upload file's MD5 hash.
-            InputStream inputStream = new BufferedInputStream(new FileInputStream(uploadFile));
-            if (progressWatcher != null) {
-                inputStream = new ProgressMonitoredInputStream(inputStream, progressWatcher);
-            }
-            s3Object.setMd5Hash(ServiceUtils.computeMD5Hash(inputStream));
-
-            if (!uploadFile.equals(dataFile)) {
-                // Compute the MD5 hash of the *original* file, if upload file has been altered
-                // through encryption or gzipping.
-                inputStream = new BufferedInputStream(new FileInputStream(dataFile));
+            // Compute the upload file's MD5 hash, unless we are uploading the original
+            // (not-transformed) file and have been provided with the MD5 hash.
+            byte[] md5HashOfUploadFile = null;
+            if (md5HashOfDataFile != null && uploadFile.equals(dataFile)) {
+                md5HashOfUploadFile = md5HashOfDataFile;
+            } else {
+                InputStream inputStream = new BufferedInputStream(new FileInputStream(uploadFile));
                 if (progressWatcher != null) {
                     inputStream = new ProgressMonitoredInputStream(inputStream, progressWatcher);
+                }
+                md5HashOfUploadFile = ServiceUtils.computeMD5Hash(inputStream);
+            }
+            s3Object.setMd5Hash(md5HashOfUploadFile);
+
+            if (!uploadFile.equals(dataFile)) {
+                // Compute the MD5 hash of the *original* file if upload file has been altered
+                // through encryption or gzipping, unless we have been provided with this hash.
+                if (md5HashOfDataFile == null) {
+                    InputStream inputStream = new BufferedInputStream(new FileInputStream(dataFile));
+                    if (progressWatcher != null) {
+                        inputStream = new ProgressMonitoredInputStream(inputStream, progressWatcher);
+                    }
+                    md5HashOfDataFile = ServiceUtils.computeMD5Hash(inputStream);
                 }
 
                 s3Object.addMetadata(
                     S3Object.METADATA_HEADER_ORIGINAL_HASH_MD5,
-                    ServiceUtils.toBase64(ServiceUtils.computeMD5Hash(inputStream)));
+                    ServiceUtils.toBase64(md5HashOfDataFile));
             }
         }
         return s3Object;
+    }
+
+    /**
+     * Prepares a file for upload to a named object in S3, potentially transforming it if
+     * zipping or encryption is requested.
+     * <p>
+     * The file will have the following metadata items added:
+     * <ul>
+     * <li>{@link Constants#METADATA_JETS3T_LOCAL_FILE_DATE}: The local file's last modified date
+     *     in ISO 8601 format</li>
+     * <li><tt>Content-Type</tt> : A content type guessed from the file's extension, or
+     *     {@link Mimetypes#MIMETYPE_BINARY_OCTET_STREAM} if the file is a directory</li>
+     * <li><tt>Content-Length</tt> : The size of the file</li>
+     * <li><tt>MD5-Hash</tt> : An MD5 hash of the file's data</li>
+     * <li>{@link StorageObject#METADATA_HEADER_ORIGINAL_HASH_MD5}: An MD5 hash of the
+     *     original file's data (added if gzipping or encryption is applied)</li>
+     * </ul>
+     *
+     * @param objectKey
+     * the object key name to use in S3
+     * @param dataFile
+     * the file to prepare for upload.
+     * @param encryptionUtil
+     * if this variable is null no encryption will be applied, otherwise the provided
+     * encryption utility object will be used to encrypt the file's data.
+     * @param gzipFile
+     * if true the file will be Gzipped.
+     * @param progressWatcher
+     * watcher to monitor progress of file transformation and hash generation.
+     *
+     * @return
+     * an S3Object representing the file, or a transformed copy of the file, complete with
+     * all JetS3t-specific metadata items set and ready for upload to S3.
+     *
+     * @throws Exception
+     * exceptions could include IO failures, gzipping and encryption failures.
+     */
+    public static S3Object createObjectForUpload(String objectKey, File dataFile,
+        EncryptionUtil encryptionUtil, boolean gzipFile, BytesProgressWatcher progressWatcher)
+        throws Exception
+    {
+        byte[] md5HashOfDataFile = null;
+        return createObjectForUpload(objectKey, dataFile, md5HashOfDataFile,
+            encryptionUtil, gzipFile, progressWatcher);
     }
 
     /**
