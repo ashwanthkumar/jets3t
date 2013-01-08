@@ -449,10 +449,12 @@ public class Synchronize {
 
                     // Lookup and/or generate cached MD5 hash file for data file, if enabled
                     byte[] md5HashOfFile = null;
-                    if (fileComparer.isGenerateMd5Files()) {
-                        md5HashOfFile = fileComparer.generateFileMD5Hash(file, targetKey, null);
-                    } else if (fileComparer.isUseMd5Files()) {
-                        md5HashOfFile = fileComparer.lookupFileMD5Hash(file, targetKey);
+                    if (!file.isDirectory()) {
+                        if (fileComparer.isGenerateMd5Files()) {
+                            md5HashOfFile = fileComparer.generateFileMD5Hash(file, targetKey, null);
+                        } else if (fileComparer.isUseMd5Files()) {
+                            md5HashOfFile = fileComparer.lookupFileMD5Hash(file, targetKey);
+                        }
                     }
 
                     if (discrepancyResults.onlyOnClientKeys.contains(relativeKeyPath)) {
