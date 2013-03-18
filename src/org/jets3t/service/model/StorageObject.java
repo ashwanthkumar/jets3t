@@ -692,6 +692,10 @@ public class StorageObject extends BaseStorageItem implements Cloneable {
      * true if the calculated MD5 hash value of the file matches this object's
      * hash value, false otherwise.
      *
+     * @throws IllegalStateException
+     * if the object's MD5 hash value is unavailable, e.g. for objects stored
+     * in S3 using multipart uploads (for which the service does not provide
+     * MD5 hash values for verification).
      * @throws NoSuchAlgorithmException
      * @throws FileNotFoundException
      * @throws IOException
@@ -699,7 +703,13 @@ public class StorageObject extends BaseStorageItem implements Cloneable {
     public boolean verifyData(File downloadedFile)
         throws NoSuchAlgorithmException, FileNotFoundException, IOException
     {
-        return getMd5HashAsBase64().equals(
+        String md5HashB64 = getMd5HashAsBase64();
+        if (md5HashB64 == null) {
+            throw new IllegalStateException(
+                "Cannot verify data for this object because the" +
+                " service-provided MD5 hash value is unavailable");
+        }
+        return md5HashB64.equals(
             ServiceUtils.toBase64(
                 ServiceUtils.computeMD5Hash(
                     new FileInputStream(downloadedFile))));
