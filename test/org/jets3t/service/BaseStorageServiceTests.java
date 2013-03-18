@@ -898,6 +898,11 @@ public abstract class BaseStorageServiceTests extends TestCase {
             assertEquals("Incorrect number of objects in directory structure",
                 objectsList.size(), objects.length);
 
+            // Check all objects have bucket name property set
+            for (StorageObject object: objects) {
+                assertEquals(bucketName, object.getBucketName());
+            }
+
             // List items in chunks of size 2, ensure we get a total of seven.
             int chunkedObjectsCount = 0;
             int chunkedIterationsCount = 0;
