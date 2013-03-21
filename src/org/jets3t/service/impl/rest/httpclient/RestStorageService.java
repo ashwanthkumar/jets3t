@@ -563,7 +563,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
             }
             else {
                 MxDelegate.getInstance().registerS3ServiceExceptionEvent();
-                serviceException = new ServiceException("Request Error: " + t, t);
+                serviceException = new ServiceException("Request Error: " + t.getMessage(), t);
             }
 
             // Add S3 request and host IDs from HTTP headers to exception, if they are available
