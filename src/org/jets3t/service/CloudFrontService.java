@@ -1780,12 +1780,15 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
                 "/distribution/" + distributionId + "/invalidation");
         try {
             XMLBuilder builder = XMLBuilder.create("InvalidationBatch");
+            XMLBuilder paths = builder.e("Paths");
+            paths.e("Quantity").t(String.valueOf(objectKeys.length));
+            XMLBuilder items = paths.e("Items");
             for(String objectPath : objectKeys) {
                 String encodedPath = RestUtils.encodeUrlPath(objectPath, "/");
                 if(!encodedPath.startsWith("/")) {
                     encodedPath = "/" + encodedPath;
                 }
-                builder.e("Path").t(encodedPath);
+                items.e("Path").t(encodedPath);
             }
             builder.e("CallerReference").t(callerReference);
 
