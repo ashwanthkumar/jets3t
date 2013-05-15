@@ -1483,10 +1483,13 @@ public class Synchronize {
                                 + " for " + actionCommand);
                             printHelpAndExit(false);
                         }
-                        if (!file.exists() || !file.isDirectory()) {
-                            System.err.println(
-                                "ERROR: Target download location is not a directory: " + file);
-                            System.exit(1);
+                        if (!file.exists()) {
+                            // Create missing target directory
+                            if (!file.mkdirs()) {
+                                System.err.println(
+                                    "ERROR: Target download directory does not exist and could not be created: " + file);
+                                System.exit(1);
+                            }
                         }
                         if (file.exists() && !file.isDirectory()) {
                             System.err.println(
