@@ -172,9 +172,8 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * Constructs the service with default properties.
      *
      * @param credentials the Storage Provider user credentials to use when communicating with CloudFront
-     * @throws CloudFrontServiceException
      */
-    public CloudFrontService(ProviderCredentials credentials) throws CloudFrontServiceException {
+    public CloudFrontService(ProviderCredentials credentials) {
         this(credentials, null, null, null);
     }
 
