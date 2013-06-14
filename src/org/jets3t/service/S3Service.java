@@ -314,8 +314,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
                 + serviceEndpointVirtualPath
                 + "/" + uriPath;
             }
-        } catch (ServiceException se) {
-            throw new S3ServiceException(se);
         } catch (UnsupportedEncodingException e) {
             throw new S3ServiceException(e);
         }
@@ -1016,7 +1014,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
                 + (httpPort != 80 ? ":" + httpPort : "")
                 + urlPath
                 + "?torrent";
-        } catch (ServiceException e) {
+        } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
     }
@@ -1305,13 +1303,8 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
                 "value=\"" + credentials.getAccessKey() + "\"/>");
 
             // Add signature for encoded policy document as the 'AWSAccessKeyId' field
-            String signature;
-            try {
-                signature = ServiceUtils.signWithHmacSha1(
+            String signature = ServiceUtils.signWithHmacSha1(
                     credentials.getSecretKey(), policyB64);
-            } catch (ServiceException se) {
-                throw new S3ServiceException(se);
-            }
             myInputFields.add("<input type=\"hidden\" name=\"signature\" " +
                 "value=\"" + signature + "\"/>");
         }
