@@ -213,8 +213,14 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
 
         // Sign the date to authenticate the request.
         // Sign the canonical string.
-        String signature = ServiceUtils.signWithHmacSha1(
-                getAWSCredentials().getSecretKey(), date);
+        String signature;
+        try {
+            signature = ServiceUtils.signWithHmacSha1(
+                    getAWSCredentials().getSecretKey(), date);
+        }
+        catch(UnsupportedEncodingException e) {
+            throw new ServiceException(e.getMessage(), e);
+        }
 
         // Add encoded authorization to connection as HTTP Authorization header.
         String authorizationString = "AWS " + getAWSCredentials().getAccessKey() + ":" + signature;
