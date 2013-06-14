@@ -170,12 +170,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * the object's URL.
-     *
-     * @throws S3ServiceException
      */
     public String createUnsignedObjectUrl(String bucketName, String objectKey,
         boolean isVirtualHost, boolean isHttps, boolean isDnsBucketNamingDisabled)
-        throws S3ServiceException
     {
         // Create a signed GET URL then strip away the signature query components.
         String signedGETUrl = createSignedUrl("GET", bucketName, objectKey,
@@ -217,13 +214,10 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
-     *
-     * @throws S3ServiceException
      */
     public String createSignedUrl(String method, String bucketName, String objectKey,
         String specialParamName, Map<String, Object> headersMap, long secondsSinceEpoch,
         boolean isVirtualHost, boolean isHttps, boolean isDnsBucketNamingDisabled)
-        throws S3ServiceException
     {
         String s3Endpoint = this.getEndpoint();
         String uriPath;
@@ -345,12 +339,10 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
-     *
-     * @throws S3ServiceException
      */
     public String createSignedUrl(String method, String bucketName, String objectKey,
         String specialParamName, Map<String, Object> headersMap, long secondsSinceEpoch,
-        boolean isVirtualHost) throws S3ServiceException
+        boolean isVirtualHost)
     {
         boolean isHttps = this.isHttpsOnly();
         boolean disableDnsBuckets = this.getDisableDnsBuckets();
@@ -383,12 +375,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
-     *
-     * @throws S3ServiceException
      */
     public String createSignedUrl(String method, String bucketName, String objectKey,
         String specialParamName, Map<String, Object> headersMap, long secondsSinceEpoch)
-        throws S3ServiceException
     {
         return createSignedUrl(method, bucketName, objectKey, specialParamName, headersMap,
             secondsSinceEpoch, false);
@@ -410,10 +399,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to grant GET access to an S3 resource to whoever uses it.
-     * @throws S3ServiceException
      */
     public String createSignedGetUrl(String bucketName, String objectKey,
-        Date expiryTime, boolean isVirtualHost) throws S3ServiceException
+        Date expiryTime, boolean isVirtualHost)
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("GET", bucketName, objectKey, null, null,
@@ -461,11 +449,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to allow anyone to PUT an object into S3.
-     * @throws S3ServiceException
      */
     public String createSignedPutUrl(String bucketName, String objectKey,
         Map<String, Object> headersMap, Date expiryTime, boolean isVirtualHost)
-        throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("PUT", bucketName, objectKey, null, headersMap,
@@ -489,10 +475,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to allow anyone to PUT an object into S3.
-     * @throws S3ServiceException
      */
     public String createSignedPutUrl(String bucketName, String objectKey,
-        Map<String, Object> headersMap, Date expiryTime) throws S3ServiceException
+        Map<String, Object> headersMap, Date expiryTime)
     {
         return createSignedPutUrl(bucketName, objectKey, headersMap, expiryTime, false);
     }
@@ -513,10 +498,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to allow anyone do DELETE an object in S3.
-     * @throws S3ServiceException
      */
     public String createSignedDeleteUrl(String bucketName, String objectKey,
-        Date expiryTime, boolean isVirtualHost) throws S3ServiceException
+        Date expiryTime, boolean isVirtualHost)
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("DELETE", bucketName, objectKey, null, null,
@@ -536,10 +520,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to allow anyone do DELETE an object in S3.
-     * @throws S3ServiceException
      */
     public String createSignedDeleteUrl(String bucketName, String objectKey,
-        Date expiryTime) throws S3ServiceException
+        Date expiryTime)
     {
         return createSignedDeleteUrl(bucketName, objectKey, expiryTime, false);
     }
@@ -560,10 +543,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to grant HEAD access to an S3 resource to whoever uses it.
-     * @throws S3ServiceException
      */
     public String createSignedHeadUrl(String bucketName, String objectKey,
-        Date expiryTime, boolean isVirtualHost) throws S3ServiceException
+        Date expiryTime, boolean isVirtualHost)
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("HEAD", bucketName, objectKey, null, null,
@@ -629,14 +611,12 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
-     *
-     * @throws S3ServiceException
      */
     @Deprecated
     public static String createSignedUrl(String method, String bucketName, String objectKey,
         String specialParamName, Map<String, Object> headersMap, ProviderCredentials credentials,
         long secondsSinceEpoch, boolean isVirtualHost, boolean isHttps,
-        boolean isDnsBucketNamingDisabled) throws S3ServiceException
+        boolean isDnsBucketNamingDisabled)
     {
         S3Service s3Service = new RestS3Service(credentials);
         return s3Service.createSignedUrl(method, bucketName, objectKey,
@@ -678,13 +658,11 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
-     *
-     * @throws S3ServiceException
      */
     @Deprecated
     public String createSignedUrl(String method, String bucketName, String objectKey,
         String specialParamName, Map<String, Object> headersMap, ProviderCredentials credentials,
-        long secondsSinceEpoch, boolean isVirtualHost) throws S3ServiceException
+        long secondsSinceEpoch, boolean isVirtualHost)
     {
         boolean isHttps = this.getHttpsOnly();
         boolean disableDnsBuckets = this.getDisableDnsBuckets();
@@ -759,7 +737,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     @Deprecated
     public String createSignedGetUrl(String bucketName, String objectKey,
         ProviderCredentials credentials, Date expiryTime, boolean isVirtualHost)
-        throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("GET", bucketName, objectKey, null, null,
@@ -822,7 +799,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     @Deprecated
     public String createSignedPutUrl(String bucketName, String objectKey,
         Map<String, Object> headersMap, ProviderCredentials credentials, Date expiryTime,
-        boolean isVirtualHost) throws S3ServiceException
+        boolean isVirtualHost)
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("PUT", bucketName, objectKey, null, headersMap,
@@ -885,7 +862,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     @Deprecated
     public String createSignedDeleteUrl(String bucketName, String objectKey,
         ProviderCredentials credentials, Date expiryTime, boolean isVirtualHost)
-        throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("DELETE", bucketName, objectKey, null, null,
@@ -944,7 +920,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     @Deprecated
     public String createSignedHeadUrl(String bucketName, String objectKey,
         ProviderCredentials credentials, Date expiryTime, boolean isVirtualHost)
-        throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("HEAD", bucketName, objectKey, null, null,
@@ -973,7 +948,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     @Deprecated
     public String createSignedHeadUrl(String bucketName, String objectKey,
         ProviderCredentials credentials, Date expiryTime)
-        throws S3ServiceException
     {
         return createSignedHeadUrl(bucketName, objectKey, credentials, expiryTime, false);
     }
