@@ -130,17 +130,13 @@ public class RestUtils {
      * encoded URL.
      * @throws ServiceException
      */
-    public static String encodeUrlString(String path) throws ServiceException {
-        try {
-            String encodedPath = URLEncoder.encode(path, Constants.DEFAULT_ENCODING);
-            // Web browsers do not always handle '+' characters well, use the well-supported '%20' instead.
-            encodedPath = encodedPath.replaceAll("\\+", "%20");
-            // '@' character need not be URL encoded and Google Chrome balks on signed URLs if it is.
-            encodedPath = encodedPath.replaceAll("%40", "@");
-            return encodedPath;
-        } catch (UnsupportedEncodingException uee) {
-            throw new ServiceException("Unable to encode path: " + path, uee);
-        }
+    public static String encodeUrlString(String path) throws UnsupportedEncodingException {
+        String encodedPath = URLEncoder.encode(path, Constants.DEFAULT_ENCODING);
+        // Web browsers do not always handle '+' characters well, use the well-supported '%20' instead.
+        encodedPath = encodedPath.replaceAll("\\+", "%20");
+        // '@' character need not be URL encoded and Google Chrome balks on signed URLs if it is.
+        encodedPath = encodedPath.replaceAll("%40", "@");
+        return encodedPath;
     }
 
     /**
@@ -153,7 +149,7 @@ public class RestUtils {
      * encoded URL string.
      * @throws ServiceException
      */
-    public static String encodeUrlPath(String path, String delimiter) throws ServiceException {
+    public static String encodeUrlPath(String path, String delimiter) throws UnsupportedEncodingException {
         StringBuilder result = new StringBuilder();
         String tokens[] = path.split(delimiter);
         for (int i = 0; i < tokens.length; i++) {

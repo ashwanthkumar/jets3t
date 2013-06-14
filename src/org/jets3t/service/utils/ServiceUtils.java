@@ -125,10 +125,9 @@ public class ServiceUtils {
      * @param canonicalString
      * canonical string representing the request to sign.
      * @return Signature
-     * @throws ServiceException
      */
     public static String signWithHmacSha1(String awsSecretKey, String canonicalString)
-        throws ServiceException
+        throws UnsupportedEncodingException
     {
         if (awsSecretKey == null) {
             if (log.isDebugEnabled()) {
@@ -142,12 +141,8 @@ public class ServiceUtils {
         //
         // Acquire an HMAC/SHA1 from the raw key bytes.
         SecretKeySpec signingKey = null;
-        try {
-            signingKey = new SecretKeySpec(awsSecretKey.getBytes(Constants.DEFAULT_ENCODING),
+        signingKey = new SecretKeySpec(awsSecretKey.getBytes(Constants.DEFAULT_ENCODING),
                 Constants.HMAC_SHA1_ALGORITHM);
-        } catch (UnsupportedEncodingException e) {
-            throw new ServiceException("Unable to get bytes from secret string", e);
-        }
 
         // Acquire the MAC instance and initialize with the signing key.
         Mac mac = null;
@@ -165,13 +160,9 @@ public class ServiceUtils {
         }
 
         // Compute the HMAC on the digest, and set it.
-        try {
-            byte[] b64 = Base64.encodeBase64(mac.doFinal(
+        byte[] b64 = Base64.encodeBase64(mac.doFinal(
                 canonicalString.getBytes(Constants.DEFAULT_ENCODING)));
-            return new String(b64);
-        } catch (UnsupportedEncodingException e) {
-            throw new ServiceException("Unable to get bytes from canonical string", e);
-        }
+        return new String(b64);
     }
 
     /**
