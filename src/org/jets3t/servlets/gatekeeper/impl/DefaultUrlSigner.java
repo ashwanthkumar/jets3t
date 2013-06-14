@@ -95,11 +95,7 @@ public class DefaultUrlSigner extends UrlSigner {
         }
 
         this.credentials = new AWSCredentials(awsAccessKey, awsSecretKey);
-        try {
-            this.s3Service = new RestS3Service(credentials);
-        } catch (S3ServiceException e) {
-            throw new ServletException("Unable to initialize S3Service", e);
-        }
+        this.s3Service = new RestS3Service(credentials);
 
         String secondsToSign = servletConfig.getInitParameter("SecondsToSign");
         if (secondsToSign == null || secondsToSign.length() == 0) {

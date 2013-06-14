@@ -102,10 +102,8 @@ public class RestS3Service extends S3Service {
      * @param credentials
      * the user credentials to use when communicating with S3, may be null in which case the
      * communication is done as an anonymous user.
-     *
-     * @throws S3ServiceException
      */
-    public RestS3Service(ProviderCredentials credentials) throws S3ServiceException {
+    public RestS3Service(ProviderCredentials credentials) {
         this(credentials, null, null);
     }
 
@@ -122,11 +120,9 @@ public class RestS3Service extends S3Service {
      * @param credentialsProvider
      * an implementation of the HttpClient CredentialsProvider interface, to provide a means for
      * prompting for credentials when necessary.
-     *
-     * @throws S3ServiceException
      */
     public RestS3Service(ProviderCredentials credentials, String invokingApplicationDescription,
-        CredentialsProvider credentialsProvider) throws S3ServiceException
+        CredentialsProvider credentialsProvider)
     {
         this(credentials, invokingApplicationDescription, credentialsProvider,
             Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME));
@@ -147,12 +143,9 @@ public class RestS3Service extends S3Service {
      * prompting for credentials when necessary.
      * @param jets3tProperties
      * JetS3t properties that will be applied within this service.
-     *
-     * @throws S3ServiceException
      */
     public RestS3Service(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties)
-        throws S3ServiceException
     {
         super(credentials, invokingApplicationDescription, credentialsProvider, jets3tProperties);
 
