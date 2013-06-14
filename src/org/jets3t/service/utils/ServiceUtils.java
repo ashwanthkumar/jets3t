@@ -127,7 +127,6 @@ public class ServiceUtils {
      * @return Signature
      */
     public static String signWithHmacSha1(String awsSecretKey, String canonicalString)
-        throws UnsupportedEncodingException
     {
         if (awsSecretKey == null) {
             if (log.isDebugEnabled()) {
@@ -141,8 +140,13 @@ public class ServiceUtils {
         //
         // Acquire an HMAC/SHA1 from the raw key bytes.
         SecretKeySpec signingKey = null;
-        signingKey = new SecretKeySpec(awsSecretKey.getBytes(Constants.DEFAULT_ENCODING),
-                Constants.HMAC_SHA1_ALGORITHM);
+        try {
+            signingKey = new SecretKeySpec(awsSecretKey.getBytes(Constants.DEFAULT_ENCODING),
+                    Constants.HMAC_SHA1_ALGORITHM);
+        }
+        catch(UnsupportedEncodingException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
 
         // Acquire the MAC instance and initialize with the signing key.
         Mac mac = null;
@@ -160,8 +164,14 @@ public class ServiceUtils {
         }
 
         // Compute the HMAC on the digest, and set it.
-        byte[] b64 = Base64.encodeBase64(mac.doFinal(
-                canonicalString.getBytes(Constants.DEFAULT_ENCODING)));
+        byte[] b64 = new byte[0];
+        try {
+            b64 = Base64.encodeBase64(mac.doFinal(
+                    canonicalString.getBytes(Constants.DEFAULT_ENCODING)));
+        }
+        catch(UnsupportedEncodingException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
         return new String(b64);
     }
 

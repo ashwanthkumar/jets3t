@@ -225,97 +225,93 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         boolean isVirtualHost, boolean isHttps, boolean isDnsBucketNamingDisabled)
         throws S3ServiceException
     {
-        try {
-            String s3Endpoint = this.getEndpoint();
-            String uriPath;
+        String s3Endpoint = this.getEndpoint();
+        String uriPath;
 
-            String hostname = (isVirtualHost
-                ? bucketName
-                : ServiceUtils.generateS3HostnameForBucket(
-                    bucketName, isDnsBucketNamingDisabled, s3Endpoint));
+        String hostname = (isVirtualHost
+            ? bucketName
+            : ServiceUtils.generateS3HostnameForBucket(
+                bucketName, isDnsBucketNamingDisabled, s3Endpoint));
 
-            if (headersMap == null) {
-                headersMap = new HashMap<String, Object>();
-            }
+        if (headersMap == null) {
+            headersMap = new HashMap<String, Object>();
+        }
 
-            // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
-            String virtualBucketPath = "";
-            if (!s3Endpoint.equals(hostname)) {
-                int subdomainOffset = hostname.lastIndexOf("." + s3Endpoint);
-                if (subdomainOffset > 0) {
-                    // Hostname represents an S3 sub-domain, so the bucket's name is the CNAME portion
-                    virtualBucketPath = hostname.substring(0, subdomainOffset) + "/";
-                } else {
-                    // Hostname represents a virtual host, so the bucket's name is identical to hostname
-                    virtualBucketPath = hostname + "/";
-                }
-                uriPath = (objectKey != null ? RestUtils.encodeUrlPath(objectKey, "/") : "");
+        // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
+        String virtualBucketPath = "";
+        if (!s3Endpoint.equals(hostname)) {
+            int subdomainOffset = hostname.lastIndexOf("." + s3Endpoint);
+            if (subdomainOffset > 0) {
+                // Hostname represents an S3 sub-domain, so the bucket's name is the CNAME portion
+                virtualBucketPath = hostname.substring(0, subdomainOffset) + "/";
             } else {
-                uriPath = bucketName + (objectKey != null ? "/" + RestUtils.encodeUrlPath(objectKey, "/") : "");
+                // Hostname represents a virtual host, so the bucket's name is identical to hostname
+                virtualBucketPath = hostname + "/";
             }
+            uriPath = (objectKey != null ? RestUtils.encodeUrlPath(objectKey, "/") : "");
+        } else {
+            uriPath = bucketName + (objectKey != null ? "/" + RestUtils.encodeUrlPath(objectKey, "/") : "");
+        }
 
-            if (specialParamName != null) {
-                uriPath += "?" + specialParamName + "&";
+        if (specialParamName != null) {
+            uriPath += "?" + specialParamName + "&";
+        } else {
+            uriPath += "?";
+        }
+
+        // Include any DevPay tokens in signed request
+        if (credentials instanceof AWSDevPayCredentials) {
+            AWSDevPayCredentials devPayCredentials = (AWSDevPayCredentials) credentials;
+            if (devPayCredentials.getProductToken() != null) {
+                String securityToken = devPayCredentials.getUserToken()
+                    + "," + devPayCredentials.getProductToken();
+                headersMap.put(Constants.AMZ_SECURITY_TOKEN, securityToken);
             } else {
-                uriPath += "?";
+                headersMap.put(Constants.AMZ_SECURITY_TOKEN, devPayCredentials.getUserToken());
             }
 
-            // Include any DevPay tokens in signed request
-            if (credentials instanceof AWSDevPayCredentials) {
-                AWSDevPayCredentials devPayCredentials = (AWSDevPayCredentials) credentials;
-                if (devPayCredentials.getProductToken() != null) {
-                    String securityToken = devPayCredentials.getUserToken()
-                        + "," + devPayCredentials.getProductToken();
-                    headersMap.put(Constants.AMZ_SECURITY_TOKEN, securityToken);
-                } else {
-                    headersMap.put(Constants.AMZ_SECURITY_TOKEN, devPayCredentials.getUserToken());
-                }
+            uriPath += Constants.AMZ_SECURITY_TOKEN + "=" +
+                RestUtils.encodeUrlString((String) headersMap.get(Constants.AMZ_SECURITY_TOKEN)) + "&";
+        }
 
-                uriPath += Constants.AMZ_SECURITY_TOKEN + "=" +
-                    RestUtils.encodeUrlString((String) headersMap.get(Constants.AMZ_SECURITY_TOKEN)) + "&";
-            }
+        uriPath += "AWSAccessKeyId=" + credentials.getAccessKey();
+        uriPath += "&Expires=" + secondsSinceEpoch;
 
-            uriPath += "AWSAccessKeyId=" + credentials.getAccessKey();
-            uriPath += "&Expires=" + secondsSinceEpoch;
+        // Include Requester Pays header flag, if the flag is included as a request parameter.
+        if (specialParamName != null
+            && specialParamName.toLowerCase().contains(Constants.REQUESTER_PAYS_BUCKET_FLAG))
+        {
+            String[] requesterPaysHeaderAndValue = Constants.REQUESTER_PAYS_BUCKET_FLAG.split("=");
+            headersMap.put(requesterPaysHeaderAndValue[0], requesterPaysHeaderAndValue[1]);
+        }
 
-            // Include Requester Pays header flag, if the flag is included as a request parameter.
-            if (specialParamName != null
-                && specialParamName.toLowerCase().contains(Constants.REQUESTER_PAYS_BUCKET_FLAG))
-            {
-                String[] requesterPaysHeaderAndValue = Constants.REQUESTER_PAYS_BUCKET_FLAG.split("=");
-                headersMap.put(requesterPaysHeaderAndValue[0], requesterPaysHeaderAndValue[1]);
-            }
+        String serviceEndpointVirtualPath = this.getVirtualPath();
 
-            String serviceEndpointVirtualPath = this.getVirtualPath();
+        String canonicalString = RestUtils.makeServiceCanonicalString(method,
+            serviceEndpointVirtualPath + "/" + virtualBucketPath + uriPath,
+            renameMetadataKeys(headersMap), String.valueOf(secondsSinceEpoch),
+            this.getRestHeaderPrefix(), this.getResourceParameterNames());
+        if (log.isDebugEnabled()) {
+            log.debug("Signing canonical string:\n" + canonicalString);
+        }
 
-            String canonicalString = RestUtils.makeServiceCanonicalString(method,
-                serviceEndpointVirtualPath + "/" + virtualBucketPath + uriPath,
-                renameMetadataKeys(headersMap), String.valueOf(secondsSinceEpoch),
-                this.getRestHeaderPrefix(), this.getResourceParameterNames());
-            if (log.isDebugEnabled()) {
-                log.debug("Signing canonical string:\n" + canonicalString);
-            }
+        String signedCanonical = ServiceUtils.signWithHmacSha1(credentials.getSecretKey(),
+            canonicalString);
+        String encodedCanonical = RestUtils.encodeUrlString(signedCanonical);
+        uriPath += "&Signature=" + encodedCanonical;
 
-            String signedCanonical = ServiceUtils.signWithHmacSha1(credentials.getSecretKey(),
-                canonicalString);
-            String encodedCanonical = RestUtils.encodeUrlString(signedCanonical);
-            uriPath += "&Signature=" + encodedCanonical;
-
-            if (isHttps) {
-                int httpsPort = this.getHttpsPort();
-                return "https://" + hostname
-                    + (httpsPort != 443 ? ":" + httpsPort : "")
-                    + serviceEndpointVirtualPath
-                    + "/" + uriPath;
-            } else {
-                int httpPort = this.getHttpPort();
-                return "http://" + hostname
-                + (httpPort != 80 ? ":" + httpPort : "")
+        if (isHttps) {
+            int httpsPort = this.getHttpsPort();
+            return "https://" + hostname
+                + (httpsPort != 443 ? ":" + httpsPort : "")
                 + serviceEndpointVirtualPath
                 + "/" + uriPath;
-            }
-        } catch (UnsupportedEncodingException e) {
-            throw new S3ServiceException(e);
+        } else {
+            int httpPort = this.getHttpPort();
+            return "http://" + hostname
+            + (httpPort != 80 ? ":" + httpPort : "")
+            + serviceEndpointVirtualPath
+            + "/" + uriPath;
         }
     }
 
@@ -1000,23 +996,19 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         int httpPort = this.getHttpPort();
         boolean disableDnsBuckets = this.getDisableDnsBuckets();
 
-        try {
-            String bucketNameInPath =
+        String bucketNameInPath =
                 !disableDnsBuckets && ServiceUtils.isBucketNameValidDNSName(bucketName)
-                ? ""
-                : RestUtils.encodeUrlString(bucketName) + "/";
-            String urlPath =
+                        ? ""
+                        : RestUtils.encodeUrlString(bucketName) + "/";
+        String urlPath =
                 RestUtils.encodeUrlPath(serviceEndpointVirtualPath, "/")
-                + "/" + bucketNameInPath
-                + RestUtils.encodeUrlPath(objectKey, "/");
-            return "http://" + ServiceUtils.generateS3HostnameForBucket(
+                        + "/" + bucketNameInPath
+                        + RestUtils.encodeUrlPath(objectKey, "/");
+        return "http://" + ServiceUtils.generateS3HostnameForBucket(
                 bucketName, disableDnsBuckets, s3Endpoint)
                 + (httpPort != 80 ? ":" + httpPort : "")
                 + urlPath
                 + "?torrent";
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     /**

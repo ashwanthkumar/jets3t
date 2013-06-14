@@ -677,19 +677,13 @@ public abstract class RestStorageService extends StorageService implements JetS3
         }
 
         // Generate a canonical string representing the operation.
-        String canonicalString;
-        try {
-            canonicalString = RestUtils.makeServiceCanonicalString(
-                    httpMethod.getMethod(),
-                    fullUrl,
-                    convertHeadersToMap(httpMethod.getAllHeaders()),
-                    null,
-                    getRestHeaderPrefix(),
-                    getResourceParameterNames());
-        }
-        catch(UnsupportedEncodingException e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
+        String canonicalString = RestUtils.makeServiceCanonicalString(
+                httpMethod.getMethod(),
+                fullUrl,
+                convertHeadersToMap(httpMethod.getAllHeaders()),
+                null,
+                getRestHeaderPrefix(),
+                getResourceParameterNames());
         if(log.isDebugEnabled()) {
             log.debug("Canonical string ('|' is a newline): " + canonicalString.replace('\n', '|'));
         }
