@@ -147,9 +147,9 @@ public abstract class RestStorageService extends StorageService implements JetS3
         super(credentials, invokingApplicationDescription, jets3tProperties);
         this.credentialsProvider = credentialsProvider;
 
-        this.defaultStorageClass = this.jets3tProperties.getStringProperty(
+        this.defaultStorageClass = getJetS3tProperties().getStringProperty(
                 "s3service.default-storage-class", null);
-        this.defaultServerSideEncryptionAlgorithm = this.jets3tProperties.getStringProperty(
+        this.defaultServerSideEncryptionAlgorithm = getJetS3tProperties().getStringProperty(
                 "s3service.server-side-encryption", null);
     }
 
@@ -162,16 +162,16 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
     protected void initializeProxy() {
         // Retrieve Proxy settings.
-        if(this.jets3tProperties.getBoolProperty("httpclient.proxy-autodetect", true)) {
-            RestUtils.initHttpProxy(httpClient, this.jets3tProperties, this.getEndpoint());
+        if(getJetS3tProperties().getBoolProperty("httpclient.proxy-autodetect", true)) {
+            RestUtils.initHttpProxy(httpClient, getJetS3tProperties(), this.getEndpoint());
         }
         else {
-            String proxyHostAddress = this.jets3tProperties.getStringProperty("httpclient.proxy-host", null);
-            int proxyPort = this.jets3tProperties.getIntProperty("httpclient.proxy-port", -1);
-            String proxyUser = this.jets3tProperties.getStringProperty("httpclient.proxy-user", null);
-            String proxyPassword = this.jets3tProperties.getStringProperty("httpclient.proxy-password", null);
-            String proxyDomain = this.jets3tProperties.getStringProperty("httpclient.proxy-domain", null);
-            RestUtils.initHttpProxy(httpClient, this.jets3tProperties, false,
+            String proxyHostAddress = getJetS3tProperties().getStringProperty("httpclient.proxy-host", null);
+            int proxyPort = getJetS3tProperties().getIntProperty("httpclient.proxy-port", -1);
+            String proxyUser = getJetS3tProperties().getStringProperty("httpclient.proxy-user", null);
+            String proxyPassword = getJetS3tProperties().getStringProperty("httpclient.proxy-password", null);
+            String proxyDomain = getJetS3tProperties().getStringProperty("httpclient.proxy-domain", null);
+            RestUtils.initHttpProxy(httpClient, getJetS3tProperties(), false,
                     proxyHostAddress, proxyPort, proxyUser, proxyPassword, proxyDomain, this.getEndpoint());
         }
     }
@@ -201,9 +201,9 @@ public abstract class RestStorageService extends StorageService implements JetS3
     protected HttpClient initHttpConnection() {
         return RestUtils.initHttpConnection(
                 this,
-                jets3tProperties,
+                getJetS3tProperties(),
                 getInvokingApplicationDescription(),
-                credentialsProvider);
+                getCredentialsProvider());
     }
 
     /**
@@ -415,7 +415,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                                 response.getAllHeaders()));
 
                         if("RequestTimeout".equals(exception.getErrorCode())) {
-                            int retryMaxCount = jets3tProperties.getIntProperty("httpclient.retry-max", 5);
+                            int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
 
                             if(requestTimeoutErrorCount < retryMaxCount) {
                                 requestTimeoutErrorCount++;
@@ -1636,7 +1636,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
         if(object.getMetadata(StorageObject.METADATA_HEADER_CONTENT_MD5) != null) {
             return false;
         }
-        boolean disableLiveMd5 = jets3tProperties.getBoolProperty(
+        boolean disableLiveMd5 = getJetS3tProperties().getBoolProperty(
                 "storage-service.disable-live-md5", false);
         return !disableLiveMd5;
     }
@@ -1722,7 +1722,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                         object.getDataInputStream(),
                         object.getContentType(),
                         object.getContentLength(),
-                        this.jets3tProperties,
+                        getJetS3tProperties(),
                         isLiveMD5HashingRequired(object));
             }
             else {
@@ -2172,7 +2172,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
         if(object.getDataInputStream() != null) {
             repeatableRequestEntity = new RepeatableRequestEntity(object.getKey(),
                     object.getDataInputStream(), object.getContentType(), object.getContentLength(),
-                    this.jets3tProperties, isLiveMD5HashingRequired);
+                    getJetS3tProperties(), isLiveMD5HashingRequired);
 
             putMethod.setEntity(repeatableRequestEntity);
         }

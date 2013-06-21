@@ -141,15 +141,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     }
 
     /**
-     * @return the credentials identifying the service user, or null for anonymous.
-     * @deprecated 0.8.0 use {@link #getProviderCredentials()} instead
-     */
-    @Deprecated
-    public ProviderCredentials getAWSCredentials() {
-        return credentials;
-    }
-
-    /**
      * Returns the URL representing an object in S3 without a signature. This URL
      * can only be used to download publicly-accessible objects.
      *
@@ -254,8 +245,8 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         }
 
         // Include any DevPay tokens in signed request
-        if (credentials instanceof AWSDevPayCredentials) {
-            AWSDevPayCredentials devPayCredentials = (AWSDevPayCredentials) credentials;
+        if (getProviderCredentials() instanceof AWSDevPayCredentials) {
+            AWSDevPayCredentials devPayCredentials = (AWSDevPayCredentials) getProviderCredentials();
             if (devPayCredentials.getProductToken() != null) {
                 String securityToken = devPayCredentials.getUserToken()
                     + "," + devPayCredentials.getProductToken();
@@ -268,7 +259,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
                 RestUtils.encodeUrlString((String) headersMap.get(Constants.AMZ_SECURITY_TOKEN)) + "&";
         }
 
-        uriPath += "AWSAccessKeyId=" + credentials.getAccessKey();
+        uriPath += "AWSAccessKeyId=" + getProviderCredentials().getAccessKey();
         uriPath += "&Expires=" + secondsSinceEpoch;
 
         // Include Requester Pays header flag, if the flag is included as a request parameter.
@@ -289,7 +280,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
             log.debug("Signing canonical string:\n" + canonicalString);
         }
 
-        String signedCanonical = ServiceUtils.signWithHmacSha1(credentials.getSecretKey(),
+        String signedCanonical = ServiceUtils.signWithHmacSha1(getProviderCredentials().getSecretKey(),
             canonicalString);
         String encodedCanonical = RestUtils.encodeUrlString(signedCanonical);
         uriPath += "&Signature=" + encodedCanonical;
@@ -1449,7 +1440,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public S3Bucket createBucket(String bucketName) throws S3ServiceException {
         try {
             return this.createBucket(bucketName,
-                this.jets3tProperties.getStringProperty(
+                    getJetS3tProperties().getStringProperty(
                     "s3service.default-bucket-location", "US"), null);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
@@ -1460,7 +1451,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public S3Bucket getOrCreateBucket(String bucketName) throws S3ServiceException {
         try {
             return this.getOrCreateBucket(bucketName,
-                this.jets3tProperties.getStringProperty(
+                    getJetS3tProperties().getStringProperty(
                     "s3service.default-bucket-location", "US"));
         } catch (ServiceException se) {
             throw new S3ServiceException(se);

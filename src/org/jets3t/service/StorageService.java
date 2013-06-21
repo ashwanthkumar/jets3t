@@ -78,9 +78,9 @@ public abstract class StorageService {
      */
     public static final int BUCKET_STATUS__ALREADY_CLAIMED = 2;
 
-    protected Jets3tProperties jets3tProperties = null;
+    private Jets3tProperties jets3tProperties = null;
 
-    protected ProviderCredentials credentials = null;
+    private ProviderCredentials credentials = null;
 
     private String invokingApplicationDescription = null;
     private boolean isHttpsOnly = true;
@@ -126,7 +126,7 @@ public abstract class StorageService {
     }
 
     protected void initializeDefaults() {
-        if (this.jets3tProperties.getBoolProperty(
+        if (getJetS3tProperties().getBoolProperty(
             "storage-service.apply-recommended-dns-caching-defaults", true))
         {
             // Configure the InetAddress DNS caching times to work well with remote services. The cached
