@@ -131,7 +131,7 @@ public class GoogleStorageService extends RestStorageService {
                                              Map<String, String> requestParameters) throws ServiceException {
         final HttpUriRequest request = super.setupConnection(method, bucketName, objectKey, requestParameters);
         // Use API version 2 if we are using OAuth2 credentials
-        if (this.credentials instanceof OAuth2Credentials) {
+        if (getProviderCredentials() instanceof OAuth2Credentials) {
             request.setHeader("x-goog-api-version", "2");
         }
         return request;
@@ -148,7 +148,7 @@ public class GoogleStorageService extends RestStorageService {
      */
     @Override
     public String getEndpoint() {
-        return this.jets3tProperties.getStringProperty(
+        return getJetS3tProperties().getStringProperty(
                 "gsservice.gs-endpoint", Constants.GS_DEFAULT_HOSTNAME);
     }
 
@@ -158,7 +158,7 @@ public class GoogleStorageService extends RestStorageService {
      */
     @Override
     protected String getVirtualPath() {
-        return this.jets3tProperties.getStringProperty(
+        return getJetS3tProperties().getStringProperty(
                 "gsservice.gs-endpoint-virtual-path", "");
     }
 
@@ -201,7 +201,7 @@ public class GoogleStorageService extends RestStorageService {
      */
     @Override
     protected int getHttpPort() {
-      return this.jets3tProperties.getIntProperty("gsservice.gs-endpoint-http-port", 80);
+      return getJetS3tProperties().getIntProperty("gsservice.gs-endpoint-http-port", 80);
     }
 
     /**
@@ -210,7 +210,7 @@ public class GoogleStorageService extends RestStorageService {
      */
     @Override
     protected int getHttpsPort() {
-      return this.jets3tProperties.getIntProperty("gsservice.gs-endpoint-https-port", 443);
+      return getJetS3tProperties().getIntProperty("gsservice.gs-endpoint-https-port", 443);
     }
 
     /**
@@ -220,7 +220,7 @@ public class GoogleStorageService extends RestStorageService {
      */
     @Override
     protected boolean getHttpsOnly() {
-      return this.jets3tProperties.getBoolProperty("gsservice.https-only", true);
+      return getJetS3tProperties().getBoolProperty("gsservice.https-only", true);
     }
 
     /**
@@ -230,7 +230,7 @@ public class GoogleStorageService extends RestStorageService {
      */
     @Override
     protected boolean getDisableDnsBuckets() {
-      return this.jets3tProperties.getBoolProperty("gsservice.disable-dns-buckets", true);
+      return getJetS3tProperties().getBoolProperty("gsservice.disable-dns-buckets", true);
     }
 
     /**
@@ -254,7 +254,7 @@ public class GoogleStorageService extends RestStorageService {
 
     @Override
     protected XmlResponsesSaxParser getXmlResponseSaxParser() throws ServiceException {
-        return new XmlResponsesSaxParser(this.jets3tProperties, true);
+        return new XmlResponsesSaxParser(getJetS3tProperties(), true);
     }
 
     @Override
@@ -446,10 +446,10 @@ public class GoogleStorageService extends RestStorageService {
     public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context)
             throws ServiceException
     {
-        if (this.credentials instanceof OAuth2Credentials) {
+        if (getProviderCredentials() instanceof OAuth2Credentials) {
             OAuth2Tokens tokens;
             try {
-                tokens = ((OAuth2Credentials)this.credentials).getOAuth2Tokens();
+                tokens = ((OAuth2Credentials)getProviderCredentials()).getOAuth2Tokens();
             }
             catch(IOException e) {
                 throw new ServiceException("Failure retrieving OAuth2 tokens", e);
@@ -471,12 +471,12 @@ public class GoogleStorageService extends RestStorageService {
     @Override
     protected boolean isRecoverable403(HttpUriRequest httpRequest, Exception exception)
     {
-        if (this.credentials instanceof OAuth2Credentials) {
+        if (getProviderCredentials() instanceof OAuth2Credentials) {
             // Only retry if we're using OAuth2 authentication and can refresh the access token
             // TODO Any way to distinguish between expired access token and other 403 reasons?
             OAuth2Tokens tokens;
             try {
-                tokens = ((OAuth2Credentials)this.credentials).getOAuth2Tokens();
+                tokens = ((OAuth2Credentials)getProviderCredentials()).getOAuth2Tokens();
             }
             catch(IOException e) {
                 return false;
