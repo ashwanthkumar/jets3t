@@ -212,7 +212,7 @@ public abstract class StorageService {
      * if the service is acting as an anonymous user.
      */
     public boolean isAuthenticatedConnection() {
-        return credentials != null;
+        return getProviderCredentials() != null;
     }
 
     /**
