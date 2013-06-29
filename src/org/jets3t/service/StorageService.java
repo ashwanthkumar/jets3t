@@ -312,6 +312,10 @@ public abstract class StorageService {
         return credentials;
     }
 
+    public void setProviderCredentials(final ProviderCredentials credentials) {
+        this.credentials = credentials;
+    }
+
     /**
      * @return a description of the application using this service, suitable for inclusion in the
      * user agent string of REST/HTTP requests.
