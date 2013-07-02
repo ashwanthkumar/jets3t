@@ -277,59 +277,29 @@ public class ServiceUtils {
      *
      * @param metadata
      * metadata map to be cleaned
-     * @param headerPrefix
+     * @param serviceMetadataPrefix
      * prefix denoting service-specific "header" HTTP header values (case insensitive)
-     * @param metadataPrefix
-     * prefix denoting service-specific "metadata" HTTP header values (case insensitive)
+     * @param userMetadataPrefix
+     * prefix denoting service-specific "user metadata" HTTP header values (case insensitive)
      * @return
      * metadata map with HTTP-connection-specific items removed.
      */
     public static Map<String, Object> cleanRestMetadataMap(
-        Map<String, Object> metadata, String headerPrefix, String metadataPrefix)
+        Map<String, Object> metadata, String serviceMetadataPrefix, String userMetadataPrefix)
     {
         if (log.isDebugEnabled()) {
-            log.debug("Cleaning up REST metadata items");
+            log.debug("Processing REST metadata items");
         }
-        Map<String, Object> cleanMap = new HashMap<String, Object>();
+
+        Map<String, Object> combinedMap = new HashMap<String, Object>();
+        Map<String, Object> serviceMetadataMap = new HashMap<String, Object>();
+        Map<String, Object> userMetadataMap = new HashMap<String, Object>();
+        Map<String, Object> completeMetadataMap = new HashMap<String, Object>();
+
         if (metadata != null) {
             for (Map.Entry<String, Object> entry: metadata.entrySet()) {
                 String key = entry.getKey();
                 Object value = entry.getValue();
-
-                // Trim prefixes from keys.
-                String keyStr = (key != null ? key.toString() : "");
-                if (keyStr.toLowerCase().startsWith(metadataPrefix)) {
-                    key = keyStr.substring(metadataPrefix.length(), keyStr.length());
-                    if (log.isDebugEnabled()) {
-                        log.debug("Removed meatadata header prefix "
-                            + metadataPrefix + " from key: " + keyStr + "=>" + key);
-                    }
-                } else if (keyStr.toLowerCase().startsWith(headerPrefix)) {
-                    key = keyStr.substring(headerPrefix.length(), keyStr.length());
-                    if (log.isDebugEnabled()) {
-                        log.debug("Removed header prefix "
-                            + headerPrefix + " from key: " + keyStr + "=>" + key);
-                    }
-                } else if (RestUtils.HTTP_HEADER_METADATA_NAMES.contains(keyStr.toLowerCase(Locale.ENGLISH))) {
-                    key = keyStr;
-                    if (log.isDebugEnabled()) {
-                        log.debug("Leaving HTTP header item unchanged: " + key + "=" + value);
-                    }
-                } else if ("ETag".equalsIgnoreCase(keyStr)
-                    || "Date".equalsIgnoreCase(keyStr)
-                    || "Last-Modified".equalsIgnoreCase(keyStr)
-                    || "Content-Range".equalsIgnoreCase(keyStr))
-                {
-                    key = keyStr;
-                    if (log.isDebugEnabled()) {
-                        log.debug("Leaving header item unchanged: " + key + "=" + value);
-                    }
-                } else {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Ignoring metadata item: " + keyStr + "=" + value);
-                    }
-                    continue;
-                }
 
                 // Convert connection header string Collections into simple strings (where
                 // appropriate)
@@ -372,10 +342,55 @@ public class ServiceUtils {
                     }
                 }
 
-                cleanMap.put(key, value);
+                // Recognize user/headers metadata items
+                String keyStr = (key != null ? key.toString() : "");
+                completeMetadataMap.put(keyStr, value);
+
+                if (keyStr.toLowerCase().startsWith(userMetadataPrefix)) {
+                    key = keyStr.substring(userMetadataPrefix.length(), keyStr.length());
+                    userMetadataMap.put(key, value);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Removed user metadata header prefix "
+                            + userMetadataPrefix + " from key: " + keyStr + "=>" + key);
+                    }
+                } else if (keyStr.toLowerCase().startsWith(serviceMetadataPrefix)) {
+                    key = keyStr.substring(serviceMetadataPrefix.length(), keyStr.length());
+                    serviceMetadataMap.put(key, value);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Removed header prefix "
+                            + serviceMetadataPrefix + " from key: " + keyStr + "=>" + key);
+                    }
+                } else if (RestUtils.HTTP_HEADER_METADATA_NAMES.contains(keyStr.toLowerCase(Locale.ENGLISH))) {
+                    key = keyStr;
+                    if (log.isDebugEnabled()) {
+                        log.debug("Leaving HTTP header item unchanged: " + key + "=" + value);
+                    }
+                } else if ("ETag".equalsIgnoreCase(keyStr)
+                    || "Date".equalsIgnoreCase(keyStr)
+                    || "Last-Modified".equalsIgnoreCase(keyStr)
+                    || "Content-Range".equalsIgnoreCase(keyStr))
+                {
+                    key = keyStr;
+                    if (log.isDebugEnabled()) {
+                        log.debug("Leaving header item unchanged: " + key + "=" + value);
+                    }
+                } else {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Ignoring metadata item: " + keyStr + "=" + value);
+                    }
+                    continue;
+                }
+
+                combinedMap.put(key, value);
             }
         }
-        return cleanMap;
+
+        // Add user and header metadata sub-maps to combined map
+        combinedMap.put(Constants.KEY_FOR_SERVICE_METADATA, serviceMetadataMap);
+        combinedMap.put(Constants.KEY_FOR_USER_METADATA, userMetadataMap);
+        combinedMap.put(Constants.KEY_FOR_COMPLETE_METADATA, completeMetadataMap);
+
+        return combinedMap;
     }
 
     /**
@@ -859,6 +874,5 @@ public class ServiceUtils {
       output.append(workBuf.toString());
       return output.toString();
     }
-
 
 }

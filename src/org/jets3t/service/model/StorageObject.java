@@ -627,6 +627,8 @@ public class StorageObject extends BaseStorageItem implements Cloneable {
                 addMetadata(entry.getKey().toString(), (Date) value);
             } else if (value instanceof S3Owner) {
                 addMetadata(entry.getKey().toString(), (S3Owner) value);
+            } else {
+                addMetadata(entry.getKey().toString(), value);
             }
         }
     }

@@ -9,6 +9,11 @@ Version 0.9.1-dev
 
 General:
 
+ * Storage objects now make fine-grained metadata maps available when possible
+   including: user-specified metadata via #getUserMetadataMap; service-specified
+   metadata via #getServiceMetadataMap; a complete and unfiltered set of metadata
+   via #getCompleteMetadataMap. See issue #171.
+ 
  * Fixed `httpclient.read-throttle` upload bandwidth throttling implementation 
    which wasn't working for values under 128KB. It should now throttle correctly
    down to single-digit KB/s values.
