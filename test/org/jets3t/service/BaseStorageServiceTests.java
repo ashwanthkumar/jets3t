@@ -391,11 +391,23 @@ public abstract class BaseStorageServiceTests extends TestCase {
                     objectData.length(), dataObject.getContentLength());
             }
             assertEquals("Mismatching hash", dataMd5HashAsHex, dataObject.getETag());
+
+            // Check user's data are available in basic metadata map
             assertEquals("Missing creator metadata", "testObjectManagement",
                 dataObject.getMetadata("creator"));
             assertEquals("Missing purpose metadata", "For testing purposes",
                 dataObject.getMetadata("purpose"));
+
+            // Check data are available in user metadata map
+            assertEquals("Missing creator user metadata",
+                "testObjectManagement", dataObject.getUserMetadataMap().get("creator"));
+            assertEquals("Missing purpose user metadata",
+                "For testing purposes", dataObject.getUserMetadataMap().get("purpose"));
             assertNotNull("Expected data input stream to be available", dataObject.getDataInputStream());
+
+            // Check data are available in service metadata map
+            assertNotNull(dataObject.getServiceMetadataMap().get("request-id"));
+
             // Ensure we can get the data from S3.
             StringBuffer sb = new StringBuffer();
             int b = -1;
@@ -636,7 +648,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             copiedObject = service.getObjectDetails(
                 sourceBucketName, targetObject.getName());
             // Ensure we have the same object with updated metadata
-            assertEquals("yes!", copiedObject.getMetadata("was-i-updated"));
+            assertEquals("yes!", copiedObject.getUserMetadataMap().get("was-i-updated"));
 
             // Move object convenience method - retain metadata
             objectOffset = 0;
@@ -652,7 +664,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             }
             copiedObject = service.getObjectDetails(
                 targetBucketName, targetObject.getName());
-            assertEquals("" + objectOffset, copiedObject.getMetadata("object-offset"));
+            assertEquals("" + objectOffset, copiedObject.getUserMetadataMap().get("object-offset"));
 
             // Move object convenience method - replace metadata
             objectOffset = 1;

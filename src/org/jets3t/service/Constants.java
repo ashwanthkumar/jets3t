@@ -167,4 +167,11 @@ public class Constants {
     public static final String AMZ_DELETE_MARKER = "x-amz-delete-marker";
     public static final String AMZ_MULTI_FACTOR_AUTH_CODE = "x-amz-mfa";
 
+    /*
+     * Keys used to represent metadata sub-maps within a combined object metadata map.
+     */
+    public static final String KEY_FOR_SERVICE_METADATA = "__service__";
+    public static final String KEY_FOR_USER_METADATA = "__user__";
+    public static final String KEY_FOR_COMPLETE_METADATA = "__complete__";
+
 }

@@ -24,6 +24,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.jets3t.service.Constants;
+
 /**
  * Base class to represent storage items that can contain metadata: both objects and buckets.
  *
@@ -82,11 +84,52 @@ public abstract class BaseStorageItem {
 
     /**
      * @return
-     * an <b>immutable</b> map containing all the metadata associated with this object,
+     * an <b>immutable</b> map containing the basic metadata associated with this object,
      * with case-sensitive name strings as keys.
      */
     public Map<String, Object> getMetadataMap() {
         return Collections.unmodifiableMap(this.metadata);
+    }
+
+    protected Map<String, Object> lookupMetadataSubsetMap(String keyname) {
+        Map<String, Object> map = (Map<String, Object>) this.metadata.get(keyname);
+        if (map == null) {
+            map = new HashMap<String, Object>();
+        }
+        return Collections.unmodifiableMap(map);
+    }
+
+    /**
+     * @return
+     * an <b>immutable</b> map containing the user metadata associated with this object,
+     * with case-sensitive name strings as keys.
+     * Note: this map will not be populated in all cases where basic metadata is available
+     * from {@link #getMetadata(String)}.
+     */
+    public Map<String, Object> getUserMetadataMap() {
+        return lookupMetadataSubsetMap(Constants.KEY_FOR_USER_METADATA);
+    }
+
+    /**
+     * @return
+     * an <b>immutable</b> map containing the service metadata associated with this object,
+     * with case-sensitive name strings as keys.
+     * Note: this map will not be populated in all cases where basic metadata is available
+     * from {@link #getMetadata(String)}.
+     */
+    public Map<String, Object> getServiceMetadataMap() {
+        return lookupMetadataSubsetMap(Constants.KEY_FOR_SERVICE_METADATA);
+    }
+
+    /**
+     * @return
+     * an <b>immutable</b> map containing the complete metadata associated with this object,
+     * with case-sensitive name strings as keys.
+     * Note: this map will not be populated in all cases where basic metadata is available
+     * from {@link #getMetadata(String)}.
+     */
+    public Map<String, Object> getCompleteMetadataMap() {
+        return lookupMetadataSubsetMap(Constants.KEY_FOR_COMPLETE_METADATA);
     }
 
     /**
