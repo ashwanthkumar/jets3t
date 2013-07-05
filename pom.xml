@@ -218,13 +218,13 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpcore</artifactId>
-            <version>4.2.2</version>
+            <version>4.2.3</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
-            <version>4.2.1</version>
+            <version>4.2.3</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -236,13 +236,13 @@ limitations under the License.
         <dependency>
             <groupId>org.codehaus.jackson</groupId>
             <artifactId>jackson-core-asl</artifactId>
-            <version>1.9.10</version>
+            <version>1.9.12</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.codehaus.jackson</groupId>
             <artifactId>jackson-mapper-asl</artifactId>
-            <version>1.9.10</version>
+            <version>1.9.12</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -264,7 +264,7 @@ limitations under the License.
         <dependency>
             <groupId>javax.mail</groupId>
             <artifactId>mail</artifactId>
-            <version>1.4.5</version>
+            <version>1.4.7</version>
         </dependency>
         <dependency>
             <groupId>commons-logging</groupId>
@@ -281,7 +281,7 @@ limitations under the License.
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk15</artifactId>
-            <version>1.45</version>
+            <version>1.46</version>
             <scope>compile</scope>
         </dependency>
         <dependency>

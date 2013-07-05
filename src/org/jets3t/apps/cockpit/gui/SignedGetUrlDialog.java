@@ -240,10 +240,6 @@ public class SignedGetUrlDialog extends JDialog implements ActionListener, Docum
             String message = "Hours must be a valid decimal value; eg 3, 0.1";
             log.error(message, e);
             ErrorDialog.showDialog(ownerFrame, hyperlinkListener, message, e);
-        } catch (S3ServiceException e) {
-            String message = "Unable to generate public GET URL";
-            log.error(message, e);
-            ErrorDialog.showDialog(ownerFrame, hyperlinkListener, message, e);
         }
     }
 

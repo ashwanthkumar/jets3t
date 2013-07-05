@@ -130,17 +130,19 @@ public class RestUtils {
      * encoded URL.
      * @throws ServiceException
      */
-    public static String encodeUrlString(String path) throws ServiceException {
+    public static String encodeUrlString(String path) {
+        String encodedPath = null;
         try {
-            String encodedPath = URLEncoder.encode(path, Constants.DEFAULT_ENCODING);
-            // Web browsers do not always handle '+' characters well, use the well-supported '%20' instead.
-            encodedPath = encodedPath.replaceAll("\\+", "%20");
-            // '@' character need not be URL encoded and Google Chrome balks on signed URLs if it is.
-            encodedPath = encodedPath.replaceAll("%40", "@");
-            return encodedPath;
-        } catch (UnsupportedEncodingException uee) {
-            throw new ServiceException("Unable to encode path: " + path, uee);
+            encodedPath = URLEncoder.encode(path, Constants.DEFAULT_ENCODING);
         }
+        catch(UnsupportedEncodingException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
+        // Web browsers do not always handle '+' characters well, use the well-supported '%20' instead.
+        encodedPath = encodedPath.replaceAll("\\+", "%20");
+        // '@' character need not be URL encoded and Google Chrome balks on signed URLs if it is.
+        encodedPath = encodedPath.replaceAll("%40", "@");
+        return encodedPath;
     }
 
     /**
@@ -153,7 +155,7 @@ public class RestUtils {
      * encoded URL string.
      * @throws ServiceException
      */
-    public static String encodeUrlPath(String path, String delimiter) throws ServiceException {
+    public static String encodeUrlPath(String path, String delimiter) {
         StringBuilder result = new StringBuilder();
         String tokens[] = path.split(delimiter);
         for (int i = 0; i < tokens.length; i++) {
@@ -173,7 +175,7 @@ public class RestUtils {
      */
     public static String makeServiceCanonicalString(String method, String resource,
         Map<String, Object> headersMap, String expires, String headerPrefix,
-        List<String> serviceResourceParameterNames) throws UnsupportedEncodingException
+        List<String> serviceResourceParameterNames)
     {
         StringBuilder canonicalStringBuf = new StringBuilder();
         canonicalStringBuf.append(method).append("\n");
@@ -251,15 +253,20 @@ public class RestUtils {
             String query = resource.substring(queryIndex + 1);
             for (String paramPair: query.split("&")) {
                 String[] paramNameValue = paramPair.split("=");
-                String name = URLDecoder.decode(paramNameValue[0], "UTF-8");
-                String value = null;
-                if (paramNameValue.length > 1) {
-                    value = URLDecoder.decode(paramNameValue[1], "UTF-8");
+                try {
+                    String name = URLDecoder.decode(paramNameValue[0], "UTF-8");
+                    String value = null;
+                    if (paramNameValue.length > 1) {
+                        value = URLDecoder.decode(paramNameValue[1], "UTF-8");
+                    }
+                    // Only include parameter (and its value if present) in canonical
+                    // string if it is a resource-identifying parameter
+                    if (serviceResourceParameterNames.contains(name)) {
+                        sortedResourceParams.put(name, value);
+                    }
                 }
-                // Only include parameter (and its value if present) in canonical
-                // string if it is a resource-identifying parameter
-                if (serviceResourceParameterNames.contains(name)) {
-                    sortedResourceParams.put(name, value);
+                catch(UnsupportedEncodingException e) {
+                    throw new RuntimeException(e.getMessage(), e);
                 }
             }
 

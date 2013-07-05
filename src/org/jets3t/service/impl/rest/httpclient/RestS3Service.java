@@ -102,10 +102,8 @@ public class RestS3Service extends S3Service {
      * @param credentials
      * the user credentials to use when communicating with S3, may be null in which case the
      * communication is done as an anonymous user.
-     *
-     * @throws S3ServiceException
      */
-    public RestS3Service(ProviderCredentials credentials) throws S3ServiceException {
+    public RestS3Service(ProviderCredentials credentials) {
         this(credentials, null, null);
     }
 
@@ -122,11 +120,9 @@ public class RestS3Service extends S3Service {
      * @param credentialsProvider
      * an implementation of the HttpClient CredentialsProvider interface, to provide a means for
      * prompting for credentials when necessary.
-     *
-     * @throws S3ServiceException
      */
     public RestS3Service(ProviderCredentials credentials, String invokingApplicationDescription,
-        CredentialsProvider credentialsProvider) throws S3ServiceException
+        CredentialsProvider credentialsProvider)
     {
         this(credentials, invokingApplicationDescription, credentialsProvider,
             Jets3tProperties.getInstance(Constants.JETS3T_PROPERTIES_FILENAME));
@@ -147,12 +143,9 @@ public class RestS3Service extends S3Service {
      * prompting for credentials when necessary.
      * @param jets3tProperties
      * JetS3t properties that will be applied within this service.
-     *
-     * @throws S3ServiceException
      */
     public RestS3Service(ProviderCredentials credentials, String invokingApplicationDescription,
         CredentialsProvider credentialsProvider, Jets3tProperties jets3tProperties)
-        throws S3ServiceException
     {
         super(credentials, invokingApplicationDescription, credentialsProvider, jets3tProperties);
 
@@ -166,7 +159,7 @@ public class RestS3Service extends S3Service {
         }
 
         this.setRequesterPaysEnabled(
-            this.jets3tProperties.getBoolProperty("httpclient.requester-pays-buckets-enabled", false));
+            getJetS3tProperties().getBoolProperty("httpclient.requester-pays-buckets-enabled", false));
     }
 
     @Override
@@ -177,7 +170,7 @@ public class RestS3Service extends S3Service {
 
     @Override
     protected XmlResponsesSaxParser getXmlResponseSaxParser() throws ServiceException {
-        return new XmlResponsesSaxParser(this.jets3tProperties, false);
+        return new XmlResponsesSaxParser(getJetS3tProperties(), false);
     }
 
     @Override
@@ -306,8 +299,8 @@ public class RestS3Service extends S3Service {
 
         // Set the session token from Temporary Security (Session) Credentials
         // NOTE: a session token will override any DevPay credential values set above.
-        if (this.credentials instanceof AWSSessionCredentials) {
-            String sessionToken = ((AWSSessionCredentials)this.credentials).getSessionToken();
+        if (getProviderCredentials() instanceof AWSSessionCredentials) {
+            String sessionToken = ((AWSSessionCredentials)getProviderCredentials()).getSessionToken();
             httpMethod.setHeader(Constants.AMZ_SECURITY_TOKEN, sessionToken);
             if (log.isDebugEnabled()) {
                 log.debug("Including AWS session token in request: "
@@ -334,7 +327,7 @@ public class RestS3Service extends S3Service {
      */
     @Override
     public String getEndpoint() {
-    	return this.jets3tProperties.getStringProperty(
+    	return getJetS3tProperties().getStringProperty(
                 "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
     }
 
@@ -344,7 +337,7 @@ public class RestS3Service extends S3Service {
      */
     @Override
     protected String getVirtualPath() {
-    	return this.jets3tProperties.getStringProperty(
+    	return getJetS3tProperties().getStringProperty(
                 "s3service.s3-endpoint-virtual-path", "");
     }
 
@@ -400,7 +393,7 @@ public class RestS3Service extends S3Service {
      */
     @Override
     protected int getHttpPort() {
-      return this.jets3tProperties.getIntProperty("s3service.s3-endpoint-http-port", 80);
+      return getJetS3tProperties().getIntProperty("s3service.s3-endpoint-http-port", 80);
     }
 
     /**
@@ -409,7 +402,7 @@ public class RestS3Service extends S3Service {
      */
     @Override
     protected int getHttpsPort() {
-      return this.jets3tProperties.getIntProperty("s3service.s3-endpoint-https-port", 443);
+      return getJetS3tProperties().getIntProperty("s3service.s3-endpoint-https-port", 443);
     }
 
     /**
@@ -419,7 +412,7 @@ public class RestS3Service extends S3Service {
      */
     @Override
     protected boolean getHttpsOnly() {
-      return this.jets3tProperties.getBoolProperty("s3service.https-only", true);
+      return getJetS3tProperties().getBoolProperty("s3service.https-only", true);
     }
 
     /**
@@ -429,7 +422,7 @@ public class RestS3Service extends S3Service {
      */
     @Override
     protected boolean getDisableDnsBuckets() {
-      return this.jets3tProperties.getBoolProperty("s3service.disable-dns-buckets", false);
+      return getJetS3tProperties().getBoolProperty("s3service.disable-dns-buckets", false);
     }
 
     /**
@@ -438,7 +431,7 @@ public class RestS3Service extends S3Service {
      */
     @Override
     protected boolean getEnableStorageClasses() {
-        return this.jets3tProperties.getBoolProperty("s3service.enable-storage-classes",
+        return getJetS3tProperties().getBoolProperty("s3service.enable-storage-classes",
                 // Enable non-standard storage classes by default for AWS, not for Google endpoints.
                 !isTargettingGoogleStorageService());
     }
@@ -821,7 +814,7 @@ public class RestS3Service extends S3Service {
                     }
                     requestEntity = new RepeatableRequestEntity(object.getKey(),
                         object.getDataInputStream(), object.getContentType(), object.getContentLength(),
-                        this.jets3tProperties, isLiveMD5HashingRequired);
+                        getJetS3tProperties(), isLiveMD5HashingRequired);
                 } else {
                     // Use InputStreamRequestEntity for objects with an unknown content length, as the
                     // entity will cache the results and doesn't need to know the data length in advance.
@@ -1028,7 +1021,7 @@ public class RestS3Service extends S3Service {
 
         boolean incompleteListing = true;
         int ioErrorRetryCount = 0;
-        int ioErrorRetryMaxCount = jets3tProperties.getIntProperty(
+        int ioErrorRetryMaxCount = getJetS3tProperties().getIntProperty(
             "httpclient.retry-max", 5);
 
         try {

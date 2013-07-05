@@ -409,15 +409,9 @@ public class CockpitLite extends JApplet implements S3ServiceEventListener, Acti
                 this);
 
         // Initialise a non-authenticated service.
-        try {
-            // Revert to anonymous service.
-            s3ServiceMulti = new S3ServiceMulti(
+        // Revert to anonymous service.
+        s3ServiceMulti = new S3ServiceMulti(
                 new RestS3Service(null, APPLICATION_DESCRIPTION, this), this);
-        } catch (S3ServiceException e) {
-            String message = "Unable to start anonymous service";
-            log.error(message, e);
-            ErrorDialog.showDialog(ownerFrame, this, cockpitLiteProperties.getProperties(), message, e);
-        }
     }
 
     /**
