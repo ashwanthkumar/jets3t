@@ -266,7 +266,7 @@ public class S3ServiceMulti {
      * the AWS credentials in the underlying S3Service.
      */
     public ProviderCredentials getAWSCredentials() {
-        return s3Service.getAWSCredentials();
+        return s3Service.getProviderCredentials();
     }
 
     /**

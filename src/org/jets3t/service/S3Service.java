@@ -141,15 +141,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     }
 
     /**
-     * @return the credentials identifying the service user, or null for anonymous.
-     * @deprecated 0.8.0 use {@link #getProviderCredentials()} instead
-     */
-    @Deprecated
-    public ProviderCredentials getAWSCredentials() {
-        return credentials;
-    }
-
-    /**
      * Returns the URL representing an object in S3 without a signature. This URL
      * can only be used to download publicly-accessible objects.
      *
@@ -170,12 +161,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * the object's URL.
-     *
-     * @throws S3ServiceException
      */
     public String createUnsignedObjectUrl(String bucketName, String objectKey,
         boolean isVirtualHost, boolean isHttps, boolean isDnsBucketNamingDisabled)
-        throws S3ServiceException
     {
         // Create a signed GET URL then strip away the signature query components.
         String signedGETUrl = createSignedUrl("GET", bucketName, objectKey,
@@ -217,107 +205,98 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
-     *
-     * @throws S3ServiceException
      */
     public String createSignedUrl(String method, String bucketName, String objectKey,
         String specialParamName, Map<String, Object> headersMap, long secondsSinceEpoch,
         boolean isVirtualHost, boolean isHttps, boolean isDnsBucketNamingDisabled)
-        throws S3ServiceException
     {
-        try {
-            String s3Endpoint = this.getEndpoint();
-            String uriPath;
+        String s3Endpoint = this.getEndpoint();
+        String uriPath;
 
-            String hostname = (isVirtualHost
-                ? bucketName
-                : ServiceUtils.generateS3HostnameForBucket(
-                    bucketName, isDnsBucketNamingDisabled, s3Endpoint));
+        String hostname = (isVirtualHost
+            ? bucketName
+            : ServiceUtils.generateS3HostnameForBucket(
+                bucketName, isDnsBucketNamingDisabled, s3Endpoint));
 
-            if (headersMap == null) {
-                headersMap = new HashMap<String, Object>();
-            }
+        if (headersMap == null) {
+            headersMap = new HashMap<String, Object>();
+        }
 
-            // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
-            String virtualBucketPath = "";
-            if (!s3Endpoint.equals(hostname)) {
-                int subdomainOffset = hostname.lastIndexOf("." + s3Endpoint);
-                if (subdomainOffset > 0) {
-                    // Hostname represents an S3 sub-domain, so the bucket's name is the CNAME portion
-                    virtualBucketPath = hostname.substring(0, subdomainOffset) + "/";
-                } else {
-                    // Hostname represents a virtual host, so the bucket's name is identical to hostname
-                    virtualBucketPath = hostname + "/";
-                }
-                uriPath = (objectKey != null ? RestUtils.encodeUrlPath(objectKey, "/") : "");
+        // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
+        String virtualBucketPath = "";
+        if (!s3Endpoint.equals(hostname)) {
+            int subdomainOffset = hostname.lastIndexOf("." + s3Endpoint);
+            if (subdomainOffset > 0) {
+                // Hostname represents an S3 sub-domain, so the bucket's name is the CNAME portion
+                virtualBucketPath = hostname.substring(0, subdomainOffset) + "/";
             } else {
-                uriPath = bucketName + (objectKey != null ? "/" + RestUtils.encodeUrlPath(objectKey, "/") : "");
+                // Hostname represents a virtual host, so the bucket's name is identical to hostname
+                virtualBucketPath = hostname + "/";
             }
+            uriPath = (objectKey != null ? RestUtils.encodeUrlPath(objectKey, "/") : "");
+        } else {
+            uriPath = bucketName + (objectKey != null ? "/" + RestUtils.encodeUrlPath(objectKey, "/") : "");
+        }
 
-            if (specialParamName != null) {
-                uriPath += "?" + specialParamName + "&";
+        if (specialParamName != null) {
+            uriPath += "?" + specialParamName + "&";
+        } else {
+            uriPath += "?";
+        }
+
+        // Include any DevPay tokens in signed request
+        if (getProviderCredentials() instanceof AWSDevPayCredentials) {
+            AWSDevPayCredentials devPayCredentials = (AWSDevPayCredentials) getProviderCredentials();
+            if (devPayCredentials.getProductToken() != null) {
+                String securityToken = devPayCredentials.getUserToken()
+                    + "," + devPayCredentials.getProductToken();
+                headersMap.put(Constants.AMZ_SECURITY_TOKEN, securityToken);
             } else {
-                uriPath += "?";
+                headersMap.put(Constants.AMZ_SECURITY_TOKEN, devPayCredentials.getUserToken());
             }
 
-            // Include any DevPay tokens in signed request
-            if (credentials instanceof AWSDevPayCredentials) {
-                AWSDevPayCredentials devPayCredentials = (AWSDevPayCredentials) credentials;
-                if (devPayCredentials.getProductToken() != null) {
-                    String securityToken = devPayCredentials.getUserToken()
-                        + "," + devPayCredentials.getProductToken();
-                    headersMap.put(Constants.AMZ_SECURITY_TOKEN, securityToken);
-                } else {
-                    headersMap.put(Constants.AMZ_SECURITY_TOKEN, devPayCredentials.getUserToken());
-                }
+            uriPath += Constants.AMZ_SECURITY_TOKEN + "=" +
+                RestUtils.encodeUrlString((String) headersMap.get(Constants.AMZ_SECURITY_TOKEN)) + "&";
+        }
 
-                uriPath += Constants.AMZ_SECURITY_TOKEN + "=" +
-                    RestUtils.encodeUrlString((String) headersMap.get(Constants.AMZ_SECURITY_TOKEN)) + "&";
-            }
+        uriPath += "AWSAccessKeyId=" + getProviderCredentials().getAccessKey();
+        uriPath += "&Expires=" + secondsSinceEpoch;
 
-            uriPath += "AWSAccessKeyId=" + credentials.getAccessKey();
-            uriPath += "&Expires=" + secondsSinceEpoch;
+        // Include Requester Pays header flag, if the flag is included as a request parameter.
+        if (specialParamName != null
+            && specialParamName.toLowerCase().contains(Constants.REQUESTER_PAYS_BUCKET_FLAG))
+        {
+            String[] requesterPaysHeaderAndValue = Constants.REQUESTER_PAYS_BUCKET_FLAG.split("=");
+            headersMap.put(requesterPaysHeaderAndValue[0], requesterPaysHeaderAndValue[1]);
+        }
 
-            // Include Requester Pays header flag, if the flag is included as a request parameter.
-            if (specialParamName != null
-                && specialParamName.toLowerCase().contains(Constants.REQUESTER_PAYS_BUCKET_FLAG))
-            {
-                String[] requesterPaysHeaderAndValue = Constants.REQUESTER_PAYS_BUCKET_FLAG.split("=");
-                headersMap.put(requesterPaysHeaderAndValue[0], requesterPaysHeaderAndValue[1]);
-            }
+        String serviceEndpointVirtualPath = this.getVirtualPath();
 
-            String serviceEndpointVirtualPath = this.getVirtualPath();
+        String canonicalString = RestUtils.makeServiceCanonicalString(method,
+            serviceEndpointVirtualPath + "/" + virtualBucketPath + uriPath,
+            renameMetadataKeys(headersMap), String.valueOf(secondsSinceEpoch),
+            this.getRestHeaderPrefix(), this.getResourceParameterNames());
+        if (log.isDebugEnabled()) {
+            log.debug("Signing canonical string:\n" + canonicalString);
+        }
 
-            String canonicalString = RestUtils.makeServiceCanonicalString(method,
-                serviceEndpointVirtualPath + "/" + virtualBucketPath + uriPath,
-                renameMetadataKeys(headersMap), String.valueOf(secondsSinceEpoch),
-                this.getRestHeaderPrefix(), this.getResourceParameterNames());
-            if (log.isDebugEnabled()) {
-                log.debug("Signing canonical string:\n" + canonicalString);
-            }
+        String signedCanonical = ServiceUtils.signWithHmacSha1(getProviderCredentials().getSecretKey(),
+            canonicalString);
+        String encodedCanonical = RestUtils.encodeUrlString(signedCanonical);
+        uriPath += "&Signature=" + encodedCanonical;
 
-            String signedCanonical = ServiceUtils.signWithHmacSha1(credentials.getSecretKey(),
-                canonicalString);
-            String encodedCanonical = RestUtils.encodeUrlString(signedCanonical);
-            uriPath += "&Signature=" + encodedCanonical;
-
-            if (isHttps) {
-                int httpsPort = this.getHttpsPort();
-                return "https://" + hostname
-                    + (httpsPort != 443 ? ":" + httpsPort : "")
-                    + serviceEndpointVirtualPath
-                    + "/" + uriPath;
-            } else {
-                int httpPort = this.getHttpPort();
-                return "http://" + hostname
-                + (httpPort != 80 ? ":" + httpPort : "")
+        if (isHttps) {
+            int httpsPort = this.getHttpsPort();
+            return "https://" + hostname
+                + (httpsPort != 443 ? ":" + httpsPort : "")
                 + serviceEndpointVirtualPath
                 + "/" + uriPath;
-            }
-        } catch (ServiceException se) {
-            throw new S3ServiceException(se);
-        } catch (UnsupportedEncodingException e) {
-            throw new S3ServiceException(e);
+        } else {
+            int httpPort = this.getHttpPort();
+            return "http://" + hostname
+            + (httpPort != 80 ? ":" + httpPort : "")
+            + serviceEndpointVirtualPath
+            + "/" + uriPath;
         }
     }
 
@@ -351,12 +330,10 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
-     *
-     * @throws S3ServiceException
      */
     public String createSignedUrl(String method, String bucketName, String objectKey,
         String specialParamName, Map<String, Object> headersMap, long secondsSinceEpoch,
-        boolean isVirtualHost) throws S3ServiceException
+        boolean isVirtualHost)
     {
         boolean isHttps = this.isHttpsOnly();
         boolean disableDnsBuckets = this.getDisableDnsBuckets();
@@ -389,12 +366,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
-     *
-     * @throws S3ServiceException
      */
     public String createSignedUrl(String method, String bucketName, String objectKey,
         String specialParamName, Map<String, Object> headersMap, long secondsSinceEpoch)
-        throws S3ServiceException
     {
         return createSignedUrl(method, bucketName, objectKey, specialParamName, headersMap,
             secondsSinceEpoch, false);
@@ -416,10 +390,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to grant GET access to an S3 resource to whoever uses it.
-     * @throws S3ServiceException
      */
     public String createSignedGetUrl(String bucketName, String objectKey,
-        Date expiryTime, boolean isVirtualHost) throws S3ServiceException
+        Date expiryTime, boolean isVirtualHost)
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("GET", bucketName, objectKey, null, null,
@@ -467,11 +440,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to allow anyone to PUT an object into S3.
-     * @throws S3ServiceException
      */
     public String createSignedPutUrl(String bucketName, String objectKey,
         Map<String, Object> headersMap, Date expiryTime, boolean isVirtualHost)
-        throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("PUT", bucketName, objectKey, null, headersMap,
@@ -495,10 +466,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to allow anyone to PUT an object into S3.
-     * @throws S3ServiceException
      */
     public String createSignedPutUrl(String bucketName, String objectKey,
-        Map<String, Object> headersMap, Date expiryTime) throws S3ServiceException
+        Map<String, Object> headersMap, Date expiryTime)
     {
         return createSignedPutUrl(bucketName, objectKey, headersMap, expiryTime, false);
     }
@@ -519,10 +489,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to allow anyone do DELETE an object in S3.
-     * @throws S3ServiceException
      */
     public String createSignedDeleteUrl(String bucketName, String objectKey,
-        Date expiryTime, boolean isVirtualHost) throws S3ServiceException
+        Date expiryTime, boolean isVirtualHost)
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("DELETE", bucketName, objectKey, null, null,
@@ -542,10 +511,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to allow anyone do DELETE an object in S3.
-     * @throws S3ServiceException
      */
     public String createSignedDeleteUrl(String bucketName, String objectKey,
-        Date expiryTime) throws S3ServiceException
+        Date expiryTime)
     {
         return createSignedDeleteUrl(bucketName, objectKey, expiryTime, false);
     }
@@ -566,10 +534,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to grant HEAD access to an S3 resource to whoever uses it.
-     * @throws S3ServiceException
      */
     public String createSignedHeadUrl(String bucketName, String objectKey,
-        Date expiryTime, boolean isVirtualHost) throws S3ServiceException
+        Date expiryTime, boolean isVirtualHost)
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("HEAD", bucketName, objectKey, null, null,
@@ -635,14 +602,12 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
-     *
-     * @throws S3ServiceException
      */
     @Deprecated
     public static String createSignedUrl(String method, String bucketName, String objectKey,
         String specialParamName, Map<String, Object> headersMap, ProviderCredentials credentials,
         long secondsSinceEpoch, boolean isVirtualHost, boolean isHttps,
-        boolean isDnsBucketNamingDisabled) throws S3ServiceException
+        boolean isDnsBucketNamingDisabled)
     {
         S3Service s3Service = new RestS3Service(credentials);
         return s3Service.createSignedUrl(method, bucketName, objectKey,
@@ -684,13 +649,11 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to grant access to an S3 resource to whoever uses it.
-     *
-     * @throws S3ServiceException
      */
     @Deprecated
     public String createSignedUrl(String method, String bucketName, String objectKey,
         String specialParamName, Map<String, Object> headersMap, ProviderCredentials credentials,
-        long secondsSinceEpoch, boolean isVirtualHost) throws S3ServiceException
+        long secondsSinceEpoch, boolean isVirtualHost)
     {
         boolean isHttps = this.getHttpsOnly();
         boolean disableDnsBuckets = this.getDisableDnsBuckets();
@@ -765,7 +728,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     @Deprecated
     public String createSignedGetUrl(String bucketName, String objectKey,
         ProviderCredentials credentials, Date expiryTime, boolean isVirtualHost)
-        throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("GET", bucketName, objectKey, null, null,
@@ -828,7 +790,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     @Deprecated
     public String createSignedPutUrl(String bucketName, String objectKey,
         Map<String, Object> headersMap, ProviderCredentials credentials, Date expiryTime,
-        boolean isVirtualHost) throws S3ServiceException
+        boolean isVirtualHost)
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("PUT", bucketName, objectKey, null, headersMap,
@@ -891,7 +853,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     @Deprecated
     public String createSignedDeleteUrl(String bucketName, String objectKey,
         ProviderCredentials credentials, Date expiryTime, boolean isVirtualHost)
-        throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("DELETE", bucketName, objectKey, null, null,
@@ -950,7 +911,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     @Deprecated
     public String createSignedHeadUrl(String bucketName, String objectKey,
         ProviderCredentials credentials, Date expiryTime, boolean isVirtualHost)
-        throws S3ServiceException
     {
         long secondsSinceEpoch = expiryTime.getTime() / 1000;
         return createSignedUrl("HEAD", bucketName, objectKey, null, null,
@@ -979,7 +939,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     @Deprecated
     public String createSignedHeadUrl(String bucketName, String objectKey,
         ProviderCredentials credentials, Date expiryTime)
-        throws S3ServiceException
     {
         return createSignedHeadUrl(bucketName, objectKey, credentials, expiryTime, false);
     }
@@ -1002,23 +961,19 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         int httpPort = this.getHttpPort();
         boolean disableDnsBuckets = this.getDisableDnsBuckets();
 
-        try {
-            String bucketNameInPath =
+        String bucketNameInPath =
                 !disableDnsBuckets && ServiceUtils.isBucketNameValidDNSName(bucketName)
-                ? ""
-                : RestUtils.encodeUrlString(bucketName) + "/";
-            String urlPath =
+                        ? ""
+                        : RestUtils.encodeUrlString(bucketName) + "/";
+        String urlPath =
                 RestUtils.encodeUrlPath(serviceEndpointVirtualPath, "/")
-                + "/" + bucketNameInPath
-                + RestUtils.encodeUrlPath(objectKey, "/");
-            return "http://" + ServiceUtils.generateS3HostnameForBucket(
+                        + "/" + bucketNameInPath
+                        + RestUtils.encodeUrlPath(objectKey, "/");
+        return "http://" + ServiceUtils.generateS3HostnameForBucket(
                 bucketName, disableDnsBuckets, s3Endpoint)
                 + (httpPort != 80 ? ":" + httpPort : "")
                 + urlPath
                 + "?torrent";
-        } catch (ServiceException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     /**
@@ -1305,13 +1260,8 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
                 "value=\"" + credentials.getAccessKey() + "\"/>");
 
             // Add signature for encoded policy document as the 'AWSAccessKeyId' field
-            String signature;
-            try {
-                signature = ServiceUtils.signWithHmacSha1(
+            String signature = ServiceUtils.signWithHmacSha1(
                     credentials.getSecretKey(), policyB64);
-            } catch (ServiceException se) {
-                throw new S3ServiceException(se);
-            }
             myInputFields.add("<input type=\"hidden\" name=\"signature\" " +
                 "value=\"" + signature + "\"/>");
         }
@@ -1490,7 +1440,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public S3Bucket createBucket(String bucketName) throws S3ServiceException {
         try {
             return this.createBucket(bucketName,
-                this.jets3tProperties.getStringProperty(
+                    getJetS3tProperties().getStringProperty(
                     "s3service.default-bucket-location", "US"), null);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
@@ -1501,7 +1451,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
     public S3Bucket getOrCreateBucket(String bucketName) throws S3ServiceException {
         try {
             return this.getOrCreateBucket(bucketName,
-                this.jets3tProperties.getStringProperty(
+                    getJetS3tProperties().getStringProperty(
                     "s3service.default-bucket-location", "US"));
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
