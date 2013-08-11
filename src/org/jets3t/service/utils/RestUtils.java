@@ -128,7 +128,6 @@ public class RestUtils {
      * @param path
      * @return
      * encoded URL.
-     * @throws ServiceException
      */
     public static String encodeUrlString(String path) {
         String encodedPath = null;
@@ -153,7 +152,6 @@ public class RestUtils {
      * @param delimiter
      * @return
      * encoded URL string.
-     * @throws ServiceException
      */
     public static String encodeUrlPath(String path, String delimiter) {
         StringBuilder result = new StringBuilder();
@@ -171,7 +169,6 @@ public class RestUtils {
      * Calculate the canonical string for a REST/HTTP request to a storage service.
      *
      * When expires is non-null, it will be used instead of the Date header.
-     * @throws UnsupportedEncodingException
      */
     public static String makeServiceCanonicalString(String method, String resource,
         Map<String, Object> headersMap, String expires, String headerPrefix,
@@ -521,46 +518,45 @@ public class RestUtils {
     }
 
     /**
-     * Calculates a time offset value to reflect the time difference between your
-     * computer's clock and the current time according to an AWS server, and
-     * returns the calculated time difference.
+     * Calculates and returns a time offset value to reflect the time difference
+     * between your computer's clock and the current time according to the 'Date'
+     * header in the given HTTP response, likely provided by a service endpoint
+     * whose time you wish to treat as authoritative.
      *
      * Ideally you should not rely on this method to overcome clock-related
-     * disagreements between your computer and AWS. If you computer is set
-     * to update its clock periodically and has the correct timezone setting
-     * you should never have to resort to this work-around.
+     * disagreements between your computer and a service endpoint.
+     * If you computer is set to update its clock periodically and has the
+     * correct timezone setting you should never have to resort to this work-around.
+     *
+     * @throws ParseException
      */
-    public static long getAWSTimeAdjustment() throws IOException, S3ServiceException, ParseException {
-        RestS3Service restService = new RestS3Service(null);
-        HttpClient client = restService.getHttpClient();
-        long timeOffset = 0;
-
-        // Connect to an AWS server to obtain response headers.
-        HttpGet getMethod = new HttpGet("http://aws.amazon.com/");
-        HttpResponse result = client.execute(getMethod);
-
-        if (result.getStatusLine().getStatusCode() == 200) {
-            Header dateHeader = result.getHeaders("Date")[0];
-            // Retrieve the time according to AWS, based on the Date header
-            Date awsTime = ServiceUtils.parseRfc822Date(dateHeader.getValue());
+    public static long calculateTimeAdjustmentOffset(HttpResponse response)
+        throws ParseException
+    {
+        Header[] dateHeaders = response.getHeaders("Date");
+        if (dateHeaders.length > 0) {
+            // Retrieve the service time according to response Date header
+            String dateHeader = dateHeaders[0].getValue();
+            Date awsTime = ServiceUtils.parseRfc822Date(dateHeader);
 
             // Calculate the difference between the current time according to AWS,
             // and the current time according to your computer's clock.
             Date localTime = new Date();
-            timeOffset = awsTime.getTime() - localTime.getTime();
+            long timeOffset = awsTime.getTime() - localTime.getTime();
 
             if (log.isDebugEnabled()) {
-                log.debug("Calculated time offset value of " + timeOffset +
-                        " milliseconds between the local machine and an AWS server");
+                log.debug("Calculated time offset value of " + timeOffset
+                    + " milliseconds between the local machine and the response: "
+                    + response);
             }
+            return timeOffset;
         } else {
             if (log.isWarnEnabled()) {
                 log.warn("Unable to calculate value of time offset between the "
-                    + "local machine and AWS server");
+                    + "local machine and the response: " + response);
             }
+            return 0l;
         }
-
-        return timeOffset;
     }
 
     public static Map<String, String> convertHeadersToMap(Header[] headers) {
