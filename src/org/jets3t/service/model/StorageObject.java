@@ -648,6 +648,9 @@ public class StorageObject extends BaseStorageItem implements Cloneable {
         objectMetadata.remove(METADATA_HEADER_DATE);
         objectMetadata.remove(METADATA_HEADER_ETAG);
         objectMetadata.remove(METADATA_HEADER_LAST_MODIFIED_DATE);
+        objectMetadata.remove(Constants.KEY_FOR_COMPLETE_METADATA);
+        objectMetadata.remove(Constants.KEY_FOR_SERVICE_METADATA);
+        objectMetadata.remove(Constants.KEY_FOR_USER_METADATA);
         objectMetadata.remove("id-2"); // HTTP request-specific information
         objectMetadata.remove("request-id"); // HTTP request-specific information
         return objectMetadata;
