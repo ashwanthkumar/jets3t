@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2008 - 2011 James Murty
+ * Copyright 2008 - 2013 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -281,11 +281,12 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
 
                         if("RequestExpired".equals(exception.getErrorCode())) {
                             // Retry on time skew errors.
-                            this.timeOffset = RestUtils.getAWSTimeAdjustment();
+                            this.timeOffset = RestUtils.calculateTimeAdjustmentOffset(response);
                             if(log.isWarnEnabled()) {
-                                log.warn("Adjusted time offset in response to RequestExpired error. "
-                                        + "Local machine and CloudFront server disagree on the time by approximately "
-                                        + (this.timeOffset / 1000) + " seconds. Retrying connection.");
+                                log.warn("Adjusted time offset in response to RequestTimeTooSkewed error. "
+                                        + "Local machine and service disagree on the time by approximately "
+                                        + (this.timeOffset / 1000) + " seconds, please fix your system's time."
+                                        + " Retrying connection.");
                             }
                             completedWithoutRecoverableError = false;
                         }

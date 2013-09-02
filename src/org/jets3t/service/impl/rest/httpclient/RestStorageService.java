@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2010-2011 James Murty
+ * Copyright 2010-2013 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -435,11 +435,12 @@ public abstract class RestStorageService extends StorageService implements JetS3
                             }
                         }
                         else if("RequestTimeTooSkewed".equals(exception.getErrorCode())) {
-                            this.timeOffset = RestUtils.getAWSTimeAdjustment();
+                            this.timeOffset = RestUtils.calculateTimeAdjustmentOffset(response);
                             if(log.isWarnEnabled()) {
                                 log.warn("Adjusted time offset in response to RequestTimeTooSkewed error. "
-                                        + "Local machine and S3 server disagree on the time by approximately "
-                                        + (this.timeOffset / 1000) + " seconds. Retrying connection.");
+                                        + "Local machine and service disagree on the time by approximately "
+                                        + (this.timeOffset / 1000) + " seconds, please fix your system's time."
+                                        + " Retrying connection.");
                             }
                             completedWithoutRecoverableError = false;
                         }
