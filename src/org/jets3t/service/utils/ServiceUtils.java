@@ -164,15 +164,15 @@ public class ServiceUtils {
         }
 
         // Compute the HMAC on the digest, and set it.
-        byte[] b64 = new byte[0];
+        byte[] b64;
         try {
             b64 = Base64.encodeBase64(mac.doFinal(
                     canonicalString.getBytes(Constants.DEFAULT_ENCODING)));
+            return new String(b64, Constants.DEFAULT_ENCODING);
         }
         catch(UnsupportedEncodingException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
-        return new String(b64);
     }
 
     /**
@@ -454,7 +454,12 @@ public class ServiceUtils {
      */
     public static String toBase64(byte[] data) {
         byte[] b64 = Base64.encodeBase64(data);
-        return new String(b64);
+        try {
+            return new String(b64, Constants.DEFAULT_ENCODING);
+        }
+        catch(UnsupportedEncodingException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
     }
 
     /**
