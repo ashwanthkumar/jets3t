@@ -463,7 +463,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                             if(log.isDebugEnabled()) {
                                 log.debug("Following Temporary Redirect to: " + httpMethod.getURI().toString());
                             }
-                        }
+                            }
 
                         // Special handling for S3 object PUT failures causing NoSuchKey errors - Issue #85
                         else if(responseCode == 404
@@ -479,13 +479,13 @@ public abstract class RestStorageService extends StorageService implements JetS3
                         }
 
                         else if((responseCode == 403 || responseCode == 401) && this.isRecoverable403(httpMethod, exception)) {
-                            completedWithoutRecoverableError = false;
-                            authFailureCount++;
+                            int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
 
-                            if(authFailureCount > 1) {
+                            if(authFailureCount > retryMaxCount) {
                                 throw new ServiceException("Exceeded 403 retry limit (1).");
                             }
-
+                            completedWithoutRecoverableError = false;
+                            authFailureCount++;
                             if(log.isDebugEnabled()) {
                                 log.debug("Retrying after 403 Forbidden");
                             }
