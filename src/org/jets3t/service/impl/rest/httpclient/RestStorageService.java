@@ -435,13 +435,25 @@ public abstract class RestStorageService extends StorageService implements JetS3
                             }
                         }
                         else if("RequestTimeTooSkewed".equals(exception.getErrorCode())) {
-                            this.timeOffset = RestUtils.getAWSTimeAdjustment();
-                            if(log.isWarnEnabled()) {
-                                log.warn("Adjusted time offset in response to RequestTimeTooSkewed error. "
-                                        + "Local machine and S3 server disagree on the time by approximately "
-                                        + (this.timeOffset / 1000) + " seconds. Retrying connection.");
+                            int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
+
+                            if(requestTimeoutErrorCount < retryMaxCount) {
+                                requestTimeoutErrorCount++;
+                                this.timeOffset = RestUtils.getAWSTimeAdjustment();
+                                if(log.isWarnEnabled()) {
+                                    log.warn("Adjusted time offset in response to RequestTimeTooSkewed error. "
+                                            + "Local machine and S3 server disagree on the time by approximately "
+                                            + (this.timeOffset / 1000) + " seconds. Retrying connection.");
+                                }
+                                completedWithoutRecoverableError = false;
                             }
-                            completedWithoutRecoverableError = false;
+                            else {
+                                if(log.isErrorEnabled()) {
+                                    log.error("Exceeded maximum number of retries for RequestTimeTooSkewed errors: "
+                                            + retryMaxCount);
+                                }
+                                throw exception;
+                            }
                         }
                         else if(responseCode == 500 || responseCode == 503) {
                             // Retrying after 500 or 503 error, don't throw exception.
