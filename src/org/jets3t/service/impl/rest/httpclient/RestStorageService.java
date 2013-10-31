@@ -511,23 +511,18 @@ public abstract class RestStorageService extends StorageService implements JetS3
                         }
                         EntityUtils.consume(response.getEntity());
 
-                        if(responseCode == 500 || responseCode == 503) {
-                            // Retrying after InternalError 500, don't throw exception.
-                        }
-                        else {
-                            // Throw exception containing the HTTP error fields.
-                            HttpException httpException = new HttpException(
-                                    responseCode,
-                                    response.getStatusLine().getReasonPhrase());
-                            ServiceException exception =
-                                    new ServiceException("Request Error"
-                                            + (responseText != null ? " [" + responseText + "]." : "."),
-                                            httpException);
-                            exception.setResponseHeaders(
-                                    RestUtils.convertHeadersToMap(
-                                            response.getAllHeaders()));
-                            throw exception;
-                        }
+                        // Throw exception containing the HTTP error fields.
+                        HttpException httpException = new HttpException(
+                                responseCode,
+                                response.getStatusLine().getReasonPhrase());
+                        ServiceException exception =
+                                new ServiceException("Request Error"
+                                        + (responseText != null ? " [" + responseText + "]." : "."),
+                                        httpException);
+                        exception.setResponseHeaders(
+                                RestUtils.convertHeadersToMap(
+                                        response.getAllHeaders()));
+                        throw exception;
                     }
 
                     // Print warning message if a non-fatal error occurred (we only reach this
