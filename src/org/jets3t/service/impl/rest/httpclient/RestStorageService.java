@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2010-2011 James Murty
+ * Copyright 2010-2013 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -387,43 +387,40 @@ public abstract class RestStorageService extends StorageService implements JetS3
                         if("RequestTimeout".equals(exception.getErrorCode())) {
                             int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
 
-                            if(requestTimeoutErrorCount < retryMaxCount) {
-                                requestTimeoutErrorCount++;
-                                if(log.isWarnEnabled()) {
-                                    log.warn("Retrying connection that failed with RequestTimeout error"
-                                            + ", attempt number " + requestTimeoutErrorCount + " of "
-                                            + retryMaxCount);
-                                }
-                                completedWithoutRecoverableError = false;
-                            }
-                            else {
+                            if(requestTimeoutErrorCount >= retryMaxCount) {
                                 if(log.isErrorEnabled()) {
                                     log.error("Exceeded maximum number of retries for RequestTimeout errors: "
                                             + retryMaxCount);
                                 }
                                 throw exception;
                             }
+                            requestTimeoutErrorCount++;
+                            if(log.isWarnEnabled()) {
+                                log.warn("Retrying connection that failed with RequestTimeout error"
+                                        + ", attempt number " + requestTimeoutErrorCount + " of "
+                                        + retryMaxCount);
+                            }
+                            completedWithoutRecoverableError = false;
                         }
                         else if("RequestTimeTooSkewed".equals(exception.getErrorCode())) {
                             int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
 
-                            if(requestTimeoutErrorCount < retryMaxCount) {
-                                requestTimeoutErrorCount++;
-                                this.timeOffset = RestUtils.getAWSTimeAdjustment();
-                                if(log.isWarnEnabled()) {
-                                    log.warn("Adjusted time offset in response to RequestTimeTooSkewed error. "
-                                            + "Local machine and S3 server disagree on the time by approximately "
-                                            + (this.timeOffset / 1000) + " seconds. Retrying connection.");
-                                }
-                                completedWithoutRecoverableError = false;
-                            }
-                            else {
+                            if(requestTimeoutErrorCount >= retryMaxCount) {
                                 if(log.isErrorEnabled()) {
                                     log.error("Exceeded maximum number of retries for RequestTimeTooSkewed errors: "
                                             + retryMaxCount);
                                 }
                                 throw exception;
                             }
+                            requestTimeoutErrorCount++;
+                            this.timeOffset = RestUtils.calculateTimeAdjustmentOffset(response);
+                            if(log.isWarnEnabled()) {
+                                log.warn("Adjusted time offset in response to RequestTimeTooSkewed error. "
+                                        + "Local machine and service disagree on the time by approximately "
+                                        + (this.timeOffset / 1000) + " seconds, please fix your system's time."
+                                        + " Retrying connection.");
+                            }
+                            completedWithoutRecoverableError = false;
                         }
                         else if(responseCode == 500 || responseCode == 503) {
                             // Retry on S3 Internal Server 500 or 503 Service Unavailable errors.
@@ -438,7 +435,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                         else if(responseCode == 307) {
                             int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
 
-                            if(redirectCount > retryMaxCount) {
+                            if(redirectCount >= retryMaxCount) {
                                 throw exception;
                             }
                             // Retrying after Temporary Redirect 307
@@ -482,7 +479,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                         else if((responseCode == 403 || responseCode == 401) && this.isRecoverable403(httpMethod, exception)) {
                             int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
 
-                            if(authFailureCount > retryMaxCount) {
+                            if(authFailureCount >= retryMaxCount) {
                                 throw exception;
                             }
                             completedWithoutRecoverableError = false;

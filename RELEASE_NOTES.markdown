@@ -12,14 +12,16 @@ General:
  * Storage objects now make fine-grained metadata maps available when possible
    including: user-specified metadata via #getUserMetadataMap; service-specified
    metadata via #getServiceMetadataMap; a complete and unfiltered set of metadata
-   via #getCompleteMetadataMap. See issue #171.
- 
+   via #getCompleteMetadataMap. See issue #171. 
  * Fixed `httpclient.read-throttle` upload bandwidth throttling implementation 
    which wasn't working for values under 128KB. It should now throttle correctly
    down to single-digit KB/s values.
  * Fixed bug in object/file comparison logic that prevented object metadata from 
    being downloaded when a service-side target path was used (e.g. using a bucket
    path like *target-bucket/some/path* in Synchronize)
+ * Improved automatic time adjustment feature to use the 'Date'
+   timestamp in a RequestTimeTooSkewed error response to calculate
+   a time offset, instead of performing an extra GET request (#173).
 
 CloudFrontService:
 

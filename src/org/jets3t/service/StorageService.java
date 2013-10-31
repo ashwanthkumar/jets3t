@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2008-2011 James Murty, 2008 Zmanda Inc
+ * Copyright 2008-2013 James Murty, 2008 Zmanda Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1295,12 +1295,13 @@ public abstract class StorageService {
 
     /**
      * Returns the current date and time, adjusted according to the time
-     * offset between your computer and an AWS server (as set by the
-     * {@link RestUtils#getAWSTimeAdjustment()} method).
+     * offset between your computer and a service endpoint, as set by
+     * {@link RestUtils#calculateTimeAdjustmentOffset(org.apache.http.HttpResponse)}.
      *
      * @return
-     * the current time, or the current time adjusted to match the AWS time
-     * if the {@link RestUtils#getAWSTimeAdjustment()} method has been invoked.
+     * the current time, or the current time adjusted to match a service endpoint's time
+     * if the {@link RestUtils#calculateTimeAdjustmentOffset(org.apache.http.HttpResponse)}
+     * method has been invoked.
      */
     public Date getCurrentTimeWithOffset() {
         return new Date(System.currentTimeMillis() + timeOffset);
