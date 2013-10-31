@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2008-2011 James Murty, 2008 Zmanda Inc
+ * Copyright 2008-2013 James Murty, 2008 Zmanda Inc
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -723,7 +723,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to grant GET access to an S3 resource to whoever uses it.
-     * @throws S3ServiceException
      */
     @Deprecated
     public String createSignedGetUrl(String bucketName, String objectKey,
@@ -785,7 +784,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to allow anyone to PUT an object into S3.
-     * @throws S3ServiceException
      */
     @Deprecated
     public String createSignedPutUrl(String bucketName, String objectKey,
@@ -848,7 +846,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to allow anyone do DELETE an object in S3.
-     * @throws S3ServiceException
      */
     @Deprecated
     public String createSignedDeleteUrl(String bucketName, String objectKey,
@@ -906,7 +903,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to grant HEAD access to an S3 resource to whoever uses it.
-     * @throws S3ServiceException
      */
     @Deprecated
     public String createSignedHeadUrl(String bucketName, String objectKey,
@@ -934,7 +930,6 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      *
      * @return
      * a URL signed in such a way as to grant HEAD access to an S3 resource to whoever uses it.
-     * @throws S3ServiceException
      */
     @Deprecated
     public String createSignedHeadUrl(String bucketName, String objectKey,
