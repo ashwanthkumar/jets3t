@@ -476,6 +476,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                                 log.debug("Ignoring NoSuchKey/404 error on PUT to: " + httpMethod.getURI().toString());
                             }
                             completedWithoutRecoverableError = false;
+                            sleepOnInternalError(++internalErrorCount);
                         }
 
                         else if((responseCode == 403 || responseCode == 401) && this.isRecoverable403(httpMethod, exception)) {
