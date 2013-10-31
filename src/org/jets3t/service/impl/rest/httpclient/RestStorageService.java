@@ -292,19 +292,20 @@ public abstract class RestStorageService extends StorageService implements JetS3
             }
 
             // Variables to manage S3 Internal Server 500 or 503 Service Unavailable errors.
-            boolean completedWithoutRecoverableError = true;
             int internalErrorCount = 0;
             int requestTimeoutErrorCount = 0;
             int redirectCount = 0;
             int authFailureCount = 0;
             boolean wasRecentlyRedirected = false;
+            // Check we received the expected result code.
+            boolean didReceiveExpectedResponseCode = false;
 
             // Perform the request, sleeping and retrying when errors are encountered.
             int responseCode;
             do {
                 // Build the authorization string for the method (Unless we have just been redirected).
                 if(!wasRecentlyRedirected) {
-                authorizeHttpRequest(httpMethod, context);
+                    authorizeHttpRequest(httpMethod, context);
                 }
                 else {
                     // Reset redirection flag
@@ -329,8 +330,6 @@ public abstract class RestStorageService extends StorageService implements JetS3
                     }
                 }
 
-                // Check we received the expected result code.
-                boolean didReceiveExpectedResponseCode = false;
                 for(int i = 0; i < expectedResponseCodes.length && !didReceiveExpectedResponseCode; i++) {
                     if(responseCode == expectedResponseCodes[i]) {
                         didReceiveExpectedResponseCode = true;
@@ -400,7 +399,6 @@ public abstract class RestStorageService extends StorageService implements JetS3
                                         + ", attempt number " + requestTimeoutErrorCount + " of "
                                         + retryMaxCount);
                             }
-                            completedWithoutRecoverableError = false;
                         }
                         else if("RequestTimeTooSkewed".equals(exception.getErrorCode())) {
                             int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
@@ -420,7 +418,6 @@ public abstract class RestStorageService extends StorageService implements JetS3
                                         + (this.timeOffset / 1000) + " seconds, please fix your system's time."
                                         + " Retrying connection.");
                             }
-                            completedWithoutRecoverableError = false;
                         }
                         else if(responseCode == 500 || responseCode == 503) {
                             // Retry on S3 Internal Server 500 or 503 Service Unavailable errors.
@@ -430,7 +427,6 @@ public abstract class RestStorageService extends StorageService implements JetS3
                             catch(ServiceException r) {
                                 throw exception;
                             }
-                            completedWithoutRecoverableError = false;
                         }
                         else if(responseCode == 307) {
                             int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
@@ -443,7 +439,6 @@ public abstract class RestStorageService extends StorageService implements JetS3
                                 log.debug("Following Temporary Redirect to: " + httpMethod.getURI().toString());
                             }
                             // Retry on Temporary Redirects, using new URI from location header
-                            authorizeHttpRequest(httpMethod, context); // Re-authorize *before* we change the URI
                             Header locationHeader = response.getFirstHeader("location");
 
                             // deal with implementations of HttpUriRequest
@@ -454,7 +449,6 @@ public abstract class RestStorageService extends StorageService implements JetS3
                                 ((RequestWrapper) httpMethod).setURI(new URI(locationHeader.getValue()));
                             }
 
-                            completedWithoutRecoverableError = false;
                             wasRecentlyRedirected = true;
                             redirectCount++;
                         }
@@ -474,7 +468,6 @@ public abstract class RestStorageService extends StorageService implements JetS3
                             catch(ServiceException r) {
                                 throw exception;
                             }
-                            completedWithoutRecoverableError = false;
                         }
                         else if((responseCode == 403 || responseCode == 401) && this.isRecoverable403(httpMethod, exception)) {
                             int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
@@ -482,7 +475,6 @@ public abstract class RestStorageService extends StorageService implements JetS3
                             if(authFailureCount >= (0 == retryMaxCount ? 1 : retryMaxCount)) {
                                 throw exception;
                             }
-                            completedWithoutRecoverableError = false;
                             authFailureCount++;
                             if(log.isDebugEnabled()) {
                                 log.debug("Retrying after 403 Forbidden");
@@ -541,7 +533,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                     }
                 }
             }
-            while(!completedWithoutRecoverableError);
+            while(!didReceiveExpectedResponseCode);
         }
         catch(Exception t) {
             if(log.isDebugEnabled()) {
