@@ -439,7 +439,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                             int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
 
                             if(redirectCount > retryMaxCount) {
-                                throw new ServiceException("Exceeded 307 redirect limit (5).");
+                                throw exception;
                             }
                             // Retrying after Temporary Redirect 307
                             if(log.isDebugEnabled()) {
@@ -483,7 +483,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                             int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
 
                             if(authFailureCount > retryMaxCount) {
-                                throw new ServiceException("Exceeded 403 retry limit (1).");
+                                throw exception;
                             }
                             completedWithoutRecoverableError = false;
                             authFailureCount++;
