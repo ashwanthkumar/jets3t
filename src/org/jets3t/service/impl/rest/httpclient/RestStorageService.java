@@ -292,7 +292,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
             }
 
             // Variables to manage S3 Internal Server 500 or 503 Service Unavailable errors.
-            boolean completedWithoutRecoverableError;
+            boolean completedWithoutRecoverableError = true;
             int internalErrorCount = 0;
             int requestTimeoutErrorCount = 0;
             int redirectCount = 0;
@@ -313,36 +313,6 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
                 response = httpClient.execute(httpMethod, context);
                 responseCode = response.getStatusLine().getStatusCode();
-
-                if(responseCode == 307) {
-                    // Retry on Temporary Redirects, using new URI from location header
-                    authorizeHttpRequest(httpMethod, context); // Re-authorize *before* we change the URI
-                    Header locationHeader = response.getFirstHeader("location");
-
-                    // deal with implementations of HttpUriRequest
-                    if(httpMethod instanceof HttpRequestBase) {
-                        ((HttpRequestBase) httpMethod).setURI(new URI(locationHeader.getValue()));
-                    }
-                    else if(httpMethod instanceof RequestWrapper) {
-                        ((RequestWrapper) httpMethod).setURI(new URI(locationHeader.getValue()));
-                    }
-
-                    completedWithoutRecoverableError = false;
-                    redirectCount++;
-                    wasRecentlyRedirected = true;
-
-                    if(redirectCount > 5) {
-                        throw new ServiceException("Exceeded 307 redirect limit (5).");
-                    }
-                }
-                else if(responseCode == 500 || responseCode == 503) {
-                    // Retry on S3 Internal Server 500 or 503 Service Unavailable errors.
-                    completedWithoutRecoverableError = false;
-                    sleepOnInternalError(++internalErrorCount);
-                }
-                else {
-                    completedWithoutRecoverableError = true;
-                }
 
                 String contentType = "";
                 if(response.getFirstHeader("Content-Type") != null) {
@@ -456,15 +426,36 @@ public abstract class RestStorageService extends StorageService implements JetS3
                             }
                         }
                         else if(responseCode == 500 || responseCode == 503) {
-                            // Retrying after 500 or 503 error, don't throw exception.
+                            // Retry on S3 Internal Server 500 or 503 Service Unavailable errors.
+                            completedWithoutRecoverableError = false;
+                            sleepOnInternalError(++internalErrorCount);
                         }
                         else if(responseCode == 307) {
-                            // Retrying after Temporary Redirect 307, don't throw exception.
+                            int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
+
+                            if(redirectCount > retryMaxCount) {
+                                throw new ServiceException("Exceeded 307 redirect limit (5).");
+                            }
+                            // Retrying after Temporary Redirect 307
                             if(log.isDebugEnabled()) {
                                 log.debug("Following Temporary Redirect to: " + httpMethod.getURI().toString());
                             }
+                            // Retry on Temporary Redirects, using new URI from location header
+                            authorizeHttpRequest(httpMethod, context); // Re-authorize *before* we change the URI
+                            Header locationHeader = response.getFirstHeader("location");
+
+                            // deal with implementations of HttpUriRequest
+                            if(httpMethod instanceof HttpRequestBase) {
+                                ((HttpRequestBase) httpMethod).setURI(new URI(locationHeader.getValue()));
+                            }
+                            else if(httpMethod instanceof RequestWrapper) {
+                                ((RequestWrapper) httpMethod).setURI(new URI(locationHeader.getValue()));
                             }
 
+                            completedWithoutRecoverableError = false;
+                            wasRecentlyRedirected = true;
+                            redirectCount++;
+                        }
                         // Special handling for S3 object PUT failures causing NoSuchKey errors - Issue #85
                         else if(responseCode == 404
                                 && "PUT".equalsIgnoreCase(httpMethod.getMethod())
