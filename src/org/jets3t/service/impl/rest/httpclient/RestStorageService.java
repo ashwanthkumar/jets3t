@@ -427,8 +427,13 @@ public abstract class RestStorageService extends StorageService implements JetS3
                         }
                         else if(responseCode == 500 || responseCode == 503) {
                             // Retry on S3 Internal Server 500 or 503 Service Unavailable errors.
+                            try {
+                                sleepOnInternalError(++internalErrorCount);
+                            }
+                            catch(ServiceException r) {
+                                throw exception;
+                            }
                             completedWithoutRecoverableError = false;
-                            sleepOnInternalError(++internalErrorCount);
                         }
                         else if(responseCode == 307) {
                             int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
@@ -466,10 +471,14 @@ public abstract class RestStorageService extends StorageService implements JetS3
                             if(log.isDebugEnabled()) {
                                 log.debug("Ignoring NoSuchKey/404 error on PUT to: " + httpMethod.getURI().toString());
                             }
+                            try {
+                                sleepOnInternalError(++internalErrorCount);
+                            }
+                            catch(ServiceException r) {
+                                throw exception;
+                            }
                             completedWithoutRecoverableError = false;
-                            sleepOnInternalError(++internalErrorCount);
                         }
-
                         else if((responseCode == 403 || responseCode == 401) && this.isRecoverable403(httpMethod, exception)) {
                             int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
 
@@ -482,7 +491,6 @@ public abstract class RestStorageService extends StorageService implements JetS3
                                 log.debug("Retrying after 403 Forbidden");
                             }
                         }
-
                         else {
                             throw exception;
                         }
