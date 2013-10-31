@@ -530,7 +530,7 @@ public class RestUtils {
      * to update its clock periodically and has the correct timezone setting
      * you should never have to resort to this work-around.
      */
-    public static long getAWSTimeAdjustment() throws IOException, S3ServiceException, ParseException {
+    public static long getAWSTimeAdjustment() throws IOException, S3ServiceException {
         RestS3Service restService = new RestS3Service(null);
         HttpClient client = restService.getHttpClient();
         long timeOffset = 0;
@@ -542,16 +542,21 @@ public class RestUtils {
         if (result.getStatusLine().getStatusCode() == 200) {
             Header dateHeader = result.getHeaders("Date")[0];
             // Retrieve the time according to AWS, based on the Date header
-            Date awsTime = ServiceUtils.parseRfc822Date(dateHeader.getValue());
+            try {
+                Date awsTime = ServiceUtils.parseRfc822Date(dateHeader.getValue());
 
-            // Calculate the difference between the current time according to AWS,
-            // and the current time according to your computer's clock.
-            Date localTime = new Date();
-            timeOffset = awsTime.getTime() - localTime.getTime();
+                // Calculate the difference between the current time according to AWS,
+                // and the current time according to your computer's clock.
+                Date localTime = new Date();
+                timeOffset = awsTime.getTime() - localTime.getTime();
 
-            if (log.isDebugEnabled()) {
-                log.debug("Calculated time offset value of " + timeOffset +
-                        " milliseconds between the local machine and an AWS server");
+                if (log.isDebugEnabled()) {
+                    log.debug("Calculated time offset value of " + timeOffset +
+                            " milliseconds between the local machine and an AWS server");
+                }
+            }
+            catch(ParseException e) {
+                throw new S3ServiceException(e);
             }
         } else {
             if (log.isWarnEnabled()) {
