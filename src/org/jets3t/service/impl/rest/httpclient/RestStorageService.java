@@ -304,7 +304,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
             do {
                 // Build the authorization string for the method (Unless we have just been redirected).
                 if(!wasRecentlyRedirected) {
-                    authorizeHttpRequest(httpMethod, context);
+                authorizeHttpRequest(httpMethod, context);
                 }
                 else {
                     // Reset redirection flag
@@ -435,7 +435,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                         else if(responseCode == 307) {
                             int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
 
-                            if(redirectCount >= retryMaxCount) {
+                            if(redirectCount >= (0 == retryMaxCount ? 1 : retryMaxCount)) {
                                 throw exception;
                             }
                             // Retrying after Temporary Redirect 307
@@ -479,7 +479,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                         else if((responseCode == 403 || responseCode == 401) && this.isRecoverable403(httpMethod, exception)) {
                             int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
 
-                            if(authFailureCount >= retryMaxCount) {
+                            if(authFailureCount >= (0 == retryMaxCount ? 1 : retryMaxCount)) {
                                 throw exception;
                             }
                             completedWithoutRecoverableError = false;
