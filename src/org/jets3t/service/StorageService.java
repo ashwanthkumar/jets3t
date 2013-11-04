@@ -267,7 +267,7 @@ public abstract class StorageService {
      * Sleeps for a period of time based on the number of Internal Server errors a request has
      * encountered, provided the number of errors does not exceed the value set with the
      * property <code>storage-service.internal-error-retry-max</code>. If the maximum error count is
-     * exceeded, this method will throw an {@link ServiceException}.
+     * exceeded, this method will throw the provided {@link ServiceException}.
      *
      * The millisecond delay grows rapidly according to the formula
      * <code>50 * (<i>internalErrorCount</i> ^ 2)</code>.
@@ -289,7 +289,7 @@ public abstract class StorageService {
      * @throws InterruptedException
      * thrown if the thread sleep is interrupted.
      */
-    protected void sleepOnInternalError(int internalErrorCount)
+    protected void sleepOnInternalError(int internalErrorCount, ServiceException ex)
         throws ServiceException, InterruptedException
     {
         if (internalErrorCount <= internalErrorRetryMax) {
@@ -300,8 +300,11 @@ public abstract class StorageService {
             }
             Thread.sleep(delayMs);
         } else {
-            throw new ServiceException("Encountered too many Internal Server errors ("
-                + internalErrorCount + "), aborting request.");
+            if (log.isWarnEnabled()) {
+                log.warn("Encountered too many Internal Server errors ("
+                    + internalErrorCount + "), aborting request.");
+            }
+            throw ex;
         }
     }
 
