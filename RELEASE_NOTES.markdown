@@ -37,7 +37,8 @@ CloudFrontService:
 
  * Chris Baker for catching the `httpclient.read-throttle` and object/file
    comparison issues, investigating the bugs and testing the fixes.
-
+ * David Kocher for numerous fixes and improvements, see his pull requests etc at
+   https://bitbucket.org/dkocher/jets3t/
 
 -------------
 Version 0.9.0

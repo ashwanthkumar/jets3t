@@ -280,7 +280,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
     protected HttpResponse performRequest(
             HttpUriRequest httpMethod,
             int[] expectedResponseCodes,
-            HttpContext context) throws ServiceException {
+            HttpContext context) throws ServiceException
+    {
         HttpResponse response = null;
         try {
             if(log.isDebugEnabled()) {
@@ -291,18 +292,21 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 log.debug("Headers: " + Arrays.asList(httpMethod.getAllHeaders()));
             }
 
-            // Variables to manage S3 Internal Server 500 or 503 Service Unavailable errors.
+            // Track count of different response "error" types
             int internalErrorCount = 0;
             int requestTimeoutErrorCount = 0;
             int redirectCount = 0;
             int authFailureCount = 0;
-            boolean wasRecentlyRedirected = false;
-            // Check we received the expected result code.
-            boolean didReceiveExpectedResponseCode = false;
+            int requestTimeTooSkewedErrorCount = 0;
 
-            // Perform the request, sleeping and retrying when errors are encountered.
-            int responseCode;
-            do {
+            boolean wasRecentlyRedirected = false;
+
+            // Use retry count limit for all error types
+            int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
+
+            // Perform the request, and retry on potentially recoverable failures.
+            // This eternal loop is broken by an explicit `break` command or by throwing an exception
+            while(true) {
                 // Build the authorization string for the method (Unless we have just been redirected).
                 if(!wasRecentlyRedirected) {
                     authorizeHttpRequest(httpMethod, context);
@@ -313,7 +317,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 }
 
                 response = httpClient.execute(httpMethod, context);
-                responseCode = response.getStatusLine().getStatusCode();
+                int responseCode = response.getStatusLine().getStatusCode();
 
                 String contentType = "";
                 if(response.getFirstHeader("Content-Type") != null) {
@@ -330,211 +334,208 @@ public abstract class RestStorageService extends StorageService implements JetS3
                     }
                 }
 
-                for(int i = 0; i < expectedResponseCodes.length && !didReceiveExpectedResponseCode; i++) {
-                    if(responseCode == expectedResponseCodes[i]) {
+                // Check whether we got the expected response code?
+                boolean didReceiveExpectedResponseCode = false;
+                for (int i = 0; i < expectedResponseCodes.length; i++) {
+                    if (responseCode == expectedResponseCodes[i]) {
                         didReceiveExpectedResponseCode = true;
+                        break;
                     }
                 }
+
                 if(log.isDebugEnabled()) {
-                    log.debug("Received expected response code: " + didReceiveExpectedResponseCode);
-                    log.debug("  expected code(s): " + Arrays.toString(expectedResponseCodes) + ".");
+                    log.debug(
+                        "Received response code " + responseCode + "; matches one of expected set ("
+                        + Arrays.toString(expectedResponseCodes) + ")? "
+                        + didReceiveExpectedResponseCode);
                 }
 
-                if(!didReceiveExpectedResponseCode) {
+                /*
+                 * IMPORTANT!
+                 * Break out of while(true) loop if we received an expected response code, the
+                 * remainder of code in this while(true) loop handles errors and retries.
+                 */
+                if (didReceiveExpectedResponseCode) {
+                    break;
+                }
+
+                if(log.isDebugEnabled()) {
+                    log.debug("Error response xml: " + isXmlContentType(contentType));
+                    log.debug("Error response entity: " + response.getEntity());
+                    log.debug("Error response entity length: " +
+                        (response.getEntity() == null ? "??" : "" +
+                            response.getEntity().getContentLength()));
+                }
+
+                // Prepare exception with information about error response, whether or not it
+                // contains XML content, in case we decide not to retry.
+                ServiceException exception = null;
+
+                if (isXmlContentType(contentType)
+                    && response.getEntity() != null
+                    && response.getEntity().getContentLength() != 0)
+                {
+                    // Prepare exception for XML-bearing error response
                     if(log.isDebugEnabled()) {
-                        log.debug("Response xml: " + isXmlContentType(contentType));
-                        log.debug("Response entity: " + response.getEntity());
-                        log.debug("Response entity length: " +
-                                (response.getEntity() == null ? "??" : "" +
-                                        response.getEntity().getContentLength()));
+                        log.debug("Response '" + httpMethod.getURI().getRawPath()
+                                + "' - Received error response with XML message");
                     }
 
-                    if(isXmlContentType(contentType)
-                            && response.getEntity() != null
-                            && response.getEntity().getContentLength() != 0) {
-                        if(log.isDebugEnabled()) {
-                            log.debug("Response '" + httpMethod.getURI().getRawPath()
-                                    + "' - Received error response with XML message");
-                        }
-
-                        StringBuilder sb = new StringBuilder();
-                        BufferedReader reader = null;
-                        try {
-                            reader = new BufferedReader(new InputStreamReader(
-                                    new HttpMethodReleaseInputStream(response)));
-                            String line;
-                            while((line = reader.readLine()) != null) {
-                                sb.append(line).append("\n");
-                            }
-                        }
-                        finally {
-                            if(reader != null) {
-                                reader.close();
-                            }
-                        }
-
-                        EntityUtils.consume(response.getEntity());
-
-                        // Throw exception containing the XML message document.
-                        ServiceException exception =
-                                new ServiceException("S3 Error Message.", sb.toString());
-
-                        exception.setResponseCode(responseCode);
-                        exception.setResponseHeaders(RestUtils.convertHeadersToMap(
-                                response.getAllHeaders()));
-
-                        if("RequestTimeout".equals(exception.getErrorCode())) {
-                            int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
-
-                            if(requestTimeoutErrorCount >= retryMaxCount) {
-                                if(log.isErrorEnabled()) {
-                                    log.error("Exceeded maximum number of retries for RequestTimeout errors: "
-                                            + retryMaxCount);
-                                }
-                                throw exception;
-                            }
-                            requestTimeoutErrorCount++;
-                            if(log.isWarnEnabled()) {
-                                log.warn("Retrying connection that failed with RequestTimeout error"
-                                        + ", attempt number " + requestTimeoutErrorCount + " of "
-                                        + retryMaxCount);
-                            }
-                        }
-                        else if("RequestTimeTooSkewed".equals(exception.getErrorCode())) {
-                            int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
-
-                            if(requestTimeoutErrorCount >= retryMaxCount) {
-                                if(log.isErrorEnabled()) {
-                                    log.error("Exceeded maximum number of retries for RequestTimeTooSkewed errors: "
-                                            + retryMaxCount);
-                                }
-                                throw exception;
-                            }
-                            requestTimeoutErrorCount++;
-                            this.timeOffset = RestUtils.calculateTimeAdjustmentOffset(response);
-                            if(log.isWarnEnabled()) {
-                                log.warn("Adjusted time offset in response to RequestTimeTooSkewed error. "
-                                        + "Local machine and service disagree on the time by approximately "
-                                        + (this.timeOffset / 1000) + " seconds, please fix your system's time."
-                                        + " Retrying connection.");
-                            }
-                        }
-                        else if(responseCode == 500 || responseCode == 503) {
-                            // Retry on S3 Internal Server 500 or 503 Service Unavailable errors.
-                            try {
-                                sleepOnInternalError(++internalErrorCount);
-                            }
-                            catch(ServiceException r) {
-                                throw exception;
-                            }
-                        }
-                        else if(responseCode == 307) {
-                            int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
-
-                            if(redirectCount >= (0 == retryMaxCount ? 1 : retryMaxCount)) {
-                                throw exception;
-                            }
-                            // Retrying after Temporary Redirect 307
-                            if(log.isDebugEnabled()) {
-                                log.debug("Following Temporary Redirect to: " + httpMethod.getURI().toString());
-                            }
-                            // Retry on Temporary Redirects, using new URI from location header
-                            Header locationHeader = response.getFirstHeader("location");
-
-                            // deal with implementations of HttpUriRequest
-                            if(httpMethod instanceof HttpRequestBase) {
-                                ((HttpRequestBase) httpMethod).setURI(new URI(locationHeader.getValue()));
-                            }
-                            else if(httpMethod instanceof RequestWrapper) {
-                                ((RequestWrapper) httpMethod).setURI(new URI(locationHeader.getValue()));
-                            }
-
-                            wasRecentlyRedirected = true;
-                            redirectCount++;
-                        }
-                        // Special handling for S3 object PUT failures causing NoSuchKey errors - Issue #85
-                        else if(responseCode == 404
-                                && "PUT".equalsIgnoreCase(httpMethod.getMethod())
-                                && "NoSuchKey".equals(exception.getErrorCode())
-                                // If PUT operation is trying to copy an existing source object, don't ignore 404
-                                && httpMethod.getFirstHeader(getRestHeaderPrefix() + "copy-source") == null) {
-                            // Retrying after mysterious PUT NoSuchKey error caused by S3, don't throw exception.
-                            if(log.isDebugEnabled()) {
-                                log.debug("Ignoring NoSuchKey/404 error on PUT to: " + httpMethod.getURI().toString());
-                            }
-                            try {
-                                sleepOnInternalError(++internalErrorCount);
-                            }
-                            catch(ServiceException r) {
-                                throw exception;
-                            }
-                        }
-                        else if((responseCode == 403 || responseCode == 401) && this.isRecoverable403(httpMethod, exception)) {
-                            int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
-
-                            if(authFailureCount >= (0 == retryMaxCount ? 1 : retryMaxCount)) {
-                                throw exception;
-                            }
-                            authFailureCount++;
-                            if(log.isDebugEnabled()) {
-                                log.debug("Retrying after 403 Forbidden");
-                            }
-                        }
-                        else {
-                            throw exception;
+                    StringBuilder sb = new StringBuilder();
+                    BufferedReader reader = null;
+                    try {
+                        reader = new BufferedReader(new InputStreamReader(
+                            new HttpMethodReleaseInputStream(response)));
+                        String line;
+                        while((line = reader.readLine()) != null) {
+                            sb.append(line).append("\n");
                         }
                     }
-                    else {
-                        // Consume response content and release connection.
-                        String responseText = null;
-                        byte[] responseBody = null;
-                        if(response.getEntity() != null) {
-                            responseBody = EntityUtils.toByteArray(response.getEntity());
+                    finally {
+                        if(reader != null) {
+                            reader.close();
                         }
-                        if(responseBody != null && responseBody.length > 0) {
-                            responseText = new String(responseBody);
-                        }
+                    }
+                    // Prepare exception containing the XML message document.
+                    exception = new ServiceException("Service Error Message.", sb.toString());
+                } else {
+                    if(log.isDebugEnabled()) {
+                        log.debug("Response '" + httpMethod.getURI().getRawPath()
+                                + "' - Received error response without XML content");
+                    }
+                    String responseText = null;
+                    byte[] responseBody = null;
+                    if(response.getEntity() != null) {
+                        responseBody = EntityUtils.toByteArray(response.getEntity());
+                    }
+                    if(responseBody != null && responseBody.length > 0) {
+                        responseText = new String(responseBody);
+                    }
+                    // Prepare exception containing the HTTP error fields.
+                    HttpException httpException = new HttpException(
+                        responseCode, response.getStatusLine().getReasonPhrase());
+                    exception = new ServiceException(
+                        "Request Error" + (responseText != null ? " [" + responseText + "]." : "."),
+                        httpException);
+                }
+                exception.setResponseCode(responseCode);
+                exception.setResponseHeaders(RestUtils.convertHeadersToMap(response.getAllHeaders()));
+                // Consume and release connection.
+                EntityUtils.consume(response.getEntity());
 
-                        if(log.isDebugEnabled()) {
-                            log.debug("Releasing error response without XML content");
-                        }
-                        EntityUtils.consume(response.getEntity());
-
-                        // Throw exception containing the HTTP error fields.
-                        HttpException httpException = new HttpException(
-                                responseCode,
-                                response.getStatusLine().getReasonPhrase());
-                        ServiceException exception =
-                                new ServiceException("Request Error"
-                                        + (responseText != null ? " [" + responseText + "]." : "."),
-                                        httpException);
-                        exception.setResponseHeaders(
-                                RestUtils.convertHeadersToMap(
-                                        response.getAllHeaders()));
+                /*
+                 * For cases where the request may succeed if retried, count the number of attempts
+                 * we have made to ensure we don't exceeded the max retry limit.
+                 */
+                // Sleep then retry on 5xx Internal Server errors.
+                if (responseCode >= 500) {
+                    // Throws provided exception if we have exceeded the retry count
+                    sleepOnInternalError(++internalErrorCount, exception);
+                }
+                // Retry after Temporary Redirect 307
+                else if(responseCode == 307) {
+                    // Retry up to our limit; but at least once to support S3 bucket locations
+                    if (redirectCount >= retryMaxCount
+                        && redirectCount > 0)  // Ensure we have retried at least once...
+                    {
                         throw exception;
                     }
 
-                    // Print warning message if a non-fatal error occurred (we only reach this
-                    // point in the code if an exception isn't thrown above)
-                    if(log.isWarnEnabled()) {
-                        String requestDescription =
-                                httpMethod.getMethod()
-                                        + " '" + httpMethod.getURI().getPath()
-                                        + (httpMethod.getURI().getQuery() != null
-                                        && httpMethod.getURI().getQuery().length() > 0
-                                        ? "?" + httpMethod.getURI().getQuery() : "")
-                                        + "'"
-                                        + " -- ResponseCode: " + responseCode
-                                        + ", ResponseStatus: " + response.getStatusLine().getReasonPhrase()
-                                        + ", Request Headers: [" + ServiceUtils.join(httpMethod.getAllHeaders(), ", ") + "]"
-                                        + ", Response Headers: [" + ServiceUtils.join(response.getAllHeaders(), ", ") + "]";
-                        requestDescription = requestDescription.replaceAll("[\\n\\r\\f]", "");  // Remove any newlines.
-                        log.warn("Error Response: " + requestDescription);
+                    // Set new URI from Location header
+                    Header locationHeader = response.getFirstHeader("location");
+                    // deal with implementations of HttpUriRequest
+                    if(httpMethod instanceof HttpRequestBase) {
+                        ((HttpRequestBase) httpMethod).setURI(new URI(locationHeader.getValue()));
+                    }
+                    else if(httpMethod instanceof RequestWrapper) {
+                        ((RequestWrapper) httpMethod).setURI(new URI(locationHeader.getValue()));
+                    }
+
+                    wasRecentlyRedirected = true;
+                    redirectCount++;
+                    if(log.isDebugEnabled()) {
+                        log.debug(
+                            "Following Temporary Redirect (" + redirectCount + ") to: "
+                            + httpMethod.getURI().toString());
                     }
                 }
+                else if("RequestTimeout".equals(exception.getErrorCode())) {
+                    if(requestTimeoutErrorCount >= retryMaxCount) {
+                        throw exception;
+                    }
+                    requestTimeoutErrorCount++;
+                    if(log.isWarnEnabled()) {
+                        log.warn(
+                            "Retrying connection that failed with RequestTimeout error ("
+                            + requestTimeoutErrorCount + ")");
+                    }
+                }
+                else if("RequestTimeTooSkewed".equals(exception.getErrorCode())) {
+                    if(requestTimeTooSkewedErrorCount >= retryMaxCount) {
+                        throw exception;
+                    }
+                    requestTimeTooSkewedErrorCount++;
+                    this.timeOffset = RestUtils.calculateTimeAdjustmentOffset(response);
+                    if(log.isWarnEnabled()) {
+                        log.warn("Adjusted time offset in response to RequestTimeTooSkewed error"
+                                + "(" + requestTimeTooSkewedErrorCount + ")."
+                                + "Local machine and service disagree on the time by approximately "
+                                + (this.timeOffset / 1000) + " seconds, please fix your system's time."
+                                + " Retrying connection.");
+                    }
+                }
+                // Special handling for S3 object PUT failures causing NoSuchKey errors - Issue #85, #175
+                // Treat this as a special kind of internal server error.
+                else if(responseCode == 404
+                        && "PUT".equalsIgnoreCase(httpMethod.getMethod())
+                        && "NoSuchKey".equals(exception.getErrorCode())
+                        // If PUT operation is trying to copy an existing source object, don't ignore 404
+                        && httpMethod.getFirstHeader(getRestHeaderPrefix() + "copy-source") == null) {
+                    // Throws provided exception if we have exceeded the retry count
+                    sleepOnInternalError(++internalErrorCount, exception);
+                    if(log.isDebugEnabled()) {
+                        log.debug("Ignoring NoSuchKey/404 error on PUT to: " + httpMethod.getURI().toString());
+                    }
+                }
+                else if((responseCode == 403 || responseCode == 401) && this.isRecoverable403(httpMethod, exception)) {
+                    // Retry up to our limit; but at least once
+                    if (authFailureCount >= retryMaxCount
+                        && authFailureCount > 0)  // Ensure we have retried at least once...
+                    {
+                        throw exception;
+                    }
+                    authFailureCount++;
+                    if(log.isDebugEnabled()) {
+                        log.debug("Retrying after 403 Forbidden");
+                    }
+                }
+                // If we haven't explicitly detected an retry-able error response type above,
+                // just throw the exception to abort the request.
+                else {
+                    throw exception;
+                }
+
+                // Print warning message if a non-fatal error occurred (we only reach this
+                // point in the code if an exception isn't thrown above)
+                if(log.isWarnEnabled()) {
+                    String requestDescription =
+                        httpMethod.getMethod()
+                            + " '" + httpMethod.getURI().getPath()
+                            + (httpMethod.getURI().getQuery() != null
+                            && httpMethod.getURI().getQuery().length() > 0
+                            ? "?" + httpMethod.getURI().getQuery() : "")
+                            + "'"
+                            + " -- ResponseCode: " + responseCode
+                            + ", ResponseStatus: " + response.getStatusLine().getReasonPhrase()
+                            + ", Request Headers: [" + ServiceUtils.join(httpMethod.getAllHeaders(), ", ") + "]"
+                            + ", Response Headers: [" + ServiceUtils.join(response.getAllHeaders(), ", ") + "]";
+                    requestDescription = requestDescription.replaceAll("[\\n\\r\\f]", "");  // Remove any newlines.
+                    log.warn("Retrying request following error response: " + requestDescription);
+                }
             }
-            while(!didReceiveExpectedResponseCode);
         }
+        // Top-level exception handler to deal with otherwise unhandled exceptions, or to augment
+        // a ServiceException thrown above with additional information.
         catch(Exception t) {
             if(log.isDebugEnabled()) {
                 String msg = "Rethrowing as a ServiceException error in performRequest: " + t;
@@ -2400,4 +2401,5 @@ public abstract class RestStorageService extends StorageService implements JetS3
         requestParameters.put(this.isTargettingGoogleStorageService() ? "websiteConfig" : "website", "");
         performRestDelete(bucketName, null, requestParameters, null, null);
     }
+
 }
