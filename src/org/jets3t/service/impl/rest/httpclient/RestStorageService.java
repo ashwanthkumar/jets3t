@@ -2111,7 +2111,9 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
         StorageObject responseObject = newObject();
         responseObject.setKey(objectKey);
-        responseObject.setContentLength(httpResponse.getEntity().getContentLength());
+        if(!headOnly) {
+            responseObject.setContentLength(httpResponse.getEntity().getContentLength());
+        }
         responseObject.setBucketName(bucketName);
         responseObject.replaceAllMetadata(ServiceUtils.cleanRestMetadataMap(
                 map, this.getRestHeaderPrefix(), this.getRestMetadataPrefix()));
