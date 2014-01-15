@@ -136,11 +136,6 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         System.setProperty("networkaddress.cache.negative.ttl", "1");
 
         this.httpClient = initHttpConnection();
-        /* TODO: CloudFront service does not seem to support 100-continue protocol for 2009-04-02
-         * DistributionConfig updates, causing unnecessary timeouts when updating these settings.
-         * This will probably be fixed, remove the following line when full support returns.
-         */
-        HttpProtocolParams.setUseExpectContinue(this.httpClient.getParams(), false);
         initializeProxy();
     }
 
