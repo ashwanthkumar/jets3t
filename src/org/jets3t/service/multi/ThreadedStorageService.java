@@ -698,7 +698,7 @@ public class ThreadedStorageService {
         GetObjectRunnable[] runnables = new GetObjectRunnable[objectKeys.length];
         for (int i = 0; i < runnables.length; i++) {
             pendingObjectKeysList.add(objectKeys[i]);
-            runnables[i] = new GetObjectRunnable(bucketName, objectKeys[i], false);
+            runnables[i] = new GetObjectRunnable(bucketName, objectKeys[i], false, false);
         }
 
         // Wait for threads to finish, or be cancelled.
@@ -786,6 +786,27 @@ public class ThreadedStorageService {
      * true if all the threaded tasks completed successfully, false otherwise.
      */
     public boolean getObjectsHeads(final String bucketName, final String[] objectKeys) {
+    	return getObjectsHeads(bucketName, objectKeys, false);
+    }
+    
+    /**
+     * Retrieves details (but no data) about multiple objects from a bucket, and sends
+     * {@link GetObjectHeadsEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property
+     * <tt>threaded-service.admin-max-thread-count</tt>.
+     *
+     * @param bucketName
+     * name of the bucket containing the objects.
+     * @param objectKeys
+     * the key names of the objects with details to retrieve.
+     * @param allowMissingStorageObject
+     * whether or not to allow return objects of type MissingStorageObject if key does not exist. 
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
+     */
+    public boolean getObjectsHeads(final String bucketName, final String[] objectKeys,
+    		final boolean allowMissingStorageObject) {
         final List pendingObjectKeysList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
         final boolean[] success = new boolean[] {true};
@@ -794,7 +815,7 @@ public class ThreadedStorageService {
         GetObjectRunnable[] runnables = new GetObjectRunnable[objectKeys.length];
         for (int i = 0; i < runnables.length; i++) {
             pendingObjectKeysList.add(objectKeys[i]);
-            runnables[i] = new GetObjectRunnable(bucketName, objectKeys[i], true);
+            runnables[i] = new GetObjectRunnable(bucketName, objectKeys[i], true, allowMissingStorageObject);
         }
 
         // Wait for threads to finish, or be cancelled.
@@ -1401,20 +1422,22 @@ public class ThreadedStorageService {
         private String bucketName = null;
         private String objectKey = null;
         private boolean headOnly = false;
+        private boolean allowMissingStorageObject;
 
         private Object result = null;
 
-        public GetObjectRunnable(String bucketName, String objectKey, boolean headOnly) {
+        public GetObjectRunnable(String bucketName, String objectKey, boolean headOnly, boolean allowMissingStorageObject) {
             this.bucketName = bucketName;
             this.objectKey = objectKey;
             this.headOnly = headOnly;
+            this.allowMissingStorageObject = allowMissingStorageObject;
         }
 
         public void run() {
             try {
                 if (headOnly) {
                     result = storageService.getObjectDetails(
-                        bucketName, objectKey);
+                        bucketName, objectKey, null, null, null, null, allowMissingStorageObject);
                 } else {
                     result = storageService.getObject(
                         bucketName, objectKey);
