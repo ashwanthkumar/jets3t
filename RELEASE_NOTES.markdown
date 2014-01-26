@@ -9,6 +9,9 @@ Version 0.9.1-dev
 
 General:
 
+ * Updated library requirements to latest versions:
+   commons-logging 1.1.3; httpclient 4.3.2; httpcore 4.3.1; commons-codec 1.8;
+   java-xmlbuilder 0.6
  * Storage objects now make fine-grained metadata maps available when possible
    including: user-specified metadata via #getUserMetadataMap; service-specified
    metadata via #getServiceMetadataMap; a complete and unfiltered set of metadata

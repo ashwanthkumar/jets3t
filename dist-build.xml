@@ -99,7 +99,7 @@ zip-source-code   : Zips the JetS3t source code to an archive file with a
 			srcdir="${dir.src}"
 			destdir="${dir.build}"
 			debug="${debug}"
-			source="1.4"
+			source="${build.source}"
 			target="${build.target}">
 			<classpath refid="classpath"/>
 			<exclude name="contribs/mx/**" unless="contribs.include-mx"/>
