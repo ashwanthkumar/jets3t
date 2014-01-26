@@ -300,6 +300,23 @@ public class SimpleThreadedStorageService {
      * @throws ServiceException
      */
     public StorageObject[] getObjectsHeads(String bucketName, final String[] objectKeys) throws ServiceException {
+    	return getObjectsHeads(bucketName, objectKeys, false);
+    }
+    /**
+     * Retrieves details of multiple objects (details only, no data)
+     *
+     * @param bucketName
+     * name of the bucket containing the objects.
+     * @param objectKeys
+     * the key names of the objects to retrieve.
+     * @param allowMissingStorageObject
+     * allow the return of instances of MissingStorageObject rather than throwing exception on REST 404 not found
+     * @return
+     * objects populated with the details retrieved.
+     * @throws ServiceException
+     */
+    public StorageObject[] getObjectsHeads(String bucketName, final String[] objectKeys,
+    		boolean allowMissingStorageObject) throws ServiceException {
         final List<StorageObject> objectList = new ArrayList<StorageObject>();
         StorageServiceEventAdaptor adaptor = new StorageServiceEventAdaptor() {
             @Override
@@ -310,7 +327,7 @@ public class SimpleThreadedStorageService {
                 }
             };
         };
-        (new ThreadedStorageService(service, adaptor)).getObjectsHeads(bucketName, objectKeys);
+        (new ThreadedStorageService(service, adaptor)).getObjectsHeads(bucketName, objectKeys, allowMissingStorageObject);
         throwError(adaptor);
         return objectList.toArray(new StorageObject[objectList.size()]);
     }

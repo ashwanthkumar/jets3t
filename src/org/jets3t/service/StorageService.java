@@ -1115,9 +1115,46 @@ public abstract class StorageService {
         Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
         String[] ifNoneMatchTags) throws ServiceException
     {
+    	return getObjectDetails(bucketName, objectKey, ifModifiedSince, ifUnmodifiedSince,
+    			ifMatchTags, ifNoneMatchTags, false);
+    }
+    
+    /**
+     * Returns an object representing the details of an item that meets any given preconditions.
+     * The object is returned without the object's data.
+     * <p>
+     * An exception is thrown if any of the preconditions fail.
+     * Preconditions are only applied if they are non-null.
+     * <p>
+     * This method can be performed by anonymous services. Anonymous services
+     * can get details of publicly-readable objects.
+     *
+     * @param bucketName
+     * the name of the bucket containing the object.
+     * @param objectKey
+     * the key identifying the object.
+     * @param ifModifiedSince
+     * a precondition specifying a date after which the object must have been modified, ignored if null.
+     * @param ifUnmodifiedSince
+     * a precondition specifying a date after which the object must not have been modified, ignored if null.
+     * @param ifMatchTags
+     * a precondition specifying an MD5 hash the object must match, ignored if null.
+     * @param ifNoneMatchTags
+     * a precondition specifying an MD5 hash the object must not match, ignored if null.
+     * @param allowMissingStorageObject
+     * return a MissingStorageObject rather than throwing an exception. 
+     * @return
+     * the object with the given key, including only general details and metadata (not the data
+     * input stream)
+     * @throws ServiceException
+     */
+    public StorageObject getObjectDetails(String bucketName, String objectKey,
+        Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
+        String[] ifNoneMatchTags, boolean allowMissingStorageObject) throws ServiceException
+    {
         MxDelegate.getInstance().registerStorageObjectHeadEvent(bucketName, objectKey);
         return getObjectDetailsImpl(bucketName, objectKey, ifModifiedSince, ifUnmodifiedSince,
-            ifMatchTags, ifNoneMatchTags, null);
+            ifMatchTags, ifNoneMatchTags, null, allowMissingStorageObject);
     }
 
     /**
@@ -1568,7 +1605,7 @@ public abstract class StorageService {
 
     protected abstract StorageObject getObjectDetailsImpl(String bucketName, String objectKey,
         Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
-        String[] ifNoneMatchTags, String versionId) throws ServiceException;
+        String[] ifNoneMatchTags, String versionId, boolean allowMissingStorageObject) throws ServiceException;
 
     protected abstract StorageObject getObjectImpl(String bucketName, String objectKey, Calendar ifModifiedSince,
         Calendar ifUnmodifiedSince, String[] ifMatchTags, String[] ifNoneMatchTags,
