@@ -1656,7 +1656,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         try {
             MxDelegate.getInstance().registerStorageObjectHeadEvent(bucketName, objectKey);
             return (S3Object) getObjectDetailsImpl(bucketName, objectKey,
-                null, null, null, null, versionId, false);
+                null, null, null, null, versionId);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }
@@ -2423,49 +2423,11 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
         String[] ifNoneMatchTags) throws S3ServiceException
     {
-    	return getObjectDetails(bucket, objectKey, ifModifiedSince, ifUnmodifiedSince,
-    			ifMatchTags, ifNoneMatchTags, false);
-    }
-
-    /**
-     * Returns an object representing the details of an item in S3 that meets any given preconditions.
-     * The object is returned without the object's data.
-     * <p>
-     * An exception is thrown if any of the preconditions fail.
-     * Preconditions are only applied if they are non-null.
-     * <p>
-     * This method can be performed by anonymous services. Anonymous services
-     * can get details of publicly-readable objects.
-     *
-     * @param bucket
-     * the bucket containing the object.
-     * This must be a valid S3Bucket object that is non-null and contains a name.
-     * @param objectKey
-     * the key identifying the object.
-     * @param ifModifiedSince
-     * a precondition specifying a date after which the object must have been modified, ignored if null.
-     * @param ifUnmodifiedSince
-     * a precondition specifying a date after which the object must not have been modified, ignored if null.
-     * @param ifMatchTags
-     * a precondition specifying an MD5 hash the object must match, ignored if null.
-     * @param ifNoneMatchTags
-     * a precondition specifying an MD5 hash the object must not match, ignored if null.
-     * @param allowMissingStorageObject
-     * whether or not to allow return objects of type MissingStorageObject if key does not exist. 
-     * @return
-     * the object with the given key in S3, including only general details and metadata (not the data
-     * input stream)
-     * @throws S3ServiceException
-     */
-    public S3Object getObjectDetails(S3Bucket bucket, String objectKey,
-        Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
-        String[] ifNoneMatchTags, boolean allowMissingStorageObject) throws S3ServiceException
-    {
         try {
             assertValidBucket(bucket, "Get Object Details");
             MxDelegate.getInstance().registerStorageObjectHeadEvent(bucket.getName(), objectKey);
             return (S3Object) getObjectDetailsImpl(bucket.getName(), objectKey, ifModifiedSince,
-                ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, null, allowMissingStorageObject);
+                ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, null);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }
@@ -2509,7 +2471,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
             assertValidBucket(bucket, "Get Versioned Object Details");
             MxDelegate.getInstance().registerStorageObjectHeadEvent(bucket.getName(), objectKey);
             return (S3Object) getObjectDetailsImpl(bucket.getName(), objectKey, ifModifiedSince,
-                ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, versionId, false);
+                ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, versionId);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }
@@ -2551,7 +2513,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
         try {
             MxDelegate.getInstance().registerStorageObjectHeadEvent(bucketName, objectKey);
             return (S3Object) getObjectDetailsImpl(bucketName, objectKey, ifModifiedSince,
-                ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, versionId, false);
+                ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, versionId);
         } catch (ServiceException se) {
             throw new S3ServiceException(se);
         }

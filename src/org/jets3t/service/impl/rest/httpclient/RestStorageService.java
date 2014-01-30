@@ -50,7 +50,6 @@ import org.jets3t.service.impl.rest.HttpException;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.CopyObjectResultHandler;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListBucketHandler;
 import org.jets3t.service.model.CreateBucketConfiguration;
-import org.jets3t.service.model.MissingStorageObject;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageBucketLoggingStatus;
@@ -893,14 +892,12 @@ public abstract class RestStorageService extends StorageService implements JetS3
      * @param objectKey         the object's key name, may be null if the operation is on a bucket only.
      * @param requestParameters parameters to add to the request URL as GET params
      * @param requestHeaders    headers to add to the request
-     * @param allowMissingStorageObject whether or not to throw exception on 404 not found
      * @return the HTTP method object used to perform the request
      * @throws org.jets3t.service.ServiceException
      *
      */
     protected HttpResponse performRestHead(String bucketName, String objectKey,
-                                           Map<String, String> requestParameters, Map<String, Object> requestHeaders,
-                                           boolean allowMissingStorageObject)
+                                           Map<String, String> requestParameters, Map<String, Object> requestHeaders)
             throws ServiceException {
 
         HttpUriRequest httpMethod = setupConnection(
@@ -912,7 +909,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
         // Add all request headers.
         addRequestHeadersToConnection(httpMethod, requestHeaders);
 
-        return performRequest(httpMethod, allowMissingStorageObject ? new int[] {200, 404} : new int[] {200});
+        return performRequest(httpMethod, new int[]{200});
     }
 
     /**
@@ -1257,7 +1254,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
         try {
             // Ensure bucket exists and is accessible by performing a HEAD request
-            httpResponse = performRestHead(bucketName, null, null, null, false);
+            httpResponse = performRestHead(bucketName, null, null, null);
 
             EntityUtils.consume(httpResponse.getEntity());
         }
@@ -1296,7 +1293,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
             // Test bucket's status by performing a HEAD request against it.
             Map<String, String> params = new HashMap<String, String>();
             params.put("max-keys", "0");
-            httpResponse = performRestHead(bucketName, null, params, null, false);
+            httpResponse = performRestHead(bucketName, null, params, null);
 
             EntityUtils.consume(httpResponse.getEntity());
         }
@@ -2030,12 +2027,11 @@ public abstract class RestStorageService extends StorageService implements JetS3
     @Override
     protected StorageObject getObjectDetailsImpl(String bucketName, String objectKey,
                                                  Calendar ifModifiedSince, Calendar ifUnmodifiedSince,
-                                                 String[] ifMatchTags, String[] ifNoneMatchTags, String versionId,
-                                                 boolean allowMissingStorageObject)
+                                                 String[] ifMatchTags, String[] ifNoneMatchTags, String versionId)
             throws ServiceException {
         return getObjectImpl(true, bucketName, objectKey,
                 ifModifiedSince, ifUnmodifiedSince, ifMatchTags, ifNoneMatchTags, null, null,
-                versionId, allowMissingStorageObject);
+                versionId);
     }
 
     @Override
@@ -2045,13 +2041,12 @@ public abstract class RestStorageService extends StorageService implements JetS3
                                           Long byteRangeStart, Long byteRangeEnd, String versionId)
             throws ServiceException {
         return getObjectImpl(false, bucketName, objectKey, ifModifiedSince, ifUnmodifiedSince,
-                ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd, versionId, false);
+                ifMatchTags, ifNoneMatchTags, byteRangeStart, byteRangeEnd, versionId);
     }
 
     private StorageObject getObjectImpl(boolean headOnly, String bucketName, String objectKey,
                                         Calendar ifModifiedSince, Calendar ifUnmodifiedSince, String[] ifMatchTags,
-                                        String[] ifNoneMatchTags, Long byteRangeStart, Long byteRangeEnd, String versionId,
-                                        boolean allowMissingStorageObject)
+                                        String[] ifNoneMatchTags, Long byteRangeStart, Long byteRangeEnd, String versionId)
             throws ServiceException {
         if(log.isDebugEnabled()) {
             log.debug("Retrieving " + (headOnly ? "Head" : "All")
@@ -2105,7 +2100,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
         HttpResponse httpResponse;
         if(headOnly) {
-            httpResponse = performRestHead(bucketName, objectKey, requestParameters, requestHeaders, allowMissingStorageObject);
+            httpResponse = performRestHead(bucketName, objectKey, requestParameters, requestHeaders);
         }
         else {
             httpResponse = performRestGet(bucketName, objectKey, requestParameters, requestHeaders);
@@ -2114,29 +2109,22 @@ public abstract class RestStorageService extends StorageService implements JetS3
         Map<String, Object> map = new HashMap<String, Object>();
         map.putAll(convertHeadersToMap(httpResponse.getAllHeaders()));
 
-        StorageObject responseObject;
-        if (allowMissingStorageObject && httpResponse.getStatusLine().getStatusCode() == 404)
-        	responseObject = new MissingStorageObject();
-        else
-        	responseObject = newObject();
-        
+        StorageObject responseObject = newObject();
         responseObject.setKey(objectKey);
         responseObject.setBucketName(bucketName);
-        if (! (responseObject instanceof MissingStorageObject)) {
-        	responseObject.replaceAllMetadata(ServiceUtils.cleanRestMetadataMap(
-        			map, this.getRestHeaderPrefix(), this.getRestMetadataPrefix()));
-        	responseObject.setMetadataComplete(true); // Flag this object as having the complete metadata set.
-        	if(!headOnly) {
-        		HttpMethodReleaseInputStream releaseIS = new HttpMethodReleaseInputStream(httpResponse);
-        		responseObject.setDataInputStream(releaseIS);
-        	}
-        	else {
-        		// Release connection after HEAD (there's no response content)
-        		if(log.isDebugEnabled()) {
-        			log.debug("Releasing HttpMethod after HEAD");
-        		}
-        		releaseConnection(httpResponse);
-        	}
+        responseObject.replaceAllMetadata(ServiceUtils.cleanRestMetadataMap(
+                map, this.getRestHeaderPrefix(), this.getRestMetadataPrefix()));
+        responseObject.setMetadataComplete(true); // Flag this object as having the complete metadata set.
+        if(!headOnly) {
+            HttpMethodReleaseInputStream releaseIS = new HttpMethodReleaseInputStream(httpResponse);
+            responseObject.setDataInputStream(releaseIS);
+        }
+        else {
+            // Release connection after HEAD (there's no response content)
+            if(log.isDebugEnabled()) {
+                log.debug("Releasing HttpMethod after HEAD");
+            }
+            releaseConnection(httpResponse);
         }
 
         return responseObject;

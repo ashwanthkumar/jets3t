@@ -29,6 +29,7 @@ import org.jets3t.service.StorageService;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
+import org.jets3t.service.model.ThrowableBearingStorageObject;
 import org.jets3t.service.multi.event.CopyObjectsEvent;
 import org.jets3t.service.multi.event.CreateBucketsEvent;
 import org.jets3t.service.multi.event.CreateObjectsEvent;
@@ -300,23 +301,26 @@ public class SimpleThreadedStorageService {
      * @throws ServiceException
      */
     public StorageObject[] getObjectsHeads(String bucketName, final String[] objectKeys) throws ServiceException {
-    	return getObjectsHeads(bucketName, objectKeys, false);
+    	return getObjectsHeads(bucketName, objectKeys, null);
     }
-    /**
-     * Retrieves details of multiple objects (details only, no data)
-     *
-     * @param bucketName
-     * name of the bucket containing the objects.
-     * @param objectKeys
-     * the key names of the objects to retrieve.
-     * @param allowMissingStorageObject
-     * allow the return of instances of MissingStorageObject rather than throwing exception on REST 404 not found
-     * @return
-     * objects populated with the details retrieved.
-     * @throws ServiceException
-     */
-    public StorageObject[] getObjectsHeads(String bucketName, final String[] objectKeys,
-    		boolean allowMissingStorageObject) throws ServiceException {
+
+     /**
+      * Retrieves details of multiple objects (details only, no data)
+      *
+      * @param bucketName
+      * name of the bucket containing the objects.
+      * @param objectKeys
+      * the key names of the objects to retrieve.
+      * @param errorPermitter
+      * callback handler to decide which errors will cause a {@link ThrowableBearingStorageObject}
+      * to pass through the system instead of raising an exception and aborting the operation.
+      * @return
+      * objects populated with the details retrieved.
+      * @throws ServiceException
+      */
+     public StorageObject[] getObjectsHeads(String bucketName, final String[] objectKeys,
+        final ErrorPermitter errorPermitter) throws ServiceException
+	 {
         final List<StorageObject> objectList = new ArrayList<StorageObject>();
         StorageServiceEventAdaptor adaptor = new StorageServiceEventAdaptor() {
             @Override
@@ -327,7 +331,8 @@ public class SimpleThreadedStorageService {
                 }
             };
         };
-        (new ThreadedStorageService(service, adaptor)).getObjectsHeads(bucketName, objectKeys, allowMissingStorageObject);
+        (new ThreadedStorageService(service, adaptor)).getObjectsHeads(
+            bucketName, objectKeys, errorPermitter);
         throwError(adaptor);
         return objectList.toArray(new StorageObject[objectList.size()]);
     }
