@@ -30,6 +30,16 @@ CloudFrontService:
 
  * Added support for setting time-to-live (TTL) values as low as zero
    seconds.
+   
+SimpleThreadedStorageService / ThreadedStorageService:
+
+ * Added mechanism to selectively permit individual object-level failures
+   within a multi-threaded service operation without causing the whole 
+   operation to abort.
+   Error conditions are permitted by providing an ErrorPermitter callback
+   handler class, while object-level failures result in generation of a 
+   ThrowableBearningStorageObject being generated instead of a normal
+   StorageObject.
 
 ### COCKPIT
 
@@ -96,6 +106,9 @@ RestS3Service:
    StorageService.
  * Gilles Gaillard (gillouxg) for a patch to add support for prefix and
    delimiter constraints when listing multipart uploads.
+ * Michael Howard (michaelthoward) for the impetus to better-support fine-
+   grained failure modes in the multipart services, and for code
+   contributions.
 
 
 ------------------------
