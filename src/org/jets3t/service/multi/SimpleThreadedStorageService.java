@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -217,7 +218,32 @@ public class SimpleThreadedStorageService {
      * the retrieved objects.
      * @throws ServiceException
      */
-    public StorageObject[] getObjects(String bucketName, StorageObject[] objects) throws ServiceException {
+    public StorageObject[] getObjects(String bucketName, StorageObject[] objects)
+        throws ServiceException
+    {
+        return getObjects(bucketName, objects, null);
+    }
+
+    /**
+     * Retrieves multiple objects (including details and data).
+     * The objects' data will be stored in temporary files, and can be retrieved using
+     * {@link StorageObject#getDataInputStream()}.
+     *
+     * @param bucketName
+     * name of the bucket containing the objects.
+     * @param objects
+     * the objects to retrieve.
+     * @param errorPermitter
+     * callback handler to decide which errors will cause a {@link ThrowableBearingStorageObject}
+     * to pass through the system instead of raising an exception and aborting the operation.
+     * @return
+     * the retrieved objects with order preserved according to the incoming object array.
+     * @throws ServiceException
+     */
+    public StorageObject[] getObjects(String bucketName, StorageObject[] objects,
+        final ErrorPermitter errorPermitter) throws ServiceException
+    {
+        String[] originalObjectKeyNames = new String[objects.length];
         DownloadPackage[] downloadPackages = new DownloadPackage[objects.length];
         try {
             for (int i = 0; i < downloadPackages.length; i++) {
@@ -226,6 +252,7 @@ public class SimpleThreadedStorageService {
                 tempFile.deleteOnExit();
 
                 downloadPackages[i] = new DownloadPackage(objects[i], tempFile);
+                originalObjectKeyNames[i] = objects[i].getName();
             }
         } catch (IOException e) {
             throw new ServiceException("Unable to create temporary file to store object data", e);
@@ -243,7 +270,7 @@ public class SimpleThreadedStorageService {
         };
         (new ThreadedStorageService(service, adaptor)).downloadObjects(bucketName, downloadPackages);
         throwError(adaptor);
-        return objectList.toArray(new StorageObject[objectList.size()]);
+        return reorderStorageObjects(originalObjectKeyNames, objectList);
     }
 
     /**
@@ -315,7 +342,8 @@ public class SimpleThreadedStorageService {
       * callback handler to decide which errors will cause a {@link ThrowableBearingStorageObject}
       * to pass through the system instead of raising an exception and aborting the operation.
       * @return
-      * objects populated with the details retrieved.
+      * objects populated with the details retrieved and with order preserved according to
+      * the list of object key names in the objectKeys parameter.
       * @throws ServiceException
       */
      public StorageObject[] getObjectsHeads(String bucketName, final String[] objectKeys,
@@ -334,7 +362,7 @@ public class SimpleThreadedStorageService {
         (new ThreadedStorageService(service, adaptor)).getObjectsHeads(
             bucketName, objectKeys, errorPermitter);
         throwError(adaptor);
-        return objectList.toArray(new StorageObject[objectList.size()]);
+        return reorderStorageObjects(objectKeys, objectList);
     }
 
     /**
@@ -402,11 +430,61 @@ public class SimpleThreadedStorageService {
      *
      * @throws ServiceException
      */
-    public void downloadObjects(String bucketName, final DownloadPackage[] downloadPackages) throws ServiceException {
+    public void downloadObjects(String bucketName, final DownloadPackage[] downloadPackages)
+        throws ServiceException
+    {
+        downloadObjects(bucketName, downloadPackages, null);
+    }
+
+    /**
+     * A convenience method to download multiple objects from S3 to pre-existing output streams, which
+     * is particularly useful for downloading objects to files.
+     *
+     * @param bucketName
+     * name of the bucket containing the objects
+     * @param downloadPackages
+     * an array of download package objects that manage the output of data for an object.
+     * @param errorPermitter
+     * callback handler to decide which errors will cause a {@link ThrowableBearingStorageObject}
+     * to pass through the system instead of raising an exception and aborting the operation.
+     *
+     * @throws ServiceException
+     */
+    public void downloadObjects(String bucketName, final DownloadPackage[] downloadPackages,
+        ErrorPermitter errorPermitter) throws ServiceException
+    {
         StorageServiceEventAdaptor adaptor = new StorageServiceEventAdaptor();
-        (new ThreadedStorageService(service, adaptor)).downloadObjects(bucketName, downloadPackages);
+        (new ThreadedStorageService(service, adaptor)).downloadObjects(
+            bucketName, downloadPackages, errorPermitter);
         throwError(adaptor);
     }
 
+    /**
+     * Re-order a list of {@link StorageObject}s to match the ordering of an array of
+     * object key names.
+     *
+     * @param objectKeys
+     * a list of object key names with the ordering you want to apply to the {@link StorageObject}s.
+     * @param unorderedObjects
+     * an unordered list of storage objects with key names matching the given array of object key
+     * names, and exactly the same number of objects as the object key names array.
+     * @return
+     * an array of {@link StorageObject}s ordered to match the given object key name array.
+     */
+    public static StorageObject[] reorderStorageObjects(
+        String[] objectKeys, List<StorageObject> unorderedObjects)
+    {
+        assert(objectKeys.length == unorderedObjects.size());
+        HashMap<String, StorageObject> hm =
+            new HashMap<String, StorageObject>(unorderedObjects.size());
+        for (StorageObject so : unorderedObjects) {
+            hm.put(so.getName(), so);
+        }
+        StorageObject[] orderedObjects = new StorageObject[unorderedObjects.size()];
+        for (int i = 0; i < orderedObjects.length; ++i) {
+            orderedObjects[i] = hm.get(objectKeys[i]);
+        }
+        return orderedObjects;
+    }
 
 }

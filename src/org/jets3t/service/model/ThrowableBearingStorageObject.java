@@ -6,6 +6,10 @@ package org.jets3t.service.model;
  * for cases where we need to return error information from low level
  * methods without failing an operation by throwing an exception.
  *
+ * WARNING: The only data likely to be available from instances of this
+ * class are the object key name via {@link #getName()} and the throwable
+ * that caused its generation via {@link #getThrowable()}.
+ *
  * @author jmurty michaelthoward
  */
 public class ThrowableBearingStorageObject extends StorageObject {
