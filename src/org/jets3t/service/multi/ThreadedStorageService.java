@@ -43,6 +43,7 @@ import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.io.TempFile;
 import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageObject;
+import org.jets3t.service.model.ThrowableBearingStorageObject;
 import org.jets3t.service.multi.event.CopyObjectsEvent;
 import org.jets3t.service.multi.event.CreateBucketsEvent;
 import org.jets3t.service.multi.event.CreateObjectsEvent;
@@ -690,6 +691,30 @@ public class ThreadedStorageService {
      * true if all the threaded tasks completed successfully, false otherwise.
      */
     public boolean getObjects(final String bucketName, final String[] objectKeys) {
+        return getObjects(bucketName, objectKeys, null);
+    }
+
+    /**
+     * Retrieves multiple objects (details and data) from a bucket, and sends
+     * {@link GetObjectsEvent} notification events.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property
+     * <tt>threaded-service.max-thread-count</tt>.
+     *
+     * @param bucketName
+     * the bucket containing the objects.
+     * @param objectKeys
+     * the key names of the objects to retrieve.
+     * @param errorPermitter
+     * callback handler to decide which errors will cause a {@link ThrowableBearingStorageObject}
+     * to pass through the system instead of raising an exception and aborting the operation.
+     *
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
+     */
+    public boolean getObjects(final String bucketName, final String[] objectKeys,
+        ErrorPermitter errorPermitter)
+    {
         final List pendingObjectKeysList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
         final boolean[] success = new boolean[] {true};
@@ -698,7 +723,7 @@ public class ThreadedStorageService {
         GetObjectRunnable[] runnables = new GetObjectRunnable[objectKeys.length];
         for (int i = 0; i < runnables.length; i++) {
             pendingObjectKeysList.add(objectKeys[i]);
-            runnables[i] = new GetObjectRunnable(bucketName, objectKeys[i], false);
+            runnables[i] = new GetObjectRunnable(bucketName, objectKeys[i], false, errorPermitter);
         }
 
         // Wait for threads to finish, or be cancelled.
@@ -767,25 +792,48 @@ public class ThreadedStorageService {
         for (int i = 0; i < objects.length; i++) {
             objectKeys[i] = objects[i].getKey();
         }
-        return getObjectsHeads(bucketName, objectKeys);
-    }
+        return getObjectsHeads(bucketName, objectKeys, null);
+     }
 
-    /**
-     * Retrieves details (but no data) about multiple objects from a bucket, and sends
-     * {@link GetObjectHeadsEvent} notification events.
-     * <p>
-     * The maximum number of threads is controlled by the JetS3t configuration property
-     * <tt>threaded-service.admin-max-thread-count</tt>.
-     *
-     * @param bucketName
-     * name of the bucket containing the objects.
-     * @param objectKeys
-     * the key names of the objects with details to retrieve.
-     *
-     * @return
-     * true if all the threaded tasks completed successfully, false otherwise.
-     */
-    public boolean getObjectsHeads(final String bucketName, final String[] objectKeys) {
+     /**
+      * Retrieves details (but no data) about multiple objects from a bucket, and sends
+      * {@link GetObjectHeadsEvent} notification events.
+      * <p>
+      * The maximum number of threads is controlled by the JetS3t configuration property
+      * <tt>threaded-service.admin-max-thread-count</tt>.
+      *
+      * @param bucketName
+      * name of the bucket containing the objects.
+      * @param objectKeys
+      * the key names of the objects with details to retrieve.
+      *
+      * @return
+      * true if all the threaded tasks completed successfully, false otherwise.
+      */
+     public boolean getObjectsHeads(final String bucketName, final String[] objectKeys) {
+    	return getObjectsHeads(bucketName, objectKeys, null);
+     }
+
+     /**
+      * Retrieves details (but no data) about multiple objects from a bucket, and sends
+      * {@link GetObjectHeadsEvent} notification events.
+      * <p>
+      * The maximum number of threads is controlled by the JetS3t configuration property
+      * <tt>threaded-service.admin-max-thread-count</tt>.
+      *
+      * @param bucketName
+      * name of the bucket containing the objects.
+      * @param objectKeys
+      * the key names of the objects with details to retrieve.
+      * @param errorPermitter
+      * callback handler to decide which errors will cause a {@link ThrowableBearingStorageObject}
+      * to pass through the system instead of raising an exception and aborting the operation.
+      * @return
+      * true if all the threaded tasks completed successfully, false otherwise.
+      */
+     public boolean getObjectsHeads(final String bucketName, final String[] objectKeys,
+            final ErrorPermitter errorPermitter)
+     {
         final List pendingObjectKeysList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
         final boolean[] success = new boolean[] {true};
@@ -794,7 +842,7 @@ public class ThreadedStorageService {
         GetObjectRunnable[] runnables = new GetObjectRunnable[objectKeys.length];
         for (int i = 0; i < runnables.length; i++) {
             pendingObjectKeysList.add(objectKeys[i]);
-            runnables[i] = new GetObjectRunnable(bucketName, objectKeys[i], true);
+            runnables[i] = new GetObjectRunnable(bucketName, objectKeys[i], true, errorPermitter);
         }
 
         // Wait for threads to finish, or be cancelled.
@@ -1007,6 +1055,38 @@ public class ThreadedStorageService {
     public boolean downloadObjects(final String bucketName,
         final DownloadPackage[] downloadPackages) throws ServiceException
     {
+        return downloadObjects(bucketName, downloadPackages, null);
+    }
+
+    /**
+     * A convenience method to download multiple objects to pre-existing
+     * output streams, which is particularly useful for downloading objects to files.
+     * <p>
+     * The maximum number of threads is controlled by the JetS3t configuration property
+     * <tt>threaded-service.max-thread-count</tt>.
+     * <p>
+     * If the JetS3t configuration property <tt>downloads.restoreLastModifiedDate</tt> is set
+     * to true, any files created by this method will have their last modified date set according
+     * to the value of the object's {@link Constants#METADATA_JETS3T_LOCAL_FILE_DATE} metadata
+     * item.
+     *
+     * @param bucketName
+     * name of the bucket containing the objects
+     * @param downloadPackages
+     * an array of download packages containing the object to be downloaded, and able to build
+     * an output stream where the object's contents will be written to.
+     * @param errorPermitter
+     * callback handler to decide which errors will cause a {@link ThrowableBearingStorageObject}
+     * to pass through the system instead of raising an exception and aborting the operation.
+     *
+     * @return
+     * true if all the threaded tasks completed successfully, false otherwise.
+     * @throws ServiceException
+     */
+    public boolean downloadObjects(final String bucketName,
+        final DownloadPackage[] downloadPackages, ErrorPermitter errorPermitter)
+        throws ServiceException
+    {
         final List progressWatchers = new ArrayList();
         final List incompleteObjectDownloadList = new ArrayList();
         final Object uniqueOperationId = new Object(); // Special object used to identify this operation.
@@ -1027,7 +1107,7 @@ public class ThreadedStorageService {
             progressWatchers.add(progressMonitor);
 
             runnables[i] = new DownloadObjectRunnable(bucketName, objects[i].getKey(),
-                downloadPackages[i], progressMonitor, restoreLastModifiedDate);
+                downloadPackages[i], progressMonitor, restoreLastModifiedDate, errorPermitter);
         }
 
         // Wait for threads to finish, or be cancelled.
@@ -1401,26 +1481,35 @@ public class ThreadedStorageService {
         private String bucketName = null;
         private String objectKey = null;
         private boolean headOnly = false;
+        private ErrorPermitter errorPermitter;
 
         private Object result = null;
 
-        public GetObjectRunnable(String bucketName, String objectKey, boolean headOnly) {
+        public GetObjectRunnable(
+                String bucketName, String objectKey, boolean headOnly,
+                final ErrorPermitter errorPermitter)
+        {
             this.bucketName = bucketName;
             this.objectKey = objectKey;
             this.headOnly = headOnly;
+            this.errorPermitter = errorPermitter;
         }
 
         public void run() {
             try {
                 if (headOnly) {
                     result = storageService.getObjectDetails(
-                        bucketName, objectKey);
+                        bucketName, objectKey, null, null, null, null);
                 } else {
                     result = storageService.getObject(
                         bucketName, objectKey);
                 }
             } catch (ServiceException e) {
-                result = e;
+                if (this.errorPermitter != null && this.errorPermitter.isPermitted(e)) {
+                    result = new ThrowableBearingStorageObject(this.objectKey, e);
+                } else {
+                    result = e;
+                }
             }
         }
 
@@ -1447,25 +1536,20 @@ public class ThreadedStorageService {
         private InterruptableInputStream interruptableInputStream = null;
         private BytesProgressWatcher progressMonitor = null;
         private boolean restoreLastModifiedDate = true;
+        private ErrorPermitter errorPermitter = null;
 
         private Object result = null;
 
-        public DownloadObjectRunnable(String bucketName, String objectKey, DownloadPackage downloadPackage,
-            BytesProgressWatcher progressMonitor, boolean restoreLastModifiedDate)
+        public DownloadObjectRunnable(String bucketName, String objectKey,
+            DownloadPackage downloadPackage, BytesProgressWatcher progressMonitor,
+            boolean restoreLastModifiedDate, ErrorPermitter errorPermitter)
         {
             this.bucketName = bucketName;
             this.objectKey = objectKey;
             this.downloadPackage = downloadPackage;
             this.progressMonitor = progressMonitor;
             this.restoreLastModifiedDate = restoreLastModifiedDate;
-        }
-
-        public DownloadObjectRunnable(DownloadPackage downloadPackage, BytesProgressWatcher progressMonitor,
-            boolean restoreLastModifiedDate)
-        {
-            this.downloadPackage = downloadPackage;
-            this.progressMonitor = progressMonitor;
-            this.restoreLastModifiedDate = restoreLastModifiedDate;
+            this.errorPermitter = errorPermitter;
         }
 
         public void run() {
@@ -1572,7 +1656,11 @@ public class ThreadedStorageService {
 
                 result = object;
             } catch (Throwable t) {
-                result = t;
+                if (this.errorPermitter != null && this.errorPermitter.isPermitted(t)) {
+                    result = new ThrowableBearingStorageObject(this.objectKey, t);
+                } else {
+                    result = t;
+                }
             } finally {
                 if (bufferedInputStream != null) {
                     try {

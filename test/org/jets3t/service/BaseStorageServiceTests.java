@@ -63,6 +63,8 @@ import org.jets3t.service.model.StorageBucket;
 import org.jets3t.service.model.StorageBucketLoggingStatus;
 import org.jets3t.service.model.StorageObject;
 import org.jets3t.service.model.StorageOwner;
+import org.jets3t.service.model.ThrowableBearingStorageObject;
+import org.jets3t.service.multi.ErrorPermitter;
 import org.jets3t.service.multi.SimpleThreadedStorageService;
 import org.jets3t.service.multi.StorageServiceEventAdaptor;
 import org.jets3t.service.multi.ThreadedStorageService;
@@ -1203,6 +1205,40 @@ public abstract class BaseStorageServiceTests extends TestCase {
             for (int i = 0; i < objects.length; i++) {
                 assertEquals(objects[i].getKey(), headObjects[i].getKey());
                 assertEquals("Some data".length(), headObjects[i].getContentLength());
+            }
+
+            // Retrieve details for objects, some of which are missing but which we don't
+            // want to cause an error.
+            class Http404ErrorPermitter extends ErrorPermitter {
+                @Override
+                public boolean isPermitted(ServiceException ex) {
+                    return ex.getResponseCode() == 404;
+                }
+            }
+            // Prepare object keys combining existing and non-existent key names
+            String objectKeys[] = new String[objects.length + 2];
+            for (int i = 0; i < objects.length; i++) {
+                objectKeys[i] = objects[i].getKey();
+            }
+            objectKeys[objects.length] = "missing-object-key-1";
+            objectKeys[objects.length + 1] = "missing-object-key-2";
+            StorageObject[] headObjectsWithMissing = simpleThreadedService.getObjectsHeads(
+                bucketName, objectKeys, new Http404ErrorPermitter());
+            assertEquals(objects.length + 2, headObjectsWithMissing.length);
+            for (int i = 0; i < objects.length; i++) {
+                assertEquals(objects[i].getKey(), headObjectsWithMissing[i].getKey());
+                assertEquals("Some data".length(), headObjectsWithMissing[i].getContentLength());
+            }
+            // Ensure we got ThrowableBearingStorageObject results with relevant info
+            assertEquals("missing-object-key-1", headObjectsWithMissing[objects.length].getKey());
+            assertEquals("missing-object-key-2", headObjectsWithMissing[objects.length + 1].getKey());
+            for (int i = objects.length; i < objects.length + 2; i++) {
+                assertEquals(
+                    ThrowableBearingStorageObject.class, headObjectsWithMissing[i].getClass());
+                assertEquals(404,
+                    ((ServiceException)
+                        ((ThrowableBearingStorageObject)headObjectsWithMissing[i])
+                        .getThrowable()).getResponseCode());
             }
 
             // Retrieve data for multiple objects
