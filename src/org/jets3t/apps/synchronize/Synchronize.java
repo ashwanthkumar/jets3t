@@ -692,6 +692,9 @@ public class Synchronize {
 
         String priorLastKey = null;
 
+        // Store local path mapped to storage object for moved objects.
+        Map<String, StorageObject> objectsMoved = new HashMap<String, StorageObject>();
+
         // Repeat download actions until all objects in bucket have been listed.
         do {
             ComparisonResult result =
@@ -777,6 +780,10 @@ public class Synchronize {
                             + ". Sorry, this is a program error - aborting to keep your data safe");
                     }
 
+                    if (isMoveEnabled) {
+                        objectsMoved.put(localPath, object);
+                    }
+
                     // Optionally break up download sets into batches
                     if (isBatchMode
                         && downloadPackagesList.size() >= Constants.DEFAULT_OBJECT_LIST_CHUNK_SIZE)
@@ -829,30 +836,22 @@ public class Synchronize {
         }
 
         // Delete objects in service that have been moved to the local computer.
-        List<String> objectsMoved = new ArrayList<String>();
         if (isMoveEnabled) {
-            objectsMoved.addAll(mergedDiscrepancyResults.onlyOnServerKeys);
-            objectsMoved.addAll(mergedDiscrepancyResults.updatedOnServerKeys);
-            objectsMoved.addAll(mergedDiscrepancyResults.updatedOnClientKeys);
-            objectsMoved.addAll(mergedDiscrepancyResults.alreadySynchronisedKeys);
-            Collections.sort(objectsMoved);
+            List<String> objectsMovedLocalPaths = new ArrayList<String>(objectsMoved.size());
+            objectsMovedLocalPaths.addAll(objectsMoved.keySet());
+            Collections.sort(objectsMovedLocalPaths);
 
-            Iterator<String> objectsMovedIter = objectsMoved.iterator();
-
-            List<StorageObject> objectsToDelete = new ArrayList<StorageObject>();
-            while (objectsMovedIter.hasNext()) {
-                String keyPath = objectsMovedIter.next();
-                StorageObject object = new StorageObject(keyPath);
-
-                printOutputLine("M " + keyPath, REPORT_LEVEL_ACTIONS);
+            for (String movedLocalPath: objectsMovedLocalPaths) {
                 if (doAction) {
-                    objectsToDelete.add(object);
+                    printOutputLine("M " + movedLocalPath, REPORT_LEVEL_ACTIONS);
+                } else {
+                    printOutputLine("m " + movedLocalPath, REPORT_LEVEL_ACTIONS);
                 }
             }
 
-            if (objectsToDelete.size() > 0) {
-                StorageObject[] objects = objectsToDelete.toArray(
-                    new StorageObject[objectsToDelete.size()]);
+            if (objectsMoved.size() > 0 && doAction) {
+                StorageObject[] objects = objectsMoved.values().toArray(
+                    new StorageObject[objectsMoved.size()]);
                 (new ThreadedStorageService(storageService, serviceEventAdaptor)).deleteObjects(
                     bucket.getName(), objects);
                 serviceEventAdaptor.throwErrorIfPresent();
