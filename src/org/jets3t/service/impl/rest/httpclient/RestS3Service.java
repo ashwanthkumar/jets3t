@@ -764,6 +764,7 @@ public class RestS3Service extends S3Service {
         // Apply per-object or default object properties when uploading object
         prepareStorageClass(metadata, storageClass, true, objectKey);
         prepareServerSideEncryption(metadata, serverSideEncryptionAlgorithm, objectKey);
+        prepareRESTHeaderAcl(metadata, acl);
 
         try {
             HttpResponse httpResponse = performRestPost(

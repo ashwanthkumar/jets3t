@@ -3247,6 +3247,18 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
                 }
 
                 multipartCompleteUpload(upload, parts);
+
+                // Apply non-canned ACL settings if necessary (canned ACL will already be applied)
+                if (object.getAcl() != null
+                    && object.getAcl().getValueForRESTHeaderACL() == null)
+                {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Completed multipart upload for object with a non-canned ACL"
+                            + " so an extra ACL Put is required");
+                    }
+                    putAclImpl(bucketName, object.getKey(), object.getAcl(), null);
+                }
+
             } catch (RuntimeException e) {
                 throw e;
             } catch (Exception e) {
@@ -3298,7 +3310,9 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * @param metadata
      * metadata to apply to the completed object, may be null.
      * @param acl
-     * ACL to apply to the completed upload, may be null.
+     * Canned ACL to apply to the completed upload, may be null.
+     * NOTE: non-canned ACLs cannot be applied at the start of multipart uploads,
+     * and must be applied to the object after it has been completed.
      * @param storageClass
      * storage class to apply to the completed upload, may be null.
      * @return
