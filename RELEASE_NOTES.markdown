@@ -47,6 +47,12 @@ SimpleThreadedStorageService / ThreadedStorageService:
    ThrowableBearningStorageObject being generated instead of a normal
    StorageObject.
 
+### SYNCHRONIZE
+
+ * Fix bug that prevented Synchronize from deleting service-side objects when
+   files within a pseudo-directory were downloaded to the local system with
+   the --move option.
+
 ### COCKPIT
 
  * Distribution management dialog now supports viewing and setting the
