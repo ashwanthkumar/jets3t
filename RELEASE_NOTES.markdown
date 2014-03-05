@@ -26,6 +26,12 @@ General:
    timestamp in a RequestTimeTooSkewed error response to calculate
    a time offset, instead of performing an extra GET request (#173).
 
+S3Service:
+
+ * Added support to apply *canned* ACL settings when starting a multipart upload,
+   and to apply arbitrary ACL settings (canned or otherwise) to a multipart
+   object uploaded with the `putObjectMaybeAsMultipart` convenience method (#184) 
+
 CloudFrontService:
 
  * Added support for setting time-to-live (TTL) values as low as zero
