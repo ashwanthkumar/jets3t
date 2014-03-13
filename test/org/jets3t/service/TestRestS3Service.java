@@ -51,6 +51,9 @@ import org.jets3t.service.S3Service;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.ServiceException;
 import org.jets3t.service.acl.AccessControlList;
+import org.jets3t.service.acl.GranteeInterface;
+import org.jets3t.service.acl.GroupGrantee;
+import org.jets3t.service.acl.Permission;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser;
 import org.jets3t.service.impl.rest.httpclient.HttpMethodReleaseInputStream;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
@@ -393,8 +396,9 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             metadata.put("test-timestamp-value", System.currentTimeMillis());
 
             // Start a multipart upload
-            MultipartUpload testMultipartUpload =
-                service.multipartStartUpload(bucketName, objectKey, metadata);
+            MultipartUpload testMultipartUpload = service.multipartStartUpload(
+                bucketName, objectKey, metadata,
+                AccessControlList.REST_CANNED_AUTHENTICATED_READ, null);
 
             assertEquals(bucketName, testMultipartUpload.getBucketName());
             assertEquals(objectKey, testMultipartUpload.getObjectKey());
@@ -554,7 +558,7 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             assertEquals(multipartCompleted.getBucketName(), testMultipartUpload.getBucketName());
             assertEquals(multipartCompleted.getObjectKey(), testMultipartUpload.getObjectKey());
 
-            // Confirm completed object exists and has expected size and metadata
+            // Confirm completed object exists and has expected size, metadata
             S3Object completedObject = (S3Object) service.getObjectDetails(
                 bucketName, testMultipartUpload.getObjectKey());
             assertEquals(completedObject.getContentLength(), fiveMBTestData.length * 2 + 1);
@@ -564,6 +568,11 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             assertEquals(
                 metadata.get("test-timestamp-value").toString(),
                 completedObject.getMetadata("test-timestamp-value").toString());
+            // Confirm completed object has expected canned ACL settings
+            AccessControlList completedObjectACL =
+                service.getObjectAcl(bucketName, testMultipartUpload.getObjectKey());
+            assertTrue(completedObjectACL.hasGranteeAndPermission(
+                GroupGrantee.AUTHENTICATED_USERS, Permission.PERMISSION_READ));
         } finally {
             cleanupBucketForTest("testMultipartUploads");
         }
@@ -597,11 +606,16 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             bos.close();
             testDataOverLimit = null; // Free up a some memory
 
+            // Setup non-canned ACL
+            AccessControlList testACL = buildAccessControlList();
+            testACL.setOwner(service.getAccountOwner());
+            testACL.grantPermission(GroupGrantee.AUTHENTICATED_USERS, Permission.PERMISSION_READ);
+
             // Setup file-based object
             StorageObject objectViaConvenienceMethod = new StorageObject(testDataFile);
             objectViaConvenienceMethod.setKey("multipart-object-via-convenience-method.txt");
             objectViaConvenienceMethod.addMetadata("my-metadata", "convenient? yes!");
-            objectViaConvenienceMethod.setAcl(AccessControlList.REST_CANNED_PUBLIC_READ);
+            objectViaConvenienceMethod.setAcl(testACL);
             objectViaConvenienceMethod.setStorageClass(S3Object.STORAGE_CLASS_REDUCED_REDUNDANCY);
 
             // Upload object
@@ -613,6 +627,13 @@ public class TestRestS3Service extends BaseStorageServiceTests {
             assertEquals(
                 "convenient? yes!",
                 objectViaConvenienceMethod.getMetadata("my-metadata"));
+
+            // Confirm custom ACL was applied automatically
+            AccessControlList aclViaConvenienceMethod = service.getObjectAcl(
+                bucketName, objectViaConvenienceMethod.getKey());
+            assertEquals(
+                testACL.getPermissionsForGrantee(GroupGrantee.AUTHENTICATED_USERS),
+                aclViaConvenienceMethod.getPermissionsForGrantee(GroupGrantee.AUTHENTICATED_USERS));
 
             // Confirm completed object was indeed uploaded as a multipart upload,
             // not a standard PUT (ETag is not a valid MD5 hash in this case)
