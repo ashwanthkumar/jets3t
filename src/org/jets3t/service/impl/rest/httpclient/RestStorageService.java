@@ -1807,7 +1807,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
             prepareStorageClass(metadata, storageClass, true, objectKey);
 
             // do not set server-side encryption flag for part-objects
-            if (!requestParams.containsKey("partNumber")) {
+            if (requestParams == null || !requestParams.containsKey("partNumber")) {
                 prepareServerSideEncryption(metadata, serverSideEncryptionAlgorithm, objectKey);
             }
         }
