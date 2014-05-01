@@ -99,8 +99,9 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * <p/>
      * This value is 0 by default. Use the {@link #getCurrentTimeWithOffset()}
      * to obtain the current time with this offset factor included, and the
-     * {@link RestUtils#getAWSTimeAdjustment()} method to calculate an offset value for your
-     * computer based on a response from an AWS server.
+     * {@link RestUtils#calculateTimeAdjustmentOffset(HttpResponse)} method to
+     * calculate an offset value for your computer based on a response from an
+     * AWS server.
      */
     protected long timeOffset = 0;
 
@@ -187,7 +188,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
     /**
      * Returns the current date and time, adjusted according to the time
      * offset between your computer and an AWS server (as set by the
-     * {@link RestUtils#getAWSTimeAdjustment()} method).
+     * {@link RestUtils#calculateTimeAdjustmentOffset(HttpResponse)} method).
      *
      * @return the current time, or the current time adjusted to match the AWS time
      *         if the service has experienced a RequestExpired error.

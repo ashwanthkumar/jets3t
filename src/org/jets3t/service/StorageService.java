@@ -94,8 +94,9 @@ public abstract class StorageService {
      *
      * This value is 0 by default. Use the {@link #getCurrentTimeWithOffset()}
      * to obtain the current time with this offset factor included, and the
-     * {@link RestUtils#getAWSTimeAdjustment()} method to calculate an offset value for your
-     * computer based on a response from an AWS server.
+     * {@link RestUtils#calculateTimeAdjustmentOffset(org.apache.http.HttpResponse)}
+     * method to calculate an offset value for your computer based on a response
+     * from an AWS server.
      */
     protected long timeOffset = 0;
 
