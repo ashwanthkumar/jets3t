@@ -32,6 +32,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
 import org.apache.commons.logging.Log;
@@ -628,7 +629,7 @@ public class RestUtils {
                 maxConnectionsPerHost = maxConn;
             }
             connPerRoute.setDefaultMaxPerRoute(maxConnectionsPerHost);
-            return new ConnPoolByRoute(connOperator, connPerRoute, maxConn);
+            return new ConnPoolByRoute(connOperator, connPerRoute, maxConn,props.getLongProperty("httpclient.connection.ttl", -1L), TimeUnit.MILLISECONDS);
         }
     } //ThreadSafeConnManager
 
