@@ -184,6 +184,9 @@ public class AccessControlList implements Serializable {
         if (owner == null) {
             throw new ServiceException("Invalid AccessControlList: missing an owner");
         }
+        if (owner.getId() == null || "".equals(owner.getId())) {
+            throw new ServiceException("Invalid AccessControlList: missing owner ID");
+        }
         XMLBuilder builder = XMLBuilder.create("AccessControlPolicy")
             .attr("xmlns", Constants.XML_NAMESPACE)
             .elem("Owner")
