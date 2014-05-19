@@ -1,9 +1,9 @@
 JetS3t Release Notes
 ====================
 
------------------
-Version 0.9.1-dev
------------------
+-------------
+Version 0.9.1
+-------------
 
 ### TOOLKIT
 
@@ -15,7 +15,7 @@ General:
  * Storage objects now make fine-grained metadata maps available when possible
    including: user-specified metadata via #getUserMetadataMap; service-specified
    metadata via #getServiceMetadataMap; a complete and unfiltered set of metadata
-   via #getCompleteMetadataMap. See issue #171. 
+   via #getCompleteMetadataMap (#171) 
  * Fixed `httpclient.read-throttle` upload bandwidth throttling implementation 
    which wasn't working for values under 128KB. It should now throttle correctly
    down to single-digit KB/s values.
@@ -25,27 +25,45 @@ General:
  * Improved automatic time adjustment feature to use the 'Date'
    timestamp in a RequestTimeTooSkewed error response to calculate
    a time offset, instead of performing an extra GET request (#173).
+ * Remove dependency on safehaus UUI library, as UUID is now included in Java 6.
+ * Fix file comparison bugs with metadata lookup and local MD5 hash caching
+   (#159, #161)  
 
 S3Service:
 
  * Added support to apply *canned* ACL settings when starting a multipart upload,
    and to apply arbitrary ACL settings (canned or otherwise) to a multipart
-   object uploaded with the `putObjectMaybeAsMultipart` convenience method (#184) 
+   object uploaded with the `putObjectMaybeAsMultipart` convenience method (#184)
+ * Close INPUT form tags in S3 POST upload generated form (#148) 
+ * Fix bugs when using AWS server-side encryption
+ * Add API-level support for S3 bucket lifecycle configuration (#158)
+ * Add STORAGE_CLASS_GLACIER storage class. 
+ * Apply ACL settings to multipart uploads: canned ACL settings are applied in
+   all cases, non-canned ACLs are applied by #putObjectMaybeAsMultipart (#184)
+ * Fix bug that caused failure of multi-part uploads with service-side encryption.
 
 CloudFrontService:
 
  * Added support for setting time-to-live (TTL) values as low as zero
    seconds.
+ * Support for API version 2012-05-05 (#150)
    
 SimpleThreadedStorageService / ThreadedStorageService:
 
  * Added mechanism to selectively permit individual object-level failures
    within a multi-threaded service operation without causing the whole 
-   operation to abort.
+   operation to abort. This is particularly useful for handling missing objects
+   in service during multi-threaded operations without failing the whole
+   operation.
+   
    Error conditions are permitted by providing an ErrorPermitter callback
    handler class, while object-level failures result in generation of a 
    ThrowableBearningStorageObject being generated instead of a normal
-   StorageObject.
+   StorageObject. (#181)
+
+GoogleStorageService:
+
+ * Google Storage website configuration and other improvements (by dkocher)
 
 ### SYNCHRONIZE
 
@@ -57,13 +75,23 @@ SimpleThreadedStorageService / ThreadedStorageService:
 
  * Distribution management dialog now supports viewing and setting the
    MinTTL value for non-streaming distributions.
+   
+### UTILITIES
+
+ * New console utility to delete outdated incomplete Multipart Upload parts:
+   DeleteMultipartUploads
 
 ### KUDOS TO
 
  * Chris Baker for catching the `httpclient.read-throttle` and object/file
    comparison issues, investigating the bugs and testing the fixes.
- * David Kocher for numerous fixes and improvements, see his pull requests etc at
-   https://bitbucket.org/dkocher/jets3t/
+ * David Kocher for a **multitude** of fixes and improvements, see his pull
+   requests and contributions at https://bitbucket.org/dkocher/jets3t/
+ * Michael Howard (michaelthoward) for impetus and code contributions leading
+   to improved handling of missing objects in multi-threaded operations.
+ * Matteo Bertozzi (matteobertozzi) for fixing bug preventing use of
+   service-side encryption for multipart objects.  
+    
 
 -------------
 Version 0.9.0

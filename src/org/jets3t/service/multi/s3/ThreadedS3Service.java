@@ -311,8 +311,7 @@ public class ThreadedS3Service extends ThreadedStorageService {
         public void run() {
             try {
                 result = ((S3Service)storageService).multipartStartUpload(bucketName,
-                    object.getKey(), object.getMetadataMap(),
-                    object.getAcl(), object.getStorageClass());
+                    (S3Object)object);
             } catch (ServiceException e) {
                 result = e;
             }
