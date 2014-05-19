@@ -235,8 +235,9 @@ limitations under the License.
             <artifactId>maven-release-plugin</artifactId>
             <version>2.5</version>
             <configuration>
-              <tagNameFormat>v@{project.version}</tagNameFormat>
+              <tagNameFormat>Release-@{project.version}</tagNameFormat>
               <pushChanges>false</pushChanges>
+              <arguments>-DskipTests=true</arguments>
             </configuration>
           </plugin>
           <plugin>
