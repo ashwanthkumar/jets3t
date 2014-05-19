@@ -3,7 +3,7 @@
 JetS3t : Java S3 Toolkit
 Project hosted at http://bitbucket.org/jmurty/jets3t/
 
-Copyright 2006-2013 James Murty
+Copyright 2006-2014 James Murty
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,17 +21,29 @@ limitations under the License.
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.jets3t</groupId>
+    <groupId>net.java.dev.jets3t</groupId>
     <artifactId>jets3t</artifactId>
     <packaging>jar</packaging>
-    <version>0.9.1</version>
+    <version>0.9.1-SNAPSHOT</version>
     <description>Toolkit for Amazon S3, Amazon CloudFront, and Google Storage Service.</description>
     <name>JetS3t</name>
     <url>https://bitbucket.org/jmurty/jets3t/overview</url>
     <inceptionYear>2006</inceptionYear>
     <scm>
-        <connection>scm:hg:ssh://hg@bitbucket.org/jmurty/jets3t</connection>
+        <connection>scm:hg:http://bitbucket.org/jmurty/jets3t</connection>
+        <developerConnection>scm:hg:ssh://hg@bitbucket.org/jmurty/jets3t</developerConnection>
+        <url>https://bitbucket.org/jmurty/jets3t</url>
     </scm>
+    <developers>
+        <developer>
+            <id>jmurty</id>
+            <name>James Murty</name>
+            <url>http://jamesmurty.com</url>
+            <roles>
+                <role>developer</role>
+            </roles>
+        </developer>
+    </developers>    
     <properties>
         <maven.compile.source>1.5</maven.compile.source>
         <maven.compile.target>1.5</maven.compile.target>
@@ -49,6 +61,12 @@ limitations under the License.
         </sonar.jdbc.url>
         <sonar.jdbc.driver>com.mysql.jdbc.Driver</sonar.jdbc.driver>
     </properties>
+    <!-- Sonatype Maven repo hosting and sync to Maven Central -->
+    <parent>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>7</version>
+    </parent>
     <build>
         <sourceDirectory>src</sourceDirectory>
         <testSourceDirectory>test</testSourceDirectory>
@@ -148,7 +166,6 @@ limitations under the License.
                 <artifactId>maven-install-plugin</artifactId>
                 <version>2.3.1</version>
                 <inherited>false</inherited>
-                <!--  
                 <executions>
                     <execution>
                         <id>install-barebonesbrowserlaunch</id>
@@ -159,13 +176,12 @@ limitations under the License.
                         <configuration>
                             <groupId>com.centerkey.utils</groupId>
                             <artifactId>barebonesbrowserlaunch</artifactId>
-                            <version>1.5</version>
+                            <version>3.1</version>
                             <packaging>jar</packaging>
                             <file>${basedir}/libs/misc/BareBonesBrowserLaunch.jar</file>
                         </configuration>
                     </execution>
                 </executions>
-                -->
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -214,8 +230,45 @@ limitations under the License.
                 <artifactId>sonar-maven-plugin</artifactId>
                 <version>2.0</version>
             </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-release-plugin</artifactId>
+            <version>2.5</version>
+            <configuration>
+              <tagNameFormat>v@{project.version}</tagNameFormat>
+              <pushChanges>false</pushChanges>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>2.9</version>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>1.4</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
         </plugins>
     </build>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -288,13 +341,14 @@ limitations under the License.
         <dependency>
             <groupId>com.jamesmurty.utils</groupId>
             <artifactId>java-xmlbuilder</artifactId>
-            <version>0.6</version>
+            <version>1.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.centerkey.utils</groupId>
-            <artifactId>BareBonesBrowserLaunch</artifactId>
-            <version>3.1.1</version>
+            <artifactId>barebonesbrowserlaunch</artifactId>
+            <version>3.1</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
