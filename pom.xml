@@ -16,15 +16,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>net.java.dev.jets3t</groupId>
     <artifactId>jets3t</artifactId>
     <packaging>jar</packaging>
-    <version>0.9.1-SNAPSHOT</version>
+    <version>0.9.1</version>
     <description>Toolkit for Amazon S3, Amazon CloudFront, and Google Storage Service.</description>
     <name>JetS3t</name>
     <url>https://bitbucket.org/jmurty/jets3t/overview</url>
@@ -33,7 +31,8 @@ limitations under the License.
         <connection>scm:hg:http://bitbucket.org/jmurty/jets3t</connection>
         <developerConnection>scm:hg:ssh://hg@bitbucket.org/jmurty/jets3t</developerConnection>
         <url>https://bitbucket.org/jmurty/jets3t</url>
-    </scm>
+      <tag>Release-0.9.1</tag>
+  </scm>
     <developers>
         <developer>
             <id>jmurty</id>
