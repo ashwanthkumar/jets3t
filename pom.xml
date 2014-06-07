@@ -22,7 +22,7 @@ limitations under the License.
     <groupId>net.java.dev.jets3t</groupId>
     <artifactId>jets3t</artifactId>
     <packaging>jar</packaging>
-    <version>0.9.1</version>
+    <version>0.9.2-SNAPSHOT</version>
     <description>Toolkit for Amazon S3, Amazon CloudFront, and Google Storage Service.</description>
     <name>JetS3t</name>
     <url>https://bitbucket.org/jmurty/jets3t/overview</url>
@@ -31,7 +31,7 @@ limitations under the License.
         <connection>scm:hg:http://bitbucket.org/jmurty/jets3t</connection>
         <developerConnection>scm:hg:ssh://hg@bitbucket.org/jmurty/jets3t</developerConnection>
         <url>https://bitbucket.org/jmurty/jets3t</url>
-      <tag>Release-0.9.1</tag>
+      <tag>HEAD</tag>
   </scm>
     <developers>
         <developer>
