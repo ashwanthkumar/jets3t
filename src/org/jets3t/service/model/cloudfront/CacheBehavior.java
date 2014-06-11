@@ -27,7 +27,8 @@ public class CacheBehavior {
 
     public enum ViewerProtocolPolicy {
         HTTPS_ONLY ("https-only"),
-        ALLOW_ALL ("allow-all");
+        ALLOW_ALL ("allow-all"),
+        REDIRECT_TO_HTTPS ("redirect-to-https");
 
         private final String textValue;
 
