@@ -35,13 +35,13 @@ Files       : httpcomponents/httpclient-4.3.2.jar
 
 
 Name        : Java XMLBuilder
-Version     : 0.6
-Location    : http://code.google.com/p/java-xmlbuilder/
+Version     : 1.0
+Location    : https://github.com/jmurty/java-xmlbuilder/
 Required?   : YES
             : This library is used directly by services to build XML documents.
 Description : A utility that creates simple XML documents using sparse Java
             : code.
-Files       : java-xmlbuilder/java-xmlbuilder-0.6.jar
+Files       : java-xmlbuilder/java-xmlbuilder-1.0.jar
 
 
 Name        : Bouncy Castle Crypto APIs

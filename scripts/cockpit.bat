@@ -60,7 +60,7 @@ set CP=%CP%;%MY_JETS3T_HOME%/libs/httpcomponents/httpcore-4.3.1.jar
 set CP=%CP%;%MY_JETS3T_HOME%/libs/misc/BareBonesBrowserLaunch.jar
 set CP=%CP%;%MY_JETS3T_HOME%/libs/logging-log4j/log4j-1.2.15.jar
 set CP=%CP%;%MY_JETS3T_HOME%/libs/bouncycastle/bcprov-jdk14-138.jar
-set CP=%CP%;%MY_JETS3T_HOME%/libs/java-xmlbuilder/java-xmlbuilder-0.6.jar
+set CP=%CP%;%MY_JETS3T_HOME%/libs/java-xmlbuilder/java-xmlbuilder-1.0.jar
 
 REM OutOfMemory errors? Increase the memory available by changing -Xmx256M
 
