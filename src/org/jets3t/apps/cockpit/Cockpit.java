@@ -151,7 +151,7 @@ import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.ObjectUtils;
 import org.jets3t.service.utils.TimeFormatter;
 
-import com.centerkey.utils.BareBonesBrowserLaunch;
+import contribs.com.centerkey.utils.BareBonesBrowserLaunch;
 
 /**
  * Cockpit is a graphical Java application for viewing and managing the contents of an Amazon S3 account.

@@ -137,7 +137,7 @@ import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
 import org.jets3t.service.utils.gatekeeper.SignatureRequest;
 import org.jets3t.service.utils.signedurl.SignedUrlAndObject;
 
-import com.centerkey.utils.BareBonesBrowserLaunch;
+import contribs.com.centerkey.utils.BareBonesBrowserLaunch;
 
 /**
  * Dual application and applet for uploading files and XML metadata information to the Amazon S3

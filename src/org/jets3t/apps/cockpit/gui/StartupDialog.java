@@ -64,7 +64,7 @@ import org.jets3t.service.security.GSCredentials;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.ServiceUtils;
 
-import com.centerkey.utils.BareBonesBrowserLaunch;
+import contribs.com.centerkey.utils.BareBonesBrowserLaunch;
 
 /**
  * Dialog box for obtaining a user's service credentials, and performing other startup
