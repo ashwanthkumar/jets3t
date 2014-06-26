@@ -138,7 +138,7 @@ import org.jets3t.service.utils.gatekeeper.SignatureRequest;
 import org.jets3t.service.utils.signedurl.GatekeeperClientUtils;
 import org.jets3t.service.utils.signedurl.SignedUrlAndObject;
 
-import com.centerkey.utils.BareBonesBrowserLaunch;
+import contribs.com.centerkey.utils.BareBonesBrowserLaunch;
 
 /**
  * CockpitLite is a graphical Java application for viewing and managing the
