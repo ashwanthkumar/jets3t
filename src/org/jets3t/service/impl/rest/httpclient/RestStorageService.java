@@ -2013,6 +2013,23 @@ public abstract class RestStorageService extends StorageService implements JetS3
         map.put("Last-Modified", handler.getLastModified());
         map.put("ETag", handler.getETag());
 
+        // Include information about copy operation in result map, issue #192
+        map.put("X-JetS3t-SourceBucketName", sourceBucketName);
+        map.put("X-JetS3t-SourceObjectKey", sourceObjectKey);
+        map.put("X-JetS3t-DestinationBucketName", destinationBucketName);
+        map.put("X-JetS3t-DestinationObjectKey", destinationObjectKey);
+        if (versionId != null) {
+            map.put("X-JetS3t-VersionId", sourceBucketName);
+        }
+        if (destinationObjectStorageClass != null) {
+            map.put("X-JetS3t-DestinationObjectStorageClass",
+                destinationObjectStorageClass);
+        }
+        if (destinationObjectServerSideEncryptionAlgorithm != null) {
+            map.put("X-JetS3t-DestinationObjectServerSideEncryptionAlgorithm",
+                destinationObjectServerSideEncryptionAlgorithm);
+        }
+
         // Include response headers in result map.
         map.putAll(convertHeadersToMap(methodAndByteCount.getHttpResponse().getAllHeaders()));
         map = ServiceUtils.cleanRestMetadataMap(

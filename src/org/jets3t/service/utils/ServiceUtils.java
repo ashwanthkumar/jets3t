@@ -375,6 +375,13 @@ public class ServiceUtils {
                     if (log.isDebugEnabled()) {
                         log.debug("Leaving header item unchanged: " + key + "=" + value);
                     }
+                } else if (keyStr.toLowerCase().startsWith("x-jets3t-")) {
+                    // Permit pass-through of internal JetS3t "Header" data
+                    key = keyStr;
+                    if (log.isDebugEnabled()) {
+                        log.debug("Leaving internal JetS3t header item unchanged: "
+                            + key + "=" + value);
+                    }
                 } else {
                     if (log.isDebugEnabled()) {
                         log.debug("Ignoring metadata item: " + keyStr + "=" + value);

@@ -2,6 +2,25 @@ JetS3t Release Notes
 ====================
 
 -------------
+Version 0.9.2
+-------------
+
+### MAVEN CENTRAL
+
+ * Fix Maven dependency on third-party library unavailable in Maven Central 
+   by in-lining BareBonesBrowserLauncher utility code into the JetSet codebase.
+
+### TOOLKIT
+
+General:
+
+ * Updated library requirements to latest versions:
+   java-xmlbuilder 1.0
+ * CopyObject operations now return details useful for tracking in result 
+   headers map (#192)
+
+
+-------------
 Version 0.9.1
 -------------
 
