@@ -619,16 +619,38 @@ public abstract class BaseStorageServiceTests extends TestCase {
             assertEquals("booyah!", copiedObject.getMetadata("replaced-metadata"));
 
             // Copy objects between buckets
+            List<Map<String, Object>> copyResults =
+                new ArrayList<Map<String, Object>>();
             for (String objectName: objectNames) {
                 targetObject = new StorageObject(objectName);
-                service.copyObject(sourceBucketName, objectName,
+                Map<String, Object> copyResult = service.copyObject(
+                    sourceBucketName, objectName,
                     targetBucketName, targetObject,
                     false // replaceMetadata
                     );
+                copyResults.add(copyResult);
                 copiedObject = service.getObjectDetails(
                     targetBucketName, targetObject.getName());
             }
             assertEquals(4, service.listObjects(targetBucketName).length);
+            // Check results map from copy operation
+            Map<String, Object> firstCopyResult = copyResults.get(0);
+            assertEquals("\"5d11eb8a313fc3e205fef245b7be06c7\"",
+                firstCopyResult.get("ETag"));
+            assertEquals(sourceBucketName,
+                firstCopyResult.get("X-JetS3t-SourceBucketName"));
+            assertEquals(objectNames[0],
+                firstCopyResult.get("X-JetS3t-SourceObjectKey"));
+            assertEquals(targetBucketName,
+                firstCopyResult.get("X-JetS3t-DestinationBucketName"));
+            assertEquals(objectNames[0], // Note same source and target key
+                firstCopyResult.get("X-JetS3t-DestinationObjectKey"));
+            assertNull(
+                firstCopyResult.get("X-JetS3t-VersionId"));
+            assertNull(
+                firstCopyResult.get("X-JetS3t-DestinationObjectStorageClass"));
+            assertNull(
+                firstCopyResult.get("X-JetS3t-DestinationObjectServerSideEncryptionAlgorithm"));
 
             // Rename convenience method
             int objectOffset = 3;
