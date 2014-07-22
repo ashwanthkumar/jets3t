@@ -9,11 +9,16 @@ Version 0.9.2
 
  * Fix Maven dependency on third-party library unavailable in Maven Central 
    by in-lining BareBonesBrowserLauncher utility code into the JetSet codebase.
+ * Fix broken build for Java 8 caused by new aggresive Javadoc syntax checking.
+ * Avoid GPG signing step of build-and-release process unless it is explicitly
+   enabled, as this is pointless overhead for everyone but me. 
 
 ### TOOLKIT
 
 General:
 
+ * Add `.hgignore` file to project so Mercurial SCM will ignore common project
+   and build artefacts.
  * Updated library requirements to latest versions:
    java-xmlbuilder 1.0
  * CopyObject operations now return details useful for tracking in result 
