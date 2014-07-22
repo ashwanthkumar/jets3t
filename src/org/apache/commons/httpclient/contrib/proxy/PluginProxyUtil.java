@@ -42,7 +42,8 @@ import org.apache.http.HttpHost;
  * A utility class that gives applets the ability to detect proxy host settings.
  * This was adapted from a post from Chris Forster on 20030227 to a Sun Java
  * forum here:
- * http://forum.java.sun.com/thread.jspa?threadID=364342&tstart=120
+ * <a href="http://forum.java.sun.com/thread.jspa?threadID=364342&tstart=120"
+ *   >http://forum.java.sun.com/thread.jspa?threadID=364342&amp;tstart=120</a>
  *
  * The algorithm - which relies on Sun java plugin internal classes in some
  * cases - was maintained, but the following changes were made:
@@ -306,7 +307,9 @@ public class PluginProxyUtil {
                     proxyIP = proxyList.substring(0, proxyList.indexOf(":"));
                 }
                 int endOfPort = proxyList.indexOf(",");
-                if (endOfPort < 1) endOfPort = proxyList.length();
+                if (endOfPort < 1) {
+                    endOfPort = proxyList.length();
+                }
                 String portString =
                     proxyList.substring(proxyList.indexOf(":")+1,endOfPort);
                 int proxyPort = Integer.parseInt(portString);

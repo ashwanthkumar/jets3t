@@ -42,7 +42,7 @@ public class S3Origin extends Origin {
     /**
      * An S3 bucket origin.
      *
-     * @param id                   Unique identifier for this origin<
+     * @param id                   Unique identifier for this origin.
      * @param domainName           a full S3 sub-domain path (e.g. 'jets3t.s3.amazonaws.com' for the 'jets3t' bucket)
      * @param originAccessIdentity Identifier of the origin access identity that can authorize access to
      *                             S3 objects via a private distribution. If provided the distribution will be

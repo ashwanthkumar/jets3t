@@ -218,6 +218,8 @@ public class ErrorDialog extends JDialog implements ActionListener {
      * the frame that will own the dialog
      * @param hyperlinkListener
      * the listener that will act on any hyperlink events triggered by the user clicking on HTTP links.
+     * @param applicationProperties
+     * property settings for this application
      * @param message
      * a general error message, which should ideally be somewhat user-friendly.
      * @param throwable
@@ -244,6 +246,8 @@ public class ErrorDialog extends JDialog implements ActionListener {
      * the dialog that will own this dialog
      * @param hyperlinkListener
      * the listener that will act on any hyperlink events triggered by the user clicking on HTTP links.
+     * @param applicationProperties
+     * property settings for this application
      * @param message
      * a general error message, which should ideally be somewhat user-friendly.
      * @param throwable

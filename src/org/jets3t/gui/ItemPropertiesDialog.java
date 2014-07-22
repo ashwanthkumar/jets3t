@@ -107,6 +107,10 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
      * a title for the dialog
      * @param isObjectDialog
      * if true an object-specific dialog will be displayed, otherwise a bucket-specific dialog.
+     * @param applicationProperties
+     * property settings for this application
+     * @param includeMetadata
+     * display objects' metadata information in dialog.
      */
     protected ItemPropertiesDialog(Frame owner, String title, boolean isObjectDialog,
         Properties applicationProperties, boolean includeMetadata)
@@ -511,7 +515,10 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
      *
      * @param owner
      * the Frame over which the dialog will be displayed and centered
-     * @param bucket the bucket whose details will be displayed
+     * @param bucket
+     * the bucket whose details will be displayed
+     * @param applicationProperties
+     * property settings for this application
      */
     public static void showDialog(Frame owner, S3Bucket bucket, Properties applicationProperties) {
         ItemPropertiesDialog dialog =
@@ -529,6 +536,10 @@ public class ItemPropertiesDialog extends JDialog implements ActionListener {
      * the Frame over which the dialog will be displayed and centered
      * @param objects
      * the object whose details will be displayed
+     * @param applicationProperties
+     * property settings for this application
+     * @param includeMetadata
+     * display objects' metadata information in dialog.
      */
     public static void showDialog(Frame owner, S3Object[] objects, Properties applicationProperties,
         boolean includeMetadata) {

@@ -1134,14 +1134,14 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * @param inputFields
      * optional input field strings that will be added to the form. Each string
      * must be a valid HTML form input field definition, such as
-     * <tt>&lt;input type="hidden" name="acl" value="public-read"></tt>
+     * <tt>&lt;input type="hidden" name="acl" value="public-read"&gt;</tt>
      * @param textInput
      * an optional input field definition that is used instead of the default
-     * file input field <tt>&lt;input name=\"file\" type=\"file\"></tt>. If this
+     * file input field <tt>&lt;input name=\"file\" type=\"file\"&gt;</tt>. If this
      * parameter is null, the default file input field will be used to allow
      * file uploads. If this parameter is non-null, the provided string must
      * define an input field named "file" that allows the user to provide input,
-     * such as <tt>&lt;textarea name="file" cols="60" rows="3">&lt;/textarea></tt>
+     * such as <tt>&lt;textarea name="file" cols="60" rows="3"&gt;&lt;/textarea&gt;</tt>
      * @param isSecureHttp
      * if this parameter is true the form will upload data to S3 using HTTPS,
      * otherwise it will use HTTP.
@@ -1198,14 +1198,14 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * @param inputFields
      * optional input field strings that will be added to the form. Each string
      * must be a valid HTML form input field definition, such as
-     * <tt>&lt;input type="hidden" name="acl" value="public-read"></tt>
+     * <tt>&lt;input type="hidden" name="acl" value="public-read"&gt;</tt>
      * @param textInput
      * an optional input field definition that is used instead of the default
-     * file input field <tt>&lt;input name=\"file\" type=\"file\"></tt>. If this
+     * file input field <tt>&lt;input name=\"file\" type=\"file\"&gt;</tt>. If this
      * parameter is null, the default file input field will be used to allow
      * file uploads. If this parameter is non-null, the provided string must
      * define an input field named "file" that allows the user to provide input,
-     * such as <tt>&lt;textarea name="file" cols="60" rows="3">&lt;/textarea></tt>
+     * such as <tt>&lt;textarea name="file" cols="60" rows="3"&gt;&lt;/textarea&gt;</tt>
      * @param isSecureHttp
      * if this parameter is true the form will upload data to S3 using HTTPS,
      * otherwise it will use HTTP.
@@ -3157,7 +3157,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * <li>Poll the service for a little while to ensure the just-started upload
      *     is actually available for use before proceeding -- this can take some
      *     time, we give up after 5 seconds (with 1 lookup attempt per second)</li>
-     * <li>Divide the object's underlying file into parts with size <= the given
+     * <li>Divide the object's underlying file into parts with size &lt;= the given
      *     maximum part size</li>
      * <li>Upload each of these parts in turn, with part numbers 1..n</li>
      * <li>Complete the upload once all the parts have been uploaded, or...</li>
@@ -3178,7 +3178,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
      * the maximum size in bytes for any single upload part. If the given object's data is
      * less than this value it will be uploaded using a regular PUT. If the object has more
      * data than this value it will be uploaded using a multipart upload.
-     * The maximum part size value should be <= 5 GB and >= 5 MB.
+     * The maximum part size value should be &lt;= 5 GB and &gt;= 5 MB.
      *
      * @throws ServiceException
      */

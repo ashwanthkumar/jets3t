@@ -253,7 +253,9 @@ public class Jets3tProperties implements Serializable {
 
     /**
      * @param propertyName
+     * the name of the property to look up.
      * @param defaultValue
+     * value to return if named property is not set.
      * @return
      * the named Property value as a string if the property is set, otherwise returns the default value.
      */
@@ -268,7 +270,9 @@ public class Jets3tProperties implements Serializable {
     /**
      *
      * @param propertyName
+     * the name of the property to look up.
      * @param defaultValue
+     * value to return if named property is not set.
      * @return
      * the named Property value as a long if the property is set, otherwise returns the default value.
      * @throws NumberFormatException
@@ -286,7 +290,9 @@ public class Jets3tProperties implements Serializable {
     /**
      *
      * @param propertyName
+     * the name of the property to look up.
      * @param defaultValue
+     * value to return if named property is not set.
      * @return
      * the named Property value as an int if the property is set, otherwise returns the default value.
      * @throws NumberFormatException
@@ -304,7 +310,9 @@ public class Jets3tProperties implements Serializable {
     /**
      *
      * @param propertyName
+     * the name of the property to look up.
      * @param defaultValue
+     * value to return if named property is not set.
      * @return
      * the named Property value as a boolean if the property is set, otherwise returns the default value.
      * @throws IllegalArgumentException

@@ -63,7 +63,7 @@ import java.awt.Component;
  * skin-specific properties that are provided, or based on the name of a specific GUI element.
  * <p>
  * The skinned class names supported by this factory include:
- * <table>
+ * <table summary="The skinned class names supported by this factory">
  * <tr><th>Class name</th><th>Extends</th></tr>
  * <tr><td>SkinnedJButton</td><td>javax.swing.JButton</td></tr>
  * <tr><td>SkinnedJHtmlLabel</td><td>org.jets3t.gui.JHtmlLabel</td></tr>
@@ -428,7 +428,7 @@ public class SkinsFactory {
         if (jProgressBar != null) {
             jProgressBar.setMinimum(min);
             jProgressBar.setMaximum(max);
-            return (JProgressBar) jProgressBar;
+            return jProgressBar;
         } else {
             jProgressBar = new JProgressBar(min, max);
             return jProgressBar;

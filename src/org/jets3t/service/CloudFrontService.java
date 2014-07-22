@@ -96,7 +96,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
     /**
      * The approximate difference in the current time between your computer and
      * Amazon's servers, measured in milliseconds.
-     * <p/>
+     * <p>
      * This value is 0 by default. Use the {@link #getCurrentTimeWithOffset()}
      * to obtain the current time with this offset factor included, and the
      * {@link RestUtils#calculateTimeAdjustmentOffset(HttpResponse)} method to
@@ -324,7 +324,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * @param pagingSize  the maximum number of distributions the CloudFront service will
      *                    return in each response message.
      * @return A list of {@link Distribution}s.
-     * @throws CloudFrontServiceException
+     * @throws CloudFrontServiceException exception
      */
     protected List<Distribution> listDistributionsImpl(boolean isStreaming, int pagingSize)
             throws CloudFrontServiceException {
@@ -383,7 +383,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * @param pagingSize the maximum number of distributions the CloudFront service will
      *                   return in each response message.
      * @return a list of your distributions.
-     * @throws CloudFrontServiceException
+     * @throws CloudFrontServiceException exception
      */
     public Distribution[] listDistributions(int pagingSize) throws CloudFrontServiceException {
         List<Distribution> distributions = listDistributionsImpl(false, pagingSize);
@@ -397,7 +397,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * @param pagingSize the maximum number of distributions the CloudFront service will
      *                   return in each response message.
      * @return a list of your distributions.
-     * @throws CloudFrontServiceException
+     * @throws CloudFrontServiceException exception
      */
     public StreamingDistribution[] listStreamingDistributions(int pagingSize)
             throws CloudFrontServiceException {
@@ -410,7 +410,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * List all your standard CloudFront distributions.
      *
      * @return a list of your distributions.
-     * @throws CloudFrontServiceException
+     * @throws CloudFrontServiceException exception
      */
     public Distribution[] listDistributions() throws CloudFrontServiceException {
         return listDistributions(100);
@@ -420,7 +420,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * List all your streaming CloudFront distributions.
      *
      * @return a list of your streaming distributions.
-     * @throws CloudFrontServiceException
+     * @throws CloudFrontServiceException exception
      */
     public StreamingDistribution[] listStreamingDistributions() throws CloudFrontServiceException {
         return listStreamingDistributions(100);
@@ -433,7 +433,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * @param bucketName  the name of the S3 bucket whose distributions will be returned.
      * @return a list of distributions applied to the given S3 bucket, or an empty list
      *         if there are no such distributions.
-     * @throws CloudFrontServiceException
+     * @throws CloudFrontServiceException exception
      */
     public List<Distribution> listDistributionsByBucketName(boolean isStreaming, String bucketName)
             throws CloudFrontServiceException {
@@ -469,7 +469,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * @param bucketName the name of the S3 bucket whose distributions will be returned.
      * @return a list of distributions applied to the given S3 bucket, or an empty list
      *         if there are no such distributions.
-     * @throws CloudFrontServiceException
+     * @throws CloudFrontServiceException exception
      */
     public Distribution[] listDistributions(String bucketName) throws CloudFrontServiceException {
         List<Distribution> bucketDistributions = listDistributionsByBucketName(false, bucketName);
@@ -483,7 +483,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * @param bucketName the name of the S3 bucket whose distributions will be returned.
      * @return a list of distributions applied to the given S3 bucket, or an empty list
      *         if there are no such distributions.
-     * @throws CloudFrontServiceException
+     * @throws CloudFrontServiceException exception
      */
     public StreamingDistribution[] listStreamingDistributions(String bucketName)
             throws CloudFrontServiceException {
@@ -695,7 +695,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      *
      * @param config Configuration document
      * @return Information about the newly-created distribution.
-     * @throws CloudFrontServiceException
+     * @throws CloudFrontServiceException exception
      */
     protected Distribution createDistributionImpl(DistributionConfig config)
             throws CloudFrontServiceException {
@@ -768,7 +768,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      *                                       distribution.
      * @return an object that describes the newly-created distribution, in particular the
      *         distribution's identifier and domain name values.
-     * @throws CloudFrontServiceException
+     * @throws CloudFrontServiceException exception
      */
     public Distribution createDistribution(Origin origin, String callerReference,
                                            String[] cnames, String comment, boolean enabled, LoggingStatus loggingStatus,
@@ -1147,7 +1147,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * or public/private status. The new configuration properties provided
      * <strong>replace</strong> any existing configuration, and may take some time
      * to be fully applied.
-     * <p/>
+     * <p>
      * This method performs all the steps necessary to update the configuration. It
      * first performs lookup on the distribution  using
      * {@link #getDistributionConfig(String)} to find its origin and caller reference
@@ -1203,7 +1203,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * or public/private status. The new configuration properties provided
      * <strong>replace</strong> any existing configuration, and may take some time
      * to be fully applied.
-     * <p/>
+     * <p>
      * This method performs all the steps necessary to update the configuration. It
      * first performs lookup on the distribution  using
      * {@link #getDistributionConfig(String)} to find its origin and caller reference
@@ -1255,7 +1255,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * Update the configuration of an existing streaming distribution to change its
      * properties. The new configuration properties provided <strong>replace</strong>
      * any existing configuration, and may take some time to be fully applied.
-     * <p/>
+     * <p>
      * This method performs all the steps necessary to update the configuration. It
      * first performs lookup on the distribution  using
      * {@link #getDistributionConfig(String)} to find its origin and caller reference
@@ -1292,7 +1292,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * Update the configuration of an existing streaming distribution to change its
      * properties. The new configuration properties provided <strong>replace</strong>
      * any existing configuration, and may take some time to be fully applied.
-     * <p/>
+     * <p>
      * This method performs all the steps necessary to update the configuration. It
      * first performs lookup on the distribution  using
      * {@link #getDistributionConfig(String)} to find its origin and caller reference
@@ -1341,7 +1341,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * If the original distribution is private this method will make it public instead.
      * The new configuration properties provided <strong>replace</strong> any existing
      * configuration, and may take some time to be fully applied.
-     * <p/>
+     * <p>
      * This method performs all the steps necessary to update the configuration. It
      * first performs lookup on the distribution  using
      * {@link #getDistributionConfig(String)} to find its origin and caller reference
@@ -1374,7 +1374,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * or public/private status. The new configuration properties provided
      * <strong>replace</strong> any existing configuration, and may take some time
      * to be fully applied.
-     * <p/>
+     * <p>
      * This method performs all the steps necessary to update the configuration. It
      * first performs lookup on the distribution  using
      * {@link #getDistributionConfig(String)} to find its origin and caller reference
@@ -1398,7 +1398,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * {@link #updateDistributionConfig(String, Origin, String[], String, boolean, LoggingStatus)}
      * method with default values for most of the distribution's configuration
      * settings.
-     * <p/>
+     * <p>
      * <strong>Warning</strong>: Do not use this method on distributions you
      * intend to keep, because it will reset most of the distribution's
      * configuration settings such as CNAMEs and logging status.
@@ -1417,7 +1417,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * {@link #updateStreamingDistributionConfig(String, Origin, String[], String, boolean, LoggingStatus)}
      * method with default values for most of the distribution's configuration
      * settings.
-     * <p/>
+     * <p>
      * <strong>Warning</strong>: Do not use this method on distributions you
      * intend to keep, because it will reset most of the distribution's
      * configuration settings such as CNAMEs and logging status.
@@ -1475,12 +1475,12 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * Delete a disabled distribution. You can only delete a distribution that is
      * already disabled, if you delete an enabled distribution this operation will
      * fail with a <tt>DistributionNotDisabled</tt> error.
-     * <p/>
+     * <p>
      * This method performs many of the steps necessary to delete a disabled
      * distribution. It first performs lookup on the distribution using
      * {@link #getDistributionConfig(String)} to find its ETag value, then uses
      * this information to delete the distribution.
-     * <p/>
+     * <p>
      * Because it can take a long time (minutes) to disable a distribution, this
      * task is not performed automatically by this method. In your own code, you
      * need to verify that a distribution is disabled with a status of
@@ -1497,12 +1497,12 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * Delete a disabled streaming distribution. You can only delete a distribution
      * that is already disabled, if you delete an enabled distribution this operation
      * will fail with a <tt>DistributionNotDisabled</tt> error.
-     * <p/>
+     * <p>
      * This method performs many of the steps necessary to delete a disabled
      * distribution. It first performs lookup on the distribution using
      * {@link #getDistributionConfig(String)} to find its ETag value, then uses
      * this information to delete the distribution.
-     * <p/>
+     * <p>
      * Because it can take a long time (minutes) to disable a distribution, this
      * task is not performed automatically by this method. In your own code, you
      * need to verify that a distribution is disabled with a status of
@@ -1731,7 +1731,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * Delete an Origin Access Identity.
      *
      * @param id The identifier of the Origin Access Identity.
-     * @throws CloudFrontServiceException
+     * @throws CloudFrontServiceException exception
      */
     public void deleteOriginAccessIdentity(String id) throws CloudFrontServiceException {
         if(log.isDebugEnabled()) {
@@ -1768,7 +1768,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * @param objectKeys      S3 object key names of object(s) to invalidate.
      * @param callerReference Unique description for this distribution config
      * @return invalidation object
-     * @throws CloudFrontServiceException
+     * @throws CloudFrontServiceException exception
      */
     public Invalidation invalidateObjects(String distributionId, String[] objectKeys,
                                           String callerReference) throws CloudFrontServiceException {
@@ -1817,7 +1817,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * @param objects         S3 object(s) to invalidate.
      * @param callerReference Unique description for this distribution config
      * @return invalidation object
-     * @throws CloudFrontServiceException
+     * @throws CloudFrontServiceException exception
      */
     public Invalidation invalidateObjects(String distributionId, S3Object[] objects,
                                           String callerReference) throws CloudFrontServiceException {
@@ -1832,7 +1832,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * @param distributionId The distribution's unique identifier.
      * @param invalidationId The identifier for the invalidation request
      * @return Details of a prior invalidation operation.
-     * @throws CloudFrontServiceException
+     * @throws CloudFrontServiceException exception
      */
     public Invalidation getInvalidation(String distributionId, String invalidationId)
             throws CloudFrontServiceException {
@@ -1868,7 +1868,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      *                       of each subsequent page returned.
      * @param pagingSize     maximum number of invalidation summaries to include in each result page, up to 100.
      * @return invalidation listing
-     * @throws CloudFrontServiceException
+     * @throws CloudFrontServiceException exception
      */
     public InvalidationList listInvalidations(String distributionId, String nextMarker, int pagingSize)
             throws CloudFrontServiceException {
@@ -1903,7 +1903,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      *
      * @param distributionId The distribution's unique identifier.
      * @return list of invalidation objects
-     * @throws CloudFrontServiceException
+     * @throws CloudFrontServiceException exception
      */
     public List<InvalidationSummary> listInvalidations(String distributionId)
             throws CloudFrontServiceException {
@@ -2002,7 +2002,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      *                             parameters. For distributions with the HTTPS required protocol, the resource URL
      *                             must start with <tt>"https://"</tt>. RTMP resources do not take the form of a URL,
      *                             and instead the resource path is nothing but the stream's name.
-     *                             <p/>
+     *                             <p>
      *                             The '*' and '?' characters can be used as a wildcards to allow multi-character or
      *                             single-character matches respectively:
      *                             <ul>
@@ -2022,7 +2022,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      * @param epochDateGreaterThan An optional time and date when the signed URL will become active. If null, the signed
      *                             URL will be active as soon as it is created.
      * @return A policy document describing the access permission to apply when generating a signed URL.
-     * @throws CloudFrontServiceException
+     * @throws CloudFrontServiceException exception
      */
     public static String buildPolicyForSignedUrl(
             String resourcePath, Date epochDateLessThan,
@@ -2070,7 +2070,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      *                          {@link #buildPolicyForSignedUrl(String, Date, String, Date)}.
      * @return A signed URL that will permit access to distribution and S3 objects as specified
      *         in the policy document.
-     * @throws CloudFrontServiceException
+     * @throws CloudFrontServiceException exception
      */
     public static String signUrl(String resourceUrlOrPath,
                                  String keyPairId, byte[] derPrivateKey, String policy)
@@ -2114,7 +2114,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      *                          use the utility method {@link EncryptionUtil#convertRsaPemToDer(java.io.InputStream)}
      * @param epochDateLessThan The time and date when the signed URL will expire. REQUIRED.
      * @return A signed URL that will permit access to a specific distribution and S3 object.
-     * @throws CloudFrontServiceException
+     * @throws CloudFrontServiceException exception
      */
     public static String signUrlCanned(String resourceUrlOrPath,
                                        String keyPairId, byte[] derPrivateKey, Date epochDateLessThan)

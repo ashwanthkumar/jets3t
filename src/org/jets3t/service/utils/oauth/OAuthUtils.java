@@ -47,7 +47,7 @@ import java.util.Map;
 
 /**
  * Utilties for obtaining OAuth authentication tokens.
- * <p/>
+ *
  * Implementation is currently specific to the Google Storage OAuth 2.0 implementation,
  * though hopefully generic enough it may be extensible in the future.
  *

@@ -607,7 +607,8 @@ public class ServiceUtils {
      * </ul>
      * <p>
      * These rules are drawn from the post by Carl@AWS on Nov 11, 2010 10:40 AM here:
-     * https://forums.aws.amazon.com/thread.jspa?messageID=222158&tstart=0
+     * <a href="https://forums.aws.amazon.com/thread.jspa?messageID=222158&tstart=0"
+     *   >https://forums.aws.amazon.com/thread.jspa?messageID=222158&amp;tstart=0</a>
      *
      * @return
      * true if the ETag value can be assumed to also be an MD5 hash.
@@ -756,7 +757,7 @@ public class ServiceUtils {
      * a string built with the following components (some elements may not be available):
      * <tt>JetS3t/</tt><i>{@link Constants#JETS3T_VERSION}</i>
      * (<i>os.name</i>/<i>os.version</i>; <i>os.arch</i>; <i>user.region</i>;
-     * <i>user.region</i>; <i>user.language</i>) <i>applicationDescription</i></tt>
+     * <i>user.region</i>; <i>user.language</i>) <i>applicationDescription</i>
      *
      */
     public static String getUserAgentDescription(String applicationDescription) {

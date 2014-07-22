@@ -48,7 +48,7 @@ public class MxDelegate implements MxInterface {
      * logged, whereas Bucket and Object event logging must be specifically enabled.
      * <p>
      * This method checks the given properties for the following System properties:
-     * <table>
+     * <table summary="System properties that apply MX settings">
      * <tr><th>Property</th><th>Effect</th></tr>
      * <tr><td><tt>com.sun.management.jmxremote</tt></td>
      *     <td>If present, enable JMX instrumentation for JetS3t for Java 1.5. On Java 1.5 this

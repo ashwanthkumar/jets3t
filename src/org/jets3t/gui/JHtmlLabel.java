@@ -36,7 +36,8 @@ import org.apache.commons.logging.LogFactory;
  * clickable HTML HREF link, and triggers a listener to follow the link when it is clicked.
  * <p>
  * This class is a modified version of example code authored by Jeffrey Bush:<br>
- * http://forum.java.sun.com/thread.jspa?threadID=574895&messageID=2866170.
+ * <a href="http://forum.java.sun.com/thread.jspa?threadID=574895&messageID=2866170"
+ *   >http://forum.java.sun.com/thread.jspa?threadID=574895&amp;messageID=2866170</a>.
  */
 public class JHtmlLabel extends JLabel implements MouseListener, MouseMotionListener {
     private static final long serialVersionUID = -2146502207121434264L;
@@ -80,6 +81,7 @@ public class JHtmlLabel extends JLabel implements MouseListener, MouseMotionList
     /**
      * Triggers the listener to follow an HTML href link that has been clicked.
      *
+     * @param e event
      */
     public void mouseClicked(MouseEvent e) {
         AccessibleJLabel acc = (AccessibleJLabel) getAccessibleContext();
@@ -124,6 +126,8 @@ public class JHtmlLabel extends JLabel implements MouseListener, MouseMotionList
     /**
      * Changes the mouse cursor to a hand to indicate when the mouse moves over a clickable
      * HTML link.
+     *
+     * @param e event
      */
     public void mouseMoved(MouseEvent e) {
         AccessibleJLabel acc = (AccessibleJLabel) getAccessibleContext();
