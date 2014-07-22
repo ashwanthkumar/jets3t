@@ -1,0 +1,22 @@
+syntax: glob
+
+# Eclipse artifacts
+.project
+.classpath
+.settings/
+bin/
+
+# ANT build artifacts
+build/
+dist/
+
+# Maven build artifacts
+target/
+
+# jmurty dev and release environment
+*.sh
+test-src/
+www/
+myconfigs/
+ReleaseSteps.markdown
+jmurty.keystore
