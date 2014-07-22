@@ -214,7 +214,7 @@ limitations under the License.
             <configuration>
               <tagNameFormat>Release-@{project.version}</tagNameFormat>
               <pushChanges>false</pushChanges>
-              <arguments>-DskipTests=true</arguments>
+              <arguments>-DskipTests=true -Dgpgsign=true</arguments>
             </configuration>
           </plugin>
           <plugin>
