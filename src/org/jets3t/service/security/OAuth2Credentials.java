@@ -27,7 +27,7 @@ import java.io.IOException;
 /**
  * Class to contain OAuth2 client credentials for authenticating against an
  * OAuth end-point, as opposed to authenticating directly with a storage service.
- * <p/>
+ * <p>
  * Instead of the typical user access and client keys stored within a {@link ProviderCredentials}
  * class, this class stores an OAuth2 Client ID (as the access key) and Client Secret (as the
  * secret key).

@@ -112,7 +112,7 @@ public class MultipartUploadChunk {
     /**
      * A convenience method to check whether a listing of uploads is complete
      * (true) or there are more uploads available (false). Just a synonym for
-     * <code>{@link #getPriorLastKey()} == null && {@link #getPriorLastIdMarker()}==null}</code>.
+     * <code>{@link #getPriorLastKey()} == null &amp;&amp; {@link #getPriorLastIdMarker()}==null}</code>.
      *
      * @return
      * true if the listing is complete and there are no more unlisted

@@ -571,7 +571,7 @@ public class FileComparer {
      * The delimiter and depth properties that define how this method will
      * partition the bucket's namespace are set in the jets3t.properties file
      * with the setting:
-     * filecomparer.bucket-listing.&lt;bucketname>=&lt;delim>,&lt;depth><br>
+     * filecomparer.bucket-listing.&lt;bucketname&gt;=&lt;delim&gt;,&lt;depth&gt;<br>
      * For example: <code>filecomparer.bucket-listing.my-bucket=/,2</code>
      *
      * @param service

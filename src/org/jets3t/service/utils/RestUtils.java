@@ -99,7 +99,7 @@ public class RestUtils {
      * S3 Object metadata items). All items in this list are in lower case.
      * <p>
      * This list includes the items:
-     * <table>
+     * <table summary="Headers names treated as plain HTTP headers">
      * <tr><th>Unchanged metadata names</th></tr>
      * <tr><td>content-type</td></tr>
      * <tr><td>content-md5</td></tr>

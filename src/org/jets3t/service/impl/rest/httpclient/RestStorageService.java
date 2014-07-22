@@ -18,6 +18,22 @@
  */
 package org.jets3t.service.impl.rest.httpclient;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
@@ -61,21 +77,6 @@ import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
-
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerException;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
 import com.jamesmurty.utils.XMLBuilder;
 
@@ -192,7 +193,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
      * Initialise HttpClient and HttpConnectionManager objects with the configuration settings
      * appropriate for communicating with S3. By default, this method simply delegates the
      * configuration task to {@link org.jets3t.service.utils.RestUtils#initHttpConnection(JetS3tRequestAuthorizer, org.jets3t.service.Jets3tProperties, String, org.apache.http.client.CredentialsProvider)}.
-     * <p/>
+     * <p>
      * To alter the low-level behaviour of the HttpClient library, override this method in
      * a subclass and apply your own settings before returning the objects.
      *
@@ -597,7 +598,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
      * Determine whether a given 403 Forbidden HTTP error response is recoverable and should
      * be retried. Normally 403s should only be retried if we can take some action as a side
      * effect which makes the subsequent request likely to succeed.
-     * <p/>
+     * <p>
      * Generally, such errors should not be retried since a user's access permissions
      * for an item are unlikely to change, but if a service is using expiring authorization tokens
      * (e.g. OAuth) it may be worthwhile retrying after refreshing those tokens.
@@ -613,10 +614,11 @@ public abstract class RestStorageService extends StorageService implements JetS3
     /**
      * Authorizes an HTTP/S request by signing it with an HMAC signature compatible with
      * the S3 service and Google Storage (legacy) authorization techniques.
-     * <p/>
+     * <p>
      * The signature is added to the request as an Authorization header.
      *
      * @param httpMethod the request object
+     * @param context
      * @throws ServiceException
      */
     public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context)
@@ -768,7 +770,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
     /**
      * Adds all valid metadata name and value pairs as HTTP headers to the given HTTP method.
      * Null metadata names are ignored, as are metadata values that are not of type string.
-     * <p/>
+     * <p>
      * The metadata values are verified to ensure that keys contain only ASCII characters,
      * and that items are not accidentally duplicated due to use of different capitalization.
      * If either of these verification tests fails, an {@link org.jets3t.service.ServiceException} is thrown.
@@ -2157,7 +2159,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
     /**
      * Puts an object using a pre-signed PUT URL generated for that object.
      * This method is an implementation of the interface {@link org.jets3t.service.utils.signedurl.SignedUrlHandler}.
-     * <p/>
+     * <p>
      * This operation does not required any S3 functionality as it merely
      * uploads the object by performing a standard HTTP PUT using the signed URL.
      *
@@ -2247,7 +2249,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
     /**
      * Deletes an object using a pre-signed DELETE URL generated for that object.
      * This method is an implementation of the interface {@link org.jets3t.service.utils.signedurl.SignedUrlHandler}.
-     * <p/>
+     * <p>
      * This operation does not required any S3 functionality as it merely
      * deletes the object by performing a standard HTTP DELETE using the signed URL.
      *
@@ -2264,7 +2266,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
     /**
      * Gets an object using a pre-signed GET URL generated for that object.
      * This method is an implementation of the interface {@link org.jets3t.service.utils.signedurl.SignedUrlHandler}.
-     * <p/>
+     * <p>
      * This operation does not required any S3 functionality as it merely
      * uploads the object by performing a standard HTTP GET using the signed URL.
      *
@@ -2281,7 +2283,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
     /**
      * Gets an object's details using a pre-signed HEAD URL generated for that object.
      * This method is an implementation of the interface {@link org.jets3t.service.utils.signedurl.SignedUrlHandler}.
-     * <p/>
+     * <p>
      * This operation does not required any S3 functionality as it merely
      * uploads the object by performing a standard HTTP HEAD using the signed URL.
      *

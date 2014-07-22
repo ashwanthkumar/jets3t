@@ -22,7 +22,7 @@ import org.jets3t.service.CloudFrontService;
 
 /**
  * Represents the logging status of a CloudFront distribution.
- * <p/>
+ *
  * For logging to be enabled, both the <code>bucket</code> and <code>prefix</code>
  * properties must be non-null and the named bucket must exist.
  *

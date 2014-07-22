@@ -273,7 +273,7 @@ public abstract class StorageService {
      * The millisecond delay grows rapidly according to the formula
      * <code>50 * (<i>internalErrorCount</i> ^ 2)</code>.
      *
-     * <table>
+     * <table summary="Exponential back-off delay times">
      * <tr><th>Error count</th><th>Delay in milliseconds</th></tr>
      * <tr><td>1</td><td>50</td></tr>
      * <tr><td>2</td><td>200</td></tr>
@@ -1384,7 +1384,6 @@ public abstract class StorageService {
      * method for this purpose instead.</p>
      * </li>
      * </ul>
-     * </p>
      *
      * @param bucketName
      * @return

@@ -76,7 +76,7 @@ public class AWSCredentials extends ProviderCredentials {
      * <p>
      * This class can be run from the command line as:
      * <pre>
-     * java org.jets3t.service.security.AWSCredentials &lt;friendlyName> &lt;credentialsFilename> &lt;algorithm>
+     * java org.jets3t.service.security.AWSCredentials &lt;friendlyName&gt; &lt;credentialsFilename&gt; &lt;algorithm&gt;
      * </pre>
      * When run it will prompt for the user's AWS access key,secret key and encryption password.
      * It will then encode into the specified credentials file.

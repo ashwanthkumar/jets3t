@@ -40,7 +40,7 @@ import org.apache.commons.logging.LogFactory;
  * server's mime.types file.
  * <p>
  * The format for mime type setting documents is:
- * <code>mimetype <Space | Tab>+ extension (<Space|Tab>+ extension)*</code>.
+ * <code>mimetype &lt;Space | Tab&gt;+ extension (&lt;Space|Tab&gt;+ extension)*</code>.
  * Any blank lines in the file are ignored, as are lines starting with <code>#</code> which are
  * considered comments. Lines that have a mimetype but no associated extensions are also ignored.
  * <p>

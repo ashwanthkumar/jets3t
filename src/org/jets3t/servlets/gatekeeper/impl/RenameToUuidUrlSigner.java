@@ -68,7 +68,7 @@ public class RenameToUuidUrlSigner extends DefaultUrlSigner {
      * also to rename objects based on the transaction ID.
      * <p>
      * Each object is renamed to the following format:<br>
-     * <tt><i>transactionId</i>.<i>objectCount</i>.<i>objectExtension</i>
+     * <tt><i>transactionId</i>.<i>objectCount</i>.<i>objectExtension</i></tt>
      * <p>
      * Objects that arrive with the metadata property
      * {@link GatekeeperMessage#SUMMARY_DOCUMENT_METADATA_FLAG} as treated as special cases, as this
@@ -81,6 +81,7 @@ public class RenameToUuidUrlSigner extends DefaultUrlSigner {
      * @param messageProperties
      * @throws S3ServiceException
      */
+    @Override
     protected void updateObject(SignatureRequest signatureRequest, Properties messageProperties)
         throws S3ServiceException
     {
