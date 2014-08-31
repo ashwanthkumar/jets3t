@@ -32,7 +32,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
 import org.apache.commons.logging.Log;
@@ -51,23 +50,23 @@ import org.apache.http.auth.NTCredentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.HttpRequestRetryHandler;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.params.ClientPNames;
 import org.apache.http.client.protocol.ClientContext;
-import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.conn.ClientConnectionManagerFactory;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.config.ConnectionConfig;
+import org.apache.http.config.SocketConfig;
 import org.apache.http.conn.params.ConnManagerParams;
 import org.apache.http.conn.params.ConnRoutePNames;
-import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.AbstractHttpClient;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.RequestWrapper;
-import org.apache.http.impl.conn.tsccm.AbstractConnPool;
-import org.apache.http.impl.conn.tsccm.ConnPoolByRoute;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.params.HttpProtocolParams;
@@ -75,13 +74,9 @@ import org.apache.http.params.SyncBasicHttpParams;
 import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
-import org.apache.http.util.VersionInfo;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.S3ServiceException;
-import org.jets3t.service.ServiceException;
 import org.jets3t.service.impl.rest.httpclient.JetS3tRequestAuthorizer;
-import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.io.UnrecoverableIOException;
 
 /**
@@ -298,31 +293,50 @@ public class RestUtils {
             final JetS3tRequestAuthorizer requestAuthorizer,
             Jets3tProperties jets3tProperties,
             String userAgentDescription,
-            CredentialsProvider credentialsProvider) {
+            CredentialsProvider credentialsProvider)
+    {
+        // Configure pooling connection manager to support multi-threading
+        int maxConnections = jets3tProperties.getIntProperty(
+            "httpclient.max-connections", 20);
+        int maxConnectionsPerHost = jets3tProperties.getIntProperty(
+            "httpclient.max-connections-per-host", maxConnections);
+
+        ConnectionConfig connectionConfig = ConnectionConfig.custom()
+            .setBufferSize(jets3tProperties.getIntProperty(
+                "httpclient.socket-receive-buffer", 0))
+            .build();
+
+        SocketConfig socketConfig = SocketConfig.custom()
+            .setTcpNoDelay(true)
+            .setSoKeepAlive(true)
+            .build();
+
+        PoolingHttpClientConnectionManager connectionManager =
+            new PoolingHttpClientConnectionManager();
+        connectionManager.setMaxTotal(maxConnections);
+        connectionManager.setDefaultMaxPerRoute(maxConnectionsPerHost);
+        connectionManager.setDefaultConnectionConfig(connectionConfig);
+        connectionManager.setDefaultSocketConfig(socketConfig);
+
         // Configure HttpClient properties based on Jets3t Properties.
-        HttpParams params = createDefaultHttpParams();
-        params.setParameter(Jets3tProperties.JETS3T_PROPERTIES_ID, jets3tProperties);
+        RequestConfig requestConfig = RequestConfig.custom()
+            .setStaleConnectionCheckEnabled(jets3tProperties.getBoolProperty(
+                "httpclient.stale-checking-enabled", true))
+            .setConnectTimeout(jets3tProperties.getIntProperty(
+                "httpclient.connection-timeout-ms", 60000))
+            .setSocketTimeout(jets3tProperties.getIntProperty(
+                "httpclient.socket-timeout-ms", 60000))
+            .build();
+
+        HttpClientContext context = HttpClientContext.create();
+        context.setAttribute(Jets3tProperties.JETS3T_PROPERTIES_ID, jets3tProperties);
+        context.setRequestConfig(requestConfig);
 
         params.setParameter(
             ClientPNames.CONNECTION_MANAGER_FACTORY_CLASS_NAME,
             jets3tProperties.getStringProperty(
                 ClientPNames.CONNECTION_MANAGER_FACTORY_CLASS_NAME,
                 ConnManagerFactory.class.getName()));
-
-        HttpConnectionParams.setConnectionTimeout(params,
-            jets3tProperties.getIntProperty("httpclient.connection-timeout-ms", 60000));
-        HttpConnectionParams.setSoTimeout(params,
-            jets3tProperties.getIntProperty("httpclient.socket-timeout-ms", 60000));
-        HttpConnectionParams.setStaleCheckingEnabled(params,
-            jets3tProperties.getBoolProperty("httpclient.stale-checking-enabled", true));
-
-        // Connection properties to take advantage of S3 window scaling.
-        if (jets3tProperties.containsKey("httpclient.socket-receive-buffer")) {
-            HttpConnectionParams.setSocketBufferSize(params,
-                jets3tProperties.getIntProperty("httpclient.socket-receive-buffer", 0));
-        }
-
-        HttpConnectionParams.setTcpNoDelay(params, true);
 
         // Set user agent string.
         String userAgent = jets3tProperties.getStringProperty("httpclient.useragent", null);
@@ -332,7 +346,6 @@ public class RestUtils {
         if (log.isDebugEnabled()) {
             log.debug("Setting user agent string: " + userAgent);
         }
-        HttpProtocolParams.setUserAgent(params, userAgent);
 
         boolean expectContinue
                 = jets3tProperties.getBoolProperty("http.protocol.expect-continue", true);
@@ -342,22 +355,27 @@ public class RestUtils {
                 = jets3tProperties.getLongProperty("httpclient.connection-manager-timeout", 0);
         ConnManagerParams.setTimeout(params, connectionManagerTimeout);
 
-        DefaultHttpClient httpClient = new DefaultHttpClient(params);
-        httpClient.setHttpRequestRetryHandler(
-            new JetS3tRetryHandler(
-                jets3tProperties.getIntProperty("httpclient.retry-max", 5), requestAuthorizer));
+        HttpRequestRetryHandler retryHandler = new JetS3tRetryHandler(
+            jets3tProperties.getIntProperty("httpclient.retry-max", 5),
+            requestAuthorizer);
+
+        CloseableHttpClient httpClient = HttpClients.custom()
+            .setConnectionManager(connectionManager)
+            .setUserAgent(userAgent)
+            .setRetryHandler(retryHandler)
+            .build();
 
         if (credentialsProvider != null) {
             if (log.isDebugEnabled()) {
                 log.debug("Using credentials provider class: "
                         + credentialsProvider.getClass().getName());
             }
-            httpClient.setCredentialsProvider(credentialsProvider);
+            context.setCredentialsProvider(credentialsProvider);
             if (jets3tProperties.getBoolProperty(
                     "httpclient.authentication-preemptive",
                     false)) {
                 // Add as the very first interceptor in the protocol chain
-                httpClient.addRequestInterceptor(new PreemptiveInterceptor(), 0);
+                context.addRequestInterceptor(new PreemptiveInterceptor(), 0);
             }
         }
 
@@ -582,58 +600,6 @@ public class RestUtils {
         HttpConnectionParams.setSocketBufferSize(params, 8192);
         return params;
     }
-
-    /**
-     * A ClientConnectionManagerFactory that creates ThreadSafeClientConnManager
-     */
-    public static class ConnManagerFactory implements
-            ClientConnectionManagerFactory {
-        /*
-         * @see ClientConnectionManagerFactory#newInstance(HttpParams, SchemeRegistry)
-         */
-        public ClientConnectionManager newInstance(HttpParams params,
-                SchemeRegistry schemeRegistry) {
-            return new ThreadSafeConnManager(params, schemeRegistry);
-        }
-
-    } //ConnManagerFactory
-
-    /**
-     * ThreadSafeConnManager is a ThreadSafeClientConnManager configured via
-     * jets3tProperties.
-     *
-     * @see Jets3tProperties#JETS3T_PROPERTIES_ID
-     */
-    public static class ThreadSafeConnManager extends
-            ThreadSafeClientConnManager {
-        public ThreadSafeConnManager(final HttpParams params,
-                final SchemeRegistry schreg) {
-            super(params, schreg);
-        }
-
-        @Override
-        protected AbstractConnPool createConnectionPool(final HttpParams params) {
-            // Set the maximum connections per host for the HTTP connection manager,
-            // *and* also set the maximum number of total connections (new in 0.7.1).
-            // The max connections per host setting is made the same value as the max
-            // global connections if there is no per-host property.
-            Jets3tProperties props = (Jets3tProperties) params.getParameter(
-                    Jets3tProperties.JETS3T_PROPERTIES_ID);
-            int maxConn = 20;
-            int maxConnectionsPerHost = 0;
-            if (props != null) {
-                maxConn = props.getIntProperty("httpclient.max-connections", 20);
-                maxConnectionsPerHost = props.getIntProperty(
-                        "httpclient.max-connections-per-host",
-                        0);
-            }
-            if (maxConnectionsPerHost == 0) {
-                maxConnectionsPerHost = maxConn;
-            }
-            connPerRoute.setDefaultMaxPerRoute(maxConnectionsPerHost);
-            return new ConnPoolByRoute(connOperator, connPerRoute, maxConn,props.getLongProperty("httpclient.connection.ttl", -1L), TimeUnit.MILLISECONDS);
-        }
-    } //ThreadSafeConnManager
 
     public static class JetS3tRetryHandler extends DefaultHttpRequestRetryHandler {
         private final JetS3tRequestAuthorizer requestAuthorizer;
