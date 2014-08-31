@@ -45,14 +45,14 @@ Files       : java-xmlbuilder/java-xmlbuilder-1.0.jar
 
 
 Name        : Bouncy Castle Crypto APIs
-Version     : 1.38 (for Java 1.4)
+Version     : 1.51 (for Java 1.5+)
 Location    : http://www.bouncycastle.org/
 Required?   : NO. Only required if the standard crytographic options available
             : in Java are not sufficient.
 Description : Cryptography provider, offering a broader range of
             : encryption algorithms than is provided in standard Java
             : installations.
-Files       : bouncycastle/bcprov-jdk14-138.jar
+Files       : bouncycastle/bcprov-jdk15on-151.jar
 
 
 Name        : Log4J
