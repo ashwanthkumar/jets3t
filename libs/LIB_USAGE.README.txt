@@ -25,13 +25,13 @@ Files       : commons-codec/commons-codec-1.8.jar
 
 
 Name        : Apache HttpComponents
-Version     : 4.3.2
+Version     : 4.3.5
 Location    : http://hc.apache.org
 Required?   : YES
             : This library is used directly by the REST/HTTP services.
 Description : HTTP/S communications library.
-Files       : httpcomponents/httpclient-4.3.2.jar
-            : httpcomponents/httpcore-4.3.1.jar
+Files       : httpcomponents/httpclient-4.3.5.jar
+            : httpcomponents/httpcore-4.3.2.jar
 
 
 Name        : Java XMLBuilder

@@ -2,6 +2,20 @@ JetS3t Release Notes
 ====================
 
 -------------
+Version 0.9.3
+-------------
+
+### TOOLKIT
+
+General:
+
+ * Updated BouncyCastle crypto library requirements to latest versions:
+   bcprov-jdk15on-1.51
+ * Updated HttpComponents library requirements to latest versions:
+   httpclient 4.3.5; httpcore 4.3.2
+
+
+-------------
 Version 0.9.2
 -------------
 
