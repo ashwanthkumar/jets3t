@@ -229,6 +229,7 @@ public class MultipartUtils {
                 }
             };
 
+        List<S3Object> partObjects = null;
         try {
             ThreadedS3Service threadedS3Service =
                 new ThreadedS3Service(s3Service, eventListener);
@@ -254,7 +255,7 @@ public class MultipartUtils {
                 if (object.getDataInputFile() == null) {
                     throw new ServiceException();
                 }
-                List<S3Object> partObjects = splitFileIntoObjectsByMaxPartSize(
+                partObjects = splitFileIntoObjectsByMaxPartSize(
                     upload.getObjectKey(),
                     object.getDataInputFile());
                 uploadAndPartsList.add(
@@ -269,6 +270,11 @@ public class MultipartUtils {
             threadedS3Service.multipartCompleteUploads(multipartUploadList);
             throwServiceEventAdaptorErrorIfPresent(eventListener);
         } catch (Exception e) {
+            if (partObjects != null && partObjects.size() > 0) {
+                for (S3Object partObject: partObjects) {
+                    partObject.closeDataInputStream();
+                }
+            }
             throw new Exception("Multipart upload failed", e);
         }
     }
