@@ -20,6 +20,7 @@ package org.jets3t.service.utils;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -53,6 +54,7 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.params.ClientPNames;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.conn.ClientConnectionManager;
@@ -286,6 +288,258 @@ public class RestUtils {
         }
 
         return canonicalStringBuf.toString();
+    }
+
+    /**
+     * Build the canonical request string for a REST/HTTP request to a storage
+     * service for the AWS Request Signature version 4.
+     *
+     * {@link "http://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-header-based-auth.html"}
+     *
+     * @param httpMethod
+     * the request's HTTP method just prior to sending
+     * @param requestPayloadBase64Sha256Hash
+     * base64-encoded SHA256 hash of request's payload. May be null or "" in
+     * which case the default SHA256 hash of an empty string is used.
+     * @return canonical request string according to AWS Request Signature version 4
+     */
+    public static String buildCanonicalRequestStringAWSVersion4(
+        HttpUriRequest httpMethod, String requestPayloadBase64Sha256Hash)
+    {
+        StringBuilder canonicalStringBuf = new StringBuilder();
+        URI uri = httpMethod.getURI();
+
+        // HTTP Request method: GET, POST etc
+        canonicalStringBuf
+            .append(httpMethod.getMethod())
+            .append("\n");
+
+        // Canonical URI: URI-encoded version of the absolute path
+        String absolutePath = uri.getPath();
+        if (absolutePath.length() == 0) {
+            absolutePath = "/";
+        }
+        canonicalStringBuf
+            .append(RestUtils.awsURIEncode(absolutePath, false))
+            .append("\n");
+
+        // Canonical query string
+        String query = uri.getQuery();
+        if (query == null || query.length() == 0) {
+            canonicalStringBuf.append("\n");
+        } else {
+            // Parse and sort query parameters and values from query string
+            SortedMap<String, String> sortedQueryParameters =
+                new TreeMap<String, String>();
+            for (String paramPair: query.split("&")) {
+                String[] paramNameValue = paramPair.split("=");
+                String name = paramNameValue[0];
+                String value = "";
+                if (paramNameValue.length > 1) {
+                    value = paramNameValue[1];
+                }
+                // Add parameters to sorting map, URI-encoded appropriately
+                sortedQueryParameters.put(
+                    RestUtils.awsURIEncode(name, true),
+                    RestUtils.awsURIEncode(value, true));
+            }
+            // Add query parameters to canonical string
+            boolean isPriorParam = false;
+            for (Map.Entry<String, String> entry: sortedQueryParameters.entrySet()) {
+                if (isPriorParam) {
+                    canonicalStringBuf.append("&");
+                }
+                canonicalStringBuf
+                    .append(entry.getKey())
+                    .append("=")
+                    .append(entry.getValue());
+                isPriorParam = true;
+            }
+            canonicalStringBuf.append("\n");
+        }
+
+        // Canonical Headers
+        SortedMap<String, String> sortedHeaders = new TreeMap<String, String>();
+        Header[] headers = httpMethod.getAllHeaders();
+        for (Header header: headers) {
+            // Trim whitespace and make lower-case for header names
+            String name = header.getName().trim().toLowerCase();
+            // Trim whitespace for header values
+            String value = header.getValue().trim();
+            sortedHeaders.put(name, value);
+        }
+        for (Map.Entry<String, String> entry: sortedHeaders.entrySet()) {
+            canonicalStringBuf
+                .append(entry.getKey())
+                .append(":")
+                .append(entry.getValue())
+                .append("\n");
+        }
+        canonicalStringBuf.append("\n");
+
+        // Signed headers
+        boolean isPriorSignedHeader = false;
+        for (Map.Entry<String, String> entry: sortedHeaders.entrySet()) {
+            if (isPriorSignedHeader) {
+                canonicalStringBuf.append(";");
+            }
+            canonicalStringBuf.append(entry.getKey());
+            isPriorSignedHeader = true;
+        }
+        canonicalStringBuf.append("\n");
+
+        // Hashed Payload - convert empty hash to SHA256 of empty string.
+        if (requestPayloadBase64Sha256Hash == null
+            || requestPayloadBase64Sha256Hash.length() == 0)
+        {
+            requestPayloadBase64Sha256Hash =
+                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+
+        }
+        canonicalStringBuf
+            .append(requestPayloadBase64Sha256Hash);
+
+        return canonicalStringBuf.toString();
+    }
+
+    /**
+     * Build the string to sign for a REST/HTTP request to a storage
+     * service for the AWS Request Signature version 4.
+     *
+     * {@link "http://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-header-based-auth.html"}
+     *
+     * @param requestSignatureVersion
+     * request signature version string, e.g. "AWS4-HMAC-SHA256"
+     * @param canonicalRequestString
+     * canonical request string as generated by {@link #buildCanonicalRequestStringAWSVersion4(HttpUriRequest, String)}
+     * @param timestampISO8601
+     * timestamp of request creation in ISO8601 format
+     * @param region
+     * region to which the request will be sent
+     * {@link "http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region"}
+     * @return string to sign according to AWS Request Signature version 4
+     */
+    public static String buildStringToSignAWSVersion4(
+            String requestSignatureVersion, String canonicalRequestString,
+            String timestampISO8601, String region)
+    {
+        String service = "s3";
+        String datestampISO8601 = timestampISO8601.substring(0, 8); // TODO
+        String credentialScope =
+            datestampISO8601 + "/" + region + "/" + service + "/aws4_request";
+        String hashedCanonicalString = ServiceUtils.toHex(
+            ServiceUtils.hash(canonicalRequestString, "SHA-256"));
+
+        String stringToSign =
+            requestSignatureVersion + "\n"
+            + timestampISO8601 + "\n"
+            + credentialScope + "\n"
+            + hashedCanonicalString;
+        return stringToSign;
+    }
+
+    /**
+     * Build the signing key for a REST/HTTP request to a storage
+     * service for the AWS Request Signature version 4.
+     *
+     * @param secretAccessKey
+     * account holder's secret access key
+     * @param timestampISO8601
+     * timestamp of request creation in ISO8601 format
+     * @param region
+     * region to which request will be sent
+     * @return signing key according to AWS Request Signature version 4
+     */
+    public static byte[] buildSigningKeyAWSVersion4(
+            String secretAccessKey, String timestampISO8601, String region)
+    {
+        String service = "s3";
+        String datestampISO8601 = timestampISO8601.substring(0, 8);
+        byte[] kDate = ServiceUtils.hmacSHA256(
+            "AWS4" + secretAccessKey, datestampISO8601);
+        byte[] kRegion = ServiceUtils.hmacSHA256(
+            kDate, ServiceUtils.stringToBytes(region));
+        byte[] kService = ServiceUtils.hmacSHA256(
+            kRegion, ServiceUtils.stringToBytes(service));
+        byte[] kSigning = ServiceUtils.hmacSHA256(
+            kService, ServiceUtils.stringToBytes("aws4_request"));
+        return kSigning;
+    }
+
+    /**
+     * Build the Authorization header value for a REST/HTTP request to a storage
+     * service for the AWS Request Signature version 4.
+     *
+     * {@link "http://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-header-based-auth.html"}
+     *
+     * @param accessKey
+     * account holder's access key
+     * @param requestSignature
+     * request signature as generated signing the string to sign from
+     * {@link #buildStringToSignAWSVersion4(String, String, String, String)}
+     * with the key from
+     * {@link #buildSigningKeyAWSVersion4(String, String, String)}
+     * @param requestSignatureVersion
+     * request signature version string, e.g. "AWS4-HMAC-SHA256"
+     * @param canonicalRequestString
+     * canonical request string as generated by
+     * {@link #buildCanonicalRequestStringAWSVersion4(HttpUriRequest, String)}
+     * @param timestampISO8601
+     * timestamp of request creation in ISO8601 format
+     * @param region
+     * region to which request will be sent, see
+     * {@link "http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region"}
+     * @return string to sign according to AWS Request Signature version 4
+     */
+    public static String buildAuthorizationHeaderValueAWSVersion4(
+            String accessKey, String requestSignature,
+            String requestSignatureVersion, String canonicalRequestString,
+            String timestampISO8601, String region)
+    {
+        String service = "s3";
+        String datestampISO8601 = timestampISO8601.substring(0, 8); // TODO
+        // Parse signed headers back out of canonical request string
+        String[] canonicalStringComponents = canonicalRequestString.split("\n");
+        String signedHeaders = canonicalStringComponents[canonicalStringComponents.length - 2];
+
+        String credentialScope =
+            datestampISO8601 + "/" + region + "/" + service + "/aws4_request";
+
+        String authorizationHeaderValue =
+            requestSignatureVersion + " "
+            + "Credential=" + accessKey
+            + "/" + credentialScope
+            + ",SignedHeaders=" + signedHeaders
+            + ",Signature=" + requestSignature;
+        return authorizationHeaderValue;
+    }
+
+    /**
+     * Slightly modified version of "uri-encode" from:
+     * {@link "http://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-header-based-auth.html"}
+     */
+    public static String awsURIEncode(CharSequence input, boolean encodeSlash) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < input.length(); i++) {
+            char ch = input.charAt(i);
+            if ((ch >= 'A' && ch <= 'Z')
+                || (ch >= 'a' && ch <= 'z')
+                || (ch >= '0' && ch <= '9')
+                || ch == '_'
+                || ch == '-'
+                || ch == '~'
+                || ch == '.')
+            {
+                result.append(ch);
+            } else if (ch == '/') {
+                result.append(encodeSlash ? "%2F" : ch);
+            } else {
+                // TODO Too heavy-weight
+                byte[] chBytes = new byte[] {(byte)ch};
+                result.append(ServiceUtils.toHex(chBytes));
+            }
+        }
+        return result.toString();
     }
 
     /**

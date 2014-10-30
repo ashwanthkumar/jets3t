@@ -140,13 +140,8 @@ public class ServiceUtils {
         //
         // Acquire an HMAC/SHA1 from the raw key bytes.
         SecretKeySpec signingKey = null;
-        try {
-            signingKey = new SecretKeySpec(awsSecretKey.getBytes(Constants.DEFAULT_ENCODING),
-                    Constants.HMAC_SHA1_ALGORITHM);
-        }
-        catch(UnsupportedEncodingException e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
+        signingKey = new SecretKeySpec(
+            stringToBytes(awsSecretKey), Constants.HMAC_SHA1_ALGORITHM);
 
         // Acquire the MAC instance and initialize with the signing key.
         Mac mac = null;
@@ -166,13 +161,102 @@ public class ServiceUtils {
         // Compute the HMAC on the digest, and set it.
         byte[] b64;
         try {
-            b64 = Base64.encodeBase64(mac.doFinal(
-                    canonicalString.getBytes(Constants.DEFAULT_ENCODING)));
+            b64 = Base64.encodeBase64(mac.doFinal(stringToBytes(canonicalString)));
             return new String(b64, Constants.DEFAULT_ENCODING);
         }
         catch(UnsupportedEncodingException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
+    }
+
+    /**
+     * @param str
+     * @return String as bytes using default JetS3t encoding (UTF-8)
+     */
+    public static byte[] stringToBytes(String str) {
+        try {
+            return str.getBytes(Constants.DEFAULT_ENCODING);
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(
+                "Unsupported encoding \"" + Constants.DEFAULT_ENCODING
+                + "\" for: " + str, e);
+        }
+    }
+
+    /**
+     *
+     * @param data
+     * @param cryptoHash
+     * @return lowercase hex-encoded hash value.
+     */
+    public static byte[] hash(byte[] data, String cryptoHash) {
+        MessageDigest md = null;
+        try {
+            md = MessageDigest.getInstance(cryptoHash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(
+                "Could not find hashing algorithm \"" + cryptoHash + "\"", e);
+        }
+        md.update(data);
+        return md.digest();
+    }
+
+    /**
+     *
+     * @param data
+     * @param cryptoHash
+     * @return lowercase hex-encoded hash value.
+     */
+    public static byte[] hash(String data, String cryptoHash) {
+        return hash(stringToBytes(data), cryptoHash);
+    }
+
+    /**
+     *
+     * @param key
+     * key for HMAC
+     * @param data
+     * data to be HMAC'd
+     * @param cryptoAlgorithm
+     * cryptographic algorithm to use for HMAC, e.g. "SHA-256"
+     * @return HMAC hash value with given crypto hashing algorithm.
+     */
+    public static byte[] hmac(byte[] key, byte[] data, String cryptoAlgorithm) {
+        String hmacDefinition = "Hmac" + cryptoAlgorithm;
+        try {
+            SecretKeySpec signingKey = new SecretKeySpec(key, hmacDefinition);
+            Mac mac = Mac.getInstance(hmacDefinition);
+            mac.init(signingKey);
+            return mac.doFinal(data);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(
+                "Could not find hashing algorithm \"" + hmacDefinition + "\"", e);
+        } catch (InvalidKeyException e) {
+            throw new RuntimeException(
+                "Could not init hashing algorithm \"" + hmacDefinition + "\"", e);
+        }
+    }
+
+    /**
+     * Return lowercase hex-encoded HMAC message digest of given data using the
+     * given key, using a crypto hash like "SHA256".
+     *
+     * @param key
+     * @param data
+     * @return HMAC SHA256 hash value.
+     */
+    public static byte[] hmacSHA256(String key, String data) {
+        return hmac(stringToBytes(key), stringToBytes(data), "SHA256");
+    }
+
+    /**
+     *
+     * @param key
+     * @param data
+     * @return HMAC SHA256 hash value.
+     */
+    public static byte[] hmacSHA256(byte[] key, byte[] data) {
+        return hmac(key, data, "SHA256");
     }
 
     /**
@@ -546,7 +630,7 @@ public class ServiceUtils {
      * bytes decoded from a Base64 string.
      */
     public static byte[] fromBase64(String b64Data) {
-        byte[] decoded = Base64.decodeBase64(b64Data.getBytes());
+        byte[] decoded = Base64.decodeBase64(stringToBytes(b64Data));
         return decoded;
     }
 
