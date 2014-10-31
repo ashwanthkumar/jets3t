@@ -622,7 +622,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
      * @throws ServiceException
      */
     public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context)
-            throws ServiceException {
+            throws ServiceException
+    {
         if(getProviderCredentials() != null) {
             if(log.isDebugEnabled()) {
                 log.debug("Adding authorization for Access Key '"
@@ -636,65 +637,108 @@ public abstract class RestStorageService extends StorageService implements JetS3
             return;
         }
 
-        URI uri = httpMethod.getURI();
-        String hostname = uri.getHost();
-
-        /*
-         * Determine the complete URL for the S3 resource, including any S3-specific parameters.
-         */
-        // Use raw-path, otherwise escaped characters are unescaped and a wrong
-        // signature is produced
-        String fullUrl = uri.getRawPath();
-
-        // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
-        String s3Endpoint = this.getEndpoint();
-        if(hostname != null && !s3Endpoint.equals(hostname)) {
-            int subdomainOffset = hostname.lastIndexOf("." + s3Endpoint);
-            if(subdomainOffset > 0) {
-                // Hostname represents an S3 sub-domain, so the bucket's name is the CNAME portion
-                fullUrl = "/" + hostname.substring(0, subdomainOffset) + fullUrl;
-            }
-            else {
-                // Hostname represents a virtual host, so the bucket's name is identical to hostname
-                fullUrl = "/" + hostname + fullUrl;
-            }
-        }
-
-        String queryString = uri.getRawQuery();
-        if(queryString != null && queryString.length() > 0) {
-            fullUrl += "?" + queryString;
-        }
-
         // Set/update the date timestamp to the current time
         // Note that this will be over-ridden if an "x-amz-date" or
         // "x-goog-date" header is present.
         httpMethod.setHeader("Date",
                 ServiceUtils.formatRfc822Date(getCurrentTimeWithOffset()));
 
-        if(log.isDebugEnabled()) {
-            log.debug("For creating canonical string, using uri: " + fullUrl);
+        String requestSignatureVersion = this.getJetS3tProperties()
+            .getStringProperty(
+                "storage-service.request-signature-version", "AWS2")
+            .toUpperCase();
+        String rsVersionId = null;
+
+        if (requestSignatureVersion.startsWith("AWS2")) {
+            rsVersionId = requestSignatureVersion;
+        } else {
+            String[] requestSignatureVersionSpec =
+                requestSignatureVersion.split("-");
+            if (requestSignatureVersionSpec.length != 3) {
+                throw new ServiceException("Invalid property setting for "
+                    + "storage-service.request-signature-version \""
+                    + requestSignatureVersion + "\", expected \"AWS2\" (legacy)"
+                    + " or a three-element definition like \"AWS4-HMAC-SHA256\"");
+            }
+            rsVersionId = requestSignatureVersionSpec[0];
+            // These two portions of the signature version string aren't yet
+            // used below, but may be if different crypto algorithms become
+            // supported in future.
+            // String rsHashAlgorithm = requestSignatureVersionSpec[1];
+            // String rsCryptoHash = requestSignatureVersionSpec[2];
         }
 
-        // Generate a canonical string representing the operation.
-        String canonicalString = RestUtils.makeServiceCanonicalString(
-                httpMethod.getMethod(),
-                fullUrl,
-                convertHeadersToMap(httpMethod.getAllHeaders()),
-                null,
-                getRestHeaderPrefix(),
-                getResourceParameterNames());
-        if(log.isDebugEnabled()) {
-            log.debug("Canonical string ('|' is a newline): " + canonicalString.replace('\n', '|'));
+        if ("AWS4".equalsIgnoreCase(rsVersionId)) {
+            String region = "us-east-1"; // TODO Only 1 region supported
+            String payload = ""; // TODO Only empty payload supported
+
+            // Generate payload hash and apply to request
+            // TODO Look up hash if already set to avoid regeneration
+            String requestPayloadHexSHA256Hash = ServiceUtils.toHex(
+                ServiceUtils.hash(payload, "SHA-256"));
+            httpMethod.setHeader(
+                "x-amz-content-sha256", requestPayloadHexSHA256Hash);
+
+            RestUtils.signRequestAuthorizationHeaderForAWSVersion4(
+                requestSignatureVersion, httpMethod,
+                this.getProviderCredentials(), requestPayloadHexSHA256Hash,
+                region);
+        } else if ("AWS2".equalsIgnoreCase(rsVersionId)) {
+            URI uri = httpMethod.getURI();
+            String hostname = uri.getHost();
+
+            /*
+             * Determine the complete URL for the S3 resource, including any S3-specific parameters.
+             */
+            // Use raw-path, otherwise escaped characters are unescaped and a wrong
+            // signature is produced
+            String fullUrl = uri.getRawPath();
+
+            // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
+            String s3Endpoint = this.getEndpoint();
+            if(hostname != null && !s3Endpoint.equals(hostname)) {
+                int subdomainOffset = hostname.lastIndexOf("." + s3Endpoint);
+                if(subdomainOffset > 0) {
+                    // Hostname represents an S3 sub-domain, so the bucket's name is the CNAME portion
+                    fullUrl = "/" + hostname.substring(0, subdomainOffset) + fullUrl;
+                }
+                else {
+                    // Hostname represents a virtual host, so the bucket's name is identical to hostname
+                    fullUrl = "/" + hostname + fullUrl;
+                }
+            }
+
+            String queryString = uri.getRawQuery();
+            if(queryString != null && queryString.length() > 0) {
+                fullUrl += "?" + queryString;
+            }
+
+            // Generate a canonical string representing the operation.
+            String canonicalString = RestUtils.makeServiceCanonicalString(
+                    httpMethod.getMethod(),
+                    fullUrl,
+                    convertHeadersToMap(httpMethod.getAllHeaders()),
+                    null,
+                    getRestHeaderPrefix(),
+                    getResourceParameterNames());
+            if(log.isDebugEnabled()) {
+                log.debug("Canonical string ('|' is a newline): " + canonicalString.replace('\n', '|'));
+            }
+
+            // Sign the canonical string.
+            String signedCanonical = ServiceUtils.signWithHmacSha1(
+                    getProviderCredentials().getSecretKey(), canonicalString);
+
+            // Add encoded authorization to connection as HTTP Authorization header.
+            String authorizationString = getSignatureIdentifier() + " "
+                    + getProviderCredentials().getAccessKey() + ":" + signedCanonical;
+            httpMethod.setHeader("Authorization", authorizationString);
+        } else {
+            throw new ServiceException("Unsupported property setting for "
+                + "storage-service.request-signature-version \""
+                + requestSignatureVersion + "\", must be one of: "
+                + "(unset), \"legacy\", \"aws-4\"");
         }
-
-        // Sign the canonical string.
-        String signedCanonical = ServiceUtils.signWithHmacSha1(
-                getProviderCredentials().getSecretKey(), canonicalString);
-
-        // Add encoded authorization to connection as HTTP Authorization header.
-        String authorizationString = getSignatureIdentifier() + " "
-                + getProviderCredentials().getAccessKey() + ":" + signedCanonical;
-        httpMethod.setHeader("Authorization", authorizationString);
     }
 
     /**
