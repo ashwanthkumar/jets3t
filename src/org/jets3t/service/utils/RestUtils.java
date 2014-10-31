@@ -25,6 +25,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -52,7 +53,6 @@ import org.apache.http.auth.NTCredentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.params.ClientPNames;
@@ -77,14 +77,11 @@ import org.apache.http.params.SyncBasicHttpParams;
 import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
-import org.apache.http.util.VersionInfo;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
-import org.jets3t.service.S3ServiceException;
-import org.jets3t.service.ServiceException;
 import org.jets3t.service.impl.rest.httpclient.JetS3tRequestAuthorizer;
-import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.io.UnrecoverableIOException;
+import org.jets3t.service.security.ProviderCredentials;
 
 /**
  * Utilities useful for REST/HTTP S3Service implementations.
@@ -122,6 +119,9 @@ public class RestUtils {
             "cache-control",
             "content-disposition",
             "content-encoding");
+
+    public static final SimpleDateFormat awsFlavouredISO8601DateParser =
+        new SimpleDateFormat("yyyyMMdd'T'HHmmss'Z'");
 
 
     /**
@@ -291,6 +291,132 @@ public class RestUtils {
     }
 
     /**
+     * Calculate AWS Version 4 signature for a HTTP request and apply the
+     * appropriate "Authorization" header value to authorize it.
+     *
+     * @param httpMethod
+     * the request's HTTP method just prior to sending
+     * @param requestSignatureVersion
+     * request signature version string, e.g. "AWS4-HMAC-SHA256"
+     * @param providerCredentials
+     * account holder's access and secret key credentials
+     * @param requestPayloadHexSha256Hash
+     * hex-encoded SHA256 hash of request's payload. May be null or "" in
+     * which case the default SHA256 hash of an empty string is used.
+     * @param region
+     * region to which the request will be sent
+     * {@link "http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region"}
+     */
+    public static void signRequestAuthorizationHeaderForAWSVersion4(
+        String requestSignatureVersion, HttpUriRequest httpMethod,
+        ProviderCredentials providerCredentials,
+        String requestPayloadHexSha256Hash, String region)
+    {
+        // Ensure the required Host header is set prior to signing.
+        if (httpMethod.getFirstHeader("Host") == null) {
+            httpMethod.setHeader("Host", httpMethod.getURI().getHost());
+        }
+
+        // Generate AWS-flavoured ISO8601 timestamp string
+        String timestampISO8601 = RestUtils.parseAndFormatDateForAWSVersion4(
+            httpMethod);
+
+        // Apply AWS-flavoured ISO8601 timestamp string to "x-aws-date"
+        // metadata, otherwise if only the Date header is present and it is
+        // RFC 822 formatted S3 expects that date to be part of the string
+        // to sign, not the AWS-flavoured ISO8601 timestamp as claimed by the
+        // documentation.
+        if (httpMethod.getFirstHeader("x-amz-date") == null) {
+            httpMethod.setHeader("x-amz-date", timestampISO8601);
+        }
+
+        // Canonical request string
+        String canonicalRequestString =
+            RestUtils.buildCanonicalRequestStringAWSVersion4(
+                httpMethod, requestPayloadHexSha256Hash);
+
+        // String to sign
+        String stringToSign = RestUtils.buildStringToSignAWSVersion4(
+            requestSignatureVersion, canonicalRequestString,
+            timestampISO8601, region);
+
+        // Signing key
+        byte[] signingKey = RestUtils.buildSigningKeyAWSVersion4(
+            providerCredentials.getSecretKey(), timestampISO8601,
+            region);
+
+        // Request signature
+        String signature = ServiceUtils.toHex(ServiceUtils.hmacSHA256(
+            signingKey, ServiceUtils.stringToBytes(stringToSign)));
+
+        // Authorization header value
+        String authorizationHeaderValue =
+            RestUtils.buildAuthorizationHeaderValueAWSVersion4(
+                providerCredentials.getAccessKey(), signature,
+                requestSignatureVersion, canonicalRequestString,
+                timestampISO8601, region);
+
+        httpMethod.setHeader("Authorization", authorizationHeaderValue);
+    }
+
+    /**
+     * Extract the request timestamp from the given HTTP request, from either
+     * the "x-amz-date" metadata header or the Date header, and convert it
+     * into an AWS-flavoured ISO8601 string format suitable for us in
+     * request authorization for AWS version 4 signatures.
+     *
+     * @param httpMethod
+     * request containing at least one of the "x-amz-date" or Date headers with
+     * a timestamp value in one of the supported formats: RFC 822, ISO 8601,
+     * AWS-flavoured ISO 8601.
+     * @return timestamp formatted as AWS-flavoured ISO8601: "YYYYMMDDTHHmmssZ"
+     */
+    public static String parseAndFormatDateForAWSVersion4(
+        HttpUriRequest httpMethod)
+    {
+        // Retrieve request's date header, from locations in order of
+        // preference: explicit metadata date, request Date header
+        Header dateHeader = httpMethod.getFirstHeader("x-amz-date");
+        if (dateHeader == null) {
+            dateHeader = httpMethod.getFirstHeader("Date");
+        }
+        if (dateHeader == null) {
+            throw new RuntimeException(
+                "Request must have a date timestamp applied before it can be"
+                + " signed with AWS Version 4, but no date value found in"
+                + " \"x-amz-date\" or \"Date\" headers");
+        }
+
+        // Parse provided Date object or string into ISO8601 format timestamp
+        String dateValue = dateHeader.getValue();
+        if (dateValue.indexOf("Z") >= 0) {
+            // ISO8601-like date, does it need to be converted to AWS flavour?
+            try {
+                awsFlavouredISO8601DateParser.parse(dateValue);
+                // Parse succeeded, no more work necessary
+                return dateValue;
+            } catch (ParseException e) {
+                // Parse failed, try parsing normal ISO8601 format
+                try {
+                    return awsFlavouredISO8601DateParser.format(
+                        ServiceUtils.parseIso8601Date(dateValue));
+                } catch (ParseException e2) {
+                    throw new RuntimeException(
+                        "Invalid date value in request: " + dateValue, e2);
+                }
+            }
+        } else {
+            try {
+                return awsFlavouredISO8601DateParser.format(
+                    ServiceUtils.parseRfc822Date(dateValue));
+            } catch (ParseException e) {
+                throw new RuntimeException(
+                    "Invalid date value in request: " + dateValue, e);
+            }
+        }
+    }
+
+    /**
      * Build the canonical request string for a REST/HTTP request to a storage
      * service for the AWS Request Signature version 4.
      *
@@ -298,13 +424,13 @@ public class RestUtils {
      *
      * @param httpMethod
      * the request's HTTP method just prior to sending
-     * @param requestPayloadBase64Sha256Hash
-     * base64-encoded SHA256 hash of request's payload. May be null or "" in
+     * @param requestPayloadHexSha256Hash
+     * hex-encoded SHA256 hash of request's payload. May be null or "" in
      * which case the default SHA256 hash of an empty string is used.
      * @return canonical request string according to AWS Request Signature version 4
      */
     public static String buildCanonicalRequestStringAWSVersion4(
-        HttpUriRequest httpMethod, String requestPayloadBase64Sha256Hash)
+        HttpUriRequest httpMethod, String requestPayloadHexSha256Hash)
     {
         StringBuilder canonicalStringBuf = new StringBuilder();
         URI uri = httpMethod.getURI();
@@ -389,15 +515,15 @@ public class RestUtils {
         canonicalStringBuf.append("\n");
 
         // Hashed Payload - convert empty hash to SHA256 of empty string.
-        if (requestPayloadBase64Sha256Hash == null
-            || requestPayloadBase64Sha256Hash.length() == 0)
+        if (requestPayloadHexSha256Hash == null
+            || requestPayloadHexSha256Hash.length() == 0)
         {
-            requestPayloadBase64Sha256Hash =
+            requestPayloadHexSha256Hash =
                 "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
         }
         canonicalStringBuf
-            .append(requestPayloadBase64Sha256Hash);
+            .append(requestPayloadHexSha256Hash);
 
         return canonicalStringBuf.toString();
     }
@@ -447,7 +573,8 @@ public class RestUtils {
      * @param timestampISO8601
      * timestamp of request creation in ISO8601 format
      * @param region
-     * region to which request will be sent
+     * region to which the request will be sent
+     * {@link "http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region"}
      * @return signing key according to AWS Request Signature version 4
      */
     public static byte[] buildSigningKeyAWSVersion4(
@@ -534,9 +661,7 @@ public class RestUtils {
             } else if (ch == '/') {
                 result.append(encodeSlash ? "%2F" : ch);
             } else {
-                // TODO Too heavy-weight
-                byte[] chBytes = new byte[] {(byte)ch};
-                result.append(ServiceUtils.toHex(chBytes));
+                result.append("%" + Integer.toHexString(ch));
             }
         }
         return result.toString();
