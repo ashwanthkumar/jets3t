@@ -61,6 +61,8 @@ import org.xml.sax.helpers.XMLReaderFactory;
  * @author James Murty
  */
 public class ServiceUtils {
+    public static String HASH_SHA256 = "SHA-256";
+
     private static final Log log = LogFactory.getLog(ServiceUtils.class);
 
     protected static final SimpleDateFormat iso8601DateParser = new SimpleDateFormat(
@@ -202,6 +204,41 @@ public class ServiceUtils {
     }
 
     /**
+    *
+    * @param dataIS
+    * @param cryptoHash
+    * @return lowercase hex-encoded hash value.
+     * @throws IOException
+    */
+   public static byte[] hash(InputStream dataIS, String cryptoHash)
+           throws IOException
+   {
+       MessageDigest md = null;
+       try {
+           md = MessageDigest.getInstance(cryptoHash);
+       } catch (NoSuchAlgorithmException e) {
+           throw new RuntimeException(
+               "Could not find hashing algorithm \"" + cryptoHash + "\"", e);
+       }
+
+       BufferedInputStream bis = new BufferedInputStream(dataIS);
+       try {
+           byte[] buffer = new byte[16384];
+           int bytesRead = -1;
+           while ((bytesRead = bis.read(buffer, 0, buffer.length)) != -1) {
+               md.update(buffer, 0, bytesRead);
+           }
+       } finally {
+           try {
+               bis.close();
+           } catch (Exception e) {
+           }
+       }
+
+       return md.digest();
+   }
+
+    /**
      *
      * @param data
      * @param cryptoHash
@@ -209,6 +246,14 @@ public class ServiceUtils {
      */
     public static byte[] hash(String data, String cryptoHash) {
         return hash(stringToBytes(data), cryptoHash);
+    }
+
+    public static byte[] hashSHA256(byte[] data) {
+        return hash(data, "SHA-256");
+    }
+
+    public static byte[] hashSHA256(InputStream dataIS) throws IOException {
+        return hash(dataIS, "SHA-256");
     }
 
     /**

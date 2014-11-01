@@ -12,11 +12,11 @@ import org.apache.http.entity.StringEntity;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.model.StorageBucket;
+import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.ProviderCredentials;
 import org.junit.Test;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
-
 
 
 /**
@@ -25,6 +25,7 @@ import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 public class TestAWSRequestSignatureVersion4 extends TestCase {
     protected String TEST_PROPERTIES_FILENAME = "test.properties";
     protected Properties testProperties = null;
+    protected ProviderCredentials testCredentials = null;
 
     String awsAccessKey = "AKIAIOSFODNN7EXAMPLE";
     String awsSecretAccessKey = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
@@ -45,6 +46,10 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
         }
         this.testProperties = new Properties();
         this.testProperties.load(propertiesIS);
+
+        this.testCredentials = new AWSCredentials(
+            testProperties.getProperty("aws.accesskey"),
+            testProperties.getProperty("aws.secretkey"));
     }
 
     @Test
@@ -57,7 +62,9 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
             "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
         httpGet.setHeader("x-amz-date", this.timestampISO8601);
 
-        String requestPayloadHexSHA256Hash = null; // empty payload
+        // Default empty payload hash
+        String requestPayloadHexSHA256Hash =
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
         // Canonical request string
         String expected =
@@ -315,19 +322,64 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
     // Very basic test of signed GET request with no payload.
     @Test
     public void testWithServiceListAllBuckets() throws Exception {
-        ProviderCredentials credentials = new AWSCredentials(
-            testProperties.getProperty("aws.accesskey"),
-            testProperties.getProperty("aws.secretkey"));
-
         Jets3tProperties properties = new Jets3tProperties();
         properties.setProperty(
             "storage-service.request-signature-version",
             this.requestSignatureVersion);
 
         RestS3Service service = new RestS3Service(
-            credentials, null, null, properties);
+            this.testCredentials, null, null, properties);
 
         service.listAllBuckets();
     }
 
+    // Very basic test of signed PUT and DELETE requests with no payload.
+    @Test
+    public void testWithServiceCreateAndDeleteBucket() throws Exception {
+        Jets3tProperties properties = new Jets3tProperties();
+        properties.setProperty(
+            "storage-service.request-signature-version",
+            this.requestSignatureVersion);
+
+        RestS3Service service = new RestS3Service(
+            this.testCredentials, null, null, properties);
+
+        String bucketName =
+            "test-" + testCredentials.getAccessKey().toLowerCase()
+            + "-testwithservicecreatebucket-"
+            + System.currentTimeMillis();
+        service.createBucket(bucketName);
+        service.deleteBucket(bucketName);
+    }
+
+    // Test signed PUT requests - one with payload - and DELETE requests.
+    @Test
+    public void testWithServiceCreateAndDeleteBucketAndCreateGetAndDeleteObject() throws Exception {
+        Jets3tProperties properties = new Jets3tProperties();
+        properties.setProperty(
+            "storage-service.request-signature-version",
+            this.requestSignatureVersion);
+
+        RestS3Service service = new RestS3Service(
+            this.testCredentials, null, null, properties);
+
+        String bucketName =
+            "test-" + testCredentials.getAccessKey().toLowerCase()
+            + "-testwithservicecreatebucket-"
+            + System.currentTimeMillis();
+        String objectData = "Just some simple text data";
+        S3Object object = new S3Object(
+            "text data object : îüøæç : テストオブジェクト",
+            objectData);
+
+        service.getOrCreateBucket(bucketName);
+        service.putObject(bucketName, object);
+        S3Object retrievedObject = service.getObject(bucketName, object.getKey());
+        assertEquals(objectData,
+            ServiceUtils.readInputStreamToString(
+                retrievedObject.getDataInputStream(),
+                Constants.DEFAULT_ENCODING));
+        service.deleteObject(bucketName, object.getKey());
+        service.deleteBucket(bucketName);
+    }
 }

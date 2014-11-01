@@ -65,6 +65,7 @@ import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.HttpException;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.CopyObjectResultHandler;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListBucketHandler;
+import org.jets3t.service.impl.rest.XmlResponsesSaxParser.RequestPaymentConfigurationHandler;
 import org.jets3t.service.model.CreateBucketConfiguration;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
@@ -670,14 +671,20 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
         if ("AWS4".equalsIgnoreCase(rsVersionId)) {
             String region = "us-east-1"; // TODO Only 1 region supported
-            String payload = ""; // TODO Only empty payload supported
 
-            // Generate payload hash and apply to request
-            // TODO Look up hash if already set to avoid regeneration
-            String requestPayloadHexSHA256Hash = ServiceUtils.toHex(
-                ServiceUtils.hash(payload, "SHA-256"));
-            httpMethod.setHeader(
-                "x-amz-content-sha256", requestPayloadHexSHA256Hash);
+            // Lookup request payload SHA256 hash if present
+            String requestPayloadHexSHA256Hash = "";
+            Header sha256Header = httpMethod.getFirstHeader("x-amz-content-sha256");
+            if (sha256Header != null) {
+                requestPayloadHexSHA256Hash = sha256Header.getValue();
+            }
+            // If request payload SHA256 isn't available, we assume there is
+            // an empty payload so we set the SHA256 hash of an empty string.
+            else {
+                requestPayloadHexSHA256Hash =
+                    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+                httpMethod.setHeader("x-amz-content-sha256", requestPayloadHexSHA256Hash);
+            }
 
             RestUtils.signRequestAuthorizationHeaderForAWSVersion4(
                 requestSignatureVersion, httpMethod,
