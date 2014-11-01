@@ -302,22 +302,14 @@ public abstract class RestStorageService extends StorageService implements JetS3
             int authFailureCount = 0;
             int requestTimeTooSkewedErrorCount = 0;
 
-            boolean wasRecentlyRedirected = false;
-
             // Use retry count limit for all error types
             int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
 
             // Perform the request, and retry on potentially recoverable failures.
             // This eternal loop is broken by an explicit `break` command or by throwing an exception
             while(true) {
-                // Build the authorization string for the method (Unless we have just been redirected).
-                if(!wasRecentlyRedirected) {
-                    authorizeHttpRequest(httpMethod, context);
-                }
-                else {
-                    // Reset redirection flag
-                    wasRecentlyRedirected = false;
-                }
+                // Build the authorization string for the method
+                authorizeHttpRequest(httpMethod, context);
 
                 response = httpClient.execute(httpMethod, context);
                 int responseCode = response.getStatusLine().getStatusCode();
@@ -454,7 +446,6 @@ public abstract class RestStorageService extends StorageService implements JetS3
                         ((RequestWrapper) httpMethod).setURI(new URI(locationHeader.getValue()));
                     }
 
-                    wasRecentlyRedirected = true;
                     redirectCount++;
                     if(log.isDebugEnabled()) {
                         log.debug(
@@ -510,6 +501,41 @@ public abstract class RestStorageService extends StorageService implements JetS3
                     authFailureCount++;
                     if(log.isDebugEnabled()) {
                         log.debug("Retrying after 403 Forbidden");
+                    }
+                }
+                // Special handling for requests signed using AWS request signature version
+                // 4 but sent to the wrong region due to an incorrect Host endpoint.
+                else if("AuthorizationHeaderMalformed".equals(exception.getErrorCode())) {
+                    String expectedRegion = null;
+                    try {
+                        expectedRegion = exception.getXmlMessageAsBuilder()
+                            .xpathFind("/Error/Region").getElement().getTextContent();
+                    } catch(Exception ignored) {
+                        // Throw original exception if we cannot parse expected
+                        // Region out of error message, in which case this error
+                        // was caused by something other than just wrong region.
+                        throw exception;
+                    }
+                    URI originalURI = httpMethod.getURI();
+                    String[] hostSplit = originalURI.getHost().split("\\.");
+                    if (expectedRegion == "us-east-1") {
+                        hostSplit[hostSplit.length - 3] = "s3";
+                    } else {
+                        hostSplit[hostSplit.length - 3] = "s3-" + expectedRegion;
+                    }
+                    String newHost = ServiceUtils.join(hostSplit, ".");
+                    if (httpMethod instanceof HttpRequestBase) {
+                        ((HttpRequestBase) httpMethod).setURI(new URI(
+                            originalURI.getScheme(), originalURI.getUserInfo(),
+                            newHost,
+                            originalURI.getPort(), originalURI.getPath(),
+                            originalURI.getQuery(), originalURI.getFragment()));
+                    }
+                    if(log.isWarnEnabled()) {
+                        log.warn("Retrying request after automatic adjustment of"
+                            + " Host endpoint from " + "\"" + originalURI.getHost()
+                            + "\" to \"" + newHost + "\" following request signing error"
+                            + " using AWS request signing version 4: " + httpMethod);
                     }
                 }
                 // If we haven't explicitly detected an retry-able error response type above,
@@ -638,6 +664,9 @@ public abstract class RestStorageService extends StorageService implements JetS3
             }
             return;
         }
+
+        // Clear any existing Authorization headers
+        httpMethod.removeHeaders("Authorization");
 
         // Set/update the date timestamp to the current time
         // Note that this will be over-ridden if an "x-amz-date" or
