@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2006-2010 James Murty
+ * Copyright 2006-2014 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -288,6 +288,47 @@ public class RestUtils {
         }
 
         return canonicalStringBuf.toString();
+    }
+
+    /**
+     * Determine the AWS Region to which a request will be sent based on the
+     * request's Host endpoint. See
+     * {@link "http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region"}
+     *
+     * @param httpMethod
+     * @return AWS region name corresponding to the request's Host endpoint.
+     */
+    public static String awsRegionForRequest(HttpUriRequest httpMethod) {
+        String host = httpMethod.getURI().getHost();
+        String defaultRegion = "us-east-1";
+        // Recognise default/legacy endpoints where the Host does not
+        // correspond to the region name.
+        if ("s3.amazonaws.com".equals(host)
+            || host.endsWith(".s3.amazonaws.com") // virtual-hosted
+            || "s3-external-1.amazonaws.com".equals(host)
+            || host.endsWith(".s3-external-1.amazonaws.com") // virtual-hosted
+            )
+        {
+            return defaultRegion;
+        }
+        // Host names of the form "s3-<regionName>.amazonaws.com" include the
+        // region name as a component of the Host name.
+        else if (host.endsWith(".amazonaws.com")) {
+            String[] hostSplit = host.split("\\.");
+            // Get the third-last portion of the Host, to get the
+            // "s3-<regionName>" component for both direct and virtual-hosted
+            // Host names.
+            String firstAwsHostComponent = hostSplit[hostSplit.length - 3];
+            if (firstAwsHostComponent.startsWith("s3-")) {
+                return firstAwsHostComponent.substring("s3-".length());
+            }
+            // Handle special case with "s3." prefix instead of "s3-"
+            else if ("eu-central-1".equals(firstAwsHostComponent)) {
+                return "eu-central-1";
+            }
+        }
+        // No specific Host-to-region mappings available, fall back to default
+        return defaultRegion;
     }
 
     /**
