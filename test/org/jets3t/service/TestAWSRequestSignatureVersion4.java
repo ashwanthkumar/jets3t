@@ -352,16 +352,13 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
         service.deleteBucket(bucketName);
     }
 
-    // Test signed PUT requests (with payloads) and DELETE requests to non-default region
+    // Test signed PUT requests (with payloads) and DELETE requests for bucket in "eu-central-1"
     @Test
     public void testWithServiceCreateAndDeleteBucketAndCreateGetAndDeleteObject() throws Exception {
         Jets3tProperties properties = new Jets3tProperties();
         properties.setProperty(
             "storage-service.request-signature-version",
             this.requestSignatureVersion);
-        properties.setProperty(
-            "s3service.s3-endpoint",
-            "s3-eu-west-1.amazonaws.com");
 
         RestS3Service service = new RestS3Service(
             this.testCredentials, null, null, properties);
@@ -374,7 +371,7 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
             "text data object : îüøæç : テストオブジェクト",
             objectData);
 
-        service.getOrCreateBucket(bucketName, "eu-west-1");
+        service.getOrCreateBucket(bucketName, "eu-central-1");
         service.putObject(bucketName, object);
         S3Object retrievedObject = service.getObject(bucketName, object.getKey());
         assertEquals(objectData,
@@ -384,4 +381,5 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
         service.deleteObject(bucketName, object.getKey());
         service.deleteBucket(bucketName);
     }
+
 }

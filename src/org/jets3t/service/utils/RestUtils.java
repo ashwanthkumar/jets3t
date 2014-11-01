@@ -322,10 +322,7 @@ public class RestUtils {
         // Recognise default/legacy endpoints where the Host does not
         // correspond to the region name.
         if ("s3.amazonaws.com".equals(host)
-            || host.endsWith(".s3.amazonaws.com") // virtual-hosted
-            || "s3-external-1.amazonaws.com".equals(host)
-            || host.endsWith(".s3-external-1.amazonaws.com") // virtual-hosted
-            )
+            || "s3-external-1.amazonaws.com".equals(host))
         {
             return defaultRegion;
         }
