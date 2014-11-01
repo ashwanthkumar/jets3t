@@ -19,6 +19,7 @@
 package org.jets3t.service.model;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ import java.util.List;
 import org.jets3t.service.Constants;
 import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.utils.Mimetypes;
+import org.jets3t.service.utils.ServiceUtils;
 
 /**
  * An S3 object.
@@ -69,6 +71,8 @@ public class S3Object extends StorageObject implements Cloneable {
         if (bucket != null) {
             this.bucketName = bucket.getName();
         }
+        setSHA256Hash(
+            ServiceUtils.hashSHA256(new FileInputStream(file)));
     }
 
     /**
@@ -89,6 +93,8 @@ public class S3Object extends StorageObject implements Cloneable {
      */
     public S3Object(File file) throws NoSuchAlgorithmException, IOException {
         super(file);
+        setSHA256Hash(
+            ServiceUtils.hashSHA256(new FileInputStream(file)));
     }
 
     /**
@@ -119,6 +125,8 @@ public class S3Object extends StorageObject implements Cloneable {
         if (bucket != null) {
             this.bucketName = bucket.getName();
         }
+        setSHA256Hash(
+            ServiceUtils.hashSHA256(ServiceUtils.stringToBytes(dataString)));
     }
 
     /**
@@ -144,6 +152,8 @@ public class S3Object extends StorageObject implements Cloneable {
     public S3Object(String key, String dataString) throws NoSuchAlgorithmException, IOException
     {
         super(key, dataString);
+        setSHA256Hash(
+            ServiceUtils.hashSHA256(ServiceUtils.stringToBytes(dataString)));
     }
 
     /**
@@ -165,6 +175,8 @@ public class S3Object extends StorageObject implements Cloneable {
     public S3Object(String key, byte[] data) throws NoSuchAlgorithmException, IOException
     {
         super(key, data);
+        setSHA256Hash(
+            ServiceUtils.hashSHA256(data));
     }
 
     /**
@@ -205,6 +217,12 @@ public class S3Object extends StorageObject implements Cloneable {
             + ", lastModified=" + getLastModifiedDate() + ", dataInputStream=" + dataInputStream
             + (getStorageClass() != null ? ", storageClass=" + getStorageClass() : "")
             + ", Metadata=" + getMetadataMap() + "]";
+    }
+
+    public void setSHA256Hash(byte[] hash) {
+        addMetadata(
+            Constants.REST_HEADER_PREFIX + "content-sha256",
+            ServiceUtils.toHex(hash));
     }
 
     /**

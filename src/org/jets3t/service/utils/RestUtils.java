@@ -443,11 +443,12 @@ public class RestUtils {
         // Canonical URI: URI-encoded version of the absolute path
         String absolutePath = uri.getPath();
         if (absolutePath.length() == 0) {
-            absolutePath = "/";
+            canonicalStringBuf.append("/");
+        } else {
+            canonicalStringBuf.append(
+                RestUtils.awsURIEncode(absolutePath, false));
         }
-        canonicalStringBuf
-            .append(RestUtils.awsURIEncode(absolutePath, false))
-            .append("\n");
+        canonicalStringBuf.append("\n");
 
         // Canonical query string
         String query = uri.getQuery();
@@ -514,14 +515,7 @@ public class RestUtils {
         }
         canonicalStringBuf.append("\n");
 
-        // Hashed Payload - convert empty hash to SHA256 of empty string.
-        if (requestPayloadHexSha256Hash == null
-            || requestPayloadHexSha256Hash.length() == 0)
-        {
-            requestPayloadHexSha256Hash =
-                "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-
-        }
+        // Hashed Payload.
         canonicalStringBuf
             .append(requestPayloadHexSha256Hash);
 
@@ -661,7 +655,8 @@ public class RestUtils {
             } else if (ch == '/') {
                 result.append(encodeSlash ? "%2F" : ch);
             } else {
-                result.append("%" + Integer.toHexString(ch));
+                String hex = encodeUrlString(String.valueOf(ch));
+                result.append(hex);
             }
         }
         return result.toString();
