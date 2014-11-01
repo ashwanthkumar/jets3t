@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.SimpleTimeZone;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
@@ -120,9 +121,26 @@ public class RestUtils {
             "content-disposition",
             "content-encoding");
 
-    public static final SimpleDateFormat awsFlavouredISO8601DateParser =
+    protected static final SimpleDateFormat awsFlavouredISO8601DateParser =
         new SimpleDateFormat("yyyyMMdd'T'HHmmss'Z'");
 
+    static {
+        awsFlavouredISO8601DateParser.setTimeZone(new SimpleTimeZone(0, "GMT"));
+    }
+
+    public static String formatAwsFlavouredISO8601Date(Date date) {
+        synchronized (awsFlavouredISO8601DateParser) {
+            return awsFlavouredISO8601DateParser.format(date);
+        }
+    }
+
+    public static Date parseAwsFlavouredISO8601Date(String dateString)
+        throws ParseException
+    {
+        synchronized (awsFlavouredISO8601DateParser) {
+            return awsFlavouredISO8601DateParser.parse(dateString);
+        }
+    }
 
     /**
      * Encodes a URL string, and ensures that spaces are encoded as "%20" instead of "+" to keep
@@ -430,17 +448,17 @@ public class RestUtils {
 
         // Parse provided Date object or string into ISO8601 format timestamp
         String dateValue = dateHeader.getValue();
-        if (dateValue.indexOf("Z") >= 0) {
+        if (dateValue.endsWith("Z")) {
             // ISO8601-like date, does it need to be converted to AWS flavour?
             try {
-                awsFlavouredISO8601DateParser.parse(dateValue);
+                parseAwsFlavouredISO8601Date(dateValue);
                 // Parse succeeded, no more work necessary
                 return dateValue;
             } catch (ParseException e) {
                 // Parse failed, try parsing normal ISO8601 format
                 try {
-                    return awsFlavouredISO8601DateParser.format(
-                        ServiceUtils.parseIso8601Date(dateValue));
+                    Date date = ServiceUtils.parseIso8601Date(dateValue);
+                    return formatAwsFlavouredISO8601Date(date);
                 } catch (ParseException e2) {
                     throw new RuntimeException(
                         "Invalid date value in request: " + dateValue, e2);
@@ -448,8 +466,8 @@ public class RestUtils {
             }
         } else {
             try {
-                return awsFlavouredISO8601DateParser.format(
-                    ServiceUtils.parseRfc822Date(dateValue));
+                Date date = ServiceUtils.parseRfc822Date(dateValue);
+                return formatAwsFlavouredISO8601Date(date);
             } catch (ParseException e) {
                 throw new RuntimeException(
                     "Invalid date value in request: " + dateValue, e);
