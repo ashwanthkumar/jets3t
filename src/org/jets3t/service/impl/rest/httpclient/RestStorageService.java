@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2010-2013 James Murty
+ * Copyright 2010-2014 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
@@ -51,6 +52,7 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.entity.BufferedHttpEntity;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.RequestWrapper;
@@ -65,7 +67,6 @@ import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.HttpException;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.CopyObjectResultHandler;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListBucketHandler;
-import org.jets3t.service.impl.rest.XmlResponsesSaxParser.RequestPaymentConfigurationHandler;
 import org.jets3t.service.model.CreateBucketConfiguration;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
@@ -670,21 +671,61 @@ public abstract class RestStorageService extends StorageService implements JetS3
         }
 
         if ("AWS4".equalsIgnoreCase(rsVersionId)) {
-            String region = "us-east-1"; // TODO Only 1 region supported
+            // Lookup AWS region appropriate for the request's Host endpoint.
+            String region = RestUtils.awsRegionForRequest(httpMethod);
 
             // Lookup request payload SHA256 hash if present
-            String requestPayloadHexSHA256Hash = "";
+            String requestPayloadHexSHA256Hash = null;
             Header sha256Header = httpMethod.getFirstHeader("x-amz-content-sha256");
             if (sha256Header != null) {
                 requestPayloadHexSHA256Hash = sha256Header.getValue();
             }
-            // If request payload SHA256 isn't available, we assume there is
-            // an empty payload so we set the SHA256 hash of an empty string.
-            else {
+            // If request payload SHA256 isn't available, check for a payload
+            if (requestPayloadHexSHA256Hash == null
+                && httpMethod instanceof HttpEntityEnclosingRequest)
+            {
+                HttpEntity entity =
+                    ((HttpEntityEnclosingRequest)httpMethod).getEntity();
+                // We will automatically generate the SHA256 hash for a limited
+                // set of payload entities, and bail out early for the
+                // unsupported ones.
+                if (entity instanceof StringEntity
+                    || entity instanceof ByteArrayEntity
+                    || entity instanceof RepeatableRequestEntity)
+                {
+                    try {
+                        requestPayloadHexSHA256Hash = ServiceUtils.toHex(
+                            ServiceUtils.hashSHA256(entity.getContent()));
+                        if (entity instanceof RepeatableRequestEntity) {
+                            ((RepeatableRequestEntity)entity).getContent().reset();
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(
+                            "Failed to automatically set required header"
+                            + " \"x-amz-content-sha256\" for request with"
+                            + " entity " + entity, e);
+                    }
+                }
+                // For unsupported payload entities bail out with a (hopefully)
+                // useful error message.
+                // We don't want to do too much automatically because it could
+                // kill performance, without the reason being clear to users.
+                else if (entity != null){
+                    throw new RuntimeException(
+                        "Header \"x-amz-content-sha256\" set to the hex-encoded"
+                        + " SHA256 hash of the request payload is required for"
+                        + " AWS Version 4 request signing, please set this on: "
+                        + httpMethod);
+                }
+            }
+
+            if (requestPayloadHexSHA256Hash == null) {
+                // If no payload, we set the SHA256 hash of an empty string.
                 requestPayloadHexSHA256Hash =
                     "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-                httpMethod.setHeader("x-amz-content-sha256", requestPayloadHexSHA256Hash);
             }
+            httpMethod.setHeader(
+                "x-amz-content-sha256", requestPayloadHexSHA256Hash);
 
             RestUtils.signRequestAuthorizationHeaderForAWSVersion4(
                 requestSignatureVersion, httpMethod,
