@@ -371,25 +371,47 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
             objectData);
         object.addMetadata("my-test-metadata", "my-value");
 
+
         service.getOrCreateBucket(bucketName, "eu-central-1");
 
         service.putObject(bucketName, object);
 
+        // After request targeted at our bucket, we should have a cache entry
+        // mapping our bucket name to the correct region.
+        assertEquals(
+            "eu-central-1", service.getRegionEndpointCache().get(bucketName));
+
+        // With a cached mapping to the correct region, a HEAD request to
+        // non-default region bucket using a service that is not aware of the
+        // region will succeed.
+        S3Object headObject = (S3Object)service.getObjectDetails(
+            bucketName, object.getKey());
+        assertEquals("my-value", headObject.getMetadata("my-test-metadata"));
+
+        // The same HEAD request to non-default region bucket using a service
+        // that is not aware of the region would fail if it wasn't for the
+        // cached mapping from bucket to region.
+        service.getRegionEndpointCache().remove(bucketName);
+        try {
+            service.getObjectDetails(bucketName, object.getKey());
+            fail("Expected HEAD request to fail with no");
+        } catch (ServiceException e) {
+        }
+
+        // A GET request to non-default region bucket using a service that is not
+        // aware of the region can succeed because we get an error from S3 with
+        // the expected region, and can correct the request then retry.
         S3Object retrievedObject = service.getObject(bucketName, object.getKey());
         assertEquals(objectData,
             ServiceUtils.readInputStreamToString(
                 retrievedObject.getDataInputStream(),
                 Constants.DEFAULT_ENCODING));
 
-        // HEAD request to non-default region bucket using service that is not
-        // aware of the region will fail due to incorrect region in signature,
-        // use a zero-length GET request instead (though a zero-length GET will
-        // actually return a single byte).
-        S3Object headLikeObject = service.getObject(
-            bucketName, object.getKey(), null, null, null, null, 0L, 0L);
-        assertEquals("my-value", headLikeObject.getMetadata("my-test-metadata"));
-        assertEquals(1, headLikeObject.getContentLength()); // Can't actually GET only 0 bytes
-        headLikeObject.closeDataInputStream();
+        // The above GET request targeted at our bucket could be made to succeed
+        // using the error data returned by S3, which also re-populates our
+        // bucket name to region cache.
+        assertEquals(
+            "eu-central-1", service.getRegionEndpointCache().get(bucketName));
 
         service.deleteObject(bucketName, object.getKey());
 

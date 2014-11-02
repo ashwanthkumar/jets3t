@@ -38,7 +38,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
@@ -52,7 +51,6 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.entity.BufferedHttpEntity;
-import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.RequestWrapper;
@@ -101,6 +99,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
     protected HttpClient httpClient;
     protected CredentialsProvider credentialsProvider;
+
+    protected RegionEndpointCache regionEndpointCache = null;
 
     protected String defaultStorageClass;
     protected String defaultServerSideEncryptionAlgorithm;
@@ -155,6 +155,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 "s3service.default-storage-class", null);
         this.defaultServerSideEncryptionAlgorithm = getJetS3tProperties().getStringProperty(
                 "s3service.server-side-encryption", null);
+        this.regionEndpointCache = new RegionEndpointCache();
     }
 
     @Override
@@ -252,6 +253,14 @@ public abstract class RestStorageService extends StorageService implements JetS3
      */
     public void setCredentialsProvider(CredentialsProvider credentialsProvider) {
         this.credentialsProvider = credentialsProvider;
+    }
+
+    public RegionEndpointCache getRegionEndpointCache() {
+        return this.regionEndpointCache;
+    }
+
+    public void setRegionEndpointCache(RegionEndpointCache rec) {
+        this.regionEndpointCache = rec;
     }
 
     /**
@@ -519,25 +528,19 @@ public abstract class RestStorageService extends StorageService implements JetS3
                         // was caused by something other than just wrong region.
                         throw exception;
                     }
+
+                    // Cache correct region for this request's bucket name
+                    this.regionEndpointCache.put(httpMethod, expectedRegion);
+
                     URI originalURI = httpMethod.getURI();
-                    String[] hostSplit = originalURI.getHost().split("\\.");
-                    if (expectedRegion == "us-east-1") {
-                        hostSplit[hostSplit.length - 3] = "s3";
-                    } else {
-                        hostSplit[hostSplit.length - 3] = "s3-" + expectedRegion;
-                    }
-                    String newHost = ServiceUtils.join(hostSplit, ".");
-                    if (httpMethod instanceof HttpRequestBase) {
-                        ((HttpRequestBase) httpMethod).setURI(new URI(
-                            originalURI.getScheme(), originalURI.getUserInfo(),
-                            newHost,
-                            originalURI.getPort(), originalURI.getPath(),
-                            originalURI.getQuery(), originalURI.getFragment()));
-                    }
+                    SignatureUtils.awsV4CorrectRequestHostForRegion(
+                        httpMethod, expectedRegion);
+
                     if(log.isWarnEnabled()) {
                         log.warn("Retrying request after automatic adjustment of"
                             + " Host endpoint from " + "\"" + originalURI.getHost()
-                            + "\" to \"" + newHost + "\" following request signing error"
+                            + "\" to \"" + httpMethod.getURI().getHost()
+                            + "\" following request signing error"
                             + " using AWS request signing version 4: " + httpMethod);
                     }
                 }
@@ -703,8 +706,31 @@ public abstract class RestStorageService extends StorageService implements JetS3
         }
 
         if ("AWS4".equalsIgnoreCase(rsVersionId)) {
-            // Lookup AWS region appropriate for the request's Host endpoint.
+            // Look up AWS region appropriate for the request's Host endpoint
+            // from the request's Host if a definite mapping is available...
             String region = SignatureUtils.awsRegionForRequest(httpMethod);
+            if (region != null) {
+                // Try caching the definitive region in case this request is
+                // directed at a bucket. If it's not a bucket-related request
+                // this is a no-op.
+                this.regionEndpointCache.put(httpMethod, region);
+            }
+            // ...otherwise from the region cache if available...
+            if (region == null && this.regionEndpointCache != null) {
+                region = this.regionEndpointCache.get(httpMethod);
+
+                // We cached a bucket-to-region mapping previously but this
+                // request doesn't use the correct Host name for the region,
+                // so fix that now to avoid failure or excess retries.
+                if (region != null) {
+                    SignatureUtils.awsV4CorrectRequestHostForRegion(
+                        httpMethod, region);
+                }
+            }
+            // ...finally fall back to the default region and hope for the best.
+            if (region == null) {
+                region = "us-east-1";
+            }
 
             String requestPayloadHexSHA256Hash =
                 SignatureUtils.awsV4GetOrCalculatePayloadHash(httpMethod);

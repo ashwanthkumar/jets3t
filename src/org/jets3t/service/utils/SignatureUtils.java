@@ -20,6 +20,7 @@ package org.jets3t.service.utils;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -28,9 +29,12 @@ import java.util.SimpleTimeZone;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import javax.management.RuntimeErrorException;
+
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpEntityEnclosingRequest;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.StringEntity;
@@ -87,13 +91,12 @@ public class SignatureUtils {
      */
     public static String awsRegionForRequest(HttpUriRequest httpMethod) {
         String host = httpMethod.getURI().getHost();
-        String defaultRegion = "us-east-1";
         // Recognise default/legacy endpoints where the Host does not
         // correspond to the region name.
         if ("s3.amazonaws.com".equals(host)
             || "s3-external-1.amazonaws.com".equals(host))
         {
-            return defaultRegion;
+            return "us-east-1";
         }
         // Host names of the form "s3-<regionName>.amazonaws.com" include the
         // region name as a component of the Host name.
@@ -111,8 +114,8 @@ public class SignatureUtils {
                 return "eu-central-1";
             }
         }
-        // No specific Host-to-region mappings available, fall back to default
-        return defaultRegion;
+        // No specific Host-to-region mappings available
+        return null;
     }
 
     /**
@@ -519,6 +522,37 @@ public class SignatureUtils {
             + ",SignedHeaders=" + signedHeaders
             + ",Signature=" + requestSignature;
         return authorizationHeaderValue;
+    }
+
+    /**
+     * Replace the Host portion of the HTTP request's URI endpoint to match the
+     * given region.
+     *
+     * @param httpMethod
+     * @param region
+     */
+    public static void awsV4CorrectRequestHostForRegion(
+        HttpUriRequest httpMethod, String region)
+    {
+        // Replace Host in request to reflect correct region for
+        // this bucket.
+        URI originalURI = httpMethod.getURI();
+        String[] hostSplit = originalURI.getHost().split("\\.");
+        if (region == "us-east-1") {
+            hostSplit[hostSplit.length - 3] = "s3";
+        } else {
+            hostSplit[hostSplit.length - 3] = "s3-" + region;
+        }
+        String newHost = ServiceUtils.join(hostSplit, ".");
+        try {
+            ((HttpRequestBase) httpMethod).setURI(new URI(
+                originalURI.getScheme(), originalURI.getUserInfo(),
+                newHost,
+                originalURI.getPort(), originalURI.getPath(),
+                originalURI.getQuery(), originalURI.getFragment()));
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
