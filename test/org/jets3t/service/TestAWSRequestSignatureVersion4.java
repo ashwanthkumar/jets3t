@@ -370,15 +370,30 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
         S3Object object = new S3Object(
             "text data object : îüøæç : テストオブジェクト",
             objectData);
+        object.addMetadata("my-test-metadata", "my-value");
 
         service.getOrCreateBucket(bucketName, "eu-central-1");
+
         service.putObject(bucketName, object);
+
         S3Object retrievedObject = service.getObject(bucketName, object.getKey());
         assertEquals(objectData,
             ServiceUtils.readInputStreamToString(
                 retrievedObject.getDataInputStream(),
                 Constants.DEFAULT_ENCODING));
+
+        // HEAD request to non-default region bucket using service that is not
+        // aware of the region will fail due to incorrect region in signature,
+        // use a zero-length GET request instead (though a zero-length GET will
+        // actually return a single byte).
+        S3Object headLikeObject = service.getObject(
+            bucketName, object.getKey(), null, null, null, null, 0L, 0L);
+        assertEquals("my-value", headLikeObject.getMetadata("my-test-metadata"));
+        assertEquals(1, headLikeObject.getContentLength()); // Can't actually GET only 0 bytes
+        headLikeObject.closeDataInputStream();
+
         service.deleteObject(bucketName, object.getKey());
+
         service.deleteBucket(bucketName);
     }
 
