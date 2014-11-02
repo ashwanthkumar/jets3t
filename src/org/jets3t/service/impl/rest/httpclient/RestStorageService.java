@@ -438,13 +438,15 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
                     // Set new URI from Location header
                     Header locationHeader = response.getFirstHeader("location");
+                    URI newLocation = new URI(locationHeader.getValue());
                     // deal with implementations of HttpUriRequest
                     if(httpMethod instanceof HttpRequestBase) {
-                        ((HttpRequestBase) httpMethod).setURI(new URI(locationHeader.getValue()));
+                        ((HttpRequestBase) httpMethod).setURI(newLocation);
                     }
                     else if(httpMethod instanceof RequestWrapper) {
-                        ((RequestWrapper) httpMethod).setURI(new URI(locationHeader.getValue()));
+                        ((RequestWrapper) httpMethod).setURI(newLocation);
                     }
+                    httpMethod.setHeader("Host", newLocation.getHost());
 
                     redirectCount++;
                     if(log.isDebugEnabled()) {
