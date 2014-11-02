@@ -79,6 +79,7 @@ import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
+import org.jets3t.service.utils.SignatureUtils;
 
 import com.jamesmurty.utils.XMLBuilder;
 
@@ -703,62 +704,14 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
         if ("AWS4".equalsIgnoreCase(rsVersionId)) {
             // Lookup AWS region appropriate for the request's Host endpoint.
-            String region = RestUtils.awsRegionForRequest(httpMethod);
+            String region = SignatureUtils.awsRegionForRequest(httpMethod);
 
-            // Lookup request payload SHA256 hash if present
-            String requestPayloadHexSHA256Hash = null;
-            Header sha256Header = httpMethod.getFirstHeader("x-amz-content-sha256");
-            if (sha256Header != null) {
-                requestPayloadHexSHA256Hash = sha256Header.getValue();
-            }
-            // If request payload SHA256 isn't available, check for a payload
-            if (requestPayloadHexSHA256Hash == null
-                && httpMethod instanceof HttpEntityEnclosingRequest)
-            {
-                HttpEntity entity =
-                    ((HttpEntityEnclosingRequest)httpMethod).getEntity();
-                // We will automatically generate the SHA256 hash for a limited
-                // set of payload entities, and bail out early for the
-                // unsupported ones.
-                if (entity instanceof StringEntity
-                    || entity instanceof ByteArrayEntity
-                    || entity instanceof RepeatableRequestEntity)
-                {
-                    try {
-                        requestPayloadHexSHA256Hash = ServiceUtils.toHex(
-                            ServiceUtils.hashSHA256(entity.getContent()));
-                        if (entity instanceof RepeatableRequestEntity) {
-                            ((RepeatableRequestEntity)entity).getContent().reset();
-                        }
-                    } catch (IOException e) {
-                        throw new RuntimeException(
-                            "Failed to automatically set required header"
-                            + " \"x-amz-content-sha256\" for request with"
-                            + " entity " + entity, e);
-                    }
-                }
-                // For unsupported payload entities bail out with a (hopefully)
-                // useful error message.
-                // We don't want to do too much automatically because it could
-                // kill performance, without the reason being clear to users.
-                else if (entity != null){
-                    throw new RuntimeException(
-                        "Header \"x-amz-content-sha256\" set to the hex-encoded"
-                        + " SHA256 hash of the request payload is required for"
-                        + " AWS Version 4 request signing, please set this on: "
-                        + httpMethod);
-                }
-            }
-
-            if (requestPayloadHexSHA256Hash == null) {
-                // If no payload, we set the SHA256 hash of an empty string.
-                requestPayloadHexSHA256Hash =
-                    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-            }
+            String requestPayloadHexSHA256Hash =
+                SignatureUtils.awsV4GetOrCalculatePayloadHash(httpMethod);
             httpMethod.setHeader(
                 "x-amz-content-sha256", requestPayloadHexSHA256Hash);
 
-            RestUtils.signRequestAuthorizationHeaderForAWSVersion4(
+            SignatureUtils.awsV4SignRequestAuthorizationHeader(
                 requestSignatureVersion, httpMethod,
                 this.getProviderCredentials(), requestPayloadHexSHA256Hash,
                 region);
