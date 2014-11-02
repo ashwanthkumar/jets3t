@@ -9,14 +9,13 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
-import org.jets3t.service.utils.RestUtils;
-import org.jets3t.service.utils.ServiceUtils;
-import org.jets3t.service.model.StorageBucket;
+import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.security.ProviderCredentials;
+import org.jets3t.service.utils.ServiceUtils;
+import org.jets3t.service.utils.SignatureUtils;
 import org.junit.Test;
-import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 
 
 /**
@@ -78,7 +77,7 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
             "\n" +
             "host;range;x-amz-content-sha256;x-amz-date\n"+
             "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-        String canonicalRequestString = RestUtils.buildCanonicalRequestStringAWSVersion4(
+        String canonicalRequestString = SignatureUtils.awsV4BuildCanonicalRequestString(
             httpGet, requestPayloadHexSHA256Hash);
         assertEquals(expected, canonicalRequestString);
 
@@ -88,13 +87,13 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
             "20130524T000000Z\n" +
             "20130524/us-east-1/s3/aws4_request\n" +
             "7344ae5b7ee6c3e7e6b0fe0640412a37625d1fbfff95c48bbb2dc43964946972";
-        String stringToSign = RestUtils.buildStringToSignAWSVersion4(
+        String stringToSign = SignatureUtils.awsV4BuildStringToSign(
             requestSignatureVersion, canonicalRequestString,
             this.timestampISO8601, this.region);
         assertEquals(expected, stringToSign);
 
         // Signature
-        byte[] signingKey = RestUtils.buildSigningKeyAWSVersion4(
+        byte[] signingKey = SignatureUtils.awsV4BuildSigningKey(
             this.awsSecretAccessKey, this.timestampISO8601,
             this.region);
         String signature = ServiceUtils.toHex(
@@ -105,14 +104,14 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
 
         // Authorization header
         String authorizationHeaderValue =
-            RestUtils.buildAuthorizationHeaderValueAWSVersion4(
+            SignatureUtils.awsV4BuildAuthorizationHeaderValue(
                 this.awsAccessKey, signature, this.requestSignatureVersion,
                 canonicalRequestString, this.timestampISO8601, this.region);
         expected = "AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20130524/us-east-1/s3/aws4_request,SignedHeaders=host;range;x-amz-content-sha256;x-amz-date,Signature=f0e8bdb87c964420e857bd35b5d6ed310bd44f0170aba48dd91039c6036bdb41";
         assertEquals(expected, authorizationHeaderValue);
 
         // The whole request
-        RestUtils.signRequestAuthorizationHeaderForAWSVersion4(
+        SignatureUtils.awsV4SignRequestAuthorizationHeader(
             this.requestSignatureVersion, httpGet,
             new AWSCredentials(this.awsAccessKey, this.awsSecretAccessKey),
             requestPayloadHexSHA256Hash, this.region);
@@ -148,7 +147,7 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
             "\n" +
             "date;host;x-amz-content-sha256;x-amz-date;x-amz-storage-class\n" +
             "44ce7dd67c959e0d3524ffac1771dfbba87d2b6b4b4e99e42034a8b803f8b072";
-        String canonicalRequestString = RestUtils.buildCanonicalRequestStringAWSVersion4(
+        String canonicalRequestString = SignatureUtils.awsV4BuildCanonicalRequestString(
             httpPut, requestPayloadHexSHA256Hash);
         assertEquals(expected, canonicalRequestString);
 
@@ -158,13 +157,13 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
             "20130524T000000Z\n" +
             "20130524/us-east-1/s3/aws4_request\n" +
             "9e0e90d9c76de8fa5b200d8c849cd5b8dc7a3be3951ddb7f6a76b4158342019d";
-        String stringToSign = RestUtils.buildStringToSignAWSVersion4(
+        String stringToSign = SignatureUtils.awsV4BuildStringToSign(
             requestSignatureVersion, canonicalRequestString,
             this.timestampISO8601, this.region);
         assertEquals(expected, stringToSign);
 
         // Signature
-        byte[] signingKey = RestUtils.buildSigningKeyAWSVersion4(
+        byte[] signingKey = SignatureUtils.awsV4BuildSigningKey(
             this.awsSecretAccessKey, this.timestampISO8601,
             this.region);
         String signature = ServiceUtils.toHex(
@@ -175,14 +174,14 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
 
         // Authorization header
         String authorizationHeaderValue =
-            RestUtils.buildAuthorizationHeaderValueAWSVersion4(
+            SignatureUtils.awsV4BuildAuthorizationHeaderValue(
                 this.awsAccessKey, signature, this.requestSignatureVersion,
                 canonicalRequestString, this.timestampISO8601, this.region);
         expected = "AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20130524/us-east-1/s3/aws4_request,SignedHeaders=date;host;x-amz-content-sha256;x-amz-date;x-amz-storage-class,Signature=98ad721746da40c64f1a55b78f14c238d841ea1380cd77a1b5971af0ece108bd";
         assertEquals(expected, authorizationHeaderValue);
 
         // The whole request
-        RestUtils.signRequestAuthorizationHeaderForAWSVersion4(
+        SignatureUtils.awsV4SignRequestAuthorizationHeader(
             this.requestSignatureVersion, httpPut,
             new AWSCredentials(this.awsAccessKey, this.awsSecretAccessKey),
             requestPayloadHexSHA256Hash, this.region);
@@ -213,7 +212,7 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
             "\n" +
             "host;x-amz-content-sha256;x-amz-date\n" +
             "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-        String canonicalRequestString = RestUtils.buildCanonicalRequestStringAWSVersion4(
+        String canonicalRequestString = SignatureUtils.awsV4BuildCanonicalRequestString(
             httpGet, requestPayloadHexSHA256Hash);
         assertEquals(expected, canonicalRequestString);
 
@@ -223,13 +222,13 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
             "20130524T000000Z\n" +
             "20130524/us-east-1/s3/aws4_request\n" +
             "9766c798316ff2757b517bc739a67f6213b4ab36dd5da2f94eaebf79c77395ca";
-        String stringToSign = RestUtils.buildStringToSignAWSVersion4(
+        String stringToSign = SignatureUtils.awsV4BuildStringToSign(
             requestSignatureVersion, canonicalRequestString,
             this.timestampISO8601, this.region);
         assertEquals(expected, stringToSign);
 
         // Signature
-        byte[] signingKey = RestUtils.buildSigningKeyAWSVersion4(
+        byte[] signingKey = SignatureUtils.awsV4BuildSigningKey(
             this.awsSecretAccessKey, this.timestampISO8601,
             this.region);
         String signature = ServiceUtils.toHex(
@@ -240,14 +239,14 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
 
         // Authorization header
         String authorizationHeaderValue =
-            RestUtils.buildAuthorizationHeaderValueAWSVersion4(
+            SignatureUtils.awsV4BuildAuthorizationHeaderValue(
                 this.awsAccessKey, signature, this.requestSignatureVersion,
                 canonicalRequestString, this.timestampISO8601, this.region);
         expected = "AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20130524/us-east-1/s3/aws4_request,SignedHeaders=host;x-amz-content-sha256;x-amz-date,Signature=fea454ca298b7da1c68078a5d1bdbfbbe0d65c699e0f91ac7a200a0136783543";
         assertEquals(expected, authorizationHeaderValue);
 
         // The whole request
-        RestUtils.signRequestAuthorizationHeaderForAWSVersion4(
+        SignatureUtils.awsV4SignRequestAuthorizationHeader(
             this.requestSignatureVersion, httpGet,
             new AWSCredentials(this.awsAccessKey, this.awsSecretAccessKey),
             requestPayloadHexSHA256Hash, this.region);
@@ -278,7 +277,7 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
             "\n" +
             "host;x-amz-content-sha256;x-amz-date\n" +
             "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-        String canonicalRequestString = RestUtils.buildCanonicalRequestStringAWSVersion4(
+        String canonicalRequestString = SignatureUtils.awsV4BuildCanonicalRequestString(
             httpGet, requestPayloadHexSHA256Hash);
         assertEquals(expected, canonicalRequestString);
 
@@ -288,13 +287,13 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
             "20130524T000000Z\n" +
             "20130524/us-east-1/s3/aws4_request\n" +
             "df57d21db20da04d7fa30298dd4488ba3a2b47ca3a489c74750e0f1e7df1b9b7";
-        String stringToSign = RestUtils.buildStringToSignAWSVersion4(
+        String stringToSign = SignatureUtils.awsV4BuildStringToSign(
             requestSignatureVersion, canonicalRequestString,
             this.timestampISO8601, this.region);
         assertEquals(expected, stringToSign);
 
         // Signature
-        byte[] signingKey = RestUtils.buildSigningKeyAWSVersion4(
+        byte[] signingKey = SignatureUtils.awsV4BuildSigningKey(
             this.awsSecretAccessKey, this.timestampISO8601,
             this.region);
         String signature = ServiceUtils.toHex(
@@ -305,14 +304,14 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
 
         // Authorization header
         String authorizationHeaderValue =
-            RestUtils.buildAuthorizationHeaderValueAWSVersion4(
+            SignatureUtils.awsV4BuildAuthorizationHeaderValue(
                 this.awsAccessKey, signature, this.requestSignatureVersion,
                 canonicalRequestString, this.timestampISO8601, this.region);
         expected = "AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20130524/us-east-1/s3/aws4_request,SignedHeaders=host;x-amz-content-sha256;x-amz-date,Signature=34b48302e7b5fa45bde8084f4b7868a86f0a534bc59db6670ed5711ef69dc6f7";
         assertEquals(expected, authorizationHeaderValue);
 
         // The whole request
-        RestUtils.signRequestAuthorizationHeaderForAWSVersion4(
+        SignatureUtils.awsV4SignRequestAuthorizationHeader(
             this.requestSignatureVersion, httpGet,
             new AWSCredentials(this.awsAccessKey, this.awsSecretAccessKey),
             requestPayloadHexSHA256Hash, this.region);
