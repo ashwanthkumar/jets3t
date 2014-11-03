@@ -352,15 +352,10 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
     }
 
     // Test signed PUT requests (with payloads) and DELETE requests for bucket in "eu-central-1"
+    // using service that is *not* configured to use AWS4-HMAC-SHA256 signatures by default.
     @Test
     public void testWithServiceCreateAndDeleteBucketAndCreateGetAndDeleteObject() throws Exception {
-        Jets3tProperties properties = new Jets3tProperties();
-        properties.setProperty(
-            "storage-service.request-signature-version",
-            this.requestSignatureVersion);
-
-        RestS3Service service = new RestS3Service(
-            this.testCredentials, null, null, properties);
+        RestS3Service service = new RestS3Service(this.testCredentials);
 
         String bucketName =
             "test-" + testCredentials.getAccessKey().toLowerCase()

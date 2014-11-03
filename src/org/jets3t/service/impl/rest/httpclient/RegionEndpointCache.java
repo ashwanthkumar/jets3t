@@ -23,6 +23,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.jets3t.service.utils.ServiceUtils;
 
@@ -34,8 +36,9 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author jmurty
  */
 public class RegionEndpointCache {
+    private static final Log log = LogFactory.getLog(RegionEndpointCache.class);
 
-    Map<String, String> bucketNameToRegionMap = new HashMap<String, String>();
+    private Map<String, String> bucketNameToRegionMap = new HashMap<String, String>();
 
     /**
      * Figure out the bucket name referred to by a request, if any, from the
@@ -45,40 +48,44 @@ public class RegionEndpointCache {
      * @return
      */
     protected String deriveBucketName(String host, String path) {
-        // Check whether this is a virtual host Host name, in which case the
-        // bucket name is everything before the AWS portion of the hostname.
-        String[] hostSplit = host.split("\\.");
+        try {
+            // Check whether this is a virtual host Host name, in which case the
+            // bucket name is everything before the AWS portion of the hostname.
+            String[] hostSplit = host.split("\\.");
 
-        int firstAwsHostnameOffset = hostSplit.length - 3;
-        String firstAwsHostname = hostSplit[firstAwsHostnameOffset];
+            int firstAwsHostnameOffset = hostSplit.length - 3;
+            String firstAwsHostname = hostSplit[firstAwsHostnameOffset];
 
-        // Handle awkward unusual naming convention for eu-central-1 Host names
-        // which may be "s3-eu-central-1" or "s3.eu-central-1"
-        if ("eu-central-1".equals(firstAwsHostname)) {
-            firstAwsHostnameOffset -= 1;
-            firstAwsHostname = hostSplit[firstAwsHostnameOffset];
-        }
-
-        if ("s3".equals(firstAwsHostname)
-            || firstAwsHostname.startsWith("s3-"))
-        {
-            // This is the first portion of the AWS hostname, anything prior
-            // in the Host name is a virutal host bucket name.
-            if (firstAwsHostnameOffset > 0) {
-                return ServiceUtils.join(
-                    Arrays.copyOfRange(hostSplit, 0, firstAwsHostnameOffset),
-                    ".");
+            // Handle awkward unusual naming convention for eu-central-1 Host names
+            // which may be "s3-eu-central-1" or "s3.eu-central-1"
+            if ("eu-central-1".equals(firstAwsHostname)) {
+                firstAwsHostnameOffset -= 1;
+                firstAwsHostname = hostSplit[firstAwsHostnameOffset];
             }
-        }
 
-        // If we get this far we haven't detected a virtual host bucket name, so
-        // the first /-delimited portion of the URI path must be the bucket name.
-        String[] pathSplit = path.split("\\.");
-        if (pathSplit.length > 0) {
-            return pathSplit[0];
-        } else {
-            return null;
+            if ("s3".equals(firstAwsHostname)
+                || firstAwsHostname.startsWith("s3-"))
+            {
+                // This is the first portion of the AWS hostname, anything prior
+                // in the Host name is a virutal host bucket name.
+                if (firstAwsHostnameOffset > 0) {
+                    return ServiceUtils.join(
+                        Arrays.copyOfRange(hostSplit, 0, firstAwsHostnameOffset),
+                        ".");
+                }
+            }
+
+            // If we get this far we haven't detected a virtual host bucket name, so
+            // the first /-delimited portion of the URI path must be the bucket name.
+            String[] pathSplit = path.split("\\.");
+            if (pathSplit.length > 0) {
+                return pathSplit[0];
+            }
+        } catch (Exception ex) {
+            log.warn("Failed attempt to derive bucket name from Host"
+                + "\"" + host + "\" and Path \"" + path + "\"", ex);
         }
+        return null;
     }
 
     /**
@@ -112,6 +119,12 @@ public class RegionEndpointCache {
         } else {
             return null;
         }
+    }
+
+    public boolean containsBucketNameFromRequest(HttpUriRequest httpMethod) {
+        URI uri = httpMethod.getURI();
+        String bucketName = deriveBucketName(uri.getHost(), uri.getPath());
+        return this.containsKey(bucketName);
     }
 
     public boolean containsKey(String bucketName) {

@@ -27,4 +27,8 @@ public interface JetS3tRequestAuthorizer {
     public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context)
         throws ServiceException;
 
+    public void authorizeHttpRequest(
+        HttpUriRequest httpMethod, HttpContext context, String forceRequestSignatureVersion)
+        throws ServiceException;
+
 }
