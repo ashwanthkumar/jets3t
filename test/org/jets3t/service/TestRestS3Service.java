@@ -255,7 +255,7 @@ public class TestRestS3Service extends BaseStorageServiceTests {
 
     public void testMultipartUtils() throws Exception {
         RestS3Service service = (RestS3Service) getStorageService(getCredentials());
-        StorageBucket bucket = createBucketForTest("testMultipartUtils");
+        StorageBucket bucket = createBucketForTest("testMultipartUtilities");
         String bucketName = bucket.getName();
 
         try {
@@ -367,7 +367,7 @@ public class TestRestS3Service extends BaseStorageServiceTests {
                 bucketName, largeFile.getName());
             assertEquals(largeFile.length(), completedObject.getContentLength());
         } finally {
-            cleanupBucketForTest("testMultipartUtils");
+            cleanupBucketForTest("testMultipartUtilities");
         }
     }
 
@@ -864,7 +864,7 @@ public class TestRestS3Service extends BaseStorageServiceTests {
                 s3Service.putObject(bucketName, object);
                 fail("Expected error about invalid server-side encryption algorithm");
             } catch (S3ServiceException e) {
-                assertEquals("InvalidEncryptionAlgorithmError", e.getErrorCode());
+                assertEquals("InvalidArgument", e.getErrorCode());
             }
 
             // Create an encrypted object, set explicitly
