@@ -315,13 +315,17 @@ public abstract class RestStorageService extends StorageService implements JetS3
             // Use retry count limit for all error types
             int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
 
+            boolean skipNextAuthorizationCycle = false;
             String forceRequestSignatureVersion = null;
 
             // Perform the request, and retry on potentially recoverable failures.
             // This eternal loop is broken by an explicit `break` command or by throwing an exception
             while(true) {
-                // Build the authorization string for the method
-                authorizeHttpRequest(httpMethod, context, forceRequestSignatureVersion);
+                if (!skipNextAuthorizationCycle) {
+                    // Build the authorization string for the method
+                    authorizeHttpRequest(httpMethod, context, forceRequestSignatureVersion);
+                }
+                skipNextAuthorizationCycle = false;
 
                 response = httpClient.execute(httpMethod, context);
                 int responseCode = response.getStatusLine().getStatusCode();
@@ -458,7 +462,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
                     else if(httpMethod instanceof RequestWrapper) {
                         ((RequestWrapper) httpMethod).setURI(newLocation);
                     }
-                    httpMethod.setHeader("Host", newLocation.getHost());
+
+                    skipNextAuthorizationCycle = true;
 
                     redirectCount++;
                     if(log.isDebugEnabled()) {
