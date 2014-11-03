@@ -315,11 +315,13 @@ public abstract class RestStorageService extends StorageService implements JetS3
             // Use retry count limit for all error types
             int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
 
+            String forceRequestSignatureVersion = null;
+
             // Perform the request, and retry on potentially recoverable failures.
             // This eternal loop is broken by an explicit `break` command or by throwing an exception
             while(true) {
                 // Build the authorization string for the method
-                authorizeHttpRequest(httpMethod, context);
+                authorizeHttpRequest(httpMethod, context, forceRequestSignatureVersion);
 
                 response = httpClient.execute(httpMethod, context);
                 int responseCode = response.getStatusLine().getStatusCode();
@@ -515,6 +517,20 @@ public abstract class RestStorageService extends StorageService implements JetS3
                         log.debug("Retrying after 403 Forbidden");
                     }
                 }
+                // Special handling for requests to a region that requires AWS
+                // request signature version 4 when service isn't configured to
+                // use AWS4-HMAC-SHA256 signatures by default.
+                else if ("InvalidRequest".equals(exception.getErrorCode())
+                         && exception.getErrorMessage().contains("Please use AWS4-HMAC-SHA256"))
+                {
+                    forceRequestSignatureVersion = "AWS4-HMAC-SHA256";
+                    authFailureCount++;
+                    if (log.isWarnEnabled()) {
+                        log.warn(
+                            "Retrying request with \"AWS4-HMAC-SHA256\" signing"
+                            + " mechanism: " + httpMethod);
+                    }
+                }
                 // Special handling for requests signed using AWS request signature version
                 // 4 but sent to the wrong region due to an incorrect Host endpoint.
                 else if("AuthorizationHeaderMalformed".equals(exception.getErrorCode())) {
@@ -535,6 +551,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                     URI originalURI = httpMethod.getURI();
                     SignatureUtils.awsV4CorrectRequestHostForRegion(
                         httpMethod, expectedRegion);
+                    authFailureCount++;
 
                     if(log.isWarnEnabled()) {
                         log.warn("Retrying request after automatic adjustment of"
@@ -645,6 +662,12 @@ public abstract class RestStorageService extends StorageService implements JetS3
         return false;
     }
 
+    public void authorizeHttpRequest(
+        HttpUriRequest httpMethod, HttpContext context) throws ServiceException
+    {
+        authorizeHttpRequest(httpMethod, context, null);
+    }
+
     /**
      * Authorizes an HTTP/S request by signing it with an HMAC signature compatible with
      * the S3 service and Google Storage (legacy) authorization techniques.
@@ -653,10 +676,12 @@ public abstract class RestStorageService extends StorageService implements JetS3
      *
      * @param httpMethod the request object
      * @param context
+     * @param forceRequestSignatureVersion
      * @throws ServiceException
      */
-    public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context)
-            throws ServiceException
+    public void authorizeHttpRequest(
+        HttpUriRequest httpMethod, HttpContext context,
+        String forceRequestSignatureVersion) throws ServiceException
     {
         if(getProviderCredentials() != null) {
             if(log.isDebugEnabled()) {
@@ -684,28 +709,15 @@ public abstract class RestStorageService extends StorageService implements JetS3
             .getStringProperty(
                 "storage-service.request-signature-version", "AWS2")
             .toUpperCase();
-        String rsVersionId = null;
 
-        if (requestSignatureVersion.startsWith("AWS2")) {
-            rsVersionId = requestSignatureVersion;
-        } else {
-            String[] requestSignatureVersionSpec =
-                requestSignatureVersion.split("-");
-            if (requestSignatureVersionSpec.length != 3) {
-                throw new ServiceException("Invalid property setting for "
-                    + "storage-service.request-signature-version \""
-                    + requestSignatureVersion + "\", expected \"AWS2\" (legacy)"
-                    + " or a three-element definition like \"AWS4-HMAC-SHA256\"");
-            }
-            rsVersionId = requestSignatureVersionSpec[0];
-            // These two portions of the signature version string aren't yet
-            // used below, but may be if different crypto algorithms become
-            // supported in future.
-            // String rsHashAlgorithm = requestSignatureVersionSpec[1];
-            // String rsCryptoHash = requestSignatureVersionSpec[2];
-        }
-
-        if ("AWS4".equalsIgnoreCase(rsVersionId)) {
+        if ("AWS4-HMAC-SHA256".equalsIgnoreCase(forceRequestSignatureVersion)
+            || "AWS4-HMAC-SHA256".equalsIgnoreCase(requestSignatureVersion)
+            // If we have a cached region for request's bucket target, we know
+            // we have used "AWS4-HMAC-SHA256" for this bucket in the past.
+            || (this.regionEndpointCache != null
+                && this.regionEndpointCache.containsBucketNameFromRequest(httpMethod)))
+        {
+            requestSignatureVersion = "AWS4-HMAC-SHA256";
             // Look up AWS region appropriate for the request's Host endpoint
             // from the request's Host if a definite mapping is available...
             String region = SignatureUtils.awsRegionForRequest(httpMethod);
@@ -741,7 +753,9 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 requestSignatureVersion, httpMethod,
                 this.getProviderCredentials(), requestPayloadHexSHA256Hash,
                 region);
-        } else if ("AWS2".equalsIgnoreCase(rsVersionId)) {
+        } else if ("AWS2".equalsIgnoreCase(forceRequestSignatureVersion)
+                   || "AWS2".equalsIgnoreCase(requestSignatureVersion))
+        {
             URI uri = httpMethod.getURI();
             String hostname = uri.getHost();
 
@@ -795,7 +809,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
             throw new ServiceException("Unsupported property setting for "
                 + "storage-service.request-signature-version \""
                 + requestSignatureVersion + "\", must be one of: "
-                + "(unset), \"legacy\", \"aws-4\"");
+                + "\"AWS2\" (legacy), \"AWS4-HMAC-SHA256\"");
         }
     }
 

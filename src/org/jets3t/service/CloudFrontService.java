@@ -217,6 +217,13 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         httpMethod.setHeader("Authorization", authorizationString);
     }
 
+    public void authorizeHttpRequest(
+        HttpUriRequest httpMethod, HttpContext context, String forceRequestSignatureVersion)
+        throws ServiceException
+    {
+        authorizeHttpRequest(httpMethod, context, null);
+    }
+
     /**
      * Performs an HTTP/S request by invoking the provided HttpMethod object. If the HTTP
      * response code doesn't match the expected value, an exception is thrown.
