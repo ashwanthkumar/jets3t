@@ -221,7 +221,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         HttpUriRequest httpMethod, HttpContext context, String forceRequestSignatureVersion)
         throws ServiceException
     {
-        authorizeHttpRequest(httpMethod, context, null);
+        authorizeHttpRequest(httpMethod, context);
     }
 
     /**
