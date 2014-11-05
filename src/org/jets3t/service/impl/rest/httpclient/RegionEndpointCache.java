@@ -18,15 +18,8 @@
  */
 package org.jets3t.service.impl.rest.httpclient;
 
-import java.net.URI;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.jets3t.service.utils.ServiceUtils;
 
 /**
  * Cache to store mappings from a bucket name to a region, used to help with
@@ -36,70 +29,9 @@ import org.jets3t.service.utils.ServiceUtils;
  * @author jmurty
  */
 public class RegionEndpointCache {
-    private static final Log log = LogFactory.getLog(RegionEndpointCache.class);
-
     private Map<String, String> bucketNameToRegionMap = new HashMap<String, String>();
 
-    /**
-     * Figure out the bucket name referred to by a request, if any, from the
-     * its Host name or URL path.
-     * @param host
-     * @param path
-     * @return
-     */
-    protected String deriveBucketName(String host, String path) {
-        try {
-            // Check whether this is a virtual host Host name, in which case the
-            // bucket name is everything before the AWS portion of the hostname.
-            String[] hostSplit = host.split("\\.");
-
-            int firstAwsHostnameOffset = hostSplit.length - 3;
-            String firstAwsHostname = hostSplit[firstAwsHostnameOffset];
-
-            // Handle awkward unusual naming convention for eu-central-1 Host names
-            // which may be "s3-eu-central-1" or "s3.eu-central-1"
-            if ("eu-central-1".equals(firstAwsHostname)) {
-                firstAwsHostnameOffset -= 1;
-                firstAwsHostname = hostSplit[firstAwsHostnameOffset];
-            }
-
-            if ("s3".equals(firstAwsHostname)
-                || firstAwsHostname.startsWith("s3-"))
-            {
-                // This is the first portion of the AWS hostname, anything prior
-                // in the Host name is a virutal host bucket name.
-                if (firstAwsHostnameOffset > 0) {
-                    return ServiceUtils.join(
-                        Arrays.copyOfRange(hostSplit, 0, firstAwsHostnameOffset),
-                        ".");
-                }
-            }
-
-            // If we get this far we haven't detected a virtual host bucket name, so
-            // the first /-delimited portion of the URI path must be the bucket name.
-            String[] pathSplit = path.split("\\.");
-            if (pathSplit.length > 0) {
-                return pathSplit[0];
-            }
-        } catch (Exception ex) {
-            log.warn("Failed attempt to derive bucket name from Host"
-                + "\"" + host + "\" and Path \"" + path + "\"", ex);
-        }
-        return null;
-    }
-
-    /**
-     *
-     * @param httpMethod
-     * @return cached region name associated with a request's bucket name.
-     */
-    public String get(HttpUriRequest httpMethod) {
-        URI uri = httpMethod.getURI();
-        String bucketName = deriveBucketName(uri.getHost(), uri.getPath());
-        return get(bucketName);
-    }
-
-    public String get(String bucketName) {
+    public String getRegionForBucketName(String bucketName) {
         if (bucketNameToRegionMap.containsKey(bucketName)) {
             return bucketNameToRegionMap.get(bucketName);
         } else {
@@ -107,13 +39,7 @@ public class RegionEndpointCache {
         }
     }
 
-    public String put(HttpUriRequest httpMethod, String region) {
-        URI uri = httpMethod.getURI();
-        String bucketName = deriveBucketName(uri.getHost(), uri.getPath());
-        return put(bucketName, region);
-    }
-
-    public String put(String bucketName, String region) {
+    public String putRegionForBucketName(String bucketName, String region) {
         if (bucketName != null && region != null) {
             return bucketNameToRegionMap.put(bucketName, region);
         } else {
@@ -121,21 +47,15 @@ public class RegionEndpointCache {
         }
     }
 
-    public boolean containsBucketNameFromRequest(HttpUriRequest httpMethod) {
-        URI uri = httpMethod.getURI();
-        String bucketName = deriveBucketName(uri.getHost(), uri.getPath());
-        return this.containsKey(bucketName);
-    }
-
-    public boolean containsKey(String bucketName) {
+    public boolean containsRegionForBucketName(String bucketName) {
         return bucketNameToRegionMap.containsKey(bucketName);
     }
 
-    public boolean containsValue(String region) {
+    public boolean containsRegionForAnyBucketName(String region) {
         return bucketNameToRegionMap.containsValue(region);
     }
 
-    public String remove(String bucketName) {
+    public String removeRegionForBucketName(String bucketName) {
         return bucketNameToRegionMap.remove(bucketName);
     }
 

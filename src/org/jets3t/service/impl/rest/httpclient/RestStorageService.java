@@ -551,9 +551,12 @@ public abstract class RestStorageService extends StorageService implements JetS3
                     }
 
                     // Cache correct region for this request's bucket name
-                    this.regionEndpointCache.put(httpMethod, expectedRegion);
-
                     URI originalURI = httpMethod.getURI();
+                    String bucketName = ServiceUtils.findBucketNameInHostOrPath(
+                        originalURI, this.getEndpoint());
+                    this.regionEndpointCache.putRegionForBucketName(
+                        bucketName, expectedRegion);
+
                     SignatureUtils.awsV4CorrectRequestHostForRegion(
                         httpMethod, expectedRegion);
                     authFailureCount++;
@@ -710,6 +713,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
         httpMethod.setHeader("Date",
                 ServiceUtils.formatRfc822Date(getCurrentTimeWithOffset()));
 
+        String requestBucketName = ServiceUtils.findBucketNameInHostOrPath(
+            httpMethod.getURI(), this.getEndpoint());
         String requestSignatureVersion = this.getJetS3tProperties()
             .getStringProperty(
                 "storage-service.request-signature-version", "AWS2")
@@ -720,7 +725,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
             // If we have a cached region for request's bucket target, we know
             // we have used "AWS4-HMAC-SHA256" for this bucket in the past.
             || (this.regionEndpointCache != null
-                && this.regionEndpointCache.containsBucketNameFromRequest(httpMethod)))
+                && this.regionEndpointCache.containsRegionForBucketName(
+                    requestBucketName)))
         {
             requestSignatureVersion = "AWS4-HMAC-SHA256";
             // Look up AWS region appropriate for the request's Host endpoint
@@ -730,11 +736,13 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 // Try caching the definitive region in case this request is
                 // directed at a bucket. If it's not a bucket-related request
                 // this is a no-op.
-                this.regionEndpointCache.put(httpMethod, region);
+                this.regionEndpointCache.putRegionForBucketName(
+                    requestBucketName, region);
             }
             // ...otherwise from the region cache if available...
             if (region == null && this.regionEndpointCache != null) {
-                region = this.regionEndpointCache.get(httpMethod);
+                region = this.regionEndpointCache.getRegionForBucketName(
+                    requestBucketName);
 
                 // We cached a bucket-to-region mapping previously but this
                 // request doesn't use the correct Host name for the region,
