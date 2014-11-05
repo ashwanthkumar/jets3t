@@ -1,6 +1,7 @@
 package org.jets3t.service;
 
 import java.io.InputStream;
+import java.net.URI;
 import java.util.Properties;
 
 import junit.framework.TestCase;
@@ -318,6 +319,186 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
         assertEquals(expected, httpGet.getFirstHeader("Authorization").getValue());
     }
 
+    public void testFindBucketNameInHostOrPath() throws Exception {
+        String defaultS3Endpoint = "s3.amazonaws.com";
+
+        /*
+         * Requests to service Host at root level: no bucket name
+         */
+        assertEquals(
+            null,
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("https://s3.amazonaws.com/"),
+                defaultS3Endpoint)
+        );
+        assertEquals(
+            null,
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("https://s3.amazonaws.com/?acl"),
+                defaultS3Endpoint)
+        );
+        // Alternate non-S3 endpoint
+        assertEquals(
+            null,
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("http://my.s3.alternate.endpoint/"),
+                "my.s3.alternate.endpoint")
+        );
+
+        /*
+         * Requests with bucket in Path
+         */
+        assertEquals(
+            "my bückét テ",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("https://s3.amazonaws.com/my%20bückét%20テ"),
+                defaultS3Endpoint)
+        );
+        assertEquals(
+            "my bückét テ",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("https://s3.amazonaws.com/my%20bückét%20テ/some%20object.txt"),
+                defaultS3Endpoint)
+        );
+        // Alternate non-S3 endpoint
+        assertEquals(
+            "my bückét テ",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("http://my.s3.alternate.endpoint/my%20bückét%20テ/"),
+                "my.s3.alternate.endpoint")
+        );
+
+        /*
+         * Requests with single-term bucket prefix in Host
+         */
+        assertEquals(
+            "bucketname",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("https://bucketname.s3.amazonaws.com/"),
+                defaultS3Endpoint)
+        );
+        assertEquals(
+            "bucketname",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("https://bucketname.s3.amazonaws.com/some%20object.txt"),
+                defaultS3Endpoint)
+        );
+        // Alternate non-S3 endpoint
+        assertEquals(
+            "bucketname",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("http://bucketname.my.s3.alternate.endpoint/"),
+                "my.s3.alternate.endpoint")
+        );
+
+        /*
+         * Requests with multi-term bucket prefix in Host
+         */
+        assertEquals(
+            "my.bucket.name",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("https://my.bucket.name.s3.amazonaws.com/"),
+                defaultS3Endpoint)
+        );
+        assertEquals(
+            "my.bucket.name",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("https://my.bucket.name.s3.amazonaws.com/some%20object.txt"),
+                defaultS3Endpoint)
+        );
+        // Alternate non-S3 endpoint
+        assertEquals(
+            "my.bucket.name",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("http://my.bucket.name.my.s3.alternate.endpoint/"),
+                "my.s3.alternate.endpoint")
+        );
+
+        /*
+         * Requests with bucket prefix in Host which has region variations
+         */
+        assertEquals(
+            "bucketname",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("https://bucketname.s3-external-1.amazonaws.com/"),
+                defaultS3Endpoint)
+        );
+        assertEquals(
+            "my.bucket.name",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("https://my.bucket.name.s3-eu-central-1.amazonaws.com/some%20object.txt"),
+                defaultS3Endpoint)
+        );
+        // Note nasty exceptional case for s3.eu-central-1, version of s3-eu-central-1
+        assertEquals(
+            "bucketname",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("https://bucketname.s3.eu-central-1.amazonaws.com/some%20object.txt"),
+                defaultS3Endpoint)
+        );
+        // Alternate non-S3 endpoint
+        assertEquals(
+            "my.bucket.name",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("http://my.bucket.name.my-other-region.s3.alternate.endpoint/"),
+                "my.s3.alternate.endpoint")
+        );
+
+        /*
+         * Requests with bucket name in Path but using region variation Host names
+         */
+        assertEquals(
+            "bucketname",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("https://s3-external-1.amazonaws.com/bucketname"),
+                defaultS3Endpoint)
+        );
+        assertEquals(
+            "my.bucket.name",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("https://s3-eu-central-1.amazonaws.com/my.bucket.name/some%20object.txt"),
+                defaultS3Endpoint)
+        );
+        // Note nasty exceptional case for s3.eu-central-1, version of s3-eu-central-1
+        assertEquals(
+            "bucketname",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("https://s3.eu-central-1.amazonaws.com/bucketname/some%20object.txt"),
+                defaultS3Endpoint)
+        );
+        // Alternate non-S3 endpoint
+        assertEquals(
+            "my.bucket.name",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("http://my-other-region.s3.alternate.endpoint/my.bucket.name"),
+                "my.s3.alternate.endpoint")
+        );
+
+        /*
+         * Requests with DNS name mapping serving as bucket name
+         */
+        assertEquals(
+            "my.bucket.name",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("https://my.bucket.name/"),
+                defaultS3Endpoint)
+        );
+        assertEquals(
+            "my.bucket.name",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("https://my.bucket.name/some%20object.txt"),
+                defaultS3Endpoint)
+        );
+        // Alternate non-S3 endpoint
+        assertEquals(
+            "my.bucket.name",
+            ServiceUtils.findBucketNameInHostOrPath(
+                new URI("http://my.bucket.name/"),
+                "my.s3.alternate.endpoint")
+        );
+
+    }
+
     // Very basic test of signed GET request with no payload.
     @Test
     public void testWithServiceListAllBuckets() throws Exception {
@@ -374,7 +555,8 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
         // After request targeted at our bucket, we should have a cache entry
         // mapping our bucket name to the correct region.
         assertEquals(
-            "eu-central-1", service.getRegionEndpointCache().get(bucketName));
+            "eu-central-1",
+            service.getRegionEndpointCache().getRegionForBucketName(bucketName));
 
         // With a cached mapping to the correct region, a HEAD request to
         // non-default region bucket using a service that is not aware of the
@@ -386,7 +568,7 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
         // The same HEAD request to non-default region bucket using a service
         // that is not aware of the region would fail if it wasn't for the
         // cached mapping from bucket to region.
-        service.getRegionEndpointCache().remove(bucketName);
+        service.getRegionEndpointCache().removeRegionForBucketName(bucketName);
         try {
             service.getObjectDetails(bucketName, object.getKey());
             fail("Expected HEAD request to fail with no");
@@ -406,7 +588,8 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
         // using the error data returned by S3, which also re-populates our
         // bucket name to region cache.
         assertEquals(
-            "eu-central-1", service.getRegionEndpointCache().get(bucketName));
+            "eu-central-1",
+            service.getRegionEndpointCache().getRegionForBucketName(bucketName));
 
         service.deleteObject(bucketName, object.getKey());
 

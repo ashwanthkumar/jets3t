@@ -26,12 +26,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.net.URLDecoder;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -44,6 +47,8 @@ import java.util.regex.Pattern;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+
+import jdk.nashorn.internal.ir.LiteralNode.ArrayLiteralNode.ArrayUnit;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
@@ -666,6 +671,25 @@ public class ServiceUtils {
     }
 
     /**
+     *
+     * @param str
+     * @param regexp
+     * @return
+     * string split with regexp using {@link String#split(String)} with empty
+     * strings removed.
+     */
+    public static String[] splitIgnoreEmpty(String str, String regexp) {
+        String[] splits = str.split(regexp);
+        List<String> results = new ArrayList<String>();
+        for (String candidate: splits) {
+            if (candidate.length() > 0) {
+                results.add(candidate);
+            }
+        }
+        return results.toArray(new String[0]);
+    }
+
+    /**
      * Converts a Base64-encoded string to the original byte data.
      *
      * @param b64Data
@@ -778,6 +802,131 @@ public class ServiceUtils {
             bucketName = host;
         }
         return bucketName;
+    }
+
+    /**
+     * Find the name of a bucket referred to by a HTTP request's Host or
+     * Path URI components. Returns null if the bucket name cannot be found,
+     * which is a legitimate outcome for requests that are not directed at a
+     * bucket (e.g. service root-level requests).
+     *
+     * {@link "http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region"}
+     *
+     * @param uri
+     * URI containing the request's Host domain name target
+     * (via {@link URI#getHost()}) and Path component (via {@link URI#getPath()})
+     * @param s3Endpoint
+     * Host name of default S3 endpoint, generally "s3.amazonaws.com" but may
+     * differ when using alternative services such as Eucalyptus Walrus etc.
+     * @return the bucket name target of the request's Host/Path, or null if none.
+     */
+    public static String findBucketNameInHostOrPath(URI uri, String s3Endpoint)
+    {
+        String host = uri.getHost();
+        String path = uri.getPath();
+        String[] pathSplit = ServiceUtils.splitIgnoreEmpty(path, "/");
+
+        // Handle case where Host exactly matches endpoint, so no chance of it
+        // being a virtual host or alternate host name
+        if (host.equalsIgnoreCase(s3Endpoint)) {
+            // If we have multiple path components the first is the bucket name...
+            if (pathSplit.length > 0) {
+                return pathSplit[0];
+            }
+            // ...otherwise no bucket name
+            return null;
+        }
+
+        // Handle case where bucket name is a prefix of the exact Host endpoint,
+        // e.g. bucketname.s3.amazonaws.com
+        if (host.endsWith("." + s3Endpoint)) {
+            return host.substring(0, host.length() - s3Endpoint.length() - 1);
+        }
+
+        // Handle complicated case where bucket name is a prefix of some
+        // variation of a suffix of the Host endpoint. For example AWS region
+        // endpoint variations on s3.amazonaws.com include:
+        //
+        //   bucketname.s3-external-1.amazonaws.com
+        //   bucketname.s3-us-west-1.amazonaws.com
+        //   bucketname.s3-ap-northeast-1.amazonaws.com
+        //   etc etc
+        //   bucketname.s3-eu-central-1.amazonaws.com
+        //   bucketname.s3.eu-central-1.amazonaws.com  (Ugh!)
+        //
+        // We assume region-based Host prefixes will only impact AWS-style
+        // endpoints with 3+ components, where only the first endpoint Host
+        // component will vary. For example:
+        //   bucketname.[s3-external-1].amazonaws.com <=> bucketname.[s3].amazonaws.com
+        String[] hostSplit = ServiceUtils.splitIgnoreEmpty(host, "\\.");
+        String[] s3EndpointSplit = ServiceUtils.splitIgnoreEmpty(s3Endpoint, "\\.");
+        String s3EndpointSuffix = null;
+        if (s3EndpointSplit.length >= 3) {
+            s3EndpointSuffix = ServiceUtils.join(
+                Arrays.copyOfRange(s3EndpointSplit, 1, s3EndpointSplit.length),
+                ".");
+        }
+
+        if (s3EndpointSuffix != null && host.endsWith("." + s3EndpointSuffix)
+            // The request Host must have at least one more name component than
+            // the endpoint, or there's definitely no bucketname Host component
+            && hostSplit.length > s3EndpointSplit.length)
+        {
+            // Does this region variation look reasonable? Where reasonable
+            // means it starts with a hyphen-delimited version of the endpoint's
+            // first component, e.g.
+            // [s3-external-1].amazonaws.com <=> [s3].amazonaws.com
+            int firstNonEndpointHostComponentOffset = -1;
+            String firstS3EndpointComponent = s3EndpointSplit[0];
+            String regionVariation = hostSplit[hostSplit.length - s3EndpointSplit.length];
+            if (regionVariation.equals(firstS3EndpointComponent)
+                || regionVariation.startsWith(firstS3EndpointComponent + "-"))
+            {
+                firstNonEndpointHostComponentOffset =
+                    hostSplit.length - s3EndpointSplit.length;
+            }
+
+            // Handle awkward unusual naming convention for AWS Host region
+            // variation which may include multiple components, e.g.
+            // s3.eu-central-1
+            if (firstNonEndpointHostComponentOffset < 0
+                && hostSplit.length > s3EndpointSplit.length + 1)
+            {
+                regionVariation = hostSplit[hostSplit.length - s3EndpointSplit.length - 1];
+                if (regionVariation.equals(firstS3EndpointComponent)
+                    || regionVariation.startsWith(firstS3EndpointComponent + "-"))
+                {
+                    firstNonEndpointHostComponentOffset =
+                        hostSplit.length - s3EndpointSplit.length - 1;
+                }
+            }
+
+            if (firstNonEndpointHostComponentOffset > 0) {
+                String bucketName = ServiceUtils.join(
+                    Arrays.copyOfRange(hostSplit, 0, firstNonEndpointHostComponentOffset),
+                    ".");
+                return bucketName;
+            }
+        }
+
+        // Handle case where a DNS virtual host is the bucket name
+        // i.e. my.bucket.com => my.bucket.com.s3.amazonaws.com
+        // We assume this is the case if the Host doesn't match even the suffix
+        // of our endpoint.
+        if (s3EndpointSuffix != null && !host.endsWith("." + s3EndpointSuffix)) {
+            String bucketName = host;
+            return bucketName;
+        }
+
+        // If we get this far we haven't detected the bucket name in the Host
+        // at all, so we assume the first /-delimited portion of the Path is
+        // the bucket name, if any
+        if (pathSplit.length > 0) {
+            return pathSplit[0];
+        }
+
+        // No bucket name found
+        return null;
     }
 
     /**
