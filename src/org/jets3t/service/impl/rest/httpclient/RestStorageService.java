@@ -315,17 +315,13 @@ public abstract class RestStorageService extends StorageService implements JetS3
             // Use retry count limit for all error types
             int retryMaxCount = getJetS3tProperties().getIntProperty("httpclient.retry-max", 5);
 
-            boolean skipNextAuthorizationCycle = false;
             String forceRequestSignatureVersion = null;
 
             // Perform the request, and retry on potentially recoverable failures.
             // This eternal loop is broken by an explicit `break` command or by throwing an exception
             while(true) {
-                if (!skipNextAuthorizationCycle) {
-                    // Build the authorization string for the method
-                    authorizeHttpRequest(httpMethod, context, forceRequestSignatureVersion);
-                }
-                skipNextAuthorizationCycle = false;
+                // Build the authorization string for the method
+                authorizeHttpRequest(httpMethod, context, forceRequestSignatureVersion);
 
                 response = httpClient.execute(httpMethod, context);
                 int responseCode = response.getStatusLine().getStatusCode();
@@ -462,8 +458,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                     else if(httpMethod instanceof RequestWrapper) {
                         ((RequestWrapper) httpMethod).setURI(newLocation);
                     }
-
-                    skipNextAuthorizationCycle = true;
+                    httpMethod.setHeader("Host", newLocation.getHost());
 
                     redirectCount++;
                     if(log.isDebugEnabled()) {
@@ -770,7 +765,6 @@ public abstract class RestStorageService extends StorageService implements JetS3
                    || "AWS2".equalsIgnoreCase(requestSignatureVersion))
         {
             URI uri = httpMethod.getURI();
-            String hostname = uri.getHost();
 
             /*
              * Determine the complete URL for the S3 resource, including any S3-specific parameters.
@@ -779,18 +773,13 @@ public abstract class RestStorageService extends StorageService implements JetS3
             // signature is produced
             String fullUrl = uri.getRawPath();
 
-            // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
-            String s3Endpoint = this.getEndpoint();
-            if(hostname != null && !s3Endpoint.equals(hostname)) {
-                int subdomainOffset = hostname.lastIndexOf("." + s3Endpoint);
-                if(subdomainOffset > 0) {
-                    // Hostname represents an S3 sub-domain, so the bucket's name is the CNAME portion
-                    fullUrl = "/" + hostname.substring(0, subdomainOffset) + fullUrl;
-                }
-                else {
-                    // Hostname represents a virtual host, so the bucket's name is identical to hostname
-                    fullUrl = "/" + hostname + fullUrl;
-                }
+            // If bucket name is not already part of the full path, add it.
+            // This can be the case if the Host name has a bucket-name prefix,
+            // or if the Host name constitutes the bucket name for DNS-redirects.
+            String bucketName = ServiceUtils.findBucketNameInHostOrPath(
+                uri, getEndpoint());
+            if (bucketName != null && uri.getHost().startsWith(bucketName)) {
+                fullUrl = "/" + bucketName + fullUrl;
             }
 
             String queryString = uri.getRawQuery();
