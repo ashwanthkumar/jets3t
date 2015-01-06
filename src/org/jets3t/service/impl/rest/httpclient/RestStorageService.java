@@ -524,6 +524,10 @@ public abstract class RestStorageService extends StorageService implements JetS3
                          && exception.getErrorMessage().contains("Please use AWS4-HMAC-SHA256"))
                 {
                     forceRequestSignatureVersion = "AWS4-HMAC-SHA256";
+                    // Retry up to our limit; but at least once
+                    if (authFailureCount >= retryMaxCount && authFailureCount > 0) {
+                        throw exception;
+                    }
                     authFailureCount++;
                     if (log.isWarnEnabled()) {
                         log.warn(
@@ -552,8 +556,9 @@ public abstract class RestStorageService extends StorageService implements JetS3
                     this.regionEndpointCache.putRegionForBucketName(
                         bucketName, expectedRegion);
 
-                    SignatureUtils.awsV4CorrectRequestHostForRegion(
-                        httpMethod, expectedRegion);
+                    ((HttpRequestBase) httpMethod).setURI(
+                        SignatureUtils.awsV4CorrectHostnameForRegion(
+                            httpMethod.getURI(), expectedRegion));
                     authFailureCount++;
 
                     if(log.isWarnEnabled()) {
@@ -743,8 +748,9 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 // request doesn't use the correct Host name for the region,
                 // so fix that now to avoid failure or excess retries.
                 if (region != null) {
-                    SignatureUtils.awsV4CorrectRequestHostForRegion(
-                        httpMethod, region);
+                    ((HttpRequestBase) httpMethod).setURI(
+                        SignatureUtils.awsV4CorrectHostnameForRegion(
+                            httpMethod.getURI(), region));
                 }
             }
             // ...finally fall back to the default region and hope for the best.
