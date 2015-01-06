@@ -24,6 +24,7 @@ import java.net.URISyntaxException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.SimpleTimeZone;
 import java.util.SortedMap;
@@ -314,19 +315,55 @@ public class SignatureUtils {
      * @param httpMethod
      * the request's HTTP method just prior to sending
      * @param requestPayloadHexSha256Hash
-     * hex-encoded SHA256 hash of request's payload. May be null or "" in
-     * which case the default SHA256 hash of an empty string is used.
+     * hex-encoded SHA256 hash of request's payload.
+     * May be null or "" in which case the default SHA256 hash of an empty string is used.
+     * May also be "UNSIGNED-PAYLOAD" for generating pre-signed request signatures.
      * @return canonical request string according to AWS Request Signature version 4
      */
     public static String awsV4BuildCanonicalRequestString(
         HttpUriRequest httpMethod, String requestPayloadHexSha256Hash)
     {
-        StringBuilder canonicalStringBuf = new StringBuilder();
         URI uri = httpMethod.getURI();
+        String httpRequestMethod = httpMethod.getMethod();
+
+        Map<String, String> headersMap = new HashMap<String, String>();
+        Header[] headers = httpMethod.getAllHeaders();
+        for (Header header: headers) {
+            // Trim whitespace and make lower-case for header names
+            String name = header.getName().trim().toLowerCase();
+            // Trim whitespace for header values
+            String value = header.getValue().trim();
+            headersMap.put(name, value);
+        }
+
+        return awsV4BuildCanonicalRequestString(
+            uri, httpRequestMethod, headersMap, requestPayloadHexSha256Hash);
+    }
+
+    /**
+     * Build the canonical request string for a REST/HTTP request to a storage
+     * service for the AWS Request Signature version 4.
+     *
+     * {@link "http://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-header-based-auth.html"}
+     *
+     * @param uri
+     * @param httpMethod
+     * the request's HTTP method just prior to sending
+     * @param headersMap
+     * @param requestPayloadHexSha256Hash
+     * hex-encoded SHA256 hash of request's payload. May be null or "" in
+     * which case the default SHA256 hash of an empty string is used.
+     * @return canonical request string according to AWS Request Signature version 4
+     */
+    public static String awsV4BuildCanonicalRequestString(
+        URI uri, String httpMethod, Map<String, String> headersMap,
+        String requestPayloadHexSha256Hash)
+    {
+        StringBuilder canonicalStringBuf = new StringBuilder();
 
         // HTTP Request method: GET, POST etc
         canonicalStringBuf
-            .append(httpMethod.getMethod())
+            .append(httpMethod)
             .append("\n");
 
         // Canonical URI: URI-encoded version of the absolute path
@@ -376,14 +413,7 @@ public class SignatureUtils {
 
         // Canonical Headers
         SortedMap<String, String> sortedHeaders = new TreeMap<String, String>();
-        Header[] headers = httpMethod.getAllHeaders();
-        for (Header header: headers) {
-            // Trim whitespace and make lower-case for header names
-            String name = header.getName().trim().toLowerCase();
-            // Trim whitespace for header values
-            String value = header.getValue().trim();
-            sortedHeaders.put(name, value);
-        }
+        sortedHeaders.putAll(headersMap);
         for (Map.Entry<String, String> entry: sortedHeaders.entrySet()) {
             canonicalStringBuf
                 .append(entry.getKey())
@@ -525,19 +555,19 @@ public class SignatureUtils {
     }
 
     /**
-     * Replace the Host portion of the HTTP request's URI endpoint to match the
-     * given region.
+     * Replace the hostname of the given URI endpoint to match the given region.
      *
-     * @param httpMethod
+     * @param uri
      * @param region
+     *
+     * @return
+     * URI with hostname that may or may not have been changed to be appropriate
+     * for the given region. For example, the hostname "s3.amazonaws.com" is
+     * unchanged for the "us-east-1" region but for the "eu-central-1" region
+     * becomes "s3-eu-central-1.amazonaws.com".
      */
-    public static void awsV4CorrectRequestHostForRegion(
-        HttpUriRequest httpMethod, String region)
-    {
-        // Replace Host in request to reflect correct region for
-        // this bucket.
-        URI originalURI = httpMethod.getURI();
-        String[] hostSplit = originalURI.getHost().split("\\.");
+    public static URI awsV4CorrectHostnameForRegion(URI uri, String region) {
+        String[] hostSplit = uri.getHost().split("\\.");
         if (region == "us-east-1") {
             hostSplit[hostSplit.length - 3] = "s3";
         } else {
@@ -545,11 +575,9 @@ public class SignatureUtils {
         }
         String newHost = ServiceUtils.join(hostSplit, ".");
         try {
-            ((HttpRequestBase) httpMethod).setURI(new URI(
-                originalURI.getScheme(), originalURI.getUserInfo(),
+            return new URI(uri.getScheme(), uri.getUserInfo(),
                 newHost,
-                originalURI.getPort(), originalURI.getPath(),
-                originalURI.getQuery(), originalURI.getFragment()));
+                uri.getPort(), uri.getPath(), uri.getQuery(), uri.getFragment());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
