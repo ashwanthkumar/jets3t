@@ -28,7 +28,7 @@ General:
  * Updated BouncyCastle crypto library requirements to latest versions:
    bcprov-jdk15on-1.51 (#196)
  * Updated HttpComponents library requirements to latest versions:
-   httpclient 4.3.5; httpcore 4.3.2 (#197)
+   httpclient 4.3.6; httpcore 4.3.3 (#197)
  * `MultipartUtils.uploadObject` now closes file streams on upload failure (#198)
  * Fix null pointer exception when building XML to update object ACL settings
    based on an ACL with missing DisplayName (#201)
