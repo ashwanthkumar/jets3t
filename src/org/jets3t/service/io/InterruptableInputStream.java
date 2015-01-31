@@ -89,6 +89,16 @@ public class InterruptableInputStream extends InputStream implements InputStream
         inputStream.close();
     }
 
+    @Override
+    public synchronized void reset() throws IOException {
+        getWrappedInputStream().reset();
+    }
+
+    @Override
+    public boolean markSupported() {
+        return getWrappedInputStream().markSupported();
+    }
+
     public InputStream getWrappedInputStream() {
         return inputStream;
     }

@@ -19,6 +19,7 @@
 package org.jets3t.service.utils;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.ParseException;
@@ -40,6 +41,7 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.StringEntity;
 import org.jets3t.service.impl.rest.httpclient.RepeatableRequestEntity;
+import org.jets3t.service.io.ProgressMonitoredInputStream;
 import org.jets3t.service.security.ProviderCredentials;
 
 /**
@@ -218,11 +220,20 @@ public class SignatureUtils {
                 || entity instanceof RepeatableRequestEntity)
             {
                 try {
-                    requestPayloadHexSHA256Hash = ServiceUtils.toHex(
-                        ServiceUtils.hashSHA256(entity.getContent()));
-                    if (entity instanceof RepeatableRequestEntity) {
-                        ((RepeatableRequestEntity)entity).getContent().reset();
+                    // Hack to get to underlying input stream if this has been
+                    // wrapped by JetS3t's ProgressMonitoredInputStream, since
+                    // the caller didn't intend to monitor the progress of this
+                    // last-ditch effort to calculate a SHA256 hash.
+                    InputStream requestIS = entity.getContent();
+                    while (requestIS instanceof ProgressMonitoredInputStream) {
+                        requestIS = ((ProgressMonitoredInputStream)requestIS)
+                            .getWrappedInputStream();
                     }
+
+                    requestPayloadHexSHA256Hash = ServiceUtils.toHex(
+                        ServiceUtils.hashSHA256(requestIS));
+
+                    requestIS.reset();
                 } catch (IOException e) {
                     throw new RuntimeException(
                         "Failed to automatically set required header"

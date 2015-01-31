@@ -106,6 +106,17 @@ public class ProgressMonitoredInputStream extends InputStream implements InputSt
         }
     }
 
+    @Override
+    public synchronized void reset() throws IOException {
+        getWrappedInputStream().reset();
+        resetProgressMonitor();
+    }
+
+    @Override
+    public boolean markSupported() {
+        return getWrappedInputStream().markSupported();
+    }
+
     public InputStream getWrappedInputStream() {
         return inputStream;
     }
