@@ -20,6 +20,8 @@ S3 Service - Amazon signature version 4 (AWS4-HMAC-SHA256):
    "eu-central-1" (#183)
  * Support generating pre-signed URLs using AWS signature version 4 with
    the new `S3Service.createSignedUrlUsingSignatureVersion` method (#202)
+ * Fix bug preventing JetS3t applications Sycnronize and Cockpit etc from
+   working with AWSv4 signatures (#203) 
 
 General:
 
