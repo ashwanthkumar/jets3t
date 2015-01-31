@@ -33,7 +33,11 @@ public class S3Bucket extends StorageBucket {
     public static final String LOCATION_US_WEST_NORTHERN_CALIFORNIA = LOCATION_US_WEST;
     public static final String LOCATION_US_WEST_OREGON = "us-west-2";
     public static final String LOCATION_EUROPE = "EU";
+    public static final String LOCATION_EU_IRELAND = "eu-west-1";  // Equivalent to "EU"
+    public static final String LOCATION_EU_FRANKFURT = "eu-central-1";
     public static final String LOCATION_ASIA_PACIFIC_SOUTHEAST = "ap-southeast-1";
+    public static final String LOCATION_ASIA_PACIFIC_SYDNEY = "ap-southeast-2";
+    public static final String LOCATION_ASIA_PACIFIC_NORTHEAST = "ap-northeast-1";
     /**
      * Alias of {@link #LOCATION_ASIA_PACIFIC_SOUTHEAST}
      */
@@ -42,7 +46,6 @@ public class S3Bucket extends StorageBucket {
      * Alias of {@link #LOCATION_ASIA_PACIFIC_SOUTHEAST}
      */
     public static final String LOCATION_ASIA_PACIFIC_SINGAPORE = LOCATION_ASIA_PACIFIC_SOUTHEAST;
-    public static final String LOCATION_ASIA_PACIFIC_NORTHEAST = "ap-northeast-1";
     /**
      * Alias of {@link #LOCATION_ASIA_PACIFIC_NORTHEAST}
      */
