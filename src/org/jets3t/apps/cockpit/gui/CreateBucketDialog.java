@@ -83,8 +83,10 @@ public class CreateBucketDialog extends JDialog implements ActionListener {
             "US West (N. California)",
             "US West (Oregon)",
             "EU West (Ireland)",
+            "EU Central (Frankfurt)",
             "Asia Pacific (Singapore)",
             "Asia Pacific (Tokyo)",
+            "Asia Pacific (Sydney)",
             "South America (Sao Paulo)",
             "GovCloud US West",
             "GovCloud US West (FIPS 140-2)"
@@ -92,13 +94,16 @@ public class CreateBucketDialog extends JDialog implements ActionListener {
         locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_US);
         locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_US_WEST_NORTHERN_CALIFORNIA);
         locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_US_WEST_OREGON);
-        locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_EUROPE);
+        locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_EU_IRELAND);
+        locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_EU_FRANKFURT);
         locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_ASIA_PACIFIC_SINGAPORE);
         locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_ASIA_PACIFIC_TOKYO);
+        locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_ASIA_PACIFIC_SYDNEY);
         locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_SOUTH_AMERICA_SAO_PAULO);
         locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_GOVCLOUD_US_WEST);
         locationValueMap.put(locationNames[locOffset++], S3Bucket.LOCATION_GOVCLOUD_FIPS_US_WEST);
     }
+
 
     public CreateBucketDialog(String suggestedBucketName, Frame ownerFrame,
         HyperlinkActivatedListener hyperlinkListener)
