@@ -112,7 +112,10 @@ public class SignatureUtils {
             if (firstAwsHostComponent.startsWith("s3-")) {
                 return firstAwsHostComponent.substring("s3-".length());
             }
-            // Handle special case with "s3." prefix instead of "s3-" for eu-central-1 and s3.cn-north-1
+            if (firstAwsHostComponent.equals("s3")) {
+                return null;
+            }
+            // Handle special case with "s3." prefix instead of "s3-" for eu-central-1 and cn-north-1
             return firstAwsHostComponent;
         }
         // No specific Host-to-region mappings available
