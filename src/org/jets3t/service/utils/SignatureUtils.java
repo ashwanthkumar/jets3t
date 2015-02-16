@@ -103,7 +103,7 @@ public class SignatureUtils {
         }
         // Host names of the form "s3-<regionName>.amazonaws.com" include the
         // region name as a component of the Host name.
-        else if (host.endsWith(".amazonaws.com")) {
+        else if (host.matches((".+\\.amazonaws\\.(com|com\\.cn)"))) {
             String[] hostSplit = host.split("\\.");
             // Get the third-last portion of the Host, to get the
             // "s3-<regionName>" component for both direct and virtual-hosted
@@ -112,10 +112,8 @@ public class SignatureUtils {
             if (firstAwsHostComponent.startsWith("s3-")) {
                 return firstAwsHostComponent.substring("s3-".length());
             }
-            // Handle special case with "s3." prefix instead of "s3-"
-            else if ("eu-central-1".equals(firstAwsHostComponent)) {
-                return "eu-central-1";
-            }
+            // Handle special case with "s3." prefix instead of "s3-" for eu-central-1 and s3.cn-north-1
+            return firstAwsHostComponent;
         }
         // No specific Host-to-region mappings available
         return null;
