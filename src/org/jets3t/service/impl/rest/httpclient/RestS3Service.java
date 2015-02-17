@@ -791,7 +791,11 @@ public class RestS3Service extends S3Service {
         synchronized(object) { // Thread-safe header handling.
             List<String> metadataNamesToRemove = new ArrayList<String>();
             for (String name: object.getMetadataMap().keySet()) {
-                if (!RestUtils.HTTP_HEADER_METADATA_NAMES.contains(name.toLowerCase())) {
+                if (!RestUtils.HTTP_HEADER_METADATA_NAMES.contains(name.toLowerCase())
+                    // Special-case handling of "x-amz-content-sha256" header
+                    // which should be passed through to permit AWSv4 signing
+                    && !"x-amz-content-sha256".equals(name.toLowerCase()) )
+                {
                     // Actual metadata name in object does not include the prefix
                     metadataNamesToRemove.add(name);
                 }
