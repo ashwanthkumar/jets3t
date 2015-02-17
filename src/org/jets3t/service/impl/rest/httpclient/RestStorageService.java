@@ -685,6 +685,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
      * @param httpMethod the request object
      * @param context
      * @param forceRequestSignatureVersion
+     * request signature/signing version to use for requests, may be null in
+     * which case the default signature version is applied.
      * @throws ServiceException
      */
     public void authorizeHttpRequest(
