@@ -53,6 +53,58 @@ public class TestAWSRequestSignatureVersion4 extends TestCase {
     }
 
     @Test
+    public void testAwsRegionForRequest() {
+        assertEquals(
+            null,
+            SignatureUtils.awsRegionForRequest(new HttpGet("http://www.amazon.com")));
+        assertEquals(
+            "us-east-1",
+            SignatureUtils.awsRegionForRequest(new HttpGet("http://s3.amazonaws.com")));
+        assertEquals(
+            "us-east-1",
+            SignatureUtils.awsRegionForRequest(new HttpGet("http://my.cname.s3.amazonaws.com")));
+        assertEquals(
+            "us-east-1",
+            SignatureUtils.awsRegionForRequest(new HttpGet("http://s3-external-1.amazonaws.com")));
+        assertEquals(
+            "us-west-1",
+            SignatureUtils.awsRegionForRequest(new HttpGet("http://s3-us-west-1.amazonaws.com")));
+        assertEquals(
+            "us-west-2",
+            SignatureUtils.awsRegionForRequest(new HttpGet("http://s3-us-west-2.amazonaws.com")));
+        assertEquals(
+            "eu-west-1",
+            SignatureUtils.awsRegionForRequest(new HttpGet("http://s3-eu-west-1.amazonaws.com")));
+        assertEquals(
+            "ap-southeast-1",
+            SignatureUtils.awsRegionForRequest(new HttpGet("http://s3-ap-southeast-1.amazonaws.com")));
+        assertEquals(
+            "ap-southeast-2",
+            SignatureUtils.awsRegionForRequest(new HttpGet("http://s3-ap-southeast-2.amazonaws.com")));
+        assertEquals(
+            "ap-northeast-1",
+            SignatureUtils.awsRegionForRequest(new HttpGet("http://s3-ap-northeast-1.amazonaws.com")));
+        assertEquals(
+            "sa-east-1",
+            SignatureUtils.awsRegionForRequest(new HttpGet("http://s3-sa-east-1.amazonaws.com")));
+        assertEquals(
+            "eu-central-1",
+            SignatureUtils.awsRegionForRequest(new HttpGet("http://s3-eu-central-1.amazonaws.com")));
+        // NOTE: Unusual case with "s3." prefix instead of "s3-", likely to become more common
+        assertEquals(
+            "eu-central-1",
+            SignatureUtils.awsRegionForRequest(new HttpGet("http://s3.eu-central-1.amazonaws.com")));
+        // NOTE: Test handling of upcoming (as yet undocumented) China region with unusual "amazonaws.com.cn" suffix
+        assertEquals(
+            "cn-north-1",
+            SignatureUtils.awsRegionForRequest(new HttpGet("http://s3.cn-north-1.amazonaws.com.cn")));
+        // Test strangely capitalized host name
+        assertEquals(
+            "us-east-1",
+            SignatureUtils.awsRegionForRequest(new HttpGet("http://S3.AMAZONAWS.COM")));
+    }
+
+    @Test
     public void testS3ApiReferenceExampleGetObject() {
         HttpGet httpGet = new HttpGet("http://examplebucket.s3.amazonaws.com/test.txt");
         httpGet.setHeader("Host", "examplebucket.s3.amazonaws.com");

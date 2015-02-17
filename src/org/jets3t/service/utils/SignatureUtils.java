@@ -93,28 +93,42 @@ public class SignatureUtils {
      * @return AWS region name corresponding to the request's Host endpoint.
      */
     public static String awsRegionForRequest(HttpUriRequest httpMethod) {
-        String host = httpMethod.getURI().getHost();
+        String host = httpMethod.getURI().getHost().toLowerCase();
         // Recognise default/legacy endpoints where the Host does not
         // correspond to the region name.
-        if ("s3.amazonaws.com".equals(host)
-            || "s3-external-1.amazonaws.com".equals(host))
+        if (host.endsWith("s3.amazonaws.com")
+            || host.endsWith("s3-external-1.amazonaws.com"))
         {
             return "us-east-1";
         }
-        // Host names of the form "s3-<regionName>.amazonaws.com" include the
-        // region name as a component of the Host name.
-        else if (host.endsWith(".amazonaws.com")) {
+        // Host names of the following forms include the region name as a
+        // component of the Host name:
+        //   s3-<regionName>.amazonaws.com
+        //   s3.<regionName>.amazonaws.com
+        //   s3.<regionName>.amazonaws.com.cn
+        else if (host.endsWith(".amazonaws.com")
+                 || host.contains(".amazonaws.com."))
+        {
             String[] hostSplit = host.split("\\.");
-            // Get the third-last portion of the Host, to get the
-            // "s3-<regionName>" component for both direct and virtual-hosted
-            // Host names.
-            String firstAwsHostComponent = hostSplit[hostSplit.length - 3];
-            if (firstAwsHostComponent.startsWith("s3-")) {
-                return firstAwsHostComponent.substring("s3-".length());
+            // Work forwards from start of host name to find the portion
+            // immediately preceding the "amazonaws" part, which will either be
+            // a region name or can be converted into a region name by removing
+            // a "s3-" prefix.
+            String regionNameCandidate = null;
+            boolean wasS3PrefixFound = false;
+            for (String portion: hostSplit) {
+                if (portion.equals("amazonaws")) {
+                    break;
+                } else if (portion.equals("s3")) {
+                    wasS3PrefixFound = true;
+                }
+                regionNameCandidate = portion;
             }
-            // Handle special case with "s3." prefix instead of "s3-"
-            else if ("eu-central-1".equals(firstAwsHostComponent)) {
-                return "eu-central-1";
+
+            if (regionNameCandidate.startsWith("s3-")) {
+                return regionNameCandidate.substring("s3-".length());
+            } else if (wasS3PrefixFound) {
+                return regionNameCandidate;
             }
         }
         // No specific Host-to-region mappings available
