@@ -221,8 +221,7 @@ public class SignatureUtils {
         }
 
         // If request payload SHA256 isn't available, check for a payload
-        if (requestPayloadHexSHA256Hash == null
-            && httpMethod instanceof HttpEntityEnclosingRequest)
+        if (httpMethod instanceof HttpEntityEnclosingRequest)
         {
             HttpEntity entity =
                 ((HttpEntityEnclosingRequest)httpMethod).getEntity();
@@ -494,12 +493,10 @@ public class SignatureUtils {
         String hashedCanonicalString = ServiceUtils.toHex(
             ServiceUtils.hash(canonicalRequestString, "SHA-256"));
 
-        String stringToSign =
-            requestSignatureVersion + "\n"
-            + timestampISO8601 + "\n"
-            + credentialScope + "\n"
-            + hashedCanonicalString;
-        return stringToSign;
+        return requestSignatureVersion + "\n"
+        + timestampISO8601 + "\n"
+        + credentialScope + "\n"
+        + hashedCanonicalString;
     }
 
     /**
@@ -570,13 +567,11 @@ public class SignatureUtils {
         String credentialScope =
             datestampISO8601 + "/" + region + "/" + service + "/aws4_request";
 
-        String authorizationHeaderValue =
-            requestSignatureVersion + " "
-            + "Credential=" + accessKey
-            + "/" + credentialScope
-            + ",SignedHeaders=" + signedHeaders
-            + ",Signature=" + requestSignature;
-        return authorizationHeaderValue;
+        return requestSignatureVersion + " "
+        + "Credential=" + accessKey
+        + "/" + credentialScope
+        + ",SignedHeaders=" + signedHeaders
+        + ",Signature=" + requestSignature;
     }
 
     /**
@@ -593,7 +588,7 @@ public class SignatureUtils {
      */
     public static URI awsV4CorrectHostnameForRegion(URI uri, String region) {
         String[] hostSplit = uri.getHost().split("\\.");
-        if (region == "us-east-1") {
+        if (region.equals("us-east-1")) {
             hostSplit[hostSplit.length - 3] = "s3";
         } else {
             hostSplit[hostSplit.length - 3] = "s3-" + region;
