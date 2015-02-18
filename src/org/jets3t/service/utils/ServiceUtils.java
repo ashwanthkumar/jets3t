@@ -824,6 +824,11 @@ public class ServiceUtils {
         String path = uri.getPath();
         String[] pathSplit = ServiceUtils.splitIgnoreEmpty(path, "/");
 
+        // Guard against null host value, per #205
+        if (host == null) {
+            host = "";
+        }
+
         // Handle case where Host exactly matches endpoint, so no chance of it
         // being a virtual host or alternate host name
         if (host.equalsIgnoreCase(s3Endpoint)) {
