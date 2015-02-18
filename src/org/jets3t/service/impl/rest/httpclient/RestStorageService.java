@@ -56,6 +56,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.RequestWrapper;
 import org.apache.http.protocol.HttpContext;
+import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.util.EntityUtils;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
@@ -716,14 +717,17 @@ public abstract class RestStorageService extends StorageService implements JetS3
         httpMethod.setHeader("Date",
                 ServiceUtils.formatRfc822Date(getCurrentTimeWithOffset()));
 
-        URI requestURI = httpMethod.getURI();
-
-        // Handle strange edge-case that can occur when retrying requests in
-        // which the URI object has a null host value, re #205
-        if (requestURI.getHost() == null) {
+        final URI requestURI;
+        if(httpMethod.getURI().isAbsolute()) {
+            requestURI = httpMethod.getURI();
+        }
+        else {
+            // Handle strange edge-case that can occur when retrying requests in
+            // which the URI object has a null host value, re #205
             try {
                 // Re-create request's URI to populate its internal host value
-                requestURI = new URI(httpMethod.getRequestLine().getUri());
+                requestURI = new URI(String.format("%s%s",
+                        context.getAttribute(HttpCoreContext.HTTP_TARGET_HOST).toString(), httpMethod.getURI()));
             } catch (URISyntaxException e) {
                 throw new ServiceException(
                     "Failed to re-create URI for request containing a URI"
