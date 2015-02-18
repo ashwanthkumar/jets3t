@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -715,8 +716,23 @@ public abstract class RestStorageService extends StorageService implements JetS3
         httpMethod.setHeader("Date",
                 ServiceUtils.formatRfc822Date(getCurrentTimeWithOffset()));
 
+        URI requestURI = httpMethod.getURI();
+
+        // Handle strange edge-case that can occur when retrying requests in
+        // which the URI object has a null host value, re #205
+        if (requestURI.getHost() == null) {
+            try {
+                // Re-create request's URI to populate its internal host value
+                requestURI = new URI(httpMethod.getRequestLine().getUri());
+            } catch (URISyntaxException e) {
+                throw new ServiceException(
+                    "Failed to re-create URI for request containing a URI"
+                    + " object with an invalid null Host value", e);
+            }
+        }
+
         String requestBucketName = ServiceUtils.findBucketNameInHostOrPath(
-            httpMethod.getURI(), this.getEndpoint());
+            requestURI, this.getEndpoint());
         String requestSignatureVersion = this.getJetS3tProperties()
             .getStringProperty(
                 "storage-service.request-signature-version", "AWS2")
@@ -752,7 +768,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 if (region != null) {
                     ((HttpRequestBase) httpMethod).setURI(
                         SignatureUtils.awsV4CorrectHostnameForRegion(
-                            httpMethod.getURI(), region));
+                            requestURI, region));
                 }
             }
             // ...finally fall back to the default region and hope for the best.
@@ -772,25 +788,23 @@ public abstract class RestStorageService extends StorageService implements JetS3
         } else if ("AWS2".equalsIgnoreCase(forceRequestSignatureVersion)
                    || "AWS2".equalsIgnoreCase(requestSignatureVersion))
         {
-            URI uri = httpMethod.getURI();
-
             /*
              * Determine the complete URL for the S3 resource, including any S3-specific parameters.
              */
             // Use raw-path, otherwise escaped characters are unescaped and a wrong
             // signature is produced
-            String fullUrl = uri.getRawPath();
+            String fullUrl = requestURI.getRawPath();
 
             // If bucket name is not already part of the full path, add it.
             // This can be the case if the Host name has a bucket-name prefix,
             // or if the Host name constitutes the bucket name for DNS-redirects.
             String bucketName = ServiceUtils.findBucketNameInHostOrPath(
-                uri, getEndpoint());
-            if (bucketName != null && uri.getHost().startsWith(bucketName)) {
+                requestURI, getEndpoint());
+            if (bucketName != null && requestURI.getHost().startsWith(bucketName)) {
                 fullUrl = "/" + bucketName + fullUrl;
             }
 
-            String queryString = uri.getRawQuery();
+            String queryString = requestURI.getRawQuery();
             if(queryString != null && queryString.length() > 0) {
                 fullUrl += "?" + queryString;
             }
