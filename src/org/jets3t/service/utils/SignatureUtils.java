@@ -124,7 +124,9 @@ public class SignatureUtils {
                 }
                 regionNameCandidate = portion;
             }
-
+            if (null == regionNameCandidate) {
+                return null;
+            }
             if (regionNameCandidate.startsWith("s3-")) {
                 return regionNameCandidate.substring("s3-".length());
             } else if (wasS3PrefixFound) {
