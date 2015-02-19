@@ -39,12 +39,13 @@ public class TestRestS3V4SignatureUploads extends TestCase {
         properties.setProperty("s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
         properties.setProperty("storage-service.internal-error-retry-max", "0");
         properties.setProperty("httpclient.retry-max", "0");
+        properties.setProperty("storage-service.request-signature-version", "AWS4-HMAC-SHA256");
         return new RestS3Service(credentials, null, null, properties);
     }
 
     public void testCanUploadAFile() throws Exception {
         RestS3Service service = getStorageService(testCredentials);
-        String bucketName = "test-" + testCredentials.getAccessKey().toLowerCase() + System.currentTimeMillis();
+        String bucketName = "test-" + testCredentials.getAccessKey().toLowerCase() + "-file";
         String objectData = "This is only a test";
 
         File fileToUpload = createTestFile("test.txt");
@@ -64,7 +65,8 @@ public class TestRestS3V4SignatureUploads extends TestCase {
         service.putObject(bucketName, object);
         S3Object uploaded = service.getObject(bucketName, object.getKey());
 
-        assertEquals(objectData, getContentsAsString(uploaded));
+        assertEquals(objectData,
+            getContentsAsString(uploaded.getDataInputStream()));
 
         service.deleteObject(bucketName, object.getKey());
         service.deleteBucket(bucketName);
@@ -92,75 +94,65 @@ public class TestRestS3V4SignatureUploads extends TestCase {
 
         }
 
-        try {
-            service.deleteObject(bucketName, object.getKey());
-            service.putObject(bucketName, object);
-        } catch (ServiceException e) {
-            if (e.getMessage().equals("Request Error: Stream Closed")) {
-                System.out.println("----------THIS SHOULD NOT HAPPEN BUT SWALLOWING FOR NOW");
-                e.printStackTrace();
-            } else {
-                rethrow(e);
-            }
-        }
+        service.deleteObject(bucketName, object.getKey());
+
+        service.putObject(bucketName, object);
 
         S3Object uploaded = service.getObject(bucketName, object.getKey());
-        assertEquals(objectData, getContentsAsString(uploaded));
+        assertEquals(objectData,
+            getContentsAsString(uploaded.getDataInputStream()));
 
         service.deleteObject(bucketName, object.getKey());
         service.deleteBucket(bucketName);
-
     }
 
     public void testCanUploadAMultipartStream() throws Exception {
         RestS3Service service = getStorageService(testCredentials);
-        String bucketName = "test-" + testCredentials.getAccessKey().toLowerCase() + "-istream";
-        String objectData = "This is only a test";
+        String bucketName = "test-" + testCredentials.getAccessKey().toLowerCase() + "-multipart";
 
-        File fileToUpload = TestFileUtils.mediumFile("multiTest", ".txt");
+        // Create a medium (6 MB) file
+        File fileToUpload = TestFileUtils.createTempFileWithSize(
+            "multiTest", ".txt", 6 * 1024 * 1024);
         service.getOrCreateBucket(bucketName, "eu-central-1");
 
         FileInputStream fileInputStream = new FileInputStream(fileToUpload);
-        S3Object object = null;
-        try {
-            object = new S3Object(fileToUpload.getName());
-            object.setDataInputStream(fileInputStream);
-            object.setContentLength(fileInputStream.available());
 
-        } catch (IOException e) {
-            rethrow(e);
+        S3Object object = new S3Object(fileToUpload.getName());
 
-        }
+        object.setDataInputFile(fileToUpload);
+
+        // NOTE: MultipartUtils#uploadObjects doesn't support objects with input streams
+        //object.setDataInputStream(fileInputStream);
+        //object.setContentLength(fileInputStream.available());
 
         service.deleteObject(bucketName, object.getKey());
-        long maxSizeForAPartInBytes = 20 * 1024 * 1024;
+
+        long maxSizeForAPartInBytes = 5 * 1024 * 1024;  // Max part size: 5MB
         MultipartUtils mpUtils = new MultipartUtils(maxSizeForAPartInBytes);
         List<StorageObject> objectsForMultipartUpload = new ArrayList<StorageObject>();
         objectsForMultipartUpload.add(object);
+
         mpUtils.uploadObjects(bucketName, service, objectsForMultipartUpload, null);
 
         S3Object uploaded = service.getObject(bucketName, object.getKey());
-        assertEquals(objectData, getContentsAsString(uploaded));
+        assertEquals(
+            getContentsAsString(new FileInputStream(fileToUpload)),
+            getContentsAsString(uploaded.getDataInputStream()));
 
-//        service.deleteObject(bucketName, object.getKey());
-//        service.deleteBucket(bucketName);
-
+        service.deleteObject(bucketName, object.getKey());
+        service.deleteBucket(bucketName);
     }
 
-
-    private String getContentsAsString(S3Object uploaded) {
+    private String getContentsAsString(InputStream is) {
         BufferedReader reader;
         StringBuilder out = new StringBuilder();
         try {
-            reader = new BufferedReader(new InputStreamReader(uploaded.getDataInputStream()));
+            reader = new BufferedReader(new InputStreamReader(is));
             String line;
             while ((line = reader.readLine()) != null) {
                 out.append(line);
             }
             reader.close();
-
-        } catch (ServiceException e) {
-            rethrow(e);
         } catch (IOException e) {
             rethrow(e);
         }
@@ -191,4 +183,5 @@ public class TestRestS3V4SignatureUploads extends TestCase {
         }
         return file;
     }
+
 }

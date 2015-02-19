@@ -246,7 +246,11 @@ public class SignatureUtils {
                     }
 
                     requestPayloadHexSHA256Hash = ServiceUtils.toHex(
-                        ServiceUtils.hashSHA256(requestIS));
+                        ServiceUtils.hashSHA256(
+                            requestIS,
+                            true  // resetInsteadOfClose - reset don't close
+                        )
+                    );
 
                     requestIS.reset();
                 } catch (IOException e) {

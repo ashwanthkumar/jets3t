@@ -240,6 +240,12 @@ public class MultipartUtils {
             final Map<String, StorageObject> objectsByKey =
                 new HashMap<String, StorageObject>();
             for (StorageObject object: objectsForMultipartUpload) {
+                if (object.getDataInputFile() == null) {
+                    throw new ServiceException(
+                        "MultipartUtils#uploadObjects only supports file-based"
+                        + " storage objects with a non-null getDataInputFile"
+                        + " value. Invalid object: " + object);
+                }
                 objectsByKey.put(object.getKey(), object);
             }
 
@@ -252,9 +258,6 @@ public class MultipartUtils {
             // captureMultipartUploadObjectsEventAdaptor)
             for (MultipartUpload upload: multipartUploadList) {
                 StorageObject object = objectsByKey.get(upload.getObjectKey());
-                if (object.getDataInputFile() == null) {
-                    throw new ServiceException();
-                }
                 partObjects = splitFileIntoObjectsByMaxPartSize(
                     upload.getObjectKey(),
                     object.getDataInputFile());
