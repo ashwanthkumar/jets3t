@@ -20,3 +20,7 @@ www/
 myconfigs/
 ReleaseSteps.markdown
 jmurty.keystore
+
+# intellij
+.idea/
+*.iml
