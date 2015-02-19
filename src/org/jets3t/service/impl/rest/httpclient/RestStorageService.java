@@ -753,7 +753,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
             requestSignatureVersion = "AWS4-HMAC-SHA256";
             // Look up AWS region appropriate for the request's Host endpoint
             // from the request's Host if a definite mapping is available...
-            String region = SignatureUtils.awsRegionForRequest(httpMethod);
+            String region = SignatureUtils.awsRegionForRequest(requestURI);
             if (region != null) {
                 // Try caching the definitive region in case this request is
                 // directed at a bucket. If it's not a bucket-related request

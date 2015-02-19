@@ -89,17 +89,17 @@ public class SignatureUtils {
      * request's Host endpoint. See
      * {@link "http://docs.aws.amazon.com/general/latest/gr/rande.html#s3_region"}
      *
-     * @param httpMethod
+     * @param requestURI
      * @return AWS region name corresponding to the request's Host endpoint.
      */
-    public static String awsRegionForRequest(HttpUriRequest httpMethod) {
-        String host = httpMethod.getURI().getHost().toLowerCase();
+    public static String awsRegionForRequest(URI requestURI) {
+        String host = requestURI.getHost().toLowerCase();
         // Recognise default/legacy endpoints where the Host does not
         // correspond to the region name.
         if (host.endsWith("s3.amazonaws.com")
             || host.endsWith("s3-external-1.amazonaws.com"))
         {
-            return "us-east-1";
+            return null;
         }
         // Host names of the following forms include the region name as a
         // component of the Host name:
