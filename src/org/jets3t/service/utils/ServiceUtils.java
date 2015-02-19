@@ -210,11 +210,13 @@ public class ServiceUtils {
     *
     * @param dataIS
     * @param cryptoHash
+    * @param resetInsteadOfClose
+    * if true, input stream is reset instead of closed after hash is generated.
     * @return lowercase hex-encoded hash value.
-     * @throws IOException
+    * @throws IOException
     */
-   public static byte[] hash(InputStream dataIS, String cryptoHash)
-           throws IOException
+   public static byte[] hash(InputStream dataIS, String cryptoHash,
+       boolean resetInsteadOfClose) throws IOException
    {
        MessageDigest md = null;
        try {
@@ -232,9 +234,13 @@ public class ServiceUtils {
                md.update(buffer, 0, bytesRead);
            }
        } finally {
-           try {
-               bis.close();
-           } catch (Exception e) {
+           if (resetInsteadOfClose) {
+               dataIS.reset();
+           } else {
+               try {
+                   bis.close();
+               } catch (Exception e) {
+               }
            }
        }
 
@@ -255,8 +261,14 @@ public class ServiceUtils {
         return hash(data, "SHA-256");
     }
 
+    public static byte[] hashSHA256(
+        InputStream dataIS, boolean resetInsteadOfClose) throws IOException
+    {
+        return hash(dataIS, "SHA-256", resetInsteadOfClose);
+    }
+
     public static byte[] hashSHA256(InputStream dataIS) throws IOException {
-        return hash(dataIS, "SHA-256");
+        return hashSHA256(dataIS, false);
     }
 
     /**
