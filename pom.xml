@@ -276,6 +276,7 @@ limitations under the License.
             <groupId>mx4j</groupId>
             <artifactId>mx4j</artifactId>
             <version>3.0.2</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
@@ -287,6 +288,7 @@ limitations under the License.
             <groupId>javax.mail</groupId>
             <artifactId>mail</artifactId>
             <version>1.4.7</version>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>commons-logging</groupId>
