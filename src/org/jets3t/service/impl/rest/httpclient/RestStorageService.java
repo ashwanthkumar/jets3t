@@ -1326,7 +1326,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
         if(hostname.equals(endPoint) && bucketName.length() > 0) {
             resourceString += bucketName + "/";
         }
-        resourceString += (objectKey != null ? RestUtils.encodeUrlString(objectKey) : "");
+        resourceString += (objectKey != null ? RestUtils.encodeUrlPath(objectKey, "/") : "");
 
         // Construct a URL representing a connection for the S3 resource.
         String url;
@@ -2079,7 +2079,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
         Map<String, Object> metadata = new HashMap<String, Object>();
 
-        String sourceKey = RestUtils.encodeUrlString(sourceBucketName + "/" + sourceObjectKey);
+        String sourceKey = RestUtils.encodeUrlPath(sourceBucketName + "/" + sourceObjectKey, "/");
 
         if(versionId != null) {
             sourceKey += "?versionId=" + versionId;
