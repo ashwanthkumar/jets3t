@@ -2079,7 +2079,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
         Map<String, Object> metadata = new HashMap<String, Object>();
 
-        String sourceKey = RestUtils.encodeUrlPath(sourceBucketName + "/" + sourceObjectKey, "/");
+        String sourceKey = RestUtils.encodeUrlPath("/" + sourceBucketName + "/" + sourceObjectKey, "/");
 
         if(versionId != null) {
             sourceKey += "?versionId=" + versionId;
