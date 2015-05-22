@@ -18,25 +18,6 @@
  */
 package org.jets3t.service.utils;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.SimpleTimeZone;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -55,7 +36,6 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.params.ClientPNames;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.conn.ClientConnectionManager;
@@ -82,7 +62,23 @@ import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.impl.rest.httpclient.JetS3tRequestAuthorizer;
 import org.jets3t.service.io.UnrecoverableIOException;
-import org.jets3t.service.security.ProviderCredentials;
+
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.text.ParseException;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.StringTokenizer;
+import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Utilities useful for REST/HTTP S3Service implementations.
@@ -154,13 +150,22 @@ public class RestUtils {
      * encoded URL string.
      */
     public static String encodeUrlPath(String path, String delimiter) {
-        StringBuilder result = new StringBuilder();
-        String tokens[] = path.split(delimiter);
-        for (int i = 0; i < tokens.length; i++) {
-            result.append(encodeUrlString(tokens[i]));
-            if (i < tokens.length - 1) {
+        final StringBuilder result = new StringBuilder();
+        final StringTokenizer t = new StringTokenizer(path, delimiter);
+        if(!t.hasMoreTokens()) {
+            return path;
+        }
+        if(path.startsWith(delimiter)) {
+            result.append(delimiter);
+        }
+        while(t.hasMoreTokens()) {
+            result.append(encodeUrlString(t.nextToken()));
+            if(t.hasMoreTokens()) {
                 result.append(delimiter);
             }
+        }
+        if(path.endsWith(delimiter)) {
+            result.append(delimiter);
         }
         return result.toString();
     }

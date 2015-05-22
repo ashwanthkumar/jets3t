@@ -861,7 +861,7 @@ public class RestS3Service extends S3Service {
 
             Map<String, Object> metadata = new HashMap<String, Object>();
 
-            String sourceKey = RestUtils.encodeUrlString(sourceBucketName + "/" + sourceObjectKey);
+            String sourceKey = RestUtils.encodeUrlPath(sourceBucketName + "/" + sourceObjectKey, "/");
 
             if (versionId != null) {
                 sourceKey += "?versionId=" + versionId;
