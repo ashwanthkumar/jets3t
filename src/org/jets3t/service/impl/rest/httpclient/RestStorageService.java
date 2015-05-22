@@ -672,12 +672,6 @@ public abstract class RestStorageService extends StorageService implements JetS3
         return false;
     }
 
-    public void authorizeHttpRequest(
-        HttpUriRequest httpMethod, HttpContext context) throws ServiceException
-    {
-        authorizeHttpRequest(httpMethod, context, null);
-    }
-
     /**
      * Authorizes an HTTP/S request by signing it with an HMAC signature compatible with
      * the S3 service and Google Storage (legacy) authorization techniques.
