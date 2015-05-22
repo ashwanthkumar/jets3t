@@ -691,7 +691,7 @@ public class RestUtils {
                 // Build the authorization string for the method.
                 try {
                     if (requestAuthorizer != null){
-                        requestAuthorizer.authorizeHttpRequest(method, context);
+                        requestAuthorizer.authorizeHttpRequest(method, context, null);
                     }
                     return true; // request OK'd for retry by base handler and myself
                 } catch (Exception e) {

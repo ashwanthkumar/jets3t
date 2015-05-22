@@ -65,7 +65,7 @@ public class GoogleStorageService extends RestStorageService {
     private static final String GOOGLE_SIGNATURE_IDENTIFIER = "GOOG1";
     private static final String GOOGLE_REST_HEADER_PREFIX = "x-goog-";
     private static final String GOOGLE_REST_METADATA_PREFIX = "x-goog-meta-";
-    
+
     /**
      * Constructs the service and initialises the properties.
      *
@@ -275,7 +275,7 @@ public class GoogleStorageService extends RestStorageService {
     public GSBucket[] listAllBuckets() throws ServiceException {
         return listAllBuckets(null);
     }
-    
+
     /**
      * List all buckets in a given project
      * @param projectId The ID of the project being listed
@@ -288,7 +288,7 @@ public class GoogleStorageService extends RestStorageService {
         MxDelegate.getInstance().registerStorageBucketMBeans(buckets);
         return GSBucket.cast(buckets);
     }
-    
+
 
     @Override
     public GSObject[] listObjects(String bucketName) throws ServiceException {
@@ -306,7 +306,7 @@ public class GoogleStorageService extends RestStorageService {
     public GSBucket createBucket(String bucketName) throws ServiceException {
         return (GSBucket) super.createBucket(bucketName);
     }
-    
+
     /**
      * Creates a bucket in a specific location, without checking whether the bucket already
      * exists. <b>Caution:</b> Performing this operation unnecessarily when a bucket already
@@ -334,20 +334,20 @@ public class GoogleStorageService extends RestStorageService {
      * the created bucket object. <b>Note:</b> the object returned has minimal information about
      * the bucket that was created, including only the bucket's name.
      * @throws ServiceException Service error
-     */    
+     */
     public GSBucket createBucket(String bucketName, String location, AccessControlList acl, String projectId)
-            throws ServiceException 
+            throws ServiceException
     {
         return (GSBucket)createBucketImpl(bucketName, location, acl, projectId);
     }
-    
-    
+
+
     public GSBucket createBucket(String bucketName, String location, AccessControlList acl)
-            throws ServiceException 
+            throws ServiceException
     {
         return createBucket(bucketName, location, acl, null);
     }
-    
+
     public GSBucketLoggingStatus getBucketLoggingStatus(String bucketName)
         throws ServiceException
     {
@@ -440,10 +440,14 @@ public class GoogleStorageService extends RestStorageService {
      *
      * @param httpMethod
      * the request object
+     * @param context
+     * @param ignoredForceRequestSignatureVersion
+     * ignored parameter relevant only for AWS4-HMAC-SHA256 request signing.
      * @throws ServiceException
      */
     @Override
-    public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context)
+    public void authorizeHttpRequest(HttpUriRequest httpMethod,
+        HttpContext context, String ignoredForceRequestSignatureVersion)
             throws ServiceException
     {
         if (getProviderCredentials() instanceof OAuth2Credentials) {
@@ -464,7 +468,7 @@ public class GoogleStorageService extends RestStorageService {
             httpMethod.setHeader("Authorization", "OAuth " + tokens.getAccessToken());
             httpMethod.setHeader("x-goog-api-version", "2");
         } else {
-            super.authorizeHttpRequest(httpMethod, context);
+            super.authorizeHttpRequest(httpMethod, context, ignoredForceRequestSignatureVersion);
         }
     }
 
@@ -497,7 +501,7 @@ public class GoogleStorageService extends RestStorageService {
         }
         return super.listAllBucketsImpl(Collections.<String, Object>singletonMap("x-goog-project-id", projectId));
     }
-    
+
     protected StorageBucket createBucketImpl(String bucketName, String location,
                                              AccessControlList acl, String projectId)
         throws ServiceException

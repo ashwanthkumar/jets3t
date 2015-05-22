@@ -198,9 +198,14 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
      *
      * @param httpMethod the request object
      * @param context
+     * @param ignoredForceRequestSignatureVersion
+     * ignored parameter relevant only for AWS4-HMAC-SHA256 request signing.
      * @throws ServiceException
      */
-    public void authorizeHttpRequest(HttpUriRequest httpMethod, HttpContext context) throws ServiceException {
+    public void authorizeHttpRequest(HttpUriRequest httpMethod,
+            HttpContext context, String ignoredForceRequestSignatureVersion)
+            throws ServiceException
+    {
         String date = ServiceUtils.formatRfc822Date(getCurrentTimeWithOffset());
 
         // Set/update the date timestamp to the current time
@@ -215,13 +220,6 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         // Add encoded authorization to connection as HTTP Authorization header.
         String authorizationString = "AWS " + getAWSCredentials().getAccessKey() + ":" + signature;
         httpMethod.setHeader("Authorization", authorizationString);
-    }
-
-    public void authorizeHttpRequest(
-        HttpUriRequest httpMethod, HttpContext context, String forceRequestSignatureVersion)
-        throws ServiceException
-    {
-        authorizeHttpRequest(httpMethod, context);
     }
 
     /**
@@ -251,7 +249,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         try {
             do {
                 completedWithoutRecoverableError = true;
-                authorizeHttpRequest(httpMethod, null);
+                authorizeHttpRequest(httpMethod, null, null);
                 response = httpClient.execute(httpMethod);
                 int responseCode = response.getStatusLine().getStatusCode();
 
