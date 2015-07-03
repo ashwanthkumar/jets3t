@@ -20,8 +20,10 @@ package org.jets3t.service.utils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -601,10 +603,10 @@ public class SignatureUtils {
         }
         String newHost = ServiceUtils.join(hostSplit, ".");
         try {
-            return new URI(uri.getScheme(), uri.getUserInfo(),
-                newHost,
-                uri.getPort(), uri.getPath(), uri.getQuery(), uri.getFragment());
-        } catch (URISyntaxException e) {
+            return new URL(uri.getScheme(), newHost, uri.getPort(), uri.getRawPath()+"?"+uri.getRawQuery()).toURI();
+        } catch(URISyntaxException e) {
+            throw new RuntimeException(e);
+        } catch(MalformedURLException e) {
             throw new RuntimeException(e);
         }
     }
