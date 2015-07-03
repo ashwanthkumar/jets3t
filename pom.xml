@@ -252,7 +252,7 @@ limitations under the License.
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>1.8</version>
+            <version>[1.8,2.0)</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
