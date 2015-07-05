@@ -504,7 +504,7 @@ public abstract class BaseStorageServiceTests extends TestCase {
             service.deleteObject(bucketName, object.getKey());
 
             // Create object with tricky key.
-            String trickyKey = "http://example.site.com/some/path/document name.html?param1=a@b#c$d&param2=(089)";
+            String trickyKey = "testing:example.site.com/some/path/document name.html?param1=a@b#c$d&param2=(089)";
             StorageObject trickyObject = service.putObject(bucketName,
                 new StorageObject(trickyKey, "Some test data"));
             assertEquals("Tricky key name mistmatch", trickyKey, trickyObject.getKey());
