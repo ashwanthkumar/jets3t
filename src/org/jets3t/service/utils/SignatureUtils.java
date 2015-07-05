@@ -603,7 +603,11 @@ public class SignatureUtils {
         }
         String newHost = ServiceUtils.join(hostSplit, ".");
         try {
-            return new URL(uri.getScheme(), newHost, uri.getPort(), uri.getRawPath()+"?"+uri.getRawQuery()).toURI();
+            String rawPathAndQuery = uri.getRawPath();
+            if (uri.getRawQuery() != null) {
+                rawPathAndQuery += "?" + uri.getRawQuery();
+            }
+            return new URL(uri.getScheme(), newHost, uri.getPort(), rawPathAndQuery).toURI();
         } catch(URISyntaxException e) {
             throw new RuntimeException(e);
         } catch(MalformedURLException e) {
