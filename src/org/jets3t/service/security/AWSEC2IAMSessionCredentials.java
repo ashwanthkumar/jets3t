@@ -48,6 +48,11 @@ public class AWSEC2IAMSessionCredentials extends AWSSessionCredentials {
     protected Date expiration = null;
     protected boolean automaticRefreshEnabled = true;
 
+    // How often will refreshFromEC2InstanceDataIfNearExpiration be retried
+    // if instance data refresh fails.
+    protected long automaticRefreshRetryDelaySeconds = 10;
+    private volatile long automaticRefreshLastRetryMS = 0;
+
     /**
      * Construct credentials.
      *
@@ -170,7 +175,16 @@ public class AWSEC2IAMSessionCredentials extends AWSSessionCredentials {
      */
     public synchronized void refreshFromEC2InstanceDataIfNearExpiration() {
         if (this.automaticRefreshEnabled && this.isNearExpiration()) {
+            // Only attempt refresh at sensible intervals, to avoid hammering
+            // the instance metadata service if it is temporarily unvailable
+            long msSinceLastRetry =
+                System.currentTimeMillis() - this.automaticRefreshLastRetryMS;
+            if (msSinceLastRetry / 1000 < this.automaticRefreshRetryDelaySeconds) {
+                return;  // Skip too-soon refresh attempts
+            }
+
             try {
+                this.automaticRefreshLastRetryMS = System.currentTimeMillis();
                 this.refreshFromEC2InstanceData();
             } catch (Exception ex) {
                 log.warn("Failed to automatically refresh IAM role credentials"
