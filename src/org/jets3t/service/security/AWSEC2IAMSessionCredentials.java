@@ -41,6 +41,9 @@ public class AWSEC2IAMSessionCredentials extends AWSSessionCredentials {
 
     private static final Log log = LogFactory.getLog(AWSEC2IAMSessionCredentials.class);
 
+    protected static String baseCredentialsUrl =
+        "http://169.254.169.254/latest/meta-data/iam/security-credentials";
+
     protected String roleName = null;
     protected Date expiration = null;
     protected boolean automaticRefreshEnabled = true;
@@ -232,8 +235,40 @@ public class AWSEC2IAMSessionCredentials extends AWSSessionCredentials {
         String roleName, boolean automaticRefreshEnabled)
     {
         return AWSEC2IAMSessionCredentials.loadFromEC2InstanceData(
-            "http://169.254.169.254/latest/meta-data/iam/security-credentials",
-            roleName, automaticRefreshEnabled);
+            baseCredentialsUrl, roleName, automaticRefreshEnabled);
+    }
+
+    /**
+     * Fetch AWS session credentials from EC2 instance data available
+     * while using the role name of the current EC2 instance.
+     *
+     * Instance data is expected at the default EC2 endpoint:
+     * http://169.254.169.254/latest/meta-data/iam/security-credentials/<roleName>
+     * The role is fetched from:
+     * http://169.254.169.254/latest/meta-data/iam/security-credentials/
+     *
+     * @param automaticRefreshEnabled
+     * if true, the returned credentials object will automatically refresh
+     * the session token and credentials if they are nearly expired
+     * @return
+     * populated credentials object
+     */
+    public static AWSEC2IAMSessionCredentials loadFromEC2InstanceData(
+        boolean automaticRefreshEnabled)
+    {
+        // get the role name from the enclosing EC2 instance
+		String roleName;
+        try {
+            roleName = RestUtils.httpGetUrlAsString(baseCredentialsUrl + "/").trim();
+        }
+        catch(Exception ex) {
+            throw new RuntimeException("Could not fetch IAM role name from EC2 meta data!", ex);
+        }
+        if (roleName == null || roleName.length() == 0) {
+            throw new RuntimeException("Empty IAM role name in EC2 meta data!");
+        }
+        return AWSEC2IAMSessionCredentials.loadFromEC2InstanceData(
+            baseCredentialsUrl, roleName, automaticRefreshEnabled);
     }
 
     /**
