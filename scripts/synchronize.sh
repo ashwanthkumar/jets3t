@@ -58,7 +58,7 @@ CP=$CP:$JETS3T_HOME/libs/commons-codec/commons-codec-1.8.jar
 CP=$CP:$JETS3T_HOME/libs/httpcomponents/httpclient-4.3.6.jar
 CP=$CP:$JETS3T_HOME/libs/httpcomponents/httpcore-4.3.3.jar
 CP=$CP:$JETS3T_HOME/libs/logging-log4j/log4j-1.2.15.jar
-CP=$CP:$JETS3T_HOME/libs/bouncycastle/bcprov-jdk14-138.jar
+CP=$CP:$JETS3T_HOME/libs/bouncycastle/bcprov-jdk15on-151.jar
 CP=$CP:$JETS3T_HOME/libs/java-xmlbuilder/java-xmlbuilder-1.0.jar
 
 # Convert classpath for cygwin bash
