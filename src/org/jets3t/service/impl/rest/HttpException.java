@@ -32,6 +32,7 @@ public class HttpException extends Exception {
     private String responseMessage = null;
 
     public HttpException(int responseCode, String responseMessage) {
+        super(responseCode + (responseMessage != null ? " " + responseMessage: ""));
         this.responseCode = responseCode;
         this.responseMessage = responseMessage;
     }
