@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2006-2010 James Murty
+ * Copyright 2006-2015 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -651,6 +651,7 @@ public class StorageObject extends BaseStorageItem implements Cloneable {
         objectMetadata.remove(Constants.KEY_FOR_COMPLETE_METADATA);
         objectMetadata.remove(Constants.KEY_FOR_SERVICE_METADATA);
         objectMetadata.remove(Constants.KEY_FOR_USER_METADATA);
+        objectMetadata.remove(Constants.KEY_FOR_HTTP_METADATA);
         objectMetadata.remove("id-2"); // HTTP request-specific information
         objectMetadata.remove("request-id"); // HTTP request-specific information
         return objectMetadata;

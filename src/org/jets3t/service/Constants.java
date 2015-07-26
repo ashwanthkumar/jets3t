@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2006-2010 James Murty, 2008 Zmanda Inc.
+ * Copyright 2006-2015 James Murty, 2008 Zmanda Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -172,6 +172,7 @@ public class Constants {
      */
     public static final String KEY_FOR_SERVICE_METADATA = "__service__";
     public static final String KEY_FOR_USER_METADATA = "__user__";
+    public static final String KEY_FOR_HTTP_METADATA = "__http__";
     public static final String KEY_FOR_COMPLETE_METADATA = "__complete__";
 
 }

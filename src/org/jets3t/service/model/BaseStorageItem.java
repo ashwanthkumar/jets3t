@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2006-2010 James Murty
+ * Copyright 2006-2015 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -123,6 +123,17 @@ public abstract class BaseStorageItem {
 
     /**
      * @return
+     * an <b>immutable</b> map containing the HTTP metadata associated with this object,
+     * with case-sensitive name strings as keys.
+     * Note: this map will not be populated in all cases where basic metadata is available
+     * from {@link #getMetadata(String)}.
+     */
+    public Map<String, Object> getHttpMetadataMap() {
+        return lookupMetadataSubsetMap(Constants.KEY_FOR_HTTP_METADATA);
+    }
+
+    /**
+     * @return
      * an <b>immutable</b> map containing the complete metadata associated with this object,
      * with case-sensitive name strings as keys.
      * Note: this map will not be populated in all cases where basic metadata is available
@@ -156,16 +167,37 @@ public abstract class BaseStorageItem {
      * the metadata item name, case-insensitive.
      *
      * @return
-     * the value of the metadata with the given case-insensitive name, or
-     * null if no such metadata item exists.
+     * the value of the first item found with the given case-insensitive name
+     * in the map, or null if no such name exists in the map
      */
-    public Object getMetadata(String name) {
-        for (Entry<String, Object> entry: this.metadata.entrySet()) {
+    protected Object getMetadataCaseInsensitiveFromMap(
+        String name, Map<String, Object> map)
+    {
+        for (Entry<String, Object> entry: map.entrySet()) {
             if (isMatchingMetadataName(entry.getKey(), name)) {
                 return entry.getValue();
             }
         }
         return null;
+    }
+
+    /**
+     * @param name
+     * the metadata item name, case-insensitive.
+     *
+     * @return
+     * the value of the metadata with the given case-insensitive name, or
+     * null if no such metadata item exists.
+     */
+    public Object getMetadata(String name) {
+        // Prefer metadata values set from HTTP response headers if one is
+        // available, to solve problems with user-set metadata clobbering
+        // the definitive values received from HTTP, see #213
+        Object httpMetadataValue = getHttpMetadata(name);
+        if (httpMetadataValue != null) {
+            return httpMetadataValue;
+        }
+        return getMetadataCaseInsensitiveFromMap(name, this.metadata);
     }
 
     /**
@@ -185,6 +217,45 @@ public abstract class BaseStorageItem {
             }
         }
         return false;
+    }
+
+    /**
+     * @param name
+     * the metadata item name, case-insensitive.
+     *
+     * @return
+     * the value of the metadata with the given case-insensitive name within
+     * the *service-supplied* metadata items -- that is, from HTTP headers not
+     * user-set metadata values -- or null if no such metadata item exists.
+     */
+    public Object getServiceMetadata(String name) {
+        return getMetadataCaseInsensitiveFromMap(name, getServiceMetadataMap());
+    }
+
+    /**
+     * @param name
+     * the metadata item name, case-insensitive.
+     *
+     * @return
+     * the value of the metadata with the given case-insensitive name within
+     * the *user-set* metadata items -- that is, not from HTTP headers returned
+     * by the service -- or null if no such metadata item exists.
+     */
+    public Object getUserMetadata(String name) {
+        return getMetadataCaseInsensitiveFromMap(name, getUserMetadataMap());
+    }
+
+    /**
+     * @param name
+     * the metadata item name, case-insensitive.
+     *
+     * @return
+     * the value of the metadata with the given case-insensitive name within
+     * the *user-set* metadata items -- that is, not from HTTP headers returned
+     * by the service -- or null if no such metadata item exists.
+     */
+    public Object getHttpMetadata(String name) {
+        return getMetadataCaseInsensitiveFromMap(name, getHttpMetadataMap());
     }
 
     /**

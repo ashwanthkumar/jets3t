@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2006-2010 James Murty
+ * Copyright 2006-2015 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -439,6 +439,7 @@ public class ServiceUtils {
         Map<String, Object> combinedMap = new HashMap<String, Object>();
         Map<String, Object> serviceMetadataMap = new HashMap<String, Object>();
         Map<String, Object> userMetadataMap = new HashMap<String, Object>();
+        Map<String, Object> httpMetadataMap = new HashMap<String, Object>();
         Map<String, Object> completeMetadataMap = new HashMap<String, Object>();
 
         if (metadata != null) {
@@ -507,6 +508,7 @@ public class ServiceUtils {
                     }
                 } else if (RestUtils.HTTP_HEADER_METADATA_NAMES.contains(keyStr.toLowerCase(Locale.ENGLISH))) {
                     key = keyStr;
+                    httpMetadataMap.put(key, value);
                     if (log.isDebugEnabled()) {
                         log.debug("Leaving HTTP header item unchanged: " + key + "=" + value);
                     }
@@ -516,6 +518,7 @@ public class ServiceUtils {
                     || "Content-Range".equalsIgnoreCase(keyStr))
                 {
                     key = keyStr;
+                    httpMetadataMap.put(key, value);
                     if (log.isDebugEnabled()) {
                         log.debug("Leaving header item unchanged: " + key + "=" + value);
                     }
@@ -540,6 +543,7 @@ public class ServiceUtils {
         // Add user and header metadata sub-maps to combined map
         combinedMap.put(Constants.KEY_FOR_SERVICE_METADATA, serviceMetadataMap);
         combinedMap.put(Constants.KEY_FOR_USER_METADATA, userMetadataMap);
+        combinedMap.put(Constants.KEY_FOR_HTTP_METADATA, httpMetadataMap);
         combinedMap.put(Constants.KEY_FOR_COMPLETE_METADATA, completeMetadataMap);
 
         return combinedMap;
