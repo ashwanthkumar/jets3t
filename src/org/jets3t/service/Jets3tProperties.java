@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2006-2011 James Murty
+ * Copyright 2006-2015 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -74,7 +74,8 @@ public class Jets3tProperties implements Serializable {
      *
      * @throws IOException
      */
-    public static Jets3tProperties getInstance(InputStream inputStream, String propertiesIdentifer)
+    public static synchronized Jets3tProperties getInstance(
+        InputStream inputStream, String propertiesIdentifer)
         throws IOException
     {
         Jets3tProperties jets3tProperties = null;
@@ -101,7 +102,7 @@ public class Jets3tProperties implements Serializable {
      * @return
      * a properties object initialised with property values from the properties file
      */
-    public static Jets3tProperties getInstance(String propertiesFileName) {
+    public static synchronized Jets3tProperties getInstance(String propertiesFileName) {
         Jets3tProperties jets3tProperties = null;
 
         // Keep static references to properties classes by filename.
