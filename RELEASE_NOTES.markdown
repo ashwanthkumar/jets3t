@@ -2,6 +2,63 @@ JetS3t Release Notes
 ====================
 
 -------------
+Version 0.9.4
+-------------
+
+### TOOLKIT
+
+S3 Service:
+
+ * Fix bugs in Amazon signature version 4 implementation (#204)
+   NOTE: Anyone who has implemented their own JetS3t service implemented the
+   `JetS3tRequestAuthorizer` will need to adjust their code due to API changes.
+ * Fix for request URI not escaped when using AWS4 signing (#212)
+ * Potential fix for null pointer in exceptions in
+   `ServiceUtils#findBucketNameInHostOrPath` (#205)
+ * Fix for InputStream uploads using AWSv4 signature, and fast-fail in
+   multipart upload utils which do not properly support input streams (#206)
+ * Fix to ensure explicitly correct URL structure for object copy operations
+   via `x-amz-copy-source` (#210)
+ * Fix for edge-case bug parsing `LastModifiedDate` from S3 response header
+   when there is a clash with user metadata (#213)
+ * Improve `HttpException` error message to include response code & description
+   (#214)
+ * Avoid race conditions initialising default JetS3tProperties from file (#216)
+   
+Credential Management:
+
+ * Add support to load credentials from AWS IAM Instance roles on EC2 with
+   new `AWSEC2IAMSessionCredentials` credentials class for fetching and using
+   credentials provided by IAM instance roles via EC2 instance data. (#163)
+   
+General:
+
+ * Updated required libraries to latest versions: Bouncy Castle 1.52;
+   Commons Codec 1.9; Commons Logging 1.2; HttpClient 4.5; HttpCore 4.4.1;
+   Jackson Core ASL 1.9.13; Java XML Builder 1.1; Log4J 1.2.17 
+ * Fix BouncyCastle crypto jar references in shell scripts (#208)
+   
+### Maven
+
+ * Make mx4j and mail library dependencies optional
+ * Allow for point release updates to commons-codec
+
+### KUDOS TO
+
+ * David Kocher (dkocher) for numerous fixes and improvements, as usual. Cheers!
+ * gillouxg for detailed and helpful bug reports.
+ * Adrian Kelly (adrianbk) for bug report and patch to help fix #206.
+ * Felix Natter (fnatter) for improvements to the new 
+   `AWSEC2IAMSessionCredentials` (#163) 
+ * The Alchemist (The_Alchemist) and Stephen Beitzel for improvements to the
+   Maven POM. 
+ * Sky Nss (skynss) for a detailed bug report and follow-up to identify the
+   latent bug causing issue #213
+ * Gian Merlino (gianmerlino) for suggested improvement to `HttpException`
+   error messages (#214)
+
+
+-------------
 Version 0.9.3
 -------------
 
