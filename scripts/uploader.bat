@@ -53,11 +53,11 @@ REM Include libraries in classpath
 set CP=%CP%;%MY_JETS3T_HOME%/jars/jets3t-{jets3t-version}.jar
 set CP=%CP%;%MY_JETS3T_HOME%/jars/jets3t-gui-{jets3t-version}.jar
 set CP=%CP%;%MY_JETS3T_HOME%/jars/uploader-{jets3t-version}.jar
-set CP=%CP%;%MY_JETS3T_HOME%/libs/commons-logging/commons-logging-1.1.3.jar
-set CP=%CP%;%MY_JETS3T_HOME%/libs/commons-codec/commons-codec-1.8.jar
-set CP=%CP%;%MY_JETS3T_HOME%/libs/httpcomponents/httpclient-4.3.6.jar
-set CP=%CP%;%MY_JETS3T_HOME%/libs/httpcomponents/httpcore-4.3.3.jar
-set CP=%CP%;%MY_JETS3T_HOME%/libs/logging-log4j/log4j-1.2.15.jar
+set CP=%CP%;%MY_JETS3T_HOME%/libs/commons-logging/commons-logging-1.2.jar
+set CP=%CP%;%MY_JETS3T_HOME%/libs/commons-codec/commons-codec-1.9.jar
+set CP=%CP%;%MY_JETS3T_HOME%/libs/httpcomponents/httpclient-4.5.jar
+set CP=%CP%;%MY_JETS3T_HOME%/libs/httpcomponents/httpcore-4.4.1.jar
+set CP=%CP%;%MY_JETS3T_HOME%/libs/logging-log4j/log4j-1.2.17.jar
 
 REM OutOfMemory errors? Increase the memory available by changing -Xmx256M
 
