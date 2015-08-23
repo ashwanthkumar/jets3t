@@ -54,13 +54,13 @@ CP=$CP:$JETS3T_HOME/resources
 CP=$CP:$JETS3T_HOME/jars/jets3t-{jets3t-version}.jar
 CP=$CP:$JETS3T_HOME/jars/jets3t-gui-{jets3t-version}.jar
 CP=$CP:$JETS3T_HOME/jars/cockpit-{jets3t-version}.jar
-CP=$CP:$JETS3T_HOME/libs/commons-logging/commons-logging-1.1.3.jar
-CP=$CP:$JETS3T_HOME/libs/commons-codec/commons-codec-1.8.jar
-CP=$CP:$JETS3T_HOME/libs/httpcomponents/httpclient-4.3.6.jar
-CP=$CP:$JETS3T_HOME/libs/httpcomponents/httpcore-4.3.3.jar
-CP=$CP:$JETS3T_HOME/libs/logging-log4j/log4j-1.2.15.jar
-CP=$CP:$JETS3T_HOME/libs/bouncycastle/bcprov-jdk15on-151.jar
-CP=$CP:$JETS3T_HOME/libs/java-xmlbuilder/java-xmlbuilder-1.0.jar
+CP=$CP:$JETS3T_HOME/libs/commons-logging/commons-logging-1.2.jar
+CP=$CP:$JETS3T_HOME/libs/commons-codec/commons-codec-1.9.jar
+CP=$CP:$JETS3T_HOME/libs/httpcomponents/httpclient-4.5.jar
+CP=$CP:$JETS3T_HOME/libs/httpcomponents/httpcore-4.4.1.jar
+CP=$CP:$JETS3T_HOME/libs/logging-log4j/log4j-1.2.17.jar
+CP=$CP:$JETS3T_HOME/libs/bouncycastle/bcprov-jdk15on-152.jar
+CP=$CP:$JETS3T_HOME/libs/java-xmlbuilder/java-xmlbuilder-1.1.jar
 
 # Convert classpath for cygwin bash
 case "`uname -s`" in
