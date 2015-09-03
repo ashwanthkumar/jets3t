@@ -67,6 +67,7 @@ import org.jets3t.service.acl.AccessControlList;
 import org.jets3t.service.impl.rest.HttpException;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.CopyObjectResultHandler;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListBucketHandler;
+import org.jets3t.service.model.BaseStorageItem;
 import org.jets3t.service.model.CreateBucketConfiguration;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.model.StorageBucket;
@@ -329,8 +330,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
                 int responseCode = response.getStatusLine().getStatusCode();
 
                 String contentType = "";
-                if(response.getFirstHeader("Content-Type") != null) {
-                    contentType = response.getFirstHeader("Content-Type").getValue();
+                if(response.getFirstHeader(BaseStorageItem.METADATA_HEADER_CONTENT_TYPE) != null) {
+                    contentType = response.getFirstHeader(BaseStorageItem.METADATA_HEADER_CONTENT_TYPE).getValue();
                 }
 
                 if(log.isDebugEnabled()) {
@@ -1149,7 +1150,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
              * if an explicit Content-Type is not already set. See issue #109
              */
             if(requestEntity.getContentType() != null
-                    && httpMethod.getFirstHeader("Content-Type") == null) {
+                    && httpMethod.getFirstHeader(BaseStorageItem.METADATA_HEADER_CONTENT_TYPE) == null) {
                 httpMethod.setHeader(requestEntity.getContentType());
             }
         }
@@ -1255,8 +1256,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
             if(metadata == null) {
                 metadata = new HashMap<String, Object>();
             }
-            if(!metadata.containsKey("content-type")) {
-                metadata.put("Content-Type", "text/plain");
+            if(!metadata.containsKey(BaseStorageItem.METADATA_HEADER_CONTENT_TYPE)) {
+                metadata.put(BaseStorageItem.METADATA_HEADER_CONTENT_TYPE, "text/plain");
             }
             String xml = builder.asString(null);
             return performRestPut(bucketName, objectKey, metadata, requestParameters,
@@ -1274,8 +1275,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
             if(metadata == null) {
                 metadata = new HashMap<String, Object>();
             }
-            if(!metadata.containsKey("content-type")) {
-                metadata.put("Content-Type", "text/plain");
+            if(!metadata.containsKey(BaseStorageItem.METADATA_HEADER_CONTENT_TYPE)) {
+                metadata.put(BaseStorageItem.METADATA_HEADER_CONTENT_TYPE, "text/plain");
             }
             String xml = builder.asString(null);
             return performRestPost(bucketName, objectKey, metadata, requestParameters,
@@ -1480,7 +1481,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
         String bucketName = ""; // Root path of S3 service lists the user's buckets.
         HttpResponse httpResponse = performRestGet(bucketName, null, null, headers);
-        String contentType = httpResponse.getFirstHeader("Content-Type").getValue();
+        String contentType = httpResponse.getFirstHeader(BaseStorageItem.METADATA_HEADER_CONTENT_TYPE).getValue();
 
         if(!isXmlContentType(contentType)) {
             throw new ServiceException("Expected XML document response from S3 but received content type " +
@@ -1501,7 +1502,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
         String bucketName = ""; // Root path of S3 service lists the user's buckets.
         HttpResponse httpResponse = performRestGet(bucketName, null, null, null);
-        String contentType = httpResponse.getFirstHeader("Content-Type").getValue();
+        String contentType = httpResponse.getFirstHeader(BaseStorageItem.METADATA_HEADER_CONTENT_TYPE).getValue();
 
         if(!isXmlContentType(contentType)) {
             throw new ServiceException("Expected XML document response from S3 but received content type " +
@@ -1714,7 +1715,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
         }
 
         Map<String, Object> metadata = new HashMap<String, Object>();
-        metadata.put("Content-Type", "text/plain");
+        metadata.put(BaseStorageItem.METADATA_HEADER_CONTENT_TYPE, "text/plain");
 
         String aclAsXml = acl.toXml();
         metadata.put("Content-Length", String.valueOf(aclAsXml.length()));
@@ -1736,7 +1737,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
         HttpEntity requestEntity = null;
 
         if(location != null && !"US".equalsIgnoreCase(location)) {
-            metadata.put("Content-Type", "text/xml");
+            metadata.put(BaseStorageItem.METADATA_HEADER_CONTENT_TYPE, "text/xml");
             try {
                 CreateBucketConfiguration config = new CreateBucketConfiguration(location);
                 String configXml = config.toXml();
@@ -1818,7 +1819,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
         requestParameters.put("logging", "");
 
         Map<String, Object> metadata = new HashMap<String, Object>();
-        metadata.put("Content-Type", "text/plain");
+        metadata.put(BaseStorageItem.METADATA_HEADER_CONTENT_TYPE, "text/plain");
 
         String statusAsXml;
         try {
@@ -1936,10 +1937,10 @@ public abstract class RestStorageService extends StorageService implements JetS3
             metadata = new HashMap<String, Object>(metadata);
         }
         if(contentType != null) {
-            metadata.put("Content-Type", contentType);
+            metadata.put(BaseStorageItem.METADATA_HEADER_CONTENT_TYPE, contentType);
         }
         else {
-            metadata.put("Content-Type", Mimetypes.MIMETYPE_OCTET_STREAM);
+            metadata.put(BaseStorageItem.METADATA_HEADER_CONTENT_TYPE, Mimetypes.MIMETYPE_OCTET_STREAM);
         }
 
         // Apply per-object or default options when uploading object
@@ -1958,7 +1959,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
             log.debug("Creating object bucketName=" + bucketName +
                     ", objectKey=" + objectKey +
                     ", storageClass=" + storageClass + "." +
-                    " Content-Type=" + metadata.get("Content-Type") +
+                    " Content-Type=" + metadata.get(BaseStorageItem.METADATA_HEADER_CONTENT_TYPE) +
                     " Including data? " + (requestEntity != null) +
                     " Metadata: " + metadata +
                     " ACL: " + acl
@@ -2089,8 +2090,8 @@ public abstract class RestStorageService extends StorageService implements JetS3
             // Include any metadata provided with S3 object.
             metadata.putAll(destinationMetadata);
             // Set default content type.
-            if(!metadata.containsKey("Content-Type")) {
-                metadata.put("Content-Type", Mimetypes.MIMETYPE_OCTET_STREAM);
+            if(!metadata.containsKey(BaseStorageItem.METADATA_HEADER_CONTENT_TYPE)) {
+                metadata.put(BaseStorageItem.METADATA_HEADER_CONTENT_TYPE, Mimetypes.MIMETYPE_OCTET_STREAM);
             }
         }
         else {

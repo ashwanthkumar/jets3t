@@ -52,6 +52,7 @@ import org.jets3t.service.impl.rest.XmlResponsesSaxParser.CompleteMultipartUploa
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListMultipartPartsResultHandler;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListMultipartUploadsResultHandler;
 import org.jets3t.service.impl.rest.XmlResponsesSaxParser.ListVersionsResultsHandler;
+import org.jets3t.service.model.BaseStorageItem;
 import org.jets3t.service.model.BaseVersionOrDeleteMarker;
 import org.jets3t.service.model.LifecycleConfig;
 import org.jets3t.service.model.MultipartCompleted;
@@ -755,7 +756,7 @@ public class RestS3Service extends S3Service {
         // Use metadata provided, but ignore some items that don't make sense
         if (metadataProvided != null) {
             for (Map.Entry<String, Object> entry: metadataProvided.entrySet()) {
-                if (!entry.getKey().toLowerCase().equals("content-length")) {
+                if (!entry.getKey().equalsIgnoreCase(BaseStorageItem.METADATA_HEADER_CONTENT_LENGTH)) {
                     metadata.put(entry.getKey(), entry.getValue());
                 }
             }
