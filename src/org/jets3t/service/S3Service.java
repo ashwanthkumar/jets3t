@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -235,7 +234,7 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
                 bucketName, isDnsBucketNamingDisabled, s3Endpoint));
 
         if (headersMap == null) {
-            headersMap = new HashMap<String, Object>();
+            headersMap = new TreeMap<String, Object>(String.CASE_INSENSITIVE_ORDER);
         }
 
         // If we are using an alternative hostname, include the hostname/bucketname in the resource path.
