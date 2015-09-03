@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
@@ -2072,7 +2073,7 @@ public abstract class RestStorageService extends StorageService implements JetS3
                     + " to " + destinationBucketName + ":" + destinationObjectKey);
         }
 
-        Map<String, Object> metadata = new HashMap<String, Object>();
+        Map<String, Object> metadata = new TreeMap<String, Object>(String.CASE_INSENSITIVE_ORDER);
 
         String sourceKey = RestUtils.encodeUrlPath("/" + sourceBucketName + "/" + sourceObjectKey, "/");
 
