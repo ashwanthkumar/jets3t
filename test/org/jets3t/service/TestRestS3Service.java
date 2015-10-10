@@ -1164,4 +1164,38 @@ public class TestRestS3Service extends BaseStorageServiceTests {
         }
     }
 
+    public void testObjectStorageClasses() throws Exception {
+        S3Service s3Service = (S3Service) getStorageService(getCredentials());
+        StorageBucket bucket = createBucketForTest("testObjectStorageClasses");
+        String bucketName = bucket.getName();
+
+        try {
+            StorageObject objStandard = new StorageObject("standard");
+            objStandard.setStorageClass(S3Object.STORAGE_CLASS_STANDARD);
+            s3Service.putObject(bucketName, objStandard);
+            StorageObject result = s3Service.getObjectDetails(bucketName, objStandard.getKey());
+            // Note: null result for default STANDARD storage class
+            assertEquals(null, result.getMetadata("storage-class"));
+
+            StorageObject objInfrequentAccess = new StorageObject("infrequent-access");
+            objInfrequentAccess.setStorageClass(S3Object.STORAGE_CLASS_INFREQUENT_ACCESS);
+            s3Service.putObject(bucketName, objInfrequentAccess);
+            result = s3Service.getObjectDetails(bucketName, objInfrequentAccess.getKey());
+            assertEquals("STANDARD_IA", result.getMetadata("storage-class"));
+
+            StorageObject objReducedRedundancy = new StorageObject("reduced-redundancy");
+            objReducedRedundancy.setStorageClass(S3Object.STORAGE_CLASS_REDUCED_REDUNDANCY);
+            s3Service.putObject(bucketName, objReducedRedundancy);
+            result = s3Service.getObjectDetails(
+                bucketName, objReducedRedundancy.getKey());
+            assertEquals("REDUCED_REDUNDANCY", result.getMetadata("storage-class"));
+
+            // NOTE: Cannot directly upload GLACIER storage class objects, they
+            // can only be created by lifecycle management in S3, see:
+            // http://docs.aws.amazon.com/AmazonS3/latest/dev/storage-class-intro.html
+        } finally {
+            cleanupBucketForTest("testObjectStorageClasses");
+        }
+    }
+
 }
