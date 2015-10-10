@@ -57,6 +57,7 @@ import org.jets3t.service.model.S3WebsiteConfig;
 import org.jets3t.service.model.container.ObjectKeyAndVersion;
 import org.jets3t.service.mx.MxDelegate;
 import org.jets3t.service.security.AWSDevPayCredentials;
+import org.jets3t.service.security.AWSEC2IAMSessionCredentials;
 import org.jets3t.service.security.ProviderCredentials;
 import org.jets3t.service.utils.MultipartUtils;
 import org.jets3t.service.utils.RestUtils;
@@ -270,6 +271,14 @@ public abstract class S3Service extends RestStorageService implements SignedUrlH
                 headersMap.put(Constants.AMZ_SECURITY_TOKEN, devPayCredentials.getUserToken());
             }
 
+            uriPath += Constants.AMZ_SECURITY_TOKEN + "=" +
+                RestUtils.encodeUrlString((String) headersMap.get(Constants.AMZ_SECURITY_TOKEN)) + "&";
+        }
+
+        // Include any IAM Session tokens in signed request
+        if (getProviderCredentials() instanceof AWSEC2IAMSessionCredentials) {
+            AWSEC2IAMSessionCredentials iamSessionCredentials = (AWSEC2IAMSessionCredentials) getProviderCredentials();
+            headersMap.put(Constants.AMZ_SECURITY_TOKEN, iamSessionCredentials.getSessionToken());
             uriPath += Constants.AMZ_SECURITY_TOKEN + "=" +
                 RestUtils.encodeUrlString((String) headersMap.get(Constants.AMZ_SECURITY_TOKEN)) + "&";
         }
