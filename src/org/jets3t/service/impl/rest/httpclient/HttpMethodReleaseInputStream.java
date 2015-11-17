@@ -28,6 +28,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.util.EntityUtils;
 import org.jets3t.service.io.InputStreamWrapper;
 import org.jets3t.service.io.InterruptableInputStream;
+import org.jets3t.service.utils.RestUtils;
 
 /**
  * Utility class to wrap InputStreams obtained from an HttpClient library's HttpMethod object, and
@@ -99,7 +100,7 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
             if (!underlyingStreamConsumed) {
                 // Underlying input stream has not been consumed,
                 // trigger connection close and clean-up.
-                EntityUtils.consume(httpResponse.getEntity());
+                RestUtils.closeHttpResponse(httpResponse);
             }
             alreadyReleased = true;
         }
