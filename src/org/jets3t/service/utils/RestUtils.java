@@ -54,6 +54,7 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -760,6 +761,52 @@ public class RestUtils {
         EntityUtils.consume(entity);
 
         return dataString;
+    }
+
+    /**
+     * Close an HTTP response as quickly as possible, avoiding consuming
+     * response data unnecessarily though at the expense of making underlying
+     * connections unavailable for reuse.
+     *
+     * First try to close a response directly, as this is the quickest way to
+     * shut down the response at the expense of discarding the underlying
+     * connection and leaving it unavailable for reuse.
+     *
+     * If the response cannot be closed, fall back to consuming-then-closing
+     * the responses underlying entity.
+     *
+     * @param response
+     * response to be closed.
+     * @throws IOException
+     * if an IOException is thrown as part of the connection close procedure it
+     * is propagated from this method. Other exceptions are logged as warnings
+     * but otherwise ignored.
+     */
+    public static void closeHttpResponse(HttpResponse response)
+        throws IOException
+    {
+        // Try to close the response directly...
+        try {
+            CloseableHttpResponse closeableResponse =
+                (CloseableHttpResponse)response;
+            closeableResponse.close();
+            return;
+        } catch (IOException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.warn("Unable to close HttpResponse, will consume instead:" + ex);
+        }
+        // ...if that fails, consume and close the response entity.
+        HttpEntity entity = response.getEntity();
+        if (entity != null) {
+            try {
+                EntityUtils.consume(entity);
+            } catch (IOException ex) {
+                throw ex;
+            } catch (Exception ex) {
+                log.warn("Unable to consume and close HttpResponse's entity:" + ex);
+            }
+        }
     }
 
 }
