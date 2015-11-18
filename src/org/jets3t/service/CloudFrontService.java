@@ -18,6 +18,16 @@
  */
 package org.jets3t.service;
 
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+
+import javax.xml.parsers.FactoryConfigurationError;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
@@ -31,7 +41,7 @@ import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
-import org.apache.http.params.HttpProtocolParams;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser;
@@ -46,20 +56,25 @@ import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccess
 import org.jets3t.service.impl.rest.CloudFrontXmlResponsesSaxParser.OriginAccessIdentityListHandler;
 import org.jets3t.service.impl.rest.httpclient.JetS3tRequestAuthorizer;
 import org.jets3t.service.model.S3Object;
-import org.jets3t.service.model.cloudfront.*;
+import org.jets3t.service.model.cloudfront.CacheBehavior;
+import org.jets3t.service.model.cloudfront.CustomOrigin;
+import org.jets3t.service.model.cloudfront.Distribution;
+import org.jets3t.service.model.cloudfront.DistributionConfig;
+import org.jets3t.service.model.cloudfront.Invalidation;
+import org.jets3t.service.model.cloudfront.InvalidationList;
+import org.jets3t.service.model.cloudfront.InvalidationSummary;
+import org.jets3t.service.model.cloudfront.LoggingStatus;
+import org.jets3t.service.model.cloudfront.Origin;
+import org.jets3t.service.model.cloudfront.OriginAccessIdentity;
+import org.jets3t.service.model.cloudfront.OriginAccessIdentityConfig;
+import org.jets3t.service.model.cloudfront.S3Origin;
+import org.jets3t.service.model.cloudfront.StreamingDistribution;
+import org.jets3t.service.model.cloudfront.StreamingDistributionConfig;
 import org.jets3t.service.security.EncryptionUtil;
 import org.jets3t.service.security.ProviderCredentials;
+import org.jets3t.service.utils.HttpClientBuilderData;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
-
-import javax.xml.parsers.FactoryConfigurationError;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerException;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
 
 import com.jamesmurty.utils.XMLBuilder;
 
@@ -136,22 +151,23 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         System.setProperty("networkaddress.cache.ttl", "300");
         System.setProperty("networkaddress.cache.negative.ttl", "1");
 
-        this.httpClient = initHttpConnection();
-        initializeProxy();
+        HttpClientBuilderData httpClientBuilderData = this.initHttpClientBuilder();
+        this.initializeProxy(httpClientBuilderData.httpClientBuilder);
+        this.httpClient = httpClientBuilderData.httpClientBuilder.build();
     }
 
-    protected HttpClient initHttpConnection() {
-        return RestUtils.initHttpConnection(
+    protected HttpClientBuilderData initHttpClientBuilder() {
+        return RestUtils.initHttpClientBuilder(
                 this,
                 this.jets3tProperties,
                 this.invokingApplicationDescription,
                 this.credentialsProvider);
     }
 
-    protected void initializeProxy() {
+    protected void initializeProxy(HttpClientBuilder httpClientBuilder) {
         // Retrieve Proxy settings.
         if(this.jets3tProperties.getBoolProperty("httpclient.proxy-autodetect", true)) {
-            RestUtils.initHttpProxy(this.httpClient, this.jets3tProperties);
+            RestUtils.initHttpProxy(httpClientBuilder, this.jets3tProperties);
         }
         else {
             String proxyHostAddress = this.jets3tProperties.getStringProperty("httpclient.proxy-host", null);
@@ -159,7 +175,7 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
             String proxyUser = this.jets3tProperties.getStringProperty("httpclient.proxy-user", null);
             String proxyPassword = this.jets3tProperties.getStringProperty("httpclient.proxy-password", null);
             String proxyDomain = this.jets3tProperties.getStringProperty("httpclient.proxy-domain", null);
-            RestUtils.initHttpProxy(this.httpClient, this.jets3tProperties,
+            RestUtils.initHttpProxy(httpClientBuilder, this.jets3tProperties,
                     proxyHostAddress, proxyPort, proxyUser, proxyPassword, proxyDomain);
         }
     }
