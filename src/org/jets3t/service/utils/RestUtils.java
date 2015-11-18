@@ -2,7 +2,7 @@
  * JetS3t : Java S3 Toolkit
  * Project hosted at http://bitbucket.org/jmurty/jets3t/
  *
- * Copyright 2006-2014 James Murty
+ * Copyright 2006-2015 James Murty
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,53 +33,46 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
 
 import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.Header;
-import org.apache.http.HttpConnection;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
-import org.apache.http.HttpRequestInterceptor;
 import org.apache.http.HttpResponse;
-import org.apache.http.HttpVersion;
 import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.AuthState;
 import org.apache.http.auth.Credentials;
 import org.apache.http.auth.NTCredentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.HttpRequestRetryHandler;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.params.ClientPNames;
-import org.apache.http.client.protocol.ClientContext;
-import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.conn.ClientConnectionManagerFactory;
-import org.apache.http.conn.params.ConnManagerParams;
-import org.apache.http.conn.params.ConnRoutePNames;
-import org.apache.http.conn.scheme.SchemeRegistry;
-import org.apache.http.impl.auth.BasicScheme;
-import org.apache.http.impl.client.AbstractHttpClient;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.config.SocketConfig;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.BrowserCompatHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
-import org.apache.http.impl.client.RequestWrapper;
-import org.apache.http.impl.conn.tsccm.AbstractConnPool;
-import org.apache.http.impl.conn.tsccm.ConnPoolByRoute;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
-import org.apache.http.params.HttpProtocolParams;
-import org.apache.http.params.SyncBasicHttpParams;
-import org.apache.http.protocol.ExecutionContext;
-import org.apache.http.protocol.HTTP;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.protocol.HttpContext;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.apache.http.util.EntityUtils;
 import org.jets3t.service.Constants;
 import org.jets3t.service.Jets3tProperties;
@@ -180,6 +173,15 @@ public class RestUtils {
      * Calculate the canonical string for a REST/HTTP request to a storage service.
      *
      * When expires is non-null, it will be used instead of the Date header.
+     *
+     * @param method
+     * @param resource
+     * @param headersMap
+     * @param expires
+     * @param headerPrefix
+     * @param serviceResourceParameterNames
+     * @return
+     * the canonical string for a REST/HTTP request to a storage service.
      */
     public static String makeServiceCanonicalString(String method, String resource,
         Map<String, Object> headersMap, String expires, String headerPrefix,
@@ -299,40 +301,72 @@ public class RestUtils {
     }
 
     /**
-     * Initialises, or re-initialises, the underlying HttpConnectionManager and
-     * HttpClient objects a service will use to communicate with an AWS service.
-     * If proxy settings are specified in this service's {@link Jets3tProperties} object,
-     * these settings will also be passed on to the underlying objects.
+     * Initialises the and configures an {@link HttpClientBuilder} in
+     * preparation for it to create new HTTP client instances.
+     *
+     * @param requestAuthorizer
+     * @param jets3tProperties
+     * @param userAgentDescription
+     * @param credentialsProvider
+     * @return
+     * a builder configured with default and user-specified settings from
+     * JetS3t's properties.
      */
-    public static HttpClient initHttpConnection(
+    public static HttpClientBuilderData initHttpClientBuilder(
             final JetS3tRequestAuthorizer requestAuthorizer,
             Jets3tProperties jets3tProperties,
             String userAgentDescription,
-            CredentialsProvider credentialsProvider) {
-        // Configure HttpClient properties based on Jets3t Properties.
-        HttpParams params = createDefaultHttpParams();
-        params.setParameter(Jets3tProperties.JETS3T_PROPERTIES_ID, jets3tProperties);
+            CredentialsProvider credentialsProvider)
+    {
+        PoolingHttpClientConnectionManager connectionManager = null;
 
-        params.setParameter(
-            ClientPNames.CONNECTION_MANAGER_FACTORY_CLASS_NAME,
-            jets3tProperties.getStringProperty(
-                ClientPNames.CONNECTION_MANAGER_FACTORY_CLASS_NAME,
-                ConnManagerFactory.class.getName()));
-
-        HttpConnectionParams.setConnectionTimeout(params,
-            jets3tProperties.getIntProperty("httpclient.connection-timeout-ms", 60000));
-        HttpConnectionParams.setSoTimeout(params,
-            jets3tProperties.getIntProperty("httpclient.socket-timeout-ms", 60000));
-        HttpConnectionParams.setStaleCheckingEnabled(params,
-            jets3tProperties.getBoolProperty("httpclient.stale-checking-enabled", true));
-
-        // Connection properties to take advantage of S3 window scaling.
-        if (jets3tProperties.containsKey("httpclient.socket-receive-buffer")) {
-            HttpConnectionParams.setSocketBufferSize(params,
-                jets3tProperties.getIntProperty("httpclient.socket-receive-buffer", 0));
+        // All this crap is required for HttpClient 4.5 to support AWS S3's SSL
+        // certificate common name wildcards like "*.s3.amazonaws.com".
+        // There might be a simpler/better way of doing this in the future,
+        // maybe DefaultHostnameVerifier will work for this one day.
+        HostnameVerifier hostnameVerifier = new BrowserCompatHostnameVerifier();
+        try {
+            SSLContext sslContext = SSLContextBuilder.create().build();
+            SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
+                sslContext, hostnameVerifier);
+            Registry<ConnectionSocketFactory> registry =
+                RegistryBuilder.<ConnectionSocketFactory>create()
+                    .register("http", new PlainConnectionSocketFactory())
+                    .register("https", sslsf)
+                    .build();
+            connectionManager = new PoolingHttpClientConnectionManager(registry);
+        } catch (Exception ex) {
+            log.warn("Failed to initialise SSL connection context, falling back"
+                + " to default connection without SSL customisations", ex);
+            connectionManager = new PoolingHttpClientConnectionManager();
         }
 
-        HttpConnectionParams.setTcpNoDelay(params, true);
+        int maxConnections = jets3tProperties.getIntProperty("httpclient.max-connections", 20);
+        int maxConnectionsPerHost = jets3tProperties.getIntProperty("httpclient.max-connections-per-host", maxConnections);
+        connectionManager.setMaxTotal(maxConnections);
+        connectionManager.setDefaultMaxPerRoute(maxConnectionsPerHost);
+        if (jets3tProperties.getBoolProperty("httpclient.stale-checking-enabled", true)) {
+            connectionManager.setValidateAfterInactivity(
+                jets3tProperties.getIntProperty("httpclient.connection-validate-after-inactivity", 60000));
+        }
+
+        RequestConfig requestConfig = RequestConfig.custom()
+            .setConnectionRequestTimeout(
+                jets3tProperties.getIntProperty("httpclient.request-timeout-ms", 60000))
+            .setConnectTimeout(
+                jets3tProperties.getIntProperty("httpclient.connection-timeout-ms", 60000))
+            .setSocketTimeout(
+                jets3tProperties.getIntProperty("httpclient.socket-timeout-ms", 60000))
+            .setExpectContinueEnabled(
+                jets3tProperties.getBoolProperty("http.protocol.expect-continue", true))
+            .build();
+
+        SocketConfig socketConfig = SocketConfig.custom()
+            .setTcpNoDelay(true)
+            // Connection property to take advantage of S3 window scaling.
+            .setRcvBufSize(
+                jets3tProperties.getIntProperty("httpclient.socket-receive-buffer", 0))
+            .build();
 
         // Set user agent string.
         String userAgent = jets3tProperties.getStringProperty("httpclient.useragent", null);
@@ -342,51 +376,51 @@ public class RestUtils {
         if (log.isDebugEnabled()) {
             log.debug("Setting user agent string: " + userAgent);
         }
-        HttpProtocolParams.setUserAgent(params, userAgent);
 
-        boolean expectContinue
-                = jets3tProperties.getBoolProperty("http.protocol.expect-continue", true);
-        HttpProtocolParams.setUseExpectContinue(params, expectContinue);
-
-        long connectionManagerTimeout
-                = jets3tProperties.getLongProperty("httpclient.connection-manager-timeout", 0);
-        ConnManagerParams.setTimeout(params, connectionManagerTimeout);
-
-        DefaultHttpClient httpClient = new DefaultHttpClient(params);
-        httpClient.setHttpRequestRetryHandler(
-            new JetS3tRetryHandler(
-                jets3tProperties.getIntProperty("httpclient.retry-max", 5), requestAuthorizer));
+        HttpClientBuilder httpClientBuilder = HttpClientBuilder.create()
+            .useSystemProperties()
+            .setConnectionManager(connectionManager)
+            .setDefaultRequestConfig(requestConfig)
+            .setDefaultSocketConfig(socketConfig)
+            .setUserAgent(userAgent);
 
         if (credentialsProvider != null) {
             if (log.isDebugEnabled()) {
                 log.debug("Using credentials provider class: "
                         + credentialsProvider.getClass().getName());
             }
-            httpClient.setCredentialsProvider(credentialsProvider);
-            if (jets3tProperties.getBoolProperty(
-                    "httpclient.authentication-preemptive",
-                    false)) {
-                // Add as the very first interceptor in the protocol chain
-                httpClient.addRequestInterceptor(new PreemptiveInterceptor(), 0);
-            }
+            httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
         }
 
-        return httpClient;
+        HttpRequestRetryHandler retryHandler = null;
+        if (requestAuthorizer != null) {
+            int retryMax = jets3tProperties.getIntProperty("httpclient.retry-max", 5);
+            retryHandler = new JetS3tRetryHandler(
+                retryMax, requestAuthorizer);
+            httpClientBuilder.setRetryHandler(retryHandler);
+        }
+
+        return new HttpClientBuilderData(
+            httpClientBuilder, connectionManager, retryHandler);
     }
 
     /**
      * Initialises this service's HTTP proxy by auto-detecting the proxy settings.
      */
-    public static void initHttpProxy(HttpClient httpClient, Jets3tProperties jets3tProperties) {
-        initHttpProxy(httpClient, jets3tProperties, true, null, -1, null, null, null);
+    public static void initHttpProxy(HttpClientBuilder httpClientBuilder,
+        Jets3tProperties jets3tProperties)
+    {
+        initHttpProxy(httpClientBuilder, jets3tProperties, true, null, -1, null, null, null);
     }
 
     /**
      * Initialises this service's HTTP proxy by auto-detecting the proxy settings using the given endpoint.
      */
-    public static void initHttpProxy(HttpClient httpClient, Jets3tProperties jets3tProperties,
-        String endpoint) {
-        initHttpProxy(httpClient, jets3tProperties, true, null, -1, null, null, null, endpoint);
+    public static void initHttpProxy(HttpClientBuilder httpClientBuilder,
+        Jets3tProperties jets3tProperties, String endpoint)
+    {
+        initHttpProxy(httpClientBuilder, jets3tProperties, true, null, -1,
+            null, null, null, endpoint);
     }
 
     /**
@@ -395,9 +429,11 @@ public class RestUtils {
      * @param proxyHostAddress
      * @param proxyPort
      */
-    public static void initHttpProxy(HttpClient httpClient, String proxyHostAddress,
-        int proxyPort, Jets3tProperties jets3tProperties) {
-        initHttpProxy(httpClient, jets3tProperties, false,
+    public static void initHttpProxy(HttpClientBuilder httpClientBuilder,
+        String proxyHostAddress, int proxyPort,
+        Jets3tProperties jets3tProperties)
+    {
+        initHttpProxy(httpClientBuilder, jets3tProperties, false,
             proxyHostAddress, proxyPort, null, null, null);
     }
 
@@ -414,16 +450,17 @@ public class RestUtils {
      * will be used. If the proxy domain is null, a
      * {@link UsernamePasswordCredentials} credentials provider will be used.
      */
-    public static void initHttpProxy(HttpClient httpClient, Jets3tProperties jets3tProperties,
-        String proxyHostAddress, int proxyPort, String proxyUser,
+    public static void initHttpProxy(HttpClientBuilder httpClientBuilder,
+        Jets3tProperties jets3tProperties, String proxyHostAddress,
+        int proxyPort, String proxyUser,
         String proxyPassword, String proxyDomain)
     {
-        initHttpProxy(httpClient, jets3tProperties, false,
+        initHttpProxy(httpClientBuilder, jets3tProperties, false,
             proxyHostAddress, proxyPort, proxyUser, proxyPassword, proxyDomain);
     }
 
     /**
-     * @param httpClient
+     * @param httpClientBuilder
      * @param proxyAutodetect
      * @param proxyHostAddress
      * @param proxyPort
@@ -431,19 +468,20 @@ public class RestUtils {
      * @param proxyPassword
      * @param proxyDomain
      */
-    public static void initHttpProxy(HttpClient httpClient,
+    public static void initHttpProxy(HttpClientBuilder httpClientBuilder,
         Jets3tProperties jets3tProperties, boolean proxyAutodetect,
         String proxyHostAddress, int proxyPort, String proxyUser,
         String proxyPassword, String proxyDomain)
     {
         String s3Endpoint = jets3tProperties.getStringProperty(
                 "s3service.s3-endpoint", Constants.S3_DEFAULT_HOSTNAME);
-        initHttpProxy(httpClient, jets3tProperties, proxyAutodetect, proxyHostAddress, proxyPort,
+        initHttpProxy(httpClientBuilder, jets3tProperties,
+            proxyAutodetect, proxyHostAddress, proxyPort,
             proxyUser, proxyPassword, proxyDomain, s3Endpoint);
     }
 
     /**
-     * @param httpClient
+     * @param httpClientBuilder
      * @param proxyAutodetect
      * @param proxyHostAddress
      * @param proxyPort
@@ -453,7 +491,7 @@ public class RestUtils {
      * @param endpoint
      */
     public static void initHttpProxy(
-            HttpClient httpClient,
+            HttpClientBuilder httpClientBuilder,
             Jets3tProperties jets3tProperties,
             boolean proxyAutodetect,
             String proxyHostAddress,
@@ -470,38 +508,24 @@ public class RestUtils {
             }
 
             HttpHost proxy = new HttpHost(proxyHostAddress, proxyPort);
-            httpClient.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY,
-                    proxy);
-            /*
-             * TODO: Use alternative method?
-             * Alternate method based on JRE standard
-             *
-            ProxySelectorRoutePlanner routePlanner = new ProxySelectorRoutePlanner(
-                    httpClient.getConnectionManager().getSchemeRegistry(),
-                    ProxySelector.getDefault());
-            ((DefaultHttpClient)httpClient).setRoutePlanner(routePlanner);
-            */
+            DefaultProxyRoutePlanner routePlanner = new DefaultProxyRoutePlanner(proxy);
+            httpClientBuilder.setRoutePlanner(routePlanner);
 
-            if (proxyUser != null && !proxyUser.trim().equals("")
-                    && httpClient instanceof AbstractHttpClient) {
+            // If proxy user and password provided, inform the builder of
+            // these credentials
+            if (proxyUser != null && !proxyUser.trim().equals("")) {
+                AuthScope authScope = new AuthScope(proxyHostAddress, proxyPort);
+                Credentials credentials = null;
                 if (proxyDomain != null) {
-                    ((AbstractHttpClient) httpClient).getCredentialsProvider()
-                            .setCredentials(new AuthScope(
-                                    proxyHostAddress,
-                                    proxyPort),
-                                    new NTCredentials(
-                                            proxyUser,
-                                            proxyPassword,
-                                            proxyHostAddress,
-                                            proxyDomain));
+                    credentials = new NTCredentials(
+                        proxyUser, proxyPassword, proxyHostAddress, proxyDomain);
                 } else {
-                    ((AbstractHttpClient) httpClient).getCredentialsProvider()
-                            .setCredentials(new AuthScope(
-                                    proxyHostAddress,
-                                    proxyPort),
-                                    new UsernamePasswordCredentials(proxyUser,
-                                            proxyPassword));
+                    credentials =  new UsernamePasswordCredentials(
+                        proxyUser, proxyPassword);
                 }
+                CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+                credentialsProvider.setCredentials(authScope, credentials);
+                httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
             }
         }
         // If no explicit settings are available, try autodetecting proxies (unless autodetect is disabled)
@@ -516,13 +540,14 @@ public class RestUtils {
                         log.info("Using Proxy: " + proxyHost.getHostName()
                                 + ":" + proxyHost.getPort());
                     }
-                    httpClient.getParams()
-                            .setParameter(ConnRoutePNames.DEFAULT_PROXY,
-                                    proxyHost);
+                    HttpHost proxy = new HttpHost(
+                        proxyHost.getHostName(), proxyHost.getPort());
+                    DefaultProxyRoutePlanner routePlanner = new DefaultProxyRoutePlanner(proxy);
+                    httpClientBuilder.setRoutePlanner(routePlanner);
                 }
             } catch (Throwable t) {
                 if (log.isDebugEnabled()) {
-                    log.debug("Unable to set proxy configuration", t);
+                    log.debug("Unable to detect proxy configuration", t);
                 }
             }
         }
@@ -577,74 +602,6 @@ public class RestUtils {
         return s3Headers;
     }
 
-    /**
-     * Default Http parameters got from the DefaultHttpClient implementation.
-     *
-     * @return
-     * Default HTTP connection parameters
-     */
-    public static HttpParams createDefaultHttpParams() {
-        HttpParams params = new SyncBasicHttpParams();
-        HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1);
-        HttpProtocolParams.setContentCharset(params,
-                HTTP.DEFAULT_CONTENT_CHARSET);
-        HttpConnectionParams.setTcpNoDelay(params, true);
-        HttpConnectionParams.setSocketBufferSize(params, 8192);
-        return params;
-    }
-
-    /**
-     * A ClientConnectionManagerFactory that creates ThreadSafeClientConnManager
-     */
-    public static class ConnManagerFactory implements
-            ClientConnectionManagerFactory {
-        /*
-         * @see ClientConnectionManagerFactory#newInstance(HttpParams, SchemeRegistry)
-         */
-        public ClientConnectionManager newInstance(HttpParams params,
-                SchemeRegistry schemeRegistry) {
-            return new ThreadSafeConnManager(params, schemeRegistry);
-        }
-
-    } //ConnManagerFactory
-
-    /**
-     * ThreadSafeConnManager is a ThreadSafeClientConnManager configured via
-     * jets3tProperties.
-     *
-     * @see Jets3tProperties#JETS3T_PROPERTIES_ID
-     */
-    public static class ThreadSafeConnManager extends
-            ThreadSafeClientConnManager {
-        public ThreadSafeConnManager(final HttpParams params,
-                final SchemeRegistry schreg) {
-            super(params, schreg);
-        }
-
-        @Override
-        protected AbstractConnPool createConnectionPool(final HttpParams params) {
-            // Set the maximum connections per host for the HTTP connection manager,
-            // *and* also set the maximum number of total connections (new in 0.7.1).
-            // The max connections per host setting is made the same value as the max
-            // global connections if there is no per-host property.
-            Jets3tProperties props = (Jets3tProperties) params.getParameter(
-                    Jets3tProperties.JETS3T_PROPERTIES_ID);
-            int maxConn = 20;
-            int maxConnectionsPerHost = 0;
-            if (props != null) {
-                maxConn = props.getIntProperty("httpclient.max-connections", 20);
-                maxConnectionsPerHost = props.getIntProperty(
-                        "httpclient.max-connections-per-host",
-                        0);
-            }
-            if (maxConnectionsPerHost == 0) {
-                maxConnectionsPerHost = maxConn;
-            }
-            connPerRoute.setDefaultMaxPerRoute(maxConnectionsPerHost);
-            return new ConnPoolByRoute(connOperator, connPerRoute, maxConn,props.getLongProperty("httpclient.connection.ttl", -1L), TimeUnit.MILLISECONDS);
-        }
-    } //ThreadSafeConnManager
-
     public static class JetS3tRetryHandler extends DefaultHttpRequestRetryHandler {
         private final JetS3tRequestAuthorizer requestAuthorizer;
 
@@ -665,13 +622,9 @@ public class RestUtils {
                     }
                     return false;
                 }
-                HttpRequest request = (HttpRequest) context.getAttribute(
-                        ExecutionContext.HTTP_REQUEST);
 
-                // Convert RequestWrapper to original HttpBaseRequest (issue #127)
-                if (request instanceof RequestWrapper) {
-                    request = ((RequestWrapper)request).getOriginal();
-                }
+                HttpClientContext clientContext = HttpClientContext.adapt(context);
+                HttpRequest request = clientContext.getRequest();
 
                 if (!(request instanceof HttpRequestBase)) {
                     return false;
@@ -679,10 +632,8 @@ public class RestUtils {
                 HttpRequestBase method = (HttpRequestBase) request;
 
                 // Release underlying connection so we will get a new one (hopefully) when we retry.
-                HttpConnection conn = (HttpConnection) context.getAttribute(
-                        ExecutionContext.HTTP_CONNECTION);
                 try {
-                    conn.close();
+                    clientContext.getConnection().close();
                 } catch (Exception e) {
                     //ignore
                 }
@@ -712,40 +663,11 @@ public class RestUtils {
         }
     } //AWSRetryHandler
 
-    /**
-     * PreemptiveInterceptor
-     */
-    // A preemptive interceptor (copied from doc).
-    private static class PreemptiveInterceptor implements
-            HttpRequestInterceptor {
-
-        public void process(final HttpRequest request, final HttpContext context) {
-            AuthState authState = (AuthState) context.getAttribute(
-                    ClientContext.TARGET_AUTH_STATE);
-            CredentialsProvider credsProvider = (CredentialsProvider) context.getAttribute(
-                    ClientContext.CREDS_PROVIDER);
-            HttpHost targetHost = (HttpHost) context.getAttribute(
-                    ExecutionContext.HTTP_TARGET_HOST);
-            // If not auth scheme has been initialized yet
-            if (authState.getAuthScheme() == null) {
-                AuthScope authScope = new AuthScope(targetHost.getHostName(),
-                        targetHost.getPort());
-                // Obtain credentials matching the target host
-                Credentials creds = credsProvider.getCredentials(authScope);
-                // If found, generate BasicScheme preemptively
-                if (creds != null) {
-                    authState.setAuthScheme(new BasicScheme());
-                    authState.setCredentials(creds);
-                }
-            }
-        }
-    } //PreemptiveInterceptor
-
     public static String httpGetUrlAsString(String uri)
             throws ClientProtocolException, IOException
     {
         HttpUriRequest getMethod = new HttpGet(uri);
-        HttpClient client = new DefaultHttpClient();
+        HttpClient client = HttpClientBuilder.create().build();
         HttpEntity entity = client.execute(getMethod).getEntity();
 
         String contentEncoding = "UTF-8";  // Default
@@ -794,7 +716,7 @@ public class RestUtils {
         } catch (IOException ex) {
             throw ex;
         } catch (Exception ex) {
-            log.warn("Unable to close HttpResponse, will consume instead:" + ex);
+            log.warn("Unable to close HttpResponse, will consume instead", ex);
         }
         // ...if that fails, consume and close the response entity.
         HttpEntity entity = response.getEntity();
@@ -804,7 +726,7 @@ public class RestUtils {
             } catch (IOException ex) {
                 throw ex;
             } catch (Exception ex) {
-                log.warn("Unable to consume and close HttpResponse's entity:" + ex);
+                log.warn("Unable to consume and close HttpResponse's entity", ex);
             }
         }
     }

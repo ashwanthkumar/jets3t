@@ -89,11 +89,15 @@ public class OAuthUtils {
      */
     public OAuthUtils(OAuthImplementation implementation, String clientId, String clientSecret,
                       Jets3tProperties jets3tProperties) {
-        this(RestUtils.initHttpConnection(
+        this(
+            RestUtils.initHttpClientBuilder(
                 null, // requestAuthorizer
                 jets3tProperties,
                 HTTP_USER_AGENT,
-                null), implementation, clientId, clientSecret);
+                null  // credentialsProvider
+            ).httpClientBuilder.build(),
+            implementation, clientId, clientSecret
+        );
     }
 
     /**
