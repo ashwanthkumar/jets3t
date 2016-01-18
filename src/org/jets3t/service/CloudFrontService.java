@@ -72,7 +72,6 @@ import org.jets3t.service.model.cloudfront.StreamingDistribution;
 import org.jets3t.service.model.cloudfront.StreamingDistributionConfig;
 import org.jets3t.service.security.EncryptionUtil;
 import org.jets3t.service.security.ProviderCredentials;
-import org.jets3t.service.utils.HttpClientBuilderData;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 
@@ -151,12 +150,10 @@ public class CloudFrontService implements JetS3tRequestAuthorizer {
         System.setProperty("networkaddress.cache.ttl", "300");
         System.setProperty("networkaddress.cache.negative.ttl", "1");
 
-        HttpClientBuilderData httpClientBuilderData = this.initHttpClientBuilder();
-        this.initializeProxy(httpClientBuilderData.httpClientBuilder);
-        this.httpClient = httpClientBuilderData.httpClientBuilder.build();
+        this.httpClient = this.initHttpClientBuilder().build();
     }
 
-    protected HttpClientBuilderData initHttpClientBuilder() {
+    protected HttpClientBuilder initHttpClientBuilder() {
         return RestUtils.initHttpClientBuilder(
                 this,
                 this.jets3tProperties,
