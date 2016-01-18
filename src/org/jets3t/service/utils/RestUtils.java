@@ -312,7 +312,7 @@ public class RestUtils {
      * a builder configured with default and user-specified settings from
      * JetS3t's properties.
      */
-    public static HttpClientBuilderData initHttpClientBuilder(
+    public static HttpClientBuilder initHttpClientBuilder(
             final JetS3tRequestAuthorizer requestAuthorizer,
             Jets3tProperties jets3tProperties,
             String userAgentDescription,
@@ -400,8 +400,7 @@ public class RestUtils {
             httpClientBuilder.setRetryHandler(retryHandler);
         }
 
-        return new HttpClientBuilderData(
-            httpClientBuilder, connectionManager, retryHandler);
+        return httpClientBuilder;
     }
 
     /**
