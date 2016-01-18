@@ -50,7 +50,6 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.conn.HttpClientConnectionManager;
 import org.apache.http.entity.BasicHttpEntity;
 import org.apache.http.entity.BufferedHttpEntity;
 import org.apache.http.entity.ContentType;
@@ -79,7 +78,6 @@ import org.jets3t.service.model.StorageOwner;
 import org.jets3t.service.model.WebsiteConfig;
 import org.jets3t.service.mx.MxDelegate;
 import org.jets3t.service.security.ProviderCredentials;
-import org.jets3t.service.utils.HttpClientBuilderData;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
@@ -101,10 +99,9 @@ import com.jamesmurty.utils.XMLBuilder;
 public abstract class RestStorageService extends StorageService implements JetS3tRequestAuthorizer {
     private static final Log log = LogFactory.getLog(RestStorageService.class);
 
-    protected static enum HTTP_METHOD {PUT, POST, HEAD, GET, DELETE}
+    protected enum HTTP_METHOD {PUT, POST, HEAD, GET, DELETE}
 
     protected CloseableHttpClient httpClient;
-    protected HttpClientConnectionManager httpClientConnectionManager;
     protected CredentialsProvider credentialsProvider;
 
     protected RegionEndpointCache regionEndpointCache = null;
@@ -168,10 +165,9 @@ public abstract class RestStorageService extends StorageService implements JetS3
     @Override
     protected void initializeDefaults() {
         super.initializeDefaults();
-        HttpClientBuilderData httpClientBuilderData = this.initHttpClientBuilder();
-        this.initializeProxy(httpClientBuilderData.httpClientBuilder);
-        this.httpClientConnectionManager = httpClientBuilderData.connectionManager;
-        this.httpClient = httpClientBuilderData.httpClientBuilder.build();
+        final HttpClientBuilder httpClientBuilder = this.initHttpClientBuilder();
+        this.initializeProxy(httpClientBuilder);
+        this.httpClient = httpClientBuilder.build();
     }
 
     protected void initializeProxy(HttpClientBuilder httpClientBuilder) {
@@ -198,31 +194,29 @@ public abstract class RestStorageService extends StorageService implements JetS3
     @Override
     protected void shutdownImpl() throws ServiceException {
         shuttingDown = true;
-        HttpClientConnectionManager manager = this.getHttpConnectionManager();
-        manager.shutdown();
+        // Will shutdown connection manager
+        try {
+            httpClient.close();
+        }
+        catch(IOException e) {
+            throw new ServiceException(e);
+        }
     }
 
     /**
      * Initialise HttpClient and HttpConnectionManager objects with the configuration settings
      * appropriate for communicating with S3. By default, this method simply delegates the
-     * configuration task to {@link org.jets3t.service.utils.RestUtils#initHttpConnection(JetS3tRequestAuthorizer, org.jets3t.service.Jets3tProperties, String, org.apache.http.client.CredentialsProvider)}.
+     * configuration task to {@link org.jets3t.service.utils.RestUtils#initHttpClientBuilder(JetS3tRequestAuthorizer, Jets3tProperties, String, CredentialsProvider)}.
      * <p>
      * To alter the low-level behaviour of the HttpClient library, override this method in
      * a subclass and apply your own settings before returning the objects.
      *
      * @return configured HttpClient library client and connection manager objects.
      */
-    protected HttpClientBuilderData initHttpClientBuilder() {
+    protected HttpClientBuilder initHttpClientBuilder() {
         return RestUtils.initHttpClientBuilder(
             this, getJetS3tProperties(),
             getInvokingApplicationDescription(), getCredentialsProvider());
-    }
-
-    /**
-     * @return the manager of HTTP connections for this service.
-     */
-    public HttpClientConnectionManager getHttpConnectionManager() {
-        return this.httpClientConnectionManager;
     }
 
     /**

@@ -95,7 +95,7 @@ public class OAuthUtils {
                 jets3tProperties,
                 HTTP_USER_AGENT,
                 null  // credentialsProvider
-            ).httpClientBuilder.build(),
+            ).build(),
             implementation, clientId, clientSecret
         );
     }
