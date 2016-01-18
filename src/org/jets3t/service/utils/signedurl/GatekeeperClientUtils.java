@@ -38,18 +38,14 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.params.ConnRoutePNames;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
-import org.apache.http.params.HttpProtocolParams;
 import org.apache.http.util.EntityUtils;
 import org.apache.commons.httpclient.contrib.proxy.PluginProxyUtil;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jets3t.service.Jets3tProperties;
 import org.jets3t.service.model.S3Object;
-import org.jets3t.service.utils.HttpClientBuilderData;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
 import org.jets3t.service.utils.gatekeeper.GatekeeperMessage;
@@ -113,14 +109,13 @@ public class GatekeeperClientUtils {
                 "httpclient.stale-checking-enabled", "" + false);
         }
 
-        HttpClientBuilderData httpClientBuilderData = RestUtils.initHttpClientBuilder(
-            null,  // requestAuthorizer
-            jets3tProperties,
-            ServiceUtils.getUserAgentDescription(userAgentDescription),
-            credentialsProvider
-            );
-
-        return httpClientBuilderData.httpClientBuilder.build();
+        final HttpClientBuilder httpClientBuilder = RestUtils.initHttpClientBuilder(
+                null,  // requestAuthorizer
+                jets3tProperties,
+                ServiceUtils.getUserAgentDescription(userAgentDescription),
+                credentialsProvider
+        );
+        return httpClientBuilder.build();
     }
 
     /**

@@ -93,6 +93,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.util.EntityUtils;
@@ -128,7 +129,6 @@ import org.jets3t.service.multithread.ThreadWatcher;
 import org.jets3t.service.multithread.UpdateACLEvent;
 import org.jets3t.service.security.AWSCredentials;
 import org.jets3t.service.utils.ByteFormatter;
-import org.jets3t.service.utils.HttpClientBuilderData;
 import org.jets3t.service.utils.Mimetypes;
 import org.jets3t.service.utils.RestUtils;
 import org.jets3t.service.utils.ServiceUtils;
@@ -1599,14 +1599,14 @@ public class Uploader extends JApplet implements S3ServiceEventListener, ActionL
                 "httpclient.stale-checking-enabled", "" + false);
         }
 
-        HttpClientBuilderData httpClientBuilderData = RestUtils.initHttpClientBuilder(
+        HttpClientBuilder httpClientBuilder = RestUtils.initHttpClientBuilder(
             null,  // requestAuthorizer
             this.uploaderProperties,
             ServiceUtils.getUserAgentDescription(APPLICATION_DESCRIPTION),
             null  // credentialsProvider
             );
 
-        return httpClientBuilderData.httpClientBuilder.build();
+        return httpClientBuilder.build();
     }
 
     /**
