@@ -612,8 +612,7 @@ public class XmlResponsesSaxParser {
                 try {
                     currentObject.setLastModifiedDate(ServiceUtils.parseIso8601Date(elementText));
                 } catch (ParseException e) {
-                    throw new RuntimeException(
-                        "Non-ISO8601 date for LastModified in bucket's object listing output: "
+                    log.warn("Non-ISO8601 date for LastModified in bucket's object listing output: "
                         + elementText, e);
                 }
             } else if (name.equals("ETag")) {
@@ -705,8 +704,7 @@ public class XmlResponsesSaxParser {
                 try {
                     currentBucket.setCreationDate(ServiceUtils.parseIso8601Date(elementText));
                 } catch (ParseException e) {
-                    throw new RuntimeException(
-                        "Non-ISO8601 date for CreationDate in list buckets output: "
+                    log.warn("Non-ISO8601 date for CreationDate in list buckets output: "
                         + elementText, e);
                 }
             }
@@ -1112,8 +1110,7 @@ public class XmlResponsesSaxParser {
                 try {
                     lastModified = ServiceUtils.parseIso8601Date(elementText);
                 } catch (ParseException e) {
-                    throw new RuntimeException(
-                        "Non-ISO8601 date for LastModified in bucket's versions listing output: "
+                    log.warn("Non-ISO8601 date for LastModified in bucket's versions listing output: "
                         + elementText, e);
                 }
             } else if (name.equals("ETag")) {
