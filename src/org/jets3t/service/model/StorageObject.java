@@ -376,8 +376,7 @@ public class StorageObject extends BaseStorageItem implements Cloneable {
     public Date getLastModifiedDate() {
         Object m = getMetadata(METADATA_HEADER_LAST_MODIFIED_DATE);
         if (m == null) {
-            log.warn("Null: date getting METADATA_HEADER_LAST_MODIFIED_DATE");
-            return getMetaDataHeaderDate();            
+            return getDate();            
         }   
         else if(m instanceof Date) {
             return (Date) m;
@@ -388,10 +387,10 @@ public class StorageObject extends BaseStorageItem implements Cloneable {
         }
     }
 
-    public Date getMetaDataHeaderDate() {
+    public Date getDate() {
         Object m = getMetadata(METADATA_HEADER_DATE);
         if (m == null) {
-            log.error("Missing header date.");
+            log.error("Null: date getting METADATA_HEADER_DATE(" + METADATA_HEADER_DATE + ")");
             throw new IllegalArgumentException("Invalid metadata");
         }
         else if(m instanceof Date) {
