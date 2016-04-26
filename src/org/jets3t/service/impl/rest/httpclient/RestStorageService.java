@@ -946,6 +946,9 @@ public abstract class RestStorageService extends StorageService implements JetS3
 
             String value = objValue.toString();
 
+            // Trim whitespace in HTTP header value to comply with spec, see #230
+            value = value.trim();
+
             // Ensure user-supplied metadata values are compatible with the REST interface.
             // Key must be ASCII text, non-ASCII characters are not allowed in HTTP header names.
             boolean validAscii = false;
