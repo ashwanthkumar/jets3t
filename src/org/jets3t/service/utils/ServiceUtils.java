@@ -489,7 +489,7 @@ public class ServiceUtils {
                 }
 
                 // Parse date strings into Date objects, if necessary.
-                if ("Date".equals(key) || "Last-Modified".equals(key)) {
+                if ("Date".equalsIgnoreCase(key) || "Last-Modified".equalsIgnoreCase(key) ) {
                     if (!(value instanceof Date)) {
                         if (log.isDebugEnabled()) {
                             log.debug("Parsing date string '" + value
