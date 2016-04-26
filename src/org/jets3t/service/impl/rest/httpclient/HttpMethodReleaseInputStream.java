@@ -58,9 +58,10 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
      * Constructs an input stream based on an {@link HttpResponse} object representing an HTTP connection.
      * If a connection input stream is available, this constructor wraps the underlying input stream
      * in an {@link InterruptableInputStream} and makes that stream available. If no underlying connection
-     * is available, an empty {@link ByteArrayInputStream} is made available.
+     * is available a {@link ServiceException} is thrown.
      *
      * @param httpMethod Response from server
+     * @throws ServiceException
      */
     public HttpMethodReleaseInputStream(final HttpResponse httpMethod) throws ServiceException {
         this.httpResponse = httpMethod;
