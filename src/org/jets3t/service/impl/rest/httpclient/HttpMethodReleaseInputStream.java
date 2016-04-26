@@ -25,7 +25,7 @@ import java.io.InputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpResponse;
-import org.apache.http.util.EntityUtils;
+import org.jets3t.service.ServiceException;
 import org.jets3t.service.io.InputStreamWrapper;
 import org.jets3t.service.io.InterruptableInputStream;
 import org.jets3t.service.utils.RestUtils;
@@ -60,22 +60,14 @@ public class HttpMethodReleaseInputStream extends InputStream implements InputSt
      * in an {@link InterruptableInputStream} and makes that stream available. If no underlying connection
      * is available, an empty {@link ByteArrayInputStream} is made available.
      *
-     * @param httpMethod
+     * @param httpMethod Response from server
      */
-    public HttpMethodReleaseInputStream(HttpResponse httpMethod) {
+    public HttpMethodReleaseInputStream(final HttpResponse httpMethod) throws ServiceException {
         this.httpResponse = httpMethod;
         try {
             this.inputStream = new InterruptableInputStream(httpMethod.getEntity().getContent());
         } catch (IOException e) {
-            if (log.isWarnEnabled()) {
-                log.warn("Unable to obtain HttpMethod's response data stream", e);
-            }
-            try {
-                EntityUtils.consume(httpMethod.getEntity());
-            } catch (Exception ee){
-                // ignore
-            }
-            this.inputStream = new ByteArrayInputStream(new byte[] {}); // Empty input stream;
+            throw new ServiceException(e);
         }
     }
 
