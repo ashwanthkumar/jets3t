@@ -43,6 +43,32 @@ public class TestRestS3V4SignatureUploads extends TestCase {
         return new RestS3Service(credentials, null, null, properties);
     }
 
+    public void testUploadWithMetadata() throws Exception {
+        RestS3Service service = getStorageService(testCredentials);
+        String bucketName = "test-" + testCredentials.getAccessKey().toLowerCase() + "-metadata";
+        String objectData = "This is only a test";
+        String objectKey = "object-with-metadata";
+
+        S3Bucket s3Bucket = new S3Bucket(bucketName);
+        service.getOrCreateBucket(bucketName, "eu-central-1");
+
+        S3Object object = new S3Object(objectKey, objectData);
+        String metaWithWhitespaceValue = "   value with pre- and post-whitespace  ";
+        object.addMetadata("meta-with-whitespace", metaWithWhitespaceValue);
+        service.putObject(s3Bucket, object);
+
+        S3Object uploaded = service.getObject(bucketName, object.getKey());
+        // Confirm whitespace trimmed from metadata value, see #230
+        assertEquals(
+            metaWithWhitespaceValue.trim(),
+            uploaded.getMetadata("meta-with-whitespace"));
+        assertEquals(objectData,
+            getContentsAsString(uploaded.getDataInputStream()));
+
+        service.deleteObject(bucketName, object.getKey());
+        service.deleteBucket(bucketName);
+}
+
     public void testCanUploadAFile() throws Exception {
         RestS3Service service = getStorageService(testCredentials);
         String bucketName = "test-" + testCredentials.getAccessKey().toLowerCase() + "-file";
